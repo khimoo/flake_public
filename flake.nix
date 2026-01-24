@@ -1,9 +1,12 @@
 {
   description = "NixOS configuration in spin713";
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
+    my-secrets = {
+       url = "git+ssh://git@github.com/khimoo/myflakes.git";
+    };
     home-manager = {
-      url = "github:nix-community/home-manager/release-25.05";
+      url = "github:nix-community/home-manager/release-25.11";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     skk-jisyo = {
@@ -12,24 +15,28 @@
     };
     kiro.url = "github:johnkferguson/kiro-linux-flake";
     musnix.url = "github:musnix/musnix";  # https://github.com/musnix/musnix
+    winapps = {
+       url = "github:winapps-org/winapps";
+       inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = inputs@{ nixpkgs, home-manager, skk-jisyo, kiro, ... }:
+  outputs = inputs@{ nixpkgs, home-manager, skk-jisyo, kiro, my-secrets, ... }:
     let
+      private = my-secrets.settings;
       # 基本設定（共通部分）
       baseSettings = {
-        stateVersion = "25.05";
-        gitUsername = "khimoo";
-        gitUserEmail = "your_address@example.com";
+        gitUsername = private.gitUsername;
+        gitUserEmail = private.gitUserEmail;
         locale = "ja_JP.UTF-8";
       };
 
       # ホストごとの設定を生成するヘルパー関数
-      mkSystem = { hostname, system, username, timezone, keymap ? "us" }:
+      mkSystem = { hostname, system, username, timezone, keymap ? "us", stateVersion }:
         let
           # 基本設定をマージし、引数で渡された設定で上書き
           settings = baseSettings // {
-            inherit hostname system username timezone keymap;
+            inherit hostname system username timezone keymap stateVersion;
           };
 
           pkgs = import nixpkgs { inherit system; };
@@ -42,24 +49,17 @@
           };
         in
         nixpkgs.lib.nixosSystem {
-          specialArgs = { inherit skk-dict kiro; inherit settings; };
+          specialArgs = { inherit inputs; inherit skk-dict kiro; inherit settings; };
           inherit system;
           modules = [
             inputs.musnix.nixosModules.musnix
-            (./hosts/${hostname}/configuration.nix)
+            (./hosts/${hostname}/default.nix)
             home-manager.nixosModules.home-manager
             {
               home-manager = {
                 backupFileExtension = "bak";
                 extraSpecialArgs = { inherit skk-dict kiro; inherit settings; };
-                users.${username} = {
-                  imports = [
-                    ./home-manager/home-manager.nix
-                  ]
-                  ++ nixpkgs.lib.optional
-                    ( builtins.pathExists ./hosts/${hostname}/home-manager-ex.nix )
-                    ./hosts/${hostname}/home-manager-ex.nix;
-                };
+                users.${username} = import ./hosts/${hostname}/home.nix;
               };
             }
             {
@@ -78,6 +78,7 @@
           username = "pomu";
           timezone = "Asia/Tokyo";
           keymap = "us";
+          stateVersion = "25.05";
         };
 
         nixos-desktop = mkSystem {
@@ -86,6 +87,7 @@
           username = "pomu";
           timezone = "Asia/Tokyo";
           keymap = "us";
+          stateVersion = "25.05";
         };
       };
     };

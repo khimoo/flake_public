@@ -9,6 +9,15 @@
   boot.initrd.kernelModules = [ ];
   boot.kernelModules = [ "kvm-intel" ];
   boot.extraModulePackages = [ ];
+  boot.kernelParams = [ "mem_sleep_default=s2idle" ];
+  services.logind.settings.Login = {
+    HandleLidSwitch = "suspend-then-hibernate";
+    HandleLidSwitchDocked = "suspend";
+    HandleLidSwitchExternalPower = "ignore";
+  };
+  systemd.sleep.extraConfig = ''
+    HibernateDelaySec=10m
+  '';
 
   fileSystems."/" = {
     device = "/dev/disk/by-uuid/dc4c4fad-614c-44d5-95b8-56d0307cc5fa";

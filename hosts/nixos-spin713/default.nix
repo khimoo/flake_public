@@ -4,9 +4,9 @@
 
 { config, pkgs, specialArgs, ... }: {
   imports = [ # Include the results of the hardware scan.
-    ./hardware-configuration.nix
-    ./chrome-device.nix
-    ../common-hosts/default.nix
+    ./hardware.nix
+    ./chrome-audio.nix
+    ../../modules/nixos/common.nix
   ];
 
   # /nix/配下をSDカードにしてる場合の設定
@@ -15,5 +15,4 @@
     requires = [ "nix.mount" ];
   };
   programs.niri.enable = true;
-  environment.sessionVariables.NIXOS_OZONE_WL = "1";
 }

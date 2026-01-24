@@ -112,15 +112,24 @@ in {
       };
     };
   };
+  # タイピング中はタッチパッドを無効化
+  environment.etc."libinput/local-overrides.quirks".text = pkgs.lib.mkForce ''
+    [Serial Keyboards]
+    MatchUdevType=keyboard
+    MatchName=keyd virtual keyboard
+    AttrKeyboardIntegration=internal
+  '';
 
   # add your audio setup modprobes here
 
   environment = {
-    systemPackages = [ pkgs.sof-firmware ];
+    systemPackages = with pkgs; [ sof-firmware alsa-utils ];
     sessionVariables.ALSA_CONFIG_UCM2 = "${cb-ucm-conf}/share/alsa/ucm2";
     # AUDIO SETUP FOR < 23.11 AND UNSTABLE
   };
 
+  services.pulseaudio.enable = false;
+  security.rtkit.enable = true;
   # AUDIO SETUP FOR > 24.05
   services.pipewire.wireplumber.configPackages = [
     (pkgs.writeTextDir "share/wireplumber/main.lua.d/51-avs-dmic.lua" ''

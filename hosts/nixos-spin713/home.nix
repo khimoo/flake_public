@@ -1,11 +1,17 @@
 { skk-dict, settings, config, pkgs, lib, ... }:
+
 {
-  # Host-specific dconf overrides for nixos-spin713.
+  imports = [
+    ../../modules/home-manager/core.nix
+    ../../modules/home-manager/gui.nix
+    ../../modules/home-manager/dev.nix
+    ../../modules/home-manager/desktop-entry.nix
+  ];
+
   dconf = {
     enable = true;
     settings = {
       "org/gnome/desktop/interface" = {
-        # Only this host should have scaled text
         text-scaling-factor = 1.25;
       };
     };

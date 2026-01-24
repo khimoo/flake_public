@@ -2,14 +2,6 @@
 # 複数のNixOSホストで共有される設定
 
 { config, pkgs, specialArgs, ... }: {
-  # 自動アップグレード設定
-  system.autoUpgrade = {
-    enable = true;
-    flake = "/etc/nixos#nixos";
-    flags = [ "--recreate-lock-file" "nixpkgs" ];
-    dates = "Sat *-*-* 04:00:00"; # 毎週土曜4時
-  };
-
   # ブートローダー設定
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
@@ -38,8 +30,8 @@
 
   # X11設定
   services.xserver.enable = true;
-  services.xserver.displayManager.gdm.enable = true;
-  services.xserver.desktopManager.gnome.enable = true;
+  services.displayManager.gdm.enable = true;
+  services.desktopManager.gnome.enable = true;
 
   # キーマップ設定
   services.xserver.xkb = {
@@ -48,16 +40,14 @@
   };
 
   # 印刷設定
-  services.printing.enable = true;
-
-  # 音声設定（PipeWire）
-  services.pulseaudio.enable = false;
-  security.rtkit.enable = true;
-  services.pipewire = {
+  services.printing = {
     enable = true;
-    alsa.enable = true;
-    alsa.support32Bit = true;
-    pulse.enable = true;
+    drivers = [ pkgs.gutenprint ];
+  };
+  services.avahi = { # 自動でネットワークプリント設定
+    enable = true;
+    nssmdns4 = true;
+    openFirewall = true;
   };
 
   # ユーザー設定
@@ -93,4 +83,42 @@
   networking.firewall.allowedUDPPortRanges = [
     { from = 1714; to = 1764; }
   ];
+  hardware.bluetooth = {
+    enable = true;
+    powerOnBoot = true;
+    settings = {
+      General = {
+        # オーディオ関連のプロファイルを明示的に有効化
+        Enable = "Source,Sink,Media,Socket";
+        # 一部のイヤホンで接続を安定させる設定
+        ControllerMode = "dual";
+        FastConnectable = "true";
+        Experimental = "true";
+      };
+      Policy = { AutoEnable = "true"; };
+    };
+  };
+  hardware.graphics = {
+    enable = true;
+    enable32Bit = true;
+  };
+
+  # qemu/kvmなどで使う"default"というNICを自動で起動させる
+  systemd.services.libvirt-network-autostart = {
+    description = "Enable autostart for libvirt default network";
+    after = [ "libvirtd.service" ];
+    requires = [ "libvirtd.service" ];
+    wantedBy = [ "multi-user.target" ];
+
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "${pkgs.libvirt}/bin/virsh net-autostart default";
+      RemainAfterExit = "yes";
+    };
+  };
+
+  # sudo nixos-rebuild switchでsshキーを引き継ぐ
+  security.sudo.extraConfig = ''
+    Defaults env_keep += "SSH_AUTH_SOCK"
+  '';
 }
