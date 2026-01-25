@@ -27,6 +27,9 @@ Gitのユーザー名やメールアドレスなどの情報は、`flake.nix` �
 
 こうすると、/etc/nixos/flake.nixのホスト名が環境のホスト名と一致する上、/etc/nixos/flake.nixからはこのリポジトリの各ファイルが見えるようになるので、カレントディレクトリを問わずsudo nixos-rebuild switchが実行できるようになります。
 ただし、現在の構成ではメールアドレスの設定に別のリポジトリを参照しているため、初回のsudo nixos-rebuild switchでは、SSHの環境変数をsudoに渡す必要があるかもしれません。
+```bash
+sudo --preserve-env=SSH_AUTH_SOCK nixos-rebuild switch
+```
 
 ### 新しいホストの追加方法
 1.  `hosts/` ディレクトリ配下に新しいホスト名のディレクトリを作成します（例: `hosts/my-new-host/`）。
