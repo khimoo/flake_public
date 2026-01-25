@@ -69,6 +69,8 @@ in {
         ++ [ "networkmanager" ]
         ++ lib.optionals (user.isAdmin or false) [ "wheel" ];
       shell = user.shell or pkgs.nushell;
+      initialPassword = user.initialPassword or null;
+      hashedPassword = user.hashedPassword or null;
     }
   );
 

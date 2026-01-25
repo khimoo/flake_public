@@ -110,11 +110,11 @@
     },
     "my-secrets": {
       "locked": {
-        "lastModified": 1769350050,
-        "narHash": "sha256-aJLgREVyYxCGwzai/mWeAWfrDPFFL6eWie3AhXz8g7Q=",
+        "lastModified": 1769351366,
+        "narHash": "sha256-Qoy4+OtKzM6QMDFNC/A07hp3cwzWJ9Anx+6VgFS+RW4=",
         "ref": "refs/heads/main",
-        "rev": "e304e5317bd2401d0da93158c00a08c9f5672c89",
-        "revCount": 1,
+        "rev": "d8fc015c4e07af5161fb41837a99ed5ee3a59049",
+        "revCount": 2,
         "type": "git",
         "url": "ssh://git@github.com/khimoo/flake_private.git"
       },
