@@ -1,4 +1,4 @@
-{ settings, config, pkgs, lib, ... }:
+{ kiro, settings, config, pkgs, lib, ... }:
 
 let
   lspServers = [
@@ -11,6 +11,7 @@ let
 
 in {
   home.packages = with pkgs; [
+    kiro.packages.${pkgs.system}.default
     vscode
     jetbrains.idea
   ] ++ map (s: s.pkg) lspServers;

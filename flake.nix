@@ -65,11 +65,6 @@
                 }) (builtins.filter (user: user.manageHome or true) users));
               };
             }
-            {
-              environment.systemPackages = [
-                inputs.kiro.packages.${system}.default
-              ];
-            }
           ];
         };
 

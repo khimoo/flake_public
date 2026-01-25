@@ -1,7 +1,7 @@
 # 共通ホスト設定
 # 複数のNixOSホストで共有される設定
 
-{ config, pkgs, specialArgs, lib, ... }:
+{ config, pkgs, specialArgs, lib, inputs, ... }:
 
 let
   users = specialArgs.settings.users or [];
@@ -82,6 +82,7 @@ in {
 
   # システムパッケージ
   environment.systemPackages = with pkgs; [
+    inputs.home-manager.packages.${pkgs.system}.home-manager # manageHome = falseの人もhome-manager使えるようにしてる
     gparted
     gnomeExtensions.gsconnect
   ];
