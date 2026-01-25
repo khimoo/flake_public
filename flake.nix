@@ -1,5 +1,5 @@
 {
-  description = "NixOS configuration in spin713";
+  description = "NixOS configuration";
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
     my-secrets = {

@@ -98,10 +98,6 @@
       Policy = { AutoEnable = "true"; };
     };
   };
-  hardware.graphics = {
-    enable = true;
-    enable32Bit = true;
-  };
 
   # qemu/kvmなどで使う"default"というNICを自動で起動させる
   systemd.services.libvirt-network-autostart = {

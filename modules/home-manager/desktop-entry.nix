@@ -30,12 +30,6 @@ let
       desktopName = "spotify.desktop";
       execArgs = "--enable-features=UseOzonePlatform --ozone-platform=wayland --enable-wayland-ime --wayland-text-input-version=3";
     }
-    {
-      pkg = pkgs.steam;
-      desktopName = "steam.desktop";
-      execArgs = "--enable-features=UseOzonePlatform --ozone-platform=wayland --enable-wayland-ime --wayland-text-input-version=3";
-      binName = "steam";
-    }
   ];
 
   cursorConfig = {

@@ -10,7 +10,6 @@ Gitのユーザー名やメールアドレスなどの情報は、`flake.nix` �
   description = "プライベートリポジトリ";
 
   outputs = { self }: {
-    # ここに秘密にしたい情報を定義する
     settings = {
       gitUsername = "your-name";
       gitUserEmail = "hogefugapiyo@example.com";
