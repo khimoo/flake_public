@@ -43,10 +43,16 @@ nixosConfigurations = {
   my-new-host = mkSystem {
     hostname = "my-new-host";
     system = "x86_64-linux";
-    username = "pomu";
+    username = "username";
     timezone = "Asia/Tokyo";
     keymap = "us";
-    stateVersion = "25.05";
+    stateVersion = "25.11";
   };
 };
+```
+
+### その他
+my-secretsリポジトリを更新した際は以下でupdateする
+```nix
+nix flake update my-secrets
 ```

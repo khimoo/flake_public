@@ -110,17 +110,17 @@
     },
     "my-secrets": {
       "locked": {
-        "lastModified": 1769272408,
-        "narHash": "sha256-VHzVxFqeDlPgU/Z5I/E9cIvdMQ9HWeTuIYJ4QIg42rs=",
+        "lastModified": 1769350050,
+        "narHash": "sha256-aJLgREVyYxCGwzai/mWeAWfrDPFFL6eWie3AhXz8g7Q=",
         "ref": "refs/heads/main",
-        "rev": "71369258744be74fb99246445061488edb9352cc",
-        "revCount": 133,
+        "rev": "e304e5317bd2401d0da93158c00a08c9f5672c89",
+        "revCount": 1,
         "type": "git",
-        "url": "ssh://git@github.com/khimoo/myflakes.git"
+        "url": "ssh://git@github.com/khimoo/flake_private.git"
       },
       "original": {
         "type": "git",
-        "url": "ssh://git@github.com/khimoo/myflakes.git"
+        "url": "ssh://git@github.com/khimoo/flake_private.git"
       }
     },
     "nix-filter": {

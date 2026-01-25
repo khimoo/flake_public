@@ -1,7 +1,15 @@
 # 共通ホスト設定
 # 複数のNixOSホストで共有される設定
 
-{ config, pkgs, specialArgs, ... }: {
+{ config, pkgs, specialArgs, lib, ... }:
+
+let
+  users = specialArgs.settings.users or [];
+  usersByName = builtins.listToAttrs (map (user: {
+    name = user.username;
+    value = user;
+  }) users);
+in {
   # ブートローダー設定
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
@@ -51,12 +59,18 @@
   };
 
   # ユーザー設定
-  users.users.${specialArgs.settings.username} = {
-    isNormalUser = true;
-    description = specialArgs.settings.username;
-    extraGroups = [ "networkmanager" "wheel" ];
-    shell = pkgs.nushell;
-  };
+  users.users = lib.genAttrs (builtins.attrNames usersByName) (username:
+    let
+      user = usersByName.${username};
+    in {
+      isNormalUser = true;
+      description = user.description or username;
+      extraGroups = (user.extraGroups or [])
+        ++ [ "networkmanager" ]
+        ++ lib.optionals (user.isAdmin or false) [ "wheel" ];
+      shell = user.shell or pkgs.nushell;
+    }
+  );
 
   # Firefox設定
   programs.firefox.enable = true;
