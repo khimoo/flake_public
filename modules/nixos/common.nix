@@ -68,7 +68,7 @@ in {
       extraGroups = (user.extraGroups or [])
         ++ [ "networkmanager" ]
         ++ lib.optionals (user.isAdmin or false) [ "wheel" ];
-      shell = user.shell or pkgs.nushell;
+      shell = user.shell or pkgs.bash;
       initialPassword = user.initialPassword or null;
       hashedPassword = user.hashedPassword or null;
     }

@@ -10,7 +10,7 @@
   ];
 
   # /nix/配下をSDカードにしてる場合の設定
-  systemd.services."home-manager-${specialArgs.settings.username}" = {
+  systemd.services."home-manager-${(builtins.head specialArgs.settings.users).username}" = {
     after = [ "nix.mount" "nix-daemon.service" ];
     requires = [ "nix.mount" ];
   };

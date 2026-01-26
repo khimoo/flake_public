@@ -15,15 +15,14 @@
     ghostscript
   ];
 
-  systemd.user.sessionVariables = {
-    EDITOR = "nvim";
-    SKK_DICTIONARY_PATH = "${skk-dict}";
-  };
-
   programs = {
     home-manager.enable = true;
     nushell = {
       enable = true;
+      environmentVariables = {
+        EDITOR = "nvim";
+        SKK_DICTIONARY_PATH = "${skk-dict}";
+      };
       shellAliases = {
         ghcs = "gh copilot suggest";
         ghce = "gh copilot explain";

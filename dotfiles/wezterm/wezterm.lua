@@ -7,6 +7,9 @@ if wezterm.config_builder then
   config = wezterm.config_builder()
 end
 
+-- デフォルトシェルをnushellに設定
+config.default_prog = { 'nu' }
+
 local handle = io.popen("which bash")
 local bash_path = handle:read("*l")
 handle:close()
