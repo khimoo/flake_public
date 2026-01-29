@@ -3,6 +3,7 @@
     ./hardware.nix
     ../../modules/nixos/common.nix
   ];
+  boot.kernelParams = [ "btusb.enable_autosuspend=n" ];
 
   virtualisation.libvirtd = {
     enable = true;
