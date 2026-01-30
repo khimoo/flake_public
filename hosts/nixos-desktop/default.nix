@@ -28,9 +28,4 @@
     pulse.enable = true;
     wireplumber.enable = true;
   };
-
-  # Home Manager管理下の全ユーザーでUnfree(非自由)パッケージを許可
-  home-manager.sharedModules = [
-    { nixpkgs.config.allowUnfree = true; }
-  ];
 }
