@@ -18,6 +18,7 @@ in {
     wine64
     steam
     blender-hip
+    brave
   ] ++ extraGnomeExtensionsList;
 
   dconf.settings."org/gnome/shell".enabled-extensions =
