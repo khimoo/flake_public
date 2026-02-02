@@ -40,7 +40,10 @@ in {
   fonts.fontconfig = { enable = true; };
 
   programs.foliate.enable = true;
-  programs.anki.enable = true;
+  programs.anki = {
+    enable = true;
+    language = "ja_JP";
+  };
 
   xdg.configFile."wezterm/wezterm.lua".source = ../../dotfiles/wezterm/wezterm.lua;
 
