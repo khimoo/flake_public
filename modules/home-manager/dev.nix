@@ -27,6 +27,7 @@ in {
     defaultEditor = true;
     withNodeJs = true;
     extraPackages = with pkgs; [
+      tree
       deno
       ripgrep
       xclip
