@@ -1,1 +1,8 @@
 *.vscode/
+
+# シークレット・APIキー（公開リポジトリに含めない）
+*-secrets.nix
+openclaw-secrets.nix
+.env
+.env.local
+.env.*.local

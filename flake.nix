@@ -19,9 +19,10 @@
        url = "github:winapps-org/winapps";
        inputs.nixpkgs.follows = "nixpkgs";
     };
+    nix-openclaw.url = "github:openclaw/nix-openclaw";
   };
 
-  outputs = inputs@{ nixpkgs, home-manager, skk-jisyo, kiro, my-secrets, ... }:
+  outputs = inputs@{ nixpkgs, home-manager, skk-jisyo, kiro, my-secrets, nix-openclaw, ... }:
     let
       private = my-secrets.settings;
       # 基本設定（共通部分）
@@ -31,15 +32,27 @@
         locale = "ja_JP.UTF-8";
       };
 
+      # OpenClaw シークレット: どの Git リポジトリにも置かず、ローカルファイルのみ参照する。
+      # OPENCLAW_SECRETS_NIX で Nix ファイルの絶対パスを指定し、--impure でビルドする。
+      openclawSecretsPathStr = builtins.getEnv "OPENCLAW_SECRETS_NIX";
+      openclawSecretsPath = if openclawSecretsPathStr != "" then (/. + openclawSecretsPathStr) else null;
+      openclawSecrets = if openclawSecretsPath != null && builtins.pathExists openclawSecretsPath
+        then import openclawSecretsPath
+        else { };
+
       # ホストごとの設定を生成するヘルパー関数
       mkSystem = { hostname, system, users, timezone, keymap ? "us", stateVersion }:
         let
-          # 基本設定をマージし、引数で渡された設定で上書き
+          # 基本設定をマージ。openclaw はリポジトリ外のファイル（OPENCLAW_SECRETS_NIX）からのみ取得
           settings = baseSettings // {
             inherit hostname system users timezone keymap stateVersion;
+            openclaw = openclawSecrets;
           };
 
-          pkgs = import nixpkgs { inherit system; };
+          pkgs = import nixpkgs {
+            inherit system;
+            overlays = [ nix-openclaw.overlays.default ];
+          };
           skk-dict = pkgs.stdenv.mkDerivation {
             name = "skk-jisyo-dict";
             src = skk-jisyo;
@@ -54,11 +67,21 @@
           modules = [
             inputs.musnix.nixosModules.musnix
             (./hosts/${hostname}/default.nix)
+            # nix-openclaw overlay (home-manager の pkgs にも反映するため NixOS 側にも設定)
+            ({ specialArgs, ... }: {
+              nixpkgs.overlays = [ specialArgs.inputs.nix-openclaw.overlays.default ];
+            })
             home-manager.nixosModules.home-manager
             {
               home-manager = {
+                useGlobalPkgs = true;
                 backupFileExtension = "bak";
-                extraSpecialArgs = { inherit skk-dict kiro; inherit settings; };
+                extraSpecialArgs = {
+                  inherit skk-dict kiro;
+                  inherit settings;
+                  nix-openclaw = inputs.nix-openclaw;
+                  openclawDocumentsPath = ./hosts/nixos-desktop/openclaw-documents;
+                };
                 users = builtins.listToAttrs (map (user: {
                   name = user.username;
                   value = import (user.homeFile or ./hosts/${hostname}/home.nix);
