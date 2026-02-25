@@ -34,6 +34,7 @@ in {
       nil
       nixfmt-rfc-style
       vscode-extensions.vadimcn.vscode-lldb
+      antigravity-fhs
     ];
     plugins = with pkgs.vimPlugins; [
       lazy-nvim
