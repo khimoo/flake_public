@@ -10,9 +10,11 @@
 
   boot.kernelPackages = pkgs.linuxPackages_latest; # blender-hipを使うために最新版(https://wiki.nixos.org/wiki/AMD_GPU)
   boot.initrd.availableKernelModules = [ "xhci_pci" "ahci" "nvme" "usbhid" "usb_storage" "sd_mod" ];
-  boot.initrd.kernelModules = [ ];
+  boot.initrd.kernelModules = [ "v4l2loopback" ];
   boot.kernelModules = [ "kvm-amd" ];
-  boot.extraModulePackages = [ ];
+  boot.extraModulePackages = with config.boot.kernelPackages; [ v4l2loopback ];
+
+  environment.systemPackages = with pkgs; [ droidcam ];
 
   fileSystems."/" =
     { device = "/dev/disk/by-uuid/ba34f80b-e2bf-4c8e-9c49-39451eef7433";
