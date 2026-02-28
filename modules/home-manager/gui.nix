@@ -29,6 +29,7 @@ in {
     teams-for-linux
     vmpk
     vlc
+    obs-studio
 
     ipafont
     ipaexfont
