@@ -28,6 +28,7 @@ in {
     bitwarden-desktop
     teams-for-linux
     vmpk
+    vlc
 
     ipafont
     ipaexfont
