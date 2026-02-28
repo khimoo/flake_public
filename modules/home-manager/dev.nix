@@ -14,6 +14,9 @@ in {
     kiro.packages.${pkgs.system}.default
     vscode
     jetbrains.idea
+    tree
+    antigravity-fhs
+    claude-code
   ] ++ map (s: s.pkg) lspServers;
 
   systemd.user.sessionVariables = {
@@ -27,15 +30,12 @@ in {
     defaultEditor = true;
     withNodeJs = true;
     extraPackages = with pkgs; [
-      tree
       deno
       ripgrep
       xclip
       nil
       nixfmt-rfc-style
       vscode-extensions.vadimcn.vscode-lldb
-      antigravity-fhs
-      claude-code
     ];
     plugins = with pkgs.vimPlugins; [
       lazy-nvim
