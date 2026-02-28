@@ -66,7 +66,7 @@ in {
       isNormalUser = true;
       description = user.description or username;
       extraGroups = (user.extraGroups or [])
-        ++ [ "networkmanager" "libvirtd" ]
+        ++ [ "networkmanager" "libvirtd" "adbusers" ]
         ++ lib.optionals (user.isAdmin or false) [ "wheel" ];
       shell = user.shell or pkgs.bash;
       initialPassword = user.initialPassword or null;
@@ -74,8 +74,9 @@ in {
     }
   );
 
-  # Firefox設定
   programs.firefox.enable = true;
+
+  programs.adb.enable = true;
 
   # 非フリーパッケージの許可
   nixpkgs.config.allowUnfree = true;
