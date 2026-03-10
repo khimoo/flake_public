@@ -39,11 +39,11 @@
         };
 
       # ホストごとの設定を生成するヘルパー関数
-      mkSystem = { hostname, system, users, timezone, keymap ? "us", stateVersion }:
+      mkSystem = { hostname, system, users, timezone, keymap ? "us", stateVersion, primaryUser ? (builtins.head users).username }:
         let
           # 基本設定をマージし、引数で渡された設定で上書き
           settings = baseSettings // {
-            inherit hostname system users timezone keymap stateVersion;
+            inherit hostname system users timezone keymap stateVersion primaryUser;
           };
 
           skk-dict = mkSkkDict system;
@@ -69,7 +69,7 @@
         };
 
       # スタンドアロンhome-manager設定を生成するヘルパー関数
-      mkHome = { username, system, homeFile, stateVersion, extraSettings ? {} }:
+      mkHome = { username, system, homeFile, stateVersion, allowUnfree ? false, extraSettings ? {} }:
         let
           pkgs = nixpkgs.legacyPackages.${system};
           skk-dict = mkSkkDict system;
@@ -83,6 +83,8 @@
           modules = [
             homeFile
             {
+              # NixOSモジュールとして使う場合はmodules/nixos/nix-settings.nixで別途設定される
+              nixpkgs.config.allowUnfree = allowUnfree;
               home.username = username;
               home.homeDirectory = "/home/${username}";
             }
@@ -94,6 +96,7 @@
         nixos-spin713 = mkSystem {
           hostname = "nixos-spin713";
           system = "x86_64-linux";
+          primaryUser = "pomu";
           users = [
             {
               username = "pomu";
@@ -137,6 +140,7 @@
           system = "x86_64-linux";
           homeFile = ./hosts/nixos-spin713/home.nix;
           stateVersion = "25.05";
+          allowUnfree = true;
         };
 
         "pomu-desktop" = mkHome {
@@ -144,6 +148,7 @@
           system = "x86_64-linux";
           homeFile = ./hosts/nixos-desktop/home-manager-pomu.nix;
           stateVersion = "25.05";
+          allowUnfree = true;
         };
       };
     };

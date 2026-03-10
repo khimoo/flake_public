@@ -4,11 +4,18 @@ let
   createWaylandDesktopEntry = { pkg, desktopName, execArgs, binName ? null }:
     let
       originalDesktop = "${pkg}/share/applications/${desktopName}";
-      originalContent = builtins.readFile originalDesktop;
       execCmd = if binName != null then binName else pkg.pname;
       newContent = pkgs.runCommand "modified-${desktopName}" {} ''
-        echo "${originalContent}" > $out
+        cp ${originalDesktop} $out
+        if ! grep -q '^Exec=' $out; then
+          echo "ERROR: No Exec= line found in ${desktopName}" >&2
+          exit 1
+        fi
         sed -i 's|^Exec=.*|Exec=${execCmd} ${execArgs} %U|' $out
+        if ! grep -q '^Exec=${execCmd}' $out; then
+          echo "ERROR: sed replacement failed for ${desktopName}" >&2
+          exit 1
+        fi
       '';
     in
       newContent;
@@ -87,15 +94,22 @@ in {
 
     if [ ! -f "${cursorConfig.icon}" ]; then
       echo "Downloading Cursor icon..."
-      $DRY_RUN_CMD ${pkgs.curl}/bin/curl -L "${cursorConfig.iconUrl}" -o "${cursorConfig.icon}"
+      if ! $DRY_RUN_CMD ${pkgs.curl}/bin/curl -fL "${cursorConfig.iconUrl}" -o "${cursorConfig.icon}"; then
+        echo "WARNING: Failed to download Cursor icon from ${cursorConfig.iconUrl}" >&2
+      fi
     fi
 
     if [ -f "${cursorConfig.appImage}" ]; then
       echo "Existing Cursor found. Checking for updates..."
-      $DRY_RUN_CMD ${pkgs.curl}/bin/curl -z "${cursorConfig.appImage}" -L "${cursorConfig.url}" -o "${cursorConfig.appImage}"
+      if ! $DRY_RUN_CMD ${pkgs.curl}/bin/curl -fz "${cursorConfig.appImage}" -L "${cursorConfig.url}" -o "${cursorConfig.appImage}"; then
+        echo "WARNING: Failed to check for Cursor updates. Keeping existing version." >&2
+      fi
     else
       echo "Installing Cursor for the first time..."
-      $DRY_RUN_CMD ${pkgs.curl}/bin/curl -L "${cursorConfig.url}" -o "${cursorConfig.appImage}"
+      if ! $DRY_RUN_CMD ${pkgs.curl}/bin/curl -fL "${cursorConfig.url}" -o "${cursorConfig.appImage}"; then
+        echo "ERROR: Failed to download Cursor AppImage from ${cursorConfig.url}" >&2
+        exit 1
+      fi
     fi
 
     $DRY_RUN_CMD chmod +x "${cursorConfig.appImage}"
