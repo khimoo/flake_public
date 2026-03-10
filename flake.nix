@@ -27,6 +27,17 @@
         locale = "ja_JP.UTF-8";
       };
 
+      # SKK辞書の生成（system別にキャッシュ）
+      mkSkkDict = system:
+        let pkgs = nixpkgs.legacyPackages.${system};
+        in pkgs.stdenv.mkDerivation {
+          name = "skk-jisyo-dict";
+          src = skk-jisyo;
+          nativeBuildInputs = [ pkgs.gzip ];
+          unpackPhase = "gzip -d < $src > $out";
+          dontInstall = true;
+        };
+
       # ホストごとの設定を生成するヘルパー関数
       mkSystem = { hostname, system, users, timezone, keymap ? "us", stateVersion }:
         let
@@ -35,14 +46,7 @@
             inherit hostname system users timezone keymap stateVersion;
           };
 
-          pkgs = import nixpkgs { inherit system; };
-          skk-dict = pkgs.stdenv.mkDerivation {
-            name = "skk-jisyo-dict";
-            src = skk-jisyo;
-            nativeBuildInputs = [ pkgs.gzip ];
-            unpackPhase = "gzip -d < $src > $out";
-            dontInstall = true;
-          };
+          skk-dict = mkSkkDict system;
         in
         nixpkgs.lib.nixosSystem {
           specialArgs = { inherit inputs; inherit skk-dict kiro; inherit settings; };
@@ -60,6 +64,27 @@
                   value = import (user.homeFile or ./hosts/${hostname}/home.nix);
                 }) (builtins.filter (user: user.manageHome or true) users));
               };
+            }
+          ];
+        };
+
+      # スタンドアロンhome-manager設定を生成するヘルパー関数
+      mkHome = { username, system, homeFile, stateVersion, extraSettings ? {} }:
+        let
+          pkgs = nixpkgs.legacyPackages.${system};
+          skk-dict = mkSkkDict system;
+          settings = baseSettings // {
+            inherit system stateVersion;
+          } // extraSettings;
+        in
+        home-manager.lib.homeManagerConfiguration {
+          inherit pkgs;
+          extraSpecialArgs = { inherit skk-dict kiro; inherit settings; };
+          modules = [
+            homeFile
+            {
+              home.username = username;
+              home.homeDirectory = "/home/${username}";
             }
           ];
         };
@@ -100,6 +125,24 @@
           ];
           timezone = "Asia/Tokyo";
           keymap = "us";
+          stateVersion = "25.05";
+        };
+      };
+
+      # スタンドアロンhome-manager設定（NixOS以外の環境用）
+      # 使い方: home-manager switch --flake .#pomu-spin713
+      homeConfigurations = {
+        "pomu-spin713" = mkHome {
+          username = "pomu";
+          system = "x86_64-linux";
+          homeFile = ./hosts/nixos-spin713/home.nix;
+          stateVersion = "25.05";
+        };
+
+        "pomu-desktop" = mkHome {
+          username = "pomu";
+          system = "x86_64-linux";
+          homeFile = ./hosts/nixos-desktop/home-manager-pomu.nix;
           stateVersion = "25.05";
         };
       };
