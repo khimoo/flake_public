@@ -70,6 +70,7 @@ in {
         ++ lib.optionals (user.isAdmin or false) [ "wheel" ];
       shell = user.shell or pkgs.bash;
       initialPassword = user.initialPassword or null;
+      initialHashedPassword = user.initialHashedPassword or null;
       hashedPassword = user.hashedPassword or null;
     }
   );

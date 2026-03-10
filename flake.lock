@@ -57,11 +57,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1772020340,
-        "narHash": "sha256-aqBl3GNpCadMoJ/hVkWTijM1Aeilc278MjM+LA3jK6g=",
+        "lastModified": 1772985280,
+        "narHash": "sha256-FdrNykOoY9VStevU4zjSUdvsL9SzJTcXt4omdEDZDLk=",
         "owner": "nix-community",
         "repo": "home-manager",
-        "rev": "36e38ca0d9afe4c55405fdf22179a5212243eecc",
+        "rev": "8f736f007139d7f70752657dff6a401a585d6cbc",
         "type": "github"
       },
       "original": {
@@ -95,32 +95,17 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1767232402,
-        "narHash": "sha256-li+h6crnhc5Zqs+M6pn7D7M0W9M63ECNennDjRgzioE=",
+        "lastModified": 1773094728,
+        "narHash": "sha256-lKS43JoXvQr4yc/B+x6jXZ7gme8O7RWIml3DXxvy4SA=",
         "owner": "musnix",
         "repo": "musnix",
-        "rev": "d65f98e0b1f792365f1705653d7b2d266ceeff6e",
+        "rev": "2015a0bc8f83aad36237a4284c96e411f191260f",
         "type": "github"
       },
       "original": {
         "owner": "musnix",
         "repo": "musnix",
         "type": "github"
-      }
-    },
-    "my-secrets": {
-      "locked": {
-        "lastModified": 1769351366,
-        "narHash": "sha256-Qoy4+OtKzM6QMDFNC/A07hp3cwzWJ9Anx+6VgFS+RW4=",
-        "ref": "refs/heads/main",
-        "rev": "d8fc015c4e07af5161fb41837a99ed5ee3a59049",
-        "revCount": 2,
-        "type": "git",
-        "url": "ssh://git@github.com/khimoo/flake_private.git"
-      },
-      "original": {
-        "type": "git",
-        "url": "ssh://git@github.com/khimoo/flake_private.git"
       }
     },
     "nix-filter": {
@@ -172,11 +157,11 @@
     },
     "nixpkgs_3": {
       "locked": {
-        "lastModified": 1772047000,
-        "narHash": "sha256-7DaQVv4R97cii/Qdfy4tmDZMB2xxtyIvNGSwXBBhSmo=",
+        "lastModified": 1772822230,
+        "narHash": "sha256-yf3iYLGbGVlIthlQIk5/4/EQDZNNEmuqKZkQssMljuw=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "1267bb4920d0fc06ea916734c11b0bf004bbe17e",
+        "rev": "71caefce12ba78d84fe618cf61644dce01cf3a96",
         "type": "github"
       },
       "original": {
@@ -191,7 +176,6 @@
         "home-manager": "home-manager",
         "kiro": "kiro",
         "musnix": "musnix",
-        "my-secrets": "my-secrets",
         "nixpkgs": "nixpkgs_3",
         "skk-jisyo": "skk-jisyo",
         "winapps": "winapps"
@@ -249,11 +233,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1771065758,
-        "narHash": "sha256-TlN8gw6C8csT875yTpUC31AKSVM2pVHXzA26Eo0tcEM=",
+        "lastModified": 1772376272,
+        "narHash": "sha256-+noIOy+/dZ5KiOJsc+QytK06giN6+beadm5SzW4Gy1k=",
         "owner": "winapps-org",
         "repo": "winapps",
-        "rev": "860710bb26e5afb040dd83b312a5a7afeee2d0bb",
+        "rev": "07d7fa4ec139d00434cf03444b2c031540b9871d",
         "type": "github"
       },
       "original": {

@@ -2,9 +2,6 @@
   description = "NixOS configuration";
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
-    my-secrets = {
-       url = "git+ssh://git@github.com/khimoo/flake_private.git";
-    };
     home-manager = {
       url = "github:nix-community/home-manager/release-25.11";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -21,13 +18,12 @@
     };
   };
 
-  outputs = inputs@{ nixpkgs, home-manager, skk-jisyo, kiro, my-secrets, ... }:
+  outputs = inputs@{ nixpkgs, home-manager, skk-jisyo, kiro, ... }:
     let
-      private = my-secrets.settings;
       # 基本設定（共通部分）
       baseSettings = {
-        gitUsername = private.gitUsername;
-        gitUserEmail = private.gitUserEmail;
+        gitUsername = "khimoo";
+        gitUserEmail = "dailysentence1111@gmail.com";
         locale = "ja_JP.UTF-8";
       };
 
@@ -90,7 +86,18 @@
           system = "x86_64-linux";
           users = map (u: u // {
             homeFile = ./hosts/nixos-desktop + "/home-manager-${u.username}.nix";
-          }) private.nixos-desktopUsers;
+          }) [
+            {
+              username = "pomu";
+              isAdmin = true;
+            }
+            {
+              username = "mase";
+              isAdmin = false;
+              manageHome = false;
+              initialHashedPassword = "$6$jQHubQo9MXPX15.x$LSWMJBiOQT75T/HOeMyKlFmWZjl.wTi7CA.m02uFPPJqssvKCMq1..6fGYdjm7HMJhhBAIl1Vbpkuq92gaVbH/";
+            }
+          ];
           timezone = "Asia/Tokyo";
           keymap = "us";
           stateVersion = "25.05";
