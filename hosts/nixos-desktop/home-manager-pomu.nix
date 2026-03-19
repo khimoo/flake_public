@@ -11,6 +11,7 @@ in {
     ../../modules/home-manager/gui.nix
     ../../modules/home-manager/dev.nix
     ../../modules/home-manager/desktop-entry.nix
+    ../../modules/home-manager/audio.nix
   ];
 
   home.packages = with pkgs; [

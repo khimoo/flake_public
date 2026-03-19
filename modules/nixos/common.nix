@@ -13,6 +13,7 @@
     ./nix-settings.nix
     ./bluetooth.nix
     ./libvirt.nix
+    ./audio.nix
   ];
 
   # システム状態バージョン

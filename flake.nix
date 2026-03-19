@@ -58,6 +58,8 @@
             {
               home-manager = {
                 backupFileExtension = "bak";
+                useGlobalPkgs = true;  # NixOSのpkgsを使用（allowUnfreeなどの設定を継承）
+                useUserPackages = true;  # パッケージをユーザープロファイルにインストール
                 extraSpecialArgs = { inherit skk-dict kiro; inherit settings; };
                 users = builtins.listToAttrs (map (user: {
                   name = user.username;
