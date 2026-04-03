@@ -30,6 +30,7 @@ in {
     vmpk
     vlc
     obs-studio
+    xournalpp
 
     ipafont
     ipaexfont
