@@ -5,6 +5,7 @@
   ];
   boot.kernelParams = [ "btusb.enable_autosuspend=n" ];
 
+  virtualisation.spiceUSBRedirection.enable = true;
   virtualisation.libvirtd = {
     enable = true;
     # UEFI対応などのためのQEMU設定
