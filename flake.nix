@@ -11,6 +11,10 @@
       flake = false;
     };
     kiro.url = "github:johnkferguson/kiro-linux-flake";
+    claude-desktop-debian = {
+      url = "github:aaddrick/claude-desktop-debian";
+      # follows しない: 上流は nixpkgs-unstable 前提でビルドされるため
+    };
     musnix.url = "github:musnix/musnix";  # https://github.com/musnix/musnix
     winapps = {
        url = "github:winapps-org/winapps";
@@ -18,7 +22,7 @@
     };
   };
 
-  outputs = inputs@{ nixpkgs, home-manager, skk-jisyo, kiro, ... }:
+  outputs = inputs@{ nixpkgs, home-manager, skk-jisyo, kiro, claude-desktop-debian, ... }:
     let
       # 基本設定（共通部分）
       baseSettings = {
@@ -49,7 +53,7 @@
           skk-dict = mkSkkDict system;
         in
         nixpkgs.lib.nixosSystem {
-          specialArgs = { inherit inputs; inherit skk-dict kiro; inherit settings; };
+          specialArgs = { inherit inputs; inherit skk-dict kiro claude-desktop-debian; inherit settings; };
           inherit system;
           modules = [
             inputs.musnix.nixosModules.musnix
@@ -60,7 +64,7 @@
                 backupFileExtension = "bak";
                 useGlobalPkgs = true;  # NixOSのpkgsを使用（allowUnfreeなどの設定を継承）
                 useUserPackages = true;  # パッケージをユーザープロファイルにインストール
-                extraSpecialArgs = { inherit skk-dict kiro; inherit settings; };
+                extraSpecialArgs = { inherit skk-dict kiro claude-desktop-debian; inherit settings; };
                 users = builtins.listToAttrs (map (user: {
                   name = user.username;
                   value = import (user.homeFile or ./hosts/${hostname}/home.nix);
@@ -81,7 +85,7 @@
         in
         home-manager.lib.homeManagerConfiguration {
           inherit pkgs;
-          extraSpecialArgs = { inherit skk-dict kiro; inherit settings; };
+          extraSpecialArgs = { inherit skk-dict kiro claude-desktop-debian; inherit settings; };
           modules = [
             homeFile
             {

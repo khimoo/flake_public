@@ -1,4 +1,4 @@
-{ skk-dict, settings, config, pkgs, lib, ... }:
+{ skk-dict, claude-desktop-debian, settings, config, pkgs, lib, ... }:
 
 let
   extraGnomeExtensionsList = with pkgs.gnomeExtensions; [
@@ -14,13 +14,15 @@ in {
     ../../modules/home-manager/audio.nix
   ];
 
-  home.packages = with pkgs; [
+  home.packages = [
+    claude-desktop-debian.packages.${pkgs.system}.claude-desktop-fhs
+  ] ++ (with pkgs; [
     prismlauncher
     wine64
     steam
     blender-hip
     brave
-  ] ++ extraGnomeExtensionsList;
+  ]) ++ extraGnomeExtensionsList;
 
   dconf.settings."org/gnome/shell".enabled-extensions =
     lib.mkAfter (map (ext: ext.extensionUuid) extraGnomeExtensionsList);
