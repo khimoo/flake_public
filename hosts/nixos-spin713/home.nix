@@ -6,10 +6,7 @@
     ../../modules/home-manager/gui.nix
     ../../modules/home-manager/dev.nix
     ../../modules/home-manager/desktop-entry.nix
-  ];
-
-  home.packages = [
-    claude-desktop-debian.packages.${pkgs.system}.claude-desktop-fhs
+    ../../modules/home-manager/claude-desktop.nix
   ];
 
   dconf = {

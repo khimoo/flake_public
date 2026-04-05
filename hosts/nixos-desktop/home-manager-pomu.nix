@@ -12,17 +12,16 @@ in {
     ../../modules/home-manager/dev.nix
     ../../modules/home-manager/desktop-entry.nix
     ../../modules/home-manager/audio.nix
+    ../../modules/home-manager/claude-desktop.nix
   ];
 
-  home.packages = [
-    claude-desktop-debian.packages.${pkgs.system}.claude-desktop-fhs
-  ] ++ (with pkgs; [
+  home.packages = with pkgs; [
     prismlauncher
     wine64
     steam
     blender-hip
     brave
-  ]) ++ extraGnomeExtensionsList;
+  ] ++ extraGnomeExtensionsList;
 
   dconf.settings."org/gnome/shell".enabled-extensions =
     lib.mkAfter (map (ext: ext.extensionUuid) extraGnomeExtensionsList);
