@@ -31,6 +31,7 @@ in {
     vlc
     obs-studio
     xournalpp
+    google-chrome
 
     ipafont
     ipaexfont
