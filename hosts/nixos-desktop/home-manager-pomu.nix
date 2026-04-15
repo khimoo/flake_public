@@ -1,4 +1,4 @@
-{ skk-dict, claude-desktop-debian, settings, config, pkgs, lib, ... }:
+{ skk-dict, settings, config, pkgs, lib, ... }:
 
 let
   extraGnomeExtensionsList = with pkgs.gnomeExtensions; [
@@ -12,7 +12,6 @@ in {
     ../../modules/home-manager/dev.nix
     ../../modules/home-manager/desktop-entry.nix
     ../../modules/home-manager/audio.nix
-    ../../modules/home-manager/claude-desktop.nix
   ];
 
   home.packages = with pkgs; [

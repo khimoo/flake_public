@@ -1,4 +1,4 @@
-{ skk-dict, claude-desktop-debian, settings, config, pkgs, lib, ... }:
+{ skk-dict, settings, config, pkgs, lib, ... }:
 
 {
   imports = [
@@ -6,7 +6,6 @@
     ../../modules/home-manager/gui.nix
     ../../modules/home-manager/dev.nix
     ../../modules/home-manager/desktop-entry.nix
-    ../../modules/home-manager/claude-desktop.nix
   ];
 
   dconf = {

@@ -14,7 +14,6 @@
     ./bluetooth.nix
     ./libvirt.nix
     ./audio.nix
-    ./claude-desktop.nix
   ];
 
   # システム状態バージョン
