@@ -12,6 +12,7 @@
     uv
     direnv
     ghostscript
+    mpv
   ];
 
   programs = {
@@ -27,6 +28,12 @@
         ghce = "gh copilot explain";
         cursor = "appimage-run ../../.local/bin/cursor.AppImage --enable-features=UseOzonePlatform --ozone-platform=wayland --enable-wayland-ime";
       };
+      extraConfig = ''
+        def noise [dir?: string, --volume (-v): int = 50] {
+          let target = if ($dir == null) { $"($env.HOME)/音楽/noise" } else { $dir }
+          mpv --shuffle --loop-playlist --no-video --really-quiet $"--volume=($volume)" $target
+        }
+      '';
     };
     starship = {
       enable = true;
