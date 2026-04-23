@@ -14,6 +14,7 @@
     ./bluetooth.nix
     ./libvirt.nix
     ./audio.nix
+    ./sns-block.nix
   ];
 
   # システム状態バージョン
