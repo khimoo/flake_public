@@ -10,7 +10,6 @@ return {
     "j-hui/fidget.nvim",
     opts = {},
   },
-  "mfussenegger/nvim-dap",
   {
     "neovim/nvim-lspconfig",
     dependencies = {
@@ -100,53 +99,13 @@ return {
       vim.cmd [[autocmd CursorHold * lua vim.diagnostic.open_float(nil, {focus=false})]]
 
       -- ここからlsp設定
-      -- util: list files under a directory (non-recursive). If you want recursive, see note below.
-      local function list_rs_files(dir)
-        local uv = vim.loop
-        local rs = {}
-
-        if not dir or dir == "" then return rs end
-
-        local stat = uv.fs_stat(dir)
-        if not stat or stat.type ~= "directory" then return rs end
-
-        local p = uv.fs_scandir(dir)
-        if not p then return rs end
-
-        while true do
-          local name, t = uv.fs_scandir_next(p)
-          if not name then break end
-          if t == "file" or t == "link" then
-            if name:match("%.rs$") then
-              table.insert(rs, dir .. "/" .. name)
-            end
-          elseif t == "directory" then
-            -- If you want recursive discovery, you can either call list_rs_files(dir .. "/" .. name)
-            -- and merge results, or implement a queue for BFS. For now we do non-recursive.
-          end
-        end
-
-        return rs
-      end
-
-      -- read env and split by comma for NEOVIM_LSP_SERVERS (existing code)
+      -- read env and split by comma for NEOVIM_LSP_SERVERS
       local lsp_servers_env = tostring(os.getenv("NEOVIM_LSP_SERVERS") or "")
       local servers = {}
       if lsp_servers_env ~= "" then
         for server in string.gmatch(lsp_servers_env, "([^,]+)") do
           table.insert(servers, server)
         end
-      end
-
-      -- Build linkedProjects for rust_analyzer from SCRIPTS_RS (colon-separated)
-      local function split_str(s, sep)
-        local res = {}
-        if s == nil or s == "" then return res end
-        sep = sep or "%s"
-        for part in string.gmatch(s, "([^" .. sep .. "]+)") do
-          table.insert(res, part)
-        end
-        return res
       end
 
       -- set up servers from NEOVIM_LSP_SERVERS
@@ -170,18 +129,6 @@ return {
         settings = {
           ['nil'] = { formatting = { command = { "nixfmt" } } }
         },
-      })
-
-      -- rust_analyzer: use linkedProjects from environment
-      -- Build linkedProjects by listing .rs files under SCRIPTS_RS directory
-      local scripts_dir = tostring(os.getenv("SCRIPTS_RS") or "")
-      local linked_projects = list_rs_files(scripts_dir)
-
-      vim.lsp.config("rust_analyzer", {
-        capabilities = blink_capabilities,
-        settings = { ['rust-analyzer'] = {
-          linkedProjects = linked_projects,
-        } },
       })
 
       for _, server in ipairs(servers) do

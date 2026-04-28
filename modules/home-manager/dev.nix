@@ -3,7 +3,6 @@
 let
   lspServers = [
     { pkg = pkgs.pyright; lsp = "pyright"; }
-    { pkg = pkgs.rust-analyzer; lsp = "rust_analyzer"; }
     { pkg = pkgs.lua-language-server; lsp = "lua_ls"; }
     { pkg = pkgs.nil; lsp = "nil_ls"; }
     { pkg = pkgs.tinymist; lsp = "tinymist"; }
