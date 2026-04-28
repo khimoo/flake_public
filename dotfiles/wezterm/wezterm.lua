@@ -21,8 +21,9 @@ config.enable_wayland = false
 config.window_background_opacity = 0.75
 
 -- font
-config.font_size = 13.0
-config.font = wezterm.font 'FiraCode Nerd Font'
+config.font_size = 15.0
+local fontName = dofile(wezterm.config_dir .. '/font.lua')
+config.font = wezterm.font(fontName)
 
 -- ime on
 config.use_ime = true

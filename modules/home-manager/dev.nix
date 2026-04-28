@@ -41,6 +41,7 @@ in {
     ];
   };
 
+  # mkOutOfStoreSymlinkを使えばrebuild不要で即反映できるが、絶対パスのハードコードが必要になるため使用しない
   xdg.configFile."nvim" = {
     source = ../../dotfiles/nvim;
     recursive = true;

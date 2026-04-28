@@ -1,6 +1,11 @@
 { settings, config, pkgs, lib, ... }:
 
 let
+  terminalFont = {
+    package = pkgs.hackgen-nf-font;
+    name = "HackGen Console NF";
+  };
+
   gnomeExtensionsList = with pkgs.gnomeExtensions; [
     clipboard-history
     extension-list
@@ -38,7 +43,7 @@ in {
     noto-fonts
     noto-fonts-cjk-sans
     noto-fonts-color-emoji
-    nerd-fonts.fira-code
+    terminalFont.package
   ] ++ gnomeExtensionsList;
 
   fonts.fontconfig = { enable = true; };
@@ -49,7 +54,9 @@ in {
     language = "ja_JP";
   };
 
+  # mkOutOfStoreSymlinkを使えばrebuild不要で即反映できるが、絶対パスのハードコードが必要になるため使用しない
   xdg.configFile."wezterm/wezterm.lua".source = ../../dotfiles/wezterm/wezterm.lua;
+  xdg.configFile."wezterm/font.lua".text = ''return "${terminalFont.name}"'';
 
   xdg.mimeApps = {
     enable = true;
