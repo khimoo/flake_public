@@ -2,8 +2,8 @@
 
 let
   terminalFont = {
-    package = pkgs.hackgen-nf-font;
-    name = "HackGen Console NF";
+    package = pkgs.plemoljp-nf;
+    name = "PlemolJP Console NF";
   };
 
   gnomeExtensionsList = with pkgs.gnomeExtensions; [
