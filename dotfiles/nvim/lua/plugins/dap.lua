@@ -13,18 +13,10 @@ return {
       vim.keymap.set('n', '<leader>dO', dap.step_out, { desc = 'DAP: Step out' })
       vim.keymap.set('n', '<leader>dr', dap.repl.open, { desc = 'DAP: REPL' })
 
-      -- dap-view auto open/close
+      -- dap-view auto open (close は手動で行う)
       dap.listeners.after.event_initialized["dapview_autoopen"] = function()
         local ok, dv = pcall(require, 'dap-view')
         if ok then dv.open() end
-      end
-      dap.listeners.before.event_terminated["dapview_autoclose"] = function()
-        local ok, dv = pcall(require, 'dap-view')
-        if ok then dv.close() end
-      end
-      dap.listeners.before.event_exited["dapview_autoclose"] = function()
-        local ok, dv = pcall(require, 'dap-view')
-        if ok then dv.close() end
       end
 
       -- Python adapter
@@ -74,9 +66,29 @@ return {
     ---@type dapview.Config
     opts = {
       winbar = {
-        controls = { enabled = true },
+        controls = {
+          enabled = true,
+          buttons = { "rust_debug", "play", "step_into", "step_over", "step_out", "step_back", "run_last", "terminate", "disconnect" },
+          custom_buttons = {
+            rust_debug = {
+              render = function()
+                local statusline = require("dap-view.util.statusline")
+                local has_rust = vim.iter(vim.api.nvim_list_bufs()):any(function(buf)
+                  return vim.bo[buf].filetype == "rust"
+                end)
+                if not has_rust then
+                  return ""
+                end
+                return statusline.hl("\u{ebc0}", "ControlRunLast")
+              end,
+              action = function()
+                vim.cmd("RustLsp debuggables")
+              end,
+            },
+          },
+        },
         sections = { "watches", "scopes", "exceptions", "breakpoints", "threads", "repl", "console" },
-      }
+      },
     },
   },
 }
