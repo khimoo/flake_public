@@ -19,25 +19,6 @@ return {
         if ok then dv.open() end
       end
 
-      -- Go adapter (delve)
-      dap.adapters.delve = {
-        type = 'server',
-        port = '${port}',
-        executable = {
-          command = 'dlv',
-          args = { 'dap', '-l', '127.0.0.1:${port}' },
-        },
-      }
-
-      dap.configurations.go = {
-        {
-          type = 'delve',
-          request = 'launch',
-          name = 'Launch file',
-          program = '${file}',
-        },
-      }
-
       -- Python adapter
       dap.adapters.python = function(cb, config)
         if config.request == 'attach' then
@@ -78,6 +59,11 @@ return {
         end,
       } }
     end
+  },
+  {
+    "leoluz/nvim-dap-go",
+    dependencies = { "mfussenegger/nvim-dap" },
+    opts = {},
   },
   {
     "igorlfs/nvim-dap-view",
