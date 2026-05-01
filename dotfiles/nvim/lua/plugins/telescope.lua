@@ -29,7 +29,6 @@ return {
 
             -- 拡張機能の読み込み
             require("telescope").load_extension "file_browser"
-            require("telescope").load_extension "fidget"
 
             -- キーマッピングの設定
             vim.keymap.set("n", "<leader>t", ":Telescope<CR>")
