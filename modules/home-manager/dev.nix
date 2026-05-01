@@ -10,15 +10,16 @@ let
 
 in {
   home.packages = with pkgs; [
-    kiro.packages.${pkgs.system}.default
     vscode
     jetbrains.idea
     tree
-    antigravity-fhs
     claude-code
+  ] ++ lib.optionals pkgs.stdenv.isLinux [
+    kiro.packages.${pkgs.system}.default
+    pkgs.antigravity-fhs
   ] ++ map (s: s.pkg) lspServers;
 
-  systemd.user.sessionVariables = {
+  home.sessionVariables = {
     NEOVIM_LSP_SERVERS = builtins.concatStringsSep "," (map (s: s.lsp) lspServers);
     CODELLDB_PATH = "${pkgs.vscode-extensions.vadimcn.vscode-lldb}/share/vscode/extensions/vadimcn.vscode-lldb/adapter/codelldb";
   };
@@ -31,10 +32,11 @@ in {
     extraPackages = with pkgs; [
       deno
       ripgrep
-      xclip
       nil
       nixfmt-rfc-style
       vscode-extensions.vadimcn.vscode-lldb
+    ] ++ lib.optionals pkgs.stdenv.isLinux [
+      pkgs.xclip
     ];
     plugins = with pkgs.vimPlugins; [
       lazy-nvim

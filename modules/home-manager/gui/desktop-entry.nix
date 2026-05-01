@@ -81,7 +81,7 @@ let
     ]
   );
 
-in {
+in lib.mkIf settings.features.desktopEntry {
   home.packages = map (app: app.pkg) waylandApps;
 
   home.file = desktopEntries;

@@ -15,23 +15,25 @@
     mpv
   ];
 
+  home.sessionVariables = {
+    EDITOR = "nvim";
+    SKK_DICTIONARY_PATH = "${skk-dict}";
+  };
+
   programs = {
     home-manager.enable = true;
-    nushell = {
+    bash = {
       enable = true;
-      environmentVariables = {
-        EDITOR = "nvim";
-        SKK_DICTIONARY_PATH = "${skk-dict}";
-      };
       shellAliases = {
         ghcs = "gh copilot suggest";
         ghce = "gh copilot explain";
         cursor = "appimage-run ../../.local/bin/cursor.AppImage --enable-features=UseOzonePlatform --ozone-platform=wayland --enable-wayland-ime";
       };
-      extraConfig = ''
-        def noise [dir?: string, --volume (-v): int = 50] {
-          let target = if ($dir == null) { $"($env.HOME)/音楽/noise" } else { $dir }
-          mpv --shuffle --loop-playlist --no-video --really-quiet $"--volume=($volume)" $target
+      initExtra = ''
+        noise() {
+          local dir="''${1:-$HOME/音楽/noise}"
+          local volume="''${2:-50}"
+          mpv --shuffle --loop-playlist --no-video --really-quiet "--volume=$volume" "$dir"
         }
       '';
     };
@@ -45,7 +47,7 @@
           $all$nix_shell$nodejs$lua$golang$rust$php$git_branch$git_commit$git_state$git_status
           $username$hostname$directory'';
         character = {
-          success_symbol = "[](bold green) ";
+          success_symbol = "[](bold green) ";
           error_symbol = "[✗](bold red) ";
         };
       };

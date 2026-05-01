@@ -6,16 +6,7 @@ let
     name = "PlemolJP Console NF";
   };
 
-  gnomeExtensionsList = with pkgs.gnomeExtensions; [
-    clipboard-history
-    extension-list
-    kimpanel
-    gsconnect
-    paperwm
-    panel-note
-  ];
-
-in {
+in lib.mkIf settings.features.gui {
   home.packages = with pkgs; [
     wezterm
     thunderbird
@@ -44,7 +35,7 @@ in {
     noto-fonts-cjk-sans
     noto-fonts-color-emoji
     terminalFont.package
-  ] ++ gnomeExtensionsList;
+  ];
 
   fonts.fontconfig = { enable = true; };
 
@@ -55,7 +46,7 @@ in {
   };
 
   # mkOutOfStoreSymlinkを使えばrebuild不要で即反映できるが、絶対パスのハードコードが必要になるため使用しない
-  xdg.configFile."wezterm/wezterm.lua".source = ../../dotfiles/wezterm/wezterm.lua;
+  xdg.configFile."wezterm/wezterm.lua".source = ../../../dotfiles/wezterm/wezterm.lua;
   xdg.configFile."wezterm/font.lua".text = ''return "${terminalFont.name}"'';
 
   xdg.mimeApps = {
@@ -69,32 +60,4 @@ in {
       "x-scheme-handler/about" = "firefox.desktop";
     };
   };
-
-  i18n.inputMethod = {
-    type = "fcitx5";
-    enable = true;
-    fcitx5.waylandFrontend = true;
-    fcitx5.addons = with pkgs; [
-      fcitx5-gtk
-      fcitx5-skk
-    ];
-  };
-
-  dconf = {
-    enable = true;
-    settings = {
-      "org/gnome/shell" = {
-        disable-user-extensions = false;
-        enabled-extensions = map (ext: ext.extensionUuid) gnomeExtensionsList;
-      };
-      "org/gnome/desktop/interface" = {
-        accent-color = "blue";
-        color-scheme = "prefer-dark";
-        show-battery-percentage = true;
-        toolkit-accessibility = false;
-      };
-    };
-  };
-
-  systemd.user.sessionVariables.NIXOS_OZONE_WL = "1";
 }
