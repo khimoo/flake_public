@@ -15,4 +15,17 @@ return {
       }
     end,
   },
+  {
+    'cordx56/rustowl',
+    version = '*',
+    ft = 'rust',
+    opts = {
+      auto_attach = true,
+      auto_enable = false,
+      idle_time = 500,
+    },
+    keys = {
+      { '<leader>lo', '<cmd>Rustowl toggle<cr>', desc = 'RustOwl toggle' },
+    },
+  },
 }

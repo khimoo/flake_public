@@ -8,6 +8,12 @@ let
     { pkg = pkgs.tinymist; lsp = "tinymist"; }
   ];
 
+  rustowlVersion = "0.3.4";
+  rustowlArchive = pkgs.fetchurl {
+    url = "https://github.com/cordx56/rustowl/releases/download/v${rustowlVersion}/rustowl-x86_64-unknown-linux-gnu.tar.gz";
+    hash = "sha256-p1q1DBZ4xc0z+NWmk8YC1ggkqGXeWuvD5HdaeYekCDg=";
+  };
+
 in {
   home.packages = with pkgs; [
     vscode
@@ -18,6 +24,8 @@ in {
     kiro.packages.${pkgs.system}.default
     pkgs.antigravity-fhs
   ] ++ map (s: s.pkg) lspServers;
+
+  home.sessionPath = [ "$HOME/.local/bin" ];
 
   home.sessionVariables = {
     NEOVIM_LSP_SERVERS = builtins.concatStringsSep "," (map (s: s.lsp) lspServers);
@@ -42,6 +50,37 @@ in {
       lazy-nvim
     ];
   };
+
+  # [impure] rustowl のプリビルドバイナリを ~/.local/ にインストール
+  # rustowl は特定の nightly Rust sysroot を必要とし、nixpkgs でのパッケージングが困難なため
+  # GitHub Releases のプリビルドバイナリ（sysroot 同梱）を Nix store 外に展開する。
+  # プロジェクトごとの Rust ツールチェーンは各 devShell の rust-overlay が PATH で上書きするため影響しない。
+  # NixOS では動的リンカのパスが標準 Linux と異なるため、patchelf で修正が必要。
+  home.activation.rustowl = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    RUSTOWL_DIR="$HOME/.local/share/rustowl"
+    RUSTOWL_BIN="$HOME/.local/bin/rustowl"
+    if [ ! -x "$RUSTOWL_BIN" ] || [ "$("$RUSTOWL_BIN" --version 2>/dev/null)" != "RustOwl v${rustowlVersion}" ]; then
+      $DRY_RUN_CMD mkdir -p "$RUSTOWL_DIR" "$HOME/.local/bin"
+      $DRY_RUN_CMD ${pkgs.gzip}/bin/gzip -dc ${rustowlArchive} | $DRY_RUN_CMD ${pkgs.gnutar}/bin/tar xf - -C "$RUSTOWL_DIR"
+      # NixOS: 動的リンカと rpath を修正（プリビルドバイナリは標準 Linux 向けのため）
+      SYSROOT_LIB="$RUSTOWL_DIR/sysroot/1.87.0-x86_64-unknown-linux-gnu/lib"
+      INTERP="$(cat ${pkgs.stdenv.cc}/nix-support/dynamic-linker)"
+      NIX_RPATH="${lib.makeLibraryPath [ pkgs.zlib pkgs.stdenv.cc.cc.lib ]}"
+      for bin in "$RUSTOWL_DIR/rustowl" "$RUSTOWL_DIR/rustowlc"; do
+        $DRY_RUN_CMD ${pkgs.patchelf}/bin/patchelf \
+          --set-interpreter "$INTERP" \
+          --set-rpath "$SYSROOT_LIB:$NIX_RPATH" \
+          "$bin"
+      done
+      # sysroot の共有ライブラリも rpath 修正（librustc_driver が libz 等を必要とする）
+      for so in "$SYSROOT_LIB"/*.so*; do
+        [ -f "$so" ] && [ ! -L "$so" ] && \
+          $DRY_RUN_CMD ${pkgs.patchelf}/bin/patchelf --set-rpath "$SYSROOT_LIB:$NIX_RPATH" "$so" 2>/dev/null || true
+      done
+      $DRY_RUN_CMD ln -sf "$RUSTOWL_DIR/rustowl" "$RUSTOWL_BIN"
+      $DRY_RUN_CMD ln -sf "$RUSTOWL_DIR/rustowlc" "$HOME/.local/bin/rustowlc"
+    fi
+  '';
 
   # mkOutOfStoreSymlinkを使えばrebuild不要で即反映できるが、絶対パスのハードコードが必要になるため使用しない
   xdg.configFile."nvim" = {

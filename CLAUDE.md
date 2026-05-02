@@ -22,6 +22,17 @@ sudo nixos-rebuild switch --flake .#hostname
 home-manager switch --flake .#username-host
 ```
 
+### Nix の純粋性から外れている要素
+
+以下は Nix store 外に命令的にインストールされる impure な要素。nixpkgs でのパッケージングが困難なため、やむを得ず `home.activation` で管理している。
+
+| 要素 | インストール先 | 理由 |
+|------|---------------|------|
+| rustowl (プリビルドバイナリ) | `~/.local/share/rustowl/` | 特定の nightly Rust sysroot を同梱する必要があり、nixpkgs でのパッケージングが困難 |
+| rustowl, rustowlc (symlink) | `~/.local/bin/` | 上記バイナリへのシンボリックリンク |
+
+詳細は `modules/home-manager/dev.nix` の `home.activation.rustowl` を参照。
+
 ---
 
 ## コード品質の指針

@@ -5,8 +5,9 @@ local wezterm = require 'wezterm'
 local act = wezterm.action
 local config = wezterm.config_builder()
 
--- Shell
-config.default_prog = { 'nu' }
+-- Terminal
+config.term = 'wezterm'
+config.default_prog = { 'bash' }
 config.mux_enable_ssh_agent = false
 config.enable_wayland = false
 
