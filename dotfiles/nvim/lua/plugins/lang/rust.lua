@@ -27,5 +27,9 @@ return {
     keys = {
       { '<leader>lo', '<cmd>Rustowl toggle<cr>', desc = 'RustOwl toggle' },
     },
+    config = function(_, opts)
+      require('rustowl').setup(opts)
+      require('plugins.lang.rustowl-hover').setup()
+    end,
   },
 }

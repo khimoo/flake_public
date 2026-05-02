@@ -19,6 +19,7 @@ in {
     vscode
     jetbrains.idea
     tree
+    ffmpeg
     claude-code
   ] ++ lib.optionals pkgs.stdenv.isLinux [
     kiro.packages.${pkgs.system}.default
