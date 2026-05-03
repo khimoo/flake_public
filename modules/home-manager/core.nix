@@ -46,7 +46,8 @@
         grep = "rg";
         top = "btm";
         cd = "z";
-        yazi = "yy"; # yyはカレントディレクトリを動かすやつ
+        # yazi は enableBashIntegration により yy 関数が定義済み
+        # yazi=yy のエイリアスは yy 内部の yazi 呼び出しと無限再帰するため使わない
       };
 
       initExtra = ''
