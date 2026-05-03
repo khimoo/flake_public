@@ -39,17 +39,15 @@ function M.setup()
 
       if pcall(require, "which-key") then
         local wk = require("which-key")
-        pcall(wk.register, {
-          [prefix] = {
-            name = "LSP",
-            g = { name = "Goto" },
-            w = { name = "Workspace" },
-            d = { "Diagnostics" },
-            r = { name = "Rename/References" },
-            c = { name = "Code Action" },
-            F = { "Format buffer" },
-          },
-        }, { buffer = buf })
+        wk.add({
+          { prefix, buffer = buf, group = "LSP" },
+          { prefix .. "g", buffer = buf, group = "Goto" },
+          { prefix .. "w", buffer = buf, group = "Workspace" },
+          { prefix .. "d", buffer = buf, desc = "Diagnostics" },
+          { prefix .. "r", buffer = buf, group = "Rename/References" },
+          { prefix .. "c", buffer = buf, group = "Code Action" },
+          { prefix .. "F", buffer = buf, desc = "Format buffer" },
+        })
       end
     end,
   })

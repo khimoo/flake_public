@@ -23,4 +23,5 @@ return {
       require("config.dap.python").setup(dap)
     end,
   },
+  require("plugins.dap.view"),
 }
