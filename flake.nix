@@ -30,6 +30,8 @@
       # 全 home-manager モジュール（mkSystem / mkHome 共通）
       homeModules = [
         ./modules/home-manager/core.nix
+        ./modules/home-manager/git.nix
+        ./modules/home-manager/yazi.nix
         ./modules/home-manager/dev.nix
         ./modules/home-manager/gui/default.nix
         ./modules/home-manager/gui/gnome.nix
