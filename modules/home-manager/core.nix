@@ -8,18 +8,20 @@
 }:
 
 {
-
   home.packages = with pkgs; [
     curl
     tig
     gcc
-    neofetch
+    fastfetch
     python3
     gh
     uv
-    direnv
     ghostscript
     mpv
+    fd
+    ripgrep
+    jq
+    xh
   ];
 
   home.sessionVariables = {
@@ -29,13 +31,26 @@
 
   programs = {
     home-manager.enable = true;
+
     bash = {
       enable = true;
+
+      enableCompletion = true;
+      historyControl = [
+        "ignoredups"
+        "ignorespace"
+      ];
+
       shellAliases = {
-        ghcs = "gh copilot suggest";
-        ghce = "gh copilot explain";
-        cursor = "appimage-run ../../.local/bin/cursor.AppImage --enable-features=UseOzonePlatform --ozone-platform=wayland --enable-wayland-ime";
+        ls = "eza --icons --git";
+        ll = "eza -l --icons --git";
+        la = "eza -la --icons --git";
+        cat = "bat";
+        grep = "rg";
+        top = "btm";
+        cd = "z";
       };
+
       initExtra = ''
         noise() {
           local dir="''${1:-$HOME/音楽/noise}"
@@ -44,6 +59,7 @@
         }
       '';
     };
+
     starship = {
       enable = true;
       settings = {
@@ -54,20 +70,101 @@
         };
         package.disabled = true;
         aws.disabled = true;
+        gcloud.disabled = true;
       };
     };
-    git = {
-      lfs.enable = true;
+
+    lazygit = {
       enable = true;
       settings = {
-        user.name = settings.gitUsername;
-        user.email = settings.gitUserEmail;
-        init.defaultBranch = "main";
+        # 好みに応じた設定 (デフォルトでも十分使いやすいです)
+        gui = {
+          showIcons = true; # Nerd Fontのアイコンを表示
+          theme = {
+            lightTheme = false;
+            activeBorderColor = [
+              "green"
+              "bold"
+            ];
+            inactiveBorderColor = [ "white" ];
+          };
+        };
+
+        git = {
+          paging = {
+            # 先ほど設定した delta を lazygit 内のページャーとしても使う設定
+            colorArg = "always";
+            pager = "delta --dark --paging=never";
+          };
+        };
       };
     };
+
+    git = {
+      enable = true;
+      lfs.enable = true;
+
+      userName = settings.gitUsername;
+      userEmail = settings.gitUserEmail;
+
+      extraConfig = {
+        init.defaultBranch = "main";
+        merge.conflictstyle = "zdiff3";
+      };
+
+      delta = {
+        enable = true;
+        options = {
+          features = "side-by-side line-numbers decorations";
+          side-by-side = true;
+          line-numbers = true;
+          navigate = true;
+          decorations = {
+            commit-decoration-style = "bold yellow box ul";
+            file-style = "bold yellow ul";
+            file-decoration-style = "none";
+          };
+        };
+      };
+    };
+
     direnv = {
       enable = true;
       nix-direnv.enable = true;
+    };
+
+    fzf = {
+      enable = true;
+      enableBashIntegration = true;
+    };
+
+    zoxide = {
+      enable = true;
+      enableBashIntegration = true;
+    };
+
+    eza = {
+      enable = true;
+    };
+
+    bat = {
+      enable = true;
+    };
+
+    yazi = {
+      enable = true;
+      enableBashIntegration = true;
+      settings = {
+        manager = {
+          show_hidden = true;
+          sort_by = "natural";
+          sort_dir_first = true;
+        };
+      };
+    };
+
+    bottom = {
+      enable = true;
     };
   };
 
