@@ -49,6 +49,7 @@
         grep = "rg";
         top = "btm";
         cd = "z";
+        yazi = "yy"; # yyはカレントディレクトリを動かすやつ
       };
 
       initExtra = ''
@@ -91,11 +92,13 @@
         };
 
         git = {
-          paging = {
-            # 先ほど設定した delta を lazygit 内のページャーとしても使う設定
-            colorArg = "always";
-            pager = "delta --dark --paging=never";
-          };
+          # delta を lazygit 内のページャーとして使う設定
+          pagers = [
+            {
+              pager = "delta --dark --paging=never";
+              colorArg = "always";
+            }
+          ];
         };
       };
     };
