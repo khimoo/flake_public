@@ -6,7 +6,6 @@
 lib.mkIf settings.features.audio {
   home.packages = with pkgs; [
     # DAW
-    bitwig-studio
     zrythm
 
     # オーディオユーティリティ
