@@ -17,7 +17,13 @@
     };
 
     # init.lua — プラグインの初期化
-    initLua = ./yazi-init.lua;
+    initLua = ''
+      -- full-border: 全体に枠線を表示
+      require("full-border"):setup()
+
+      -- git: ファイル一覧に Git 状態を表示
+      require("git"):setup()
+    '';
 
     keymap = {
       manager.prepend_keymap = [
