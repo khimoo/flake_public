@@ -88,13 +88,6 @@ map("i", "<C-f>", "<Esc>", { noremap = true })
 map("c", "<C-f>", "<Esc>", { noremap = true })
 map("n", "<C-f>", "<Esc>", { noremap = true })
 
--- yankはyじゃなくてyyにしよう
-map('n', 'yy', 'y', { noremap = true })
-map('v', 'yy', 'y', { noremap = true })
-map('x', 'yy', 'y', { noremap = true })
-map('n', 'y', '<nop>', { noremap = true })
-map('v', 'y', '<nop>', { noremap = true })
-map('x', 'y', '<nop>', { noremap = true })
 
 -- 自動コマンド
 local autocmd = vim.api.nvim_create_autocmd

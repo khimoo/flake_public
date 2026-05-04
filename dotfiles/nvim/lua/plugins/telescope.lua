@@ -31,8 +31,17 @@ return {
             require("telescope").load_extension "file_browser"
 
             -- キーマッピングの設定
-            vim.keymap.set("n", "<leader>t", ":Telescope<CR>")
-            vim.keymap.set("n", "<leader>f", ":Telescope file_browser path=%:p:h select_buffer=true<CR>")
+            local builtin = require("telescope.builtin")
+            vim.keymap.set("n", "<leader>ff", builtin.find_files, { desc = "Find files" })
+            vim.keymap.set("n", "<leader>fg", builtin.live_grep, { desc = "Live grep" })
+            vim.keymap.set("n", "<leader>fb", builtin.buffers, { desc = "Buffers" })
+            vim.keymap.set("n", "<leader>fh", builtin.help_tags, { desc = "Help tags" })
+            vim.keymap.set("n", "<leader>fd", builtin.diagnostics, { desc = "Diagnostics" })
+            vim.keymap.set("n", "<leader>fs", builtin.lsp_document_symbols, { desc = "Document symbols" })
+            vim.keymap.set("n", "<leader>fr", builtin.lsp_references, { desc = "LSP references" })
+            vim.keymap.set("n", "<leader>fo", builtin.oldfiles, { desc = "Recent files" })
+            vim.keymap.set("n", "<leader>fe", ":Telescope file_browser path=%:p:h select_buffer=true<CR>", { desc = "File browser" })
+            vim.keymap.set("n", "<leader>ft", ":Telescope<CR>", { desc = "Telescope commands" })
         end
     },
 

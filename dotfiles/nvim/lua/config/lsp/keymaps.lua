@@ -6,20 +6,27 @@ function M.setup()
       local buf = ev.buf
       local prefix = "<leader>l"
 
+      local function bmap(mode, lhs, func, desc)
+        vim.keymap.set(mode, lhs, func, { buffer = buf, desc = "LSP: " .. desc })
+      end
+
+      -- 頻出操作: プレフィックスなし (デファクトスタンダード)
+      bmap("n", "gD", vim.lsp.buf.declaration, "Go to declaration")
+      bmap("n", "gd", vim.lsp.buf.definition, "Go to definition")
+      bmap("n", "gi", vim.lsp.buf.implementation, "Go to implementation")
+      bmap("n", "gr", vim.lsp.buf.references, "List references")
+      bmap("n", "K", vim.lsp.buf.hover, "Hover documentation")
+      bmap("n", "<C-s>", vim.lsp.buf.signature_help, "Signature help")
+      bmap("n", "[d", vim.diagnostic.goto_prev, "Previous diagnostic")
+      bmap("n", "]d", vim.diagnostic.goto_next, "Next diagnostic")
+
+      -- 低頻度操作: <leader>l プレフィックス付き
       local function nmap(suffix, func, desc)
         vim.keymap.set("n", prefix .. suffix, func, { buffer = buf, desc = "LSP: " .. desc })
       end
-
       local function vmap(suffix, func, desc)
         vim.keymap.set("v", prefix .. suffix, func, { buffer = buf, desc = "LSP: " .. desc })
       end
-
-      nmap("gD", vim.lsp.buf.declaration, "Go to declaration")
-      nmap("gd", vim.lsp.buf.definition, "Go to definition")
-      nmap("gi", vim.lsp.buf.implementation, "Go to implementation")
-      nmap("gr", vim.lsp.buf.references, "List references")
-      nmap("K", vim.lsp.buf.hover, "Hover documentation")
-      nmap("<C-f>", vim.lsp.buf.signature_help, "Signature help")
 
       nmap("wa", vim.lsp.buf.add_workspace_folder, "Add workspace folder")
       nmap("wr", vim.lsp.buf.remove_workspace_folder, "Remove workspace folder")
@@ -32,8 +39,6 @@ function M.setup()
 
       vmap("ca", vim.lsp.buf.range_code_action or vim.lsp.buf.code_action, "Range code action")
 
-      nmap("[d", vim.diagnostic.goto_prev, "Previous diagnostic")
-      nmap("]d", vim.diagnostic.goto_next, "Next diagnostic")
       nmap("dl", vim.diagnostic.open_float, "Open diagnostic float")
       nmap("q", vim.diagnostic.setloclist, "Diagnostics to loclist")
 
@@ -41,12 +46,9 @@ function M.setup()
         local wk = require("which-key")
         wk.add({
           { prefix, buffer = buf, group = "LSP" },
-          { prefix .. "g", buffer = buf, group = "Goto" },
           { prefix .. "w", buffer = buf, group = "Workspace" },
-          { prefix .. "d", buffer = buf, desc = "Diagnostics" },
           { prefix .. "r", buffer = buf, group = "Rename/References" },
           { prefix .. "c", buffer = buf, group = "Code Action" },
-          { prefix .. "F", buffer = buf, desc = "Format buffer" },
         })
       end
     end,
