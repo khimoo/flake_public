@@ -36,6 +36,7 @@ Git リポジトリのルートに自動で `cd` してくれる。`find_files` 
 |------|------|------|
 | `<leader>fd` | diagnostics | LSP の警告・エラー一覧 |
 | `<leader>fs` | lsp_document_symbols | 現在ファイル内の関数・型・変数の一覧 |
+| `<leader>fS` | lsp_workspace_symbols | ワークスペース全体からシンボルを検索 |
 | `<leader>fr` | lsp_references | カーソル下のシンボルの参照箇所一覧 |
 
 ### その他

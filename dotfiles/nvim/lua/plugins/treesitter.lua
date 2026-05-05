@@ -26,6 +26,55 @@ return {
         end
     },
     {
+        "nvim-treesitter/nvim-treesitter-textobjects",
+        dependencies = { "nvim-treesitter/nvim-treesitter" },
+        config = function()
+            require('nvim-treesitter.configs').setup({
+                textobjects = {
+                    select = {
+                        enable = true,
+                        lookahead = true,
+                        keymaps = {
+                            ["af"] = { query = "@function.outer", desc = "Select outer function" },
+                            ["if"] = { query = "@function.inner", desc = "Select inner function" },
+                            ["ac"] = { query = "@class.outer", desc = "Select outer class" },
+                            ["ic"] = { query = "@class.inner", desc = "Select inner class" },
+                            ["aa"] = { query = "@parameter.outer", desc = "Select outer argument" },
+                            ["ia"] = { query = "@parameter.inner", desc = "Select inner argument" },
+                        },
+                    },
+                    move = {
+                        enable = true,
+                        set_jumps = true,
+                        goto_next_start = {
+                            ["]f"] = { query = "@function.outer", desc = "Next function start" },
+                            ["]a"] = { query = "@parameter.outer", desc = "Next argument start" },
+                        },
+                        goto_next_end = {
+                            ["]F"] = { query = "@function.outer", desc = "Next function end" },
+                        },
+                        goto_previous_start = {
+                            ["[f"] = { query = "@function.outer", desc = "Prev function start" },
+                            ["[a"] = { query = "@parameter.outer", desc = "Prev argument start" },
+                        },
+                        goto_previous_end = {
+                            ["[F"] = { query = "@function.outer", desc = "Prev function end" },
+                        },
+                    },
+                    swap = {
+                        enable = true,
+                        swap_next = {
+                            ["<leader>a"] = { query = "@parameter.inner", desc = "Swap with next argument" },
+                        },
+                        swap_previous = {
+                            ["<leader>A"] = { query = "@parameter.inner", desc = "Swap with prev argument" },
+                        },
+                    },
+                },
+            })
+        end,
+    },
+    {
         'stevearc/aerial.nvim',
         config = function ()
             require("aerial").setup({

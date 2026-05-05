@@ -23,6 +23,8 @@
 | `<leader>b` | バッファソート (barbar) | [navigation.md](./plugins/navigation.md) |
 | `<leader>m` | 1行↔複数行トグル (treesj) | [treesitter.md](./plugins/treesitter.md) |
 | `<leader>o` | アウトライン (aerial) | [treesitter.md](./plugins/treesitter.md) |
+| `<leader>t` | テスト (neotest) | [neotest.md](./plugins/neotest.md) |
+| `<leader>a` / `<leader>A` | 引数スワップ (textobjects) | [treesitter.md](./plugins/treesitter.md) |
 | `<leader>u` | Undo ツリー (undotree) | [editing.md](./plugins/editing.md) |
 
 ---
@@ -62,6 +64,9 @@ LSP がアタッチされたバッファでのみ有効。→ [lsp.md](./plugins
 | `[d` / `]d` | 前/次の診断 | LSP |
 | `[s` / `]s` | 前/次のシンボル | aerial |
 | `[c` / `]c` | 前/次の Git hunk | gitsigns |
+| `[f` / `]f` | 前/次の関数の先頭 | textobjects |
+| `[F` / `]F` | 前/次の関数の末尾 | textobjects |
+| `[a` / `]a` | 前/次の引数 | textobjects |
 
 ### コメント
 
@@ -129,6 +134,9 @@ Vim 標準だが頻出のもの。
 | `i(` / `a(` | 括弧内 / 括弧含む |
 | `i{` / `a{` | 波括弧内 / 波括弧含む |
 | `ip` / `ap` | 段落内 / 段落+前後空行 |
+| `af` / `if` | 関数 (outer / inner) — textobjects |
+| `ac` / `ic` | クラス・impl (outer / inner) — textobjects |
+| `aa` / `ia` | 引数 (outer / inner) — textobjects |
 | `ih` | Git hunk (gitsigns) |
 
 ### モード切替・特殊

@@ -8,7 +8,8 @@
 |----------|-----------|-------------|
 | 検索 | telescope, file_browser, project.nvim | [telescope.md](./plugins/telescope.md) |
 | LSP | nvim-lspconfig | [lsp.md](./plugins/lsp.md) |
-| 構文解析 | treesitter, treesj, textsubjects, aerial | [treesitter.md](./plugins/treesitter.md) |
+| 構文解析 | treesitter, treesj, textsubjects, textobjects, aerial | [treesitter.md](./plugins/treesitter.md) |
+| テスト | neotest, neotest-rust | [neotest.md](./plugins/neotest.md) |
 | Git | gitsigns, diffview | [git.md](./plugins/git.md) |
 | デバッグ | nvim-dap, dap-view, dap-go | [dap.md](./plugins/dap.md) |
 | 編集支援 | Comment, surround, dial, hlslens, undotree, bqf, guess-indent | [editing.md](./plugins/editing.md) |
@@ -33,12 +34,14 @@
 ```
 <leader>ff      ファイル名で検索してエントリポイントを開く
 <leader>fs      ファイル内の関数・型の一覧を見て構造を把握
+<leader>fS      ワークスペース全体からシンボルを検索 (型名・関数名で探す)
 gd              気になる関数/型の定義に飛ぶ
 <C-o>           戻る (<C-i> で逆方向)
 gr              「これどこで使われてる？」
 K               型やドキュメントをホバーで確認
 <leader>o       aerial でアウトライン表示
 [s / ]s         シンボル間をジャンプして流し読み
+]f / [f         次/前の関数にジャンプ
 ```
 
 → [lsp.md](./plugins/lsp.md), [telescope.md](./plugins/telescope.md), [treesitter.md](./plugins/treesitter.md)
@@ -159,7 +162,22 @@ ih              テキストオブジェクト: hunk 選択 (dih, yih 等)
 
 → [dap.md](./plugins/dap.md), [lang-rust.md](./plugins/lang-rust.md)
 
-## 7. 日本語入力
+## 7. テスト実行
+
+```
+<leader>tt      カーソル位置のテストを実行
+<leader>tf      ファイル全体のテストを実行
+<leader>tl      前回のテストを再実行
+<leader>ts      テスト一覧パネルの表示/非表示
+<leader>to      テスト出力を確認
+<leader>td      テストを DAP でデバッグ実行
+```
+
+→ [neotest.md](./plugins/neotest.md)
+
+**典型フロー**: テスト書く → `<leader>tt` → 実装 → `<leader>tl` で再実行
+
+## 8. 日本語入力
 
 ```
 <C-j>           insert/command モードで SKK を ON/OFF
@@ -168,7 +186,7 @@ ih              テキストオブジェクト: hunk 選択 (dih, yih 等)
 
 → [skkeleton.md](./plugins/skkeleton.md)
 
-## 8. ウィンドウ・タブ管理
+## 9. ウィンドウ・タブ管理
 
 ```
 <C-Q>           winresizer 起動 (hjkl でサイ���変更)
@@ -180,7 +198,7 @@ gt / gT         次/前のバッファ
 
 → [navigation.md](./plugins/navigation.md)
 
-## 9. init.lua のカスタムキーバインド
+## 10. init.lua のカスタムキーバインド
 
 Vim 標準の動作を変更しているもの。
 
