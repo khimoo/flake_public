@@ -19,8 +19,9 @@
 | Rust | rustaceanvim, rustowl | [lang-rust.md](./plugins/lang-rust.md) |
 | ノート管理 | telekasten | [telekasten.md](./plugins/telekasten.md) |
 
-## その他
+## リファレンス
 
+- [キーバインド分類チートシート](./cheatsheet.md) — 「覚える必要があるもの」と「which-key に任せられるもの」の分類一覧
 - [キーバインド変更メモ](./keybindings-memo.md) — デファクトスタンダードに合わせた修正の記録
 
 ---
