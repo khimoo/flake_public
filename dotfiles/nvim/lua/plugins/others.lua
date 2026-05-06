@@ -1,7 +1,17 @@
 return {
   {
-    "nvim-lualine/lualine.nvim", -- lualineでtermguicolorsがonになるよ！
-    opts = { options = { theme = 'codedark' } }
+    "nvim-lualine/lualine.nvim",
+    opts = {
+      options = { theme = 'codedark' },
+      sections = {
+        lualine_c = {
+          {
+            'filename',
+            path = 1, -- 0: 名前のみ, 1: 相対パス, 2: 絶対パス, 3: ホームディレクトリからのパス
+          }
+        }
+      }
+    }
   },
   {
     "kevinhwang91/nvim-bqf",
@@ -36,14 +46,22 @@ return {
   {
     'monaqa/dial.nvim',
     config = function()
-      vim.keymap.set("n", "<C-a>", function() require("dial.map").manipulate("increment", "normal") end, { desc = "increment" })
-      vim.keymap.set("n", "<C-x>", function() require("dial.map").manipulate("decrement", "normal") end, { desc = "decrement" })
-      vim.keymap.set("n", "g<C-a>", function() require("dial.map").manipulate("increment", "gnormal") end, { desc = "gincrement" })
-      vim.keymap.set("n", "g<C-x>", function() require("dial.map").manipulate("decrement", "gnormal") end, { desc = "gdecrement" })
-      vim.keymap.set("v", "<C-a>", function() require("dial.map").manipulate("increment", "visual") end, { desc = "visual increment" })
-      vim.keymap.set("v", "<C-x>", function() require("dial.map").manipulate("decrement", "visual") end, { desc = "visual decrement" })
-      vim.keymap.set("v", "g<C-a>", function() require("dial.map").manipulate("increment", "gvisual") end, { desc = "visual gincrement" })
-      vim.keymap.set("v", "g<C-x>", function() require("dial.map").manipulate("decrement", "gvisual") end, { desc = "visual gincrement" })
+      vim.keymap.set("n", "<C-a>", function() require("dial.map").manipulate("increment", "normal") end,
+        { desc = "increment" })
+      vim.keymap.set("n", "<C-x>", function() require("dial.map").manipulate("decrement", "normal") end,
+        { desc = "decrement" })
+      vim.keymap.set("n", "g<C-a>", function() require("dial.map").manipulate("increment", "gnormal") end,
+        { desc = "gincrement" })
+      vim.keymap.set("n", "g<C-x>", function() require("dial.map").manipulate("decrement", "gnormal") end,
+        { desc = "gdecrement" })
+      vim.keymap.set("v", "<C-a>", function() require("dial.map").manipulate("increment", "visual") end,
+        { desc = "visual increment" })
+      vim.keymap.set("v", "<C-x>", function() require("dial.map").manipulate("decrement", "visual") end,
+        { desc = "visual decrement" })
+      vim.keymap.set("v", "g<C-a>", function() require("dial.map").manipulate("increment", "gvisual") end,
+        { desc = "visual gincrement" })
+      vim.keymap.set("v", "g<C-x>", function() require("dial.map").manipulate("decrement", "gvisual") end,
+        { desc = "visual gincrement" })
 
       local augend = require("dial.augend")
       local auconf = require("dial.config")
@@ -68,7 +86,7 @@ return {
     opts = {
       keymaps = {
         insert = "<C-g>s",
-        insert_line ="<C-g>S",
+        insert_line = "<C-g>S",
         normal = "<leader>sys",
         normal_cur = "<leader>syss",
         normal_line = "<leader>syS",
