@@ -33,26 +33,28 @@
       enable = true;
       lfs.enable = true;
 
-      userName = settings.gitUsername;
-      userEmail = settings.gitUserEmail;
+      settings = {
+        user = {
+          email = settings.gitUsername;
+          name = settings.gitUserEmail;
+        };
 
-      extraConfig = {
         init.defaultBranch = "main";
         merge.conflictstyle = "zdiff3";
       };
+    };
 
-      delta = {
-        enable = true;
-        options = {
-          features = "side-by-side line-numbers decorations";
-          side-by-side = true;
-          line-numbers = true;
-          navigate = true;
-          decorations = {
-            commit-decoration-style = "bold yellow box ul";
-            file-style = "bold yellow ul";
-            file-decoration-style = "none";
-          };
+    delta = {
+      enable = true;
+      options = {
+        features = "side-by-side line-numbers decorations";
+        side-by-side = true;
+        line-numbers = true;
+        navigate = true;
+        decorations = {
+          commit-decoration-style = "bold yellow box ul";
+          file-style = "bold yellow ul";
+          file-decoration-style = "none";
         };
       };
     };

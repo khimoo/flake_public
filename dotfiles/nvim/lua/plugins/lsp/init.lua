@@ -3,6 +3,18 @@ return {
     "neovim/nvim-lspconfig",
     dependencies = {
       "saghen/blink.cmp",
+      {
+        "folke/lazydev.nvim",
+        ft = "lua", -- Luaファイルのみで起動
+        opts = {
+          library = {
+            -- Neovimのプラグイン開発や設定に便利な型定義を読み込む
+            { path = "${3rd}/luv/library", words = { "vim%.uv" } },
+            -- lazy.nvimの型定義も読み込む場合
+            { path = "lazy.nvim",          words = { "LazyVim" } },
+          },
+        },
+      },
     },
     config = function()
       require("config.lsp.keymaps").setup()
