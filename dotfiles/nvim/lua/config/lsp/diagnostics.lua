@@ -17,7 +17,10 @@ function M.setup()
   vim.api.nvim_create_autocmd("CursorHold", {
     pattern = "*",
     callback = function()
-      vim.diagnostic.open_float(nil, { focus = false })
+      vim.diagnostic.open_float(nil, {
+        focus = false,
+        source = "always",
+      })
     end,
   })
 end
