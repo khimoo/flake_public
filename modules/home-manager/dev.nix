@@ -22,7 +22,7 @@ in {
     ffmpeg
     claude-code
   ] ++ lib.optionals pkgs.stdenv.isLinux [
-    kiro.packages.${pkgs.system}.default
+    kiro.packages.${pkgs.stdenv.hostPlatform.system}.default
     pkgs.antigravity-fhs
   ] ++ map (s: s.pkg) lspServers;
 

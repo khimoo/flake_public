@@ -78,9 +78,8 @@
         in
         nixpkgs.lib.nixosSystem {
           specialArgs = { inherit inputs; inherit skk-dict kiro; inherit settings; };
-          inherit system;
           modules = [
-            { nixpkgs.overlays = overlays; }
+            { nixpkgs = { hostPlatform = system; overlays = overlays; }; }
             inputs.musnix.nixosModules.musnix
             (./hosts/${hostname}/default.nix)
             home-manager.nixosModules.home-manager

@@ -18,7 +18,7 @@
 
   # システムパッケージ
   environment.systemPackages = with pkgs; [
-    inputs.home-manager.packages.${pkgs.system}.home-manager # manageHome = falseの人もhome-manager使えるようにしてる
+    inputs.home-manager.packages.${pkgs.stdenv.hostPlatform.system}.home-manager # manageHome = falseの人もhome-manager使えるようにしてる
     gparted
     gnomeExtensions.gsconnect
   ];
