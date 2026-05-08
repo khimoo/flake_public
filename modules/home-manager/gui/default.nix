@@ -28,6 +28,7 @@ in lib.mkIf settings.features.gui {
     obs-studio
     xournalpp
     google-chrome
+    mypaint
 
     ipafont
     ipaexfont
