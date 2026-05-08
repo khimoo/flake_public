@@ -80,6 +80,7 @@
           specialArgs = { inherit inputs; inherit skk-dict kiro; inherit settings; };
           inherit system;
           modules = [
+            { nixpkgs.overlays = overlays; }
             inputs.musnix.nixosModules.musnix
             (./hosts/${hostname}/default.nix)
             home-manager.nixosModules.home-manager
@@ -103,7 +104,7 @@
       # スタンドアロンhome-manager設定を生成するヘルパー関数
       mkHome = { username, system, homeFile ? null, stateVersion, allowUnfree ? false, features ? {}, extraSettings ? {} }:
         let
-          pkgs = nixpkgs.legacyPackages.${system};
+          pkgs = import nixpkgs { inherit system; inherit overlays; };
           skk-dict = mkSkkDict system;
           settings = baseSettings // {
             inherit system stateVersion;
@@ -121,6 +122,9 @@
             }
           ] ++ (if homeFile != null then [ homeFile ] else []);
         };
+
+      # 一時的なパッチ等の overlay（overlays/default.nix）
+      overlays = import ./overlays;
 
     in {
       nixosConfigurations = {
