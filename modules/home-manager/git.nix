@@ -35,8 +35,8 @@
 
       settings = {
         user = {
-          email = settings.gitUsername;
-          name = settings.gitUserEmail;
+          name = settings.gitUsername;
+          email = settings.gitUserEmail;
         };
 
         init.defaultBranch = "main";
