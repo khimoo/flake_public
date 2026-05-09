@@ -28,8 +28,8 @@ home-manager switch --flake .#username-host
 
 | 要素 | インストール先 | 理由 |
 |------|---------------|------|
-| rustowl (プリビルドバイナリ) | `~/.local/share/rustowl/` | 特定の nightly Rust sysroot を同梱する必要があり、nixpkgs でのパッケージングが困難 |
-| rustowl, rustowlc (symlink) | `~/.local/bin/` | 上記バイナリへのシンボリックリンク |
+| rustowl (プリビルドバイナリ + ランタイムダウンロードの sysroot) | `~/.local/share/rustowl/` | 特定の nightly Rust sysroot を必要とし、nixpkgs でのパッケージングが困難 |
+| rustowl (symlink) | `~/.local/bin/` | 上記バイナリへのシンボリックリンク |
 
 詳細は `modules/home-manager/dev.nix` の `home.activation.rustowl` を参照。
 
