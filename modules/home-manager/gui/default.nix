@@ -25,10 +25,10 @@ in lib.mkIf settings.features.gui {
     teams-for-linux
     vmpk
     vlc
-    obs-studio
     xournalpp
     google-chrome
     mypaint
+    showmethekey
 
     ipafont
     ipaexfont
@@ -39,6 +39,13 @@ in lib.mkIf settings.features.gui {
   ];
 
   fonts.fontconfig = { enable = true; };
+
+  programs.obs-studio = {
+    enable = true;
+    plugins = with pkgs.obs-studio-plugins; [
+      input-overlay
+    ];
+  };
 
   programs.foliate.enable = true;
   programs.anki = {
