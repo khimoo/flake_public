@@ -40,7 +40,6 @@ function M.setup()
       vmap("ca", vim.lsp.buf.range_code_action or vim.lsp.buf.code_action, "Range code action")
 
       nmap("dl", vim.diagnostic.open_float, "Open diagnostic float")
-      nmap("q", vim.diagnostic.setloclist, "Diagnostics to loclist")
 
       if pcall(require, "which-key") then
         local wk = require("which-key")

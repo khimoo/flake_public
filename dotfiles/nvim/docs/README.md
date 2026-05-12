@@ -13,7 +13,8 @@
 | テスト | neotest, neotest-rust | [neotest.md](./plugins/neotest.md) |
 | Git | gitsigns, diffview | [git.md](./plugins/git.md) |
 | デバッグ | nvim-dap, dap-view, dap-go | [dap.md](./plugins/dap.md) |
-| 編集支援 | Comment, surround, dial, hlslens, undotree, bqf, guess-indent | [editing.md](./plugins/editing.md) |
+| 編集支援 | Comment, surround, dial, hlslens, undotree, guess-indent | [editing.md](./plugins/editing.md) |
+| 診断・quickfix | trouble.nvim | [trouble.md](./plugins/trouble.md) |
 | 補完 | blink.cmp | [completion.md](./plugins/completion.md) |
 | 日本語入力 | skkeleton, fcitx5 連携 | [skkeleton.md](./plugins/skkeleton.md) |
 | ナビゲーション | harpoon2, smart-splits | [navigation.md](./plugins/navigation.md), [smart-splits.md](./plugins/smart-splits.md) |
@@ -51,7 +52,7 @@ K               型やドキュメントをホバーで確認
 ## 2. バグを探して修正する
 
 ```
-<leader>fd      diagnostics 一覧で全エラー/警告を俯瞰
+<leader>xx      diagnostics 一覧で全エラー/警告を俯瞰 (trouble)
 [d / ]d         エラー箇所をジャンプで巡回
 (CursorHold)    250ms 停止で診断フロートが自動表示される
 gd              エラーに関連する定義に飛ぶ
@@ -61,7 +62,7 @@ gra             code action で自動修正候補があれば適用
 <leader>lF      フォーマット
 ```
 
-→ [lsp.md](./plugins/lsp.md), [telescope.md](./plugins/telescope.md)
+→ [lsp.md](./plugins/lsp.md), [trouble.md](./plugins/trouble.md), [telescope.md](./plugins/telescope.md)
 
 ## 3. リファクタリング
 
@@ -196,10 +197,9 @@ ih              テキストオブジェクト: hunk 選択 (dih, yih 等)
 Ctrl+h/j/k/l    ウィンドウ/ペイン間を移動 (nvim ↔ wezterm シームレス)
 Alt+h/j/k/l     ウィンドウ/ペインをリサイズ
 <leader><leader>h/j/k/l  バッファをスワップ (nvim 内)
-gt / gT         次/前のバッファ
-<A-1>〜<A-9>    バッファ番号で直接移動
-<C-w>c          バッファを閉じる
-<C-p>           バッファピック
+gt / gT         harpoon リスト内の次/前のファイル
+<leader>ha      現在のファイルを harpoon リストに追加
+<leader>h1〜h5  マークしたファイルに直接移動
 ```
 
 → [navigation.md](./plugins/navigation.md), [smart-splits.md](./plugins/smart-splits.md)

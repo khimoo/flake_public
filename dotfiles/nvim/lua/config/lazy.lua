@@ -17,7 +17,7 @@
 -- Setup lazy.nvim
 require("lazy").setup({
   -- 本当はもっと上手くやりたいけど、一旦lockfileを書き込み可能な場所に移す；；
-  lockfile = vim.fn.stdpath("data") .. "/lazy-lock.json", 
+  lockfile = vim.fn.stdpath("data") .. "/lazy-lock.json",
   performance = {
     reset_packpath = false, -- packpathのリセットを無効化
     rtp = {
@@ -31,14 +31,10 @@ require("lazy").setup({
   -- Configure any other settings here. See the documentation for more details.
   -- colorscheme that will be used when installing plugins.
   install = {
-      colorscheme = { "habamax" },
-      missing = false,
+      missing = true,
   },
   dev = {
     -- Nixがインストールしたプラグインの場所を指定
     path = "${pkgs.vimUtils.packDir config.home-manager.users.USERNAME.programs.neovim.finalPackage.passthru.packpathDirs}/pack/myNeovimPackages/start",
-  },
-  install = {
-    missing = true,
   },
 })

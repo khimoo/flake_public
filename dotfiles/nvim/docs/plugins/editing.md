@@ -2,7 +2,7 @@
 
 コメント、囲み操作、インクリメント、検索ハイライト、undo ツリー。
 
-- 設定ファイル: `lua/plugins/comment.lua`, `lua/plugins/others.lua`
+- 設定ファイル: `lua/plugins/comment.lua`, `lua/plugins/surround.lua`, `lua/plugins/dial.lua`, `lua/plugins/hlslens.lua`, `lua/plugins/undotree.lua`
 
 ## Comment.nvim
 
@@ -71,11 +71,6 @@ undo 履歴をツリー形式で可視化。分岐した undo 履歴にもアク
 | キー | 機能 |
 |------|------|
 | `<leader>u` | undotree の表示/非表示トグル |
-
-## nvim-bqf
-
-quickfix ウィンドウの強化。プレビュー表示やファジー検索が追加される。
-キーバインドはデフォルト (quickfix ウィンドウ内で `<CR>` で開く等)。
 
 ## guess-indent.nvim
 

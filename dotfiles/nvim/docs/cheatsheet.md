@@ -19,8 +19,10 @@
 | `<leader>g` | Git (gitsigns) | [git.md](./plugins/git.md) |
 | `<leader>d` | デバッグ (DAP) | [dap.md](./plugins/dap.md) |
 | `<leader>l` | LSP (低頻度操作) | [lsp.md](./plugins/lsp.md) |
+| `<leader>x` | 診断・quickfix (trouble) | [trouble.md](./plugins/trouble.md) |
 | `<leader>s` | 囲み操作 (surround) | [editing.md](./plugins/editing.md) |
-| `<leader>b` | バッファソート (barbar) | [navigation.md](./plugins/navigation.md) |
+| `<leader>h` | ファイルマーク (harpoon) | [navigation.md](./plugins/navigation.md) |
+| `<leader><leader>` | バッファスワップ (smart-splits) | [smart-splits.md](./plugins/smart-splits.md) |
 | `<leader>m` | 1行↔複数行トグル (treesj) | [treesitter.md](./plugins/treesitter.md) |
 | `<leader>o` | アウトライン (aerial) | [treesitter.md](./plugins/treesitter.md) |
 | `<leader>t` | テスト (neotest) | [neotest.md](./plugins/neotest.md) |
@@ -37,9 +39,10 @@ which-key では表示されないキーバインド。カテゴリ別に分類�
 
 | キー | モード | 機能 | 出典 |
 |------|--------|------|------|
-| `j` / `k` | n | 表示行で移動 (標準の `gj`/`gk` と入れ替え) | init.lua |
-| `gj` / `gk` | n | 実際の行で移動 | init.lua |
-| `<C-j>` / `<C-k>` | n, x, v | 5行ジャンプ | init.lua |
+| `j` / `k` | n | 表示行で移動 (標準の `gj`/`gk` と入れ替え) | keymaps.lua |
+| `gj` / `gk` | n | 実際の行で移動 | keymaps.lua |
+| `Ctrl+h/j/k/l` | n | ウィンドウ/ペイン間を移動 | smart-splits |
+| `Alt+h/j/k/l` | n | ウィンドウ/ペインをリサイズ | smart-splits |
 | `<C-o>` / `<C-i>` | n | ジャンプリストを戻る/進む | Vim 標準 |
 | `{` / `}` | n | 段落移動 | Vim 標準 |
 
@@ -93,18 +96,14 @@ LSP がアタッチされたバッファでのみ有効。→ [lsp.md](./plugins
 | `g*` / `g#` | n | 部分一致で検索 | hlslens |
 | `<Esc><Esc>` | n | 検索ハイライト解除 | init.lua |
 
-### バッファ操作
+### ファイルマーク・バッファ操作
 
 | キー | モード | 機能 | 出典 |
 |------|--------|------|------|
-| `gt` / `gT` | n | 次/前のバッファ | barbar |
-| `<A-1>` 〜 `<A-9>` | n | バッファ番号で直接移動 | barbar |
-| `<A-0>` | n | 最後のバッファ | barbar |
-| `<A-<>` / `<A->>` | n | バッファを左/右に移動 | barbar |
-| `<A-p>` | n | バッファをピン留め | barbar |
-| `<C-p>` | n | バッファピック (1文字で選択) | barbar |
-| `<C-S-p>` | n | バッファピックで削除 | barbar |
-| `<C-w>c` | n | バッファを閉じる | barbar |
+| `gt` / `gT` | n | harpoon リスト内の次/前のファイル | harpoon |
+| `<leader>ha` | n | 現在のファイルをリストに追加 | harpoon |
+| `<leader>hh` | n | harpoon メニューを開く | harpoon |
+| `<leader>h1` 〜 `<leader>h5` | n | マークしたファイルに直接移動 | harpoon |
 
 ### 編集
 
@@ -145,9 +144,8 @@ Vim 標準だが頻出のもの。
 
 | キー | モード | 機能 | 出典 |
 |------|--------|------|------|
-| `<C-f>` | i, c, n | Esc の代わり | init.lua |
+| `<C-f>` | i, c, n | Esc の代わり | keymaps.lua |
 | `<C-j>` | i, c | SKK (日本語入力) ON/OFF | skkeleton |
-| `<C-Q>` | n | ウィンドウリサイズモード | winresizer |
 
 ### 補完 (挿入モード)
 
