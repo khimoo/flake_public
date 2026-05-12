@@ -70,11 +70,14 @@ gra             code action で自動修正候補があれば適用
 gd              変更対象の定義に移動
 grr             影響範囲を確認 (どこで使われているか)
 grn             LSP rename でプロジェクト全体を一括リネーム
+(新しい名前入力中もバッファ補完が効く)
+.               構造体のフィールドアクセスで補完が出る
+<C-k>           シグネチャヘルプで引数の型を確認
 gcc             不要なコードをコメントアウト (まず様子見)
-gcc             問題なければもう一度 gcc で戻して dd で削���
+gcc             問題なければもう一度 gcc で戻して dd で削除
 ```
 
-→ [lsp.md](./plugins/lsp.md), [editing.md](./plugins/editing.md)
+→ [lsp.md](./plugins/lsp.md), [editing.md](./plugins/editing.md), [completion.md](./plugins/completion.md)
 
 **コメント操作のパターン**:
 - 1行: `gcc`
