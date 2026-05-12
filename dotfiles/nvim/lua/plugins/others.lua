@@ -2,7 +2,6 @@ return {
   {
     "nvim-lualine/lualine.nvim",
     config = function()
-      local harpoon_files = require("harpoon_files")
       require("lualine").setup {
         options = { theme = 'codedark' },
         sections = {
@@ -12,16 +11,6 @@ return {
               path = 1,
             }
           }
-        },
-        tabline = {
-          lualine_a = {
-            { harpoon_files.lualine_component },
-          },
-          lualine_b = {},
-          lualine_c = {},
-          lualine_x = {},
-          lualine_y = {},
-          lualine_z = {},
         },
       }
     end,
