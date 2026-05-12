@@ -1,8 +1,8 @@
 local autocmd = vim.api.nvim_create_autocmd
 
--- 透過背景（TERMINAL_TRANSPARENT が設定されている場合のみ有効）
--- 環境変数は gui/default.nix で設定される
-if vim.env.TERMINAL_TRANSPARENT then
+-- 透過背景（TERMINAL_TRANSPARENT=0 で明示的に無効化できる）
+-- gui/default.nix で TERMINAL_TRANSPARENT=1 を設定している
+if vim.env.TERMINAL_TRANSPARENT ~= "0" then
     autocmd("ColorScheme", {
         pattern = "*",
         callback = function()

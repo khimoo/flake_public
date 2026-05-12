@@ -16,7 +16,7 @@
 | 編集支援 | Comment, surround, dial, hlslens, undotree, bqf, guess-indent | [editing.md](./plugins/editing.md) |
 | 補完 | blink.cmp | [completion.md](./plugins/completion.md) |
 | 日本語入力 | skkeleton, fcitx5 連携 | [skkeleton.md](./plugins/skkeleton.md) |
-| ナビゲーション | barbar, winresizer | [navigation.md](./plugins/navigation.md) |
+| ナビゲーション | harpoon2, smart-splits | [navigation.md](./plugins/navigation.md), [smart-splits.md](./plugins/smart-splits.md) |
 | 外観 | lualine, hlchunk, fidget, which-key | [appearance.md](./plugins/appearance.md) |
 | Rust | rustaceanvim, rustowl | [lang-rust.md](./plugins/lang-rust.md) |
 
@@ -91,8 +91,9 @@ gcc             問題なければもう一度 gcc で戻して dd で削除
 <leader>ff      ファイル名で検索して開く (最も速い)
 <leader>fb      開いているバッファ一覧から選ぶ
 <leader>fo      最近開いたファイルから選ぶ
-gt / gT         次/前のバッファタブ
-<C-p>           barbar のバッファピック (1キーで選べる)
+gt / gT         harpoon リスト内の次/前のファイル
+<leader>ha      現在のファイルを harpoon リストに追加
+<leader>hh      harpoon メニューを開く
 <leader>fe      Oil でディレクトリをバッファ表示 (ファイル作成・リネーム・移動時)
 ```
 
@@ -189,26 +190,27 @@ ih              テキストオブジェクト: hunk 選択 (dih, yih 等)
 
 → [skkeleton.md](./plugins/skkeleton.md)
 
-## 9. ウィンドウ・タブ管理
+## 9. ウィンドウ・ペイン管理
 
 ```
-<C-Q>           winresizer 起動 (hjkl でサイ���変更)
+Ctrl+h/j/k/l    ウィンドウ/ペイン間を移動 (nvim ↔ wezterm シームレス)
+Alt+h/j/k/l     ウィンドウ/ペインをリサイズ
+<leader><leader>h/j/k/l  バッファをスワップ (nvim 内)
 gt / gT         次/前のバッファ
 <A-1>〜<A-9>    バッファ番号で直接移動
 <C-w>c          バッファを閉じる
 <C-p>           バッファピック
 ```
 
-→ [navigation.md](./plugins/navigation.md)
+→ [navigation.md](./plugins/navigation.md), [smart-splits.md](./plugins/smart-splits.md)
 
-## 10. init.lua のカスタムキーバインド
+## 10. カスタムキーバインド (keymaps.lua)
 
 Vim 標準の動作を変更しているもの。
 
 | キー | モード | 機能 |
 |------|--------|------|
 | `<C-f>` | i, c, n | Esc の代わり |
-| `<C-j>` / `<C-k>` | n, x, v | 5行ジャンプ (加速移動) |
 | `j` / `k` | n | 表示行で移動 (`gj`/`gk` と入れ替え) |
 | `x` モードの `d` | x | ブラックホールレジスタに削除 (レジスタを汚さない) |
 | `x` モードの `p` | x | ペースト時にレジスタを上書きしない |

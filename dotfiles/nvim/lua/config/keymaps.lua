@@ -12,7 +12,3 @@ map("n", "k", "gk", { noremap = true })
 map("n", "gk", "k", { noremap = true })
 map("n", "j", "gj", { noremap = true })
 map("n", "gj", "j", { noremap = true })
-
--- スクロール加速
-map({ "n", "x" }, "<C-j>", "5j", { noremap = true })
-map({ "n", "x" }, "<C-k>", "5k", { noremap = true })

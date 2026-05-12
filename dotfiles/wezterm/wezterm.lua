@@ -103,16 +103,11 @@ config.keys = {
     },
   },
 
-  -- Leader: pane
+  -- Leader: pane (navigation/resize is handled by smart-splits)
   { key = 's', mods = 'LEADER', action = act.SplitVertical { domain = 'CurrentPaneDomain' } },
   { key = 'v', mods = 'LEADER', action = act.SplitHorizontal { domain = 'CurrentPaneDomain' } },
-  { key = 'q', mods = 'LEADER', action = act.ActivateKeyTable { name = 'resize_pane', one_shot = false } },
   { key = 'e', mods = 'LEADER', action = act.RotatePanes 'Clockwise' },
   { key = 'E', mods = 'LEADER', action = act.RotatePanes 'CounterClockwise' },
-  { key = 'h', mods = 'LEADER', action = act.ActivatePaneDirection 'Left' },
-  { key = 'j', mods = 'LEADER', action = act.ActivatePaneDirection 'Down' },
-  { key = 'k', mods = 'LEADER', action = act.ActivatePaneDirection 'Up' },
-  { key = 'l', mods = 'LEADER', action = act.ActivatePaneDirection 'Right' },
   { key = 'x', mods = 'LEADER', action = act.CloseCurrentPane { confirm = true } },
   { key = 'X', mods = 'LEADER', action = act.CloseCurrentTab { confirm = true } },
 
@@ -139,17 +134,16 @@ table.insert(copy_mode, { key = 'q', mods = 'NONE', action = act.QuickSelect })
 
 config.key_tables = {
   copy_mode = copy_mode,
-  resize_pane = {
-    { key = 'LeftArrow', action = act.AdjustPaneSize { 'Left', 1 } },
-    { key = 'h',         action = act.AdjustPaneSize { 'Left', 3 } },
-    { key = 'RightArrow', action = act.AdjustPaneSize { 'Right', 1 } },
-    { key = 'l',          action = act.AdjustPaneSize { 'Right', 3 } },
-    { key = 'UpArrow',   action = act.AdjustPaneSize { 'Up', 1 } },
-    { key = 'k',         action = act.AdjustPaneSize { 'Up', 3 } },
-    { key = 'DownArrow', action = act.AdjustPaneSize { 'Down', 1 } },
-    { key = 'j',         action = act.AdjustPaneSize { 'Down', 3 } },
-    { key = 'Escape',    action = 'PopKeyTable' },
-  },
 }
+
+-- smart-splits: seamless navigation/resize between neovim and wezterm panes
+local smart_splits = wezterm.plugin.require('https://github.com/mrjones2014/smart-splits.nvim')
+smart_splits.apply_to_config(config, {
+  direction_keys = { 'h', 'j', 'k', 'l' },
+  modifiers = {
+    move = 'CTRL',
+    resize = 'META',
+  },
+})
 
 return config
