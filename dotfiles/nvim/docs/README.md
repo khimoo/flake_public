@@ -19,7 +19,6 @@
 | ナビゲーション | barbar, winresizer | [navigation.md](./plugins/navigation.md) |
 | 外観 | lualine, hlchunk, fidget, which-key | [appearance.md](./plugins/appearance.md) |
 | Rust | rustaceanvim, rustowl | [lang-rust.md](./plugins/lang-rust.md) |
-| ノート管理 | telekasten | [telekasten.md](./plugins/telekasten.md) |
 
 ## リファレンス
 

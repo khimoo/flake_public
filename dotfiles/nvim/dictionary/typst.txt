@@ -1,8 +1,0 @@
-#definition
-#theorem
-#proof
-#lemma
-#corollary
-#remark
-#proposition
-#example
