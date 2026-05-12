@@ -54,6 +54,9 @@ in lib.mkIf settings.features.gui {
   };
 
   # mkOutOfStoreSymlinkを使えばrebuild不要で即反映できるが、絶対パスのハードコードが必要になるため使用しない
+  # wezterm の背景透過と nvim の背景透過 autocmd を連携させる
+  home.sessionVariables.TERMINAL_TRANSPARENT = "1";
+
   xdg.configFile."wezterm/wezterm.lua".source = ../../../dotfiles/wezterm/wezterm.lua;
   xdg.configFile."wezterm/font.lua".text = ''return "${terminalFont.name}"'';
 
