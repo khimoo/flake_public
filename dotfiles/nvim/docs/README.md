@@ -6,7 +6,8 @@
 
 | カテゴリ | プラグイン | ドキュメント |
 |----------|-----------|-------------|
-| 検索 | telescope, file_browser, project.nvim | [telescope.md](./plugins/telescope.md) |
+| 検索 | telescope, project.nvim | [telescope.md](./plugins/telescope.md) |
+| ファイラー | oil.nvim | [telescope.md](./plugins/telescope.md) |
 | LSP | nvim-lspconfig | [lsp.md](./plugins/lsp.md) |
 | 構文解析 | treesitter, treesj, textsubjects, textobjects, aerial | [treesitter.md](./plugins/treesitter.md) |
 | テスト | neotest, neotest-rust | [neotest.md](./plugins/neotest.md) |
@@ -90,7 +91,7 @@ gcc             問題なければもう一度 gcc で戻して dd で削���
 <leader>fo      最近開いたファイルから選ぶ
 gt / gT         次/前のバッファタブ
 <C-p>           barbar のバッファピック (1キーで選べる)
-<leader>fe      ディレクトリツリーを辿る (ファイル作成・移動時)
+<leader>fe      Oil でディレクトリをバッファ表示 (ファイル作成・リネーム・移動時)
 ```
 
 → [telescope.md](./plugins/telescope.md), [navigation.md](./plugins/navigation.md)

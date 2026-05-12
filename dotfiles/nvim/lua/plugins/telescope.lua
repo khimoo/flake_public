@@ -5,30 +5,13 @@ return {
         dependencies = {
             "nvim-lua/plenary.nvim",
             'nvim-telescope/telescope-media-files.nvim',
-            "nvim-telescope/telescope-file-browser.nvim",
             "BurntSushi/ripgrep",
             "ahmedkhalf/project.nvim", -- どこにいてもgitのrootにcdしてくれるplugin
         },
         config = function()
             -- Telescopeの基本設定
             require("telescope").setup {
-                extensions = {
-                    file_browser = {
-                        theme = "dropdown",
-                        hijack_netrw = true,
-                        mappings = {
-                            ["i"] = {
-                                ["<C-j>"] = { "<Plug>(skkeleton-enable)", type = "command" },
-                                ["<C-f>"] = { "<Esc>", type = "command" },
-                            },
-                            ["n"] = {},
-                        },
-                    },
-                },
             }
-
-            -- 拡張機能の読み込み
-            require("telescope").load_extension "file_browser"
 
             -- キーマッピングの設定
             local builtin = require("telescope.builtin")
@@ -41,7 +24,6 @@ return {
             vim.keymap.set("n", "<leader>fS", builtin.lsp_workspace_symbols, { desc = "Workspace symbols" })
             vim.keymap.set("n", "<leader>fr", builtin.lsp_references, { desc = "LSP references" })
             vim.keymap.set("n", "<leader>fo", builtin.oldfiles, { desc = "Recent files" })
-            vim.keymap.set("n", "<leader>fe", ":Telescope file_browser path=%:p:h select_buffer=true<CR>", { desc = "File browser" })
             vim.keymap.set("n", "<leader>ft", ":Telescope<CR>", { desc = "Telescope commands" })
         end
     },

@@ -3,17 +3,13 @@
 ファジーファインダー。ファイル検索、テキスト検索、LSP 連携など Neovim の検索の中核。
 
 - 設定ファイル: `lua/plugins/telescope.lua`
-- 依存: plenary.nvim, ripgrep, telescope-file-browser.nvim, telescope-media-files.nvim, project.nvim
+- 依存: plenary.nvim, ripgrep, telescope-media-files.nvim, project.nvim
 
 ## プラグイン
 
 ### telescope.nvim
 
 ファジー検索エンジン本体。
-
-### telescope-file-browser.nvim
-
-Telescope 内でディレクトリツリーを辿れるファイラー拡張。`hijack_netrw = true` で netrw を置き換えている。
 
 ### project.nvim
 
@@ -44,7 +40,7 @@ Git リポジトリのルートに自動で `cd` してくれる。`find_files` 
 | キー | 機能 | 説明 |
 |------|------|------|
 | `<leader>fh` | help_tags | Neovim のヘルプをファジー検索 |
-| `<leader>fe` | file_browser | ディレクトリツリーを辿る。ファイル作成・リネーム・削除も可能 |
+| `<leader>fe` | Oil (file explorer) | ディレクトリをバッファとして表示。ファイル作成・リネーム・削除も可能 |
 | `<leader>ft` | Telescope commands | Telescope の全コマンド一覧 |
 
 ### Telescope ウィンドウ内の操作
@@ -58,14 +54,6 @@ Git リポジトリのルートに自動で `cd` してくれる。`find_files` 
 | `<C-v>` | 垂直分割で開く |
 | `<C-t>` | 新しいタブで開く |
 
-### file_browser 内の操作 (挿入モード)
-
-| キー | 動作 |
-|------|------|
-| `<C-j>` | SKK 入力を有効化 (skkeleton 連携) |
-| `<C-f>` | Esc |
-
 ## 設定のポイント
 
-- `theme = "dropdown"` で file_browser はドロップダウン表示
-- `hijack_netrw = true` で `:edit <dir>` が file_browser に置き換わる
+- ファイラーは oil.nvim に移行済み（`lua/plugins/oil.lua` を参照）
