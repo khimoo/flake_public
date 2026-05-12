@@ -1,17 +1,30 @@
 return {
   {
     "nvim-lualine/lualine.nvim",
-    opts = {
-      options = { theme = 'codedark' },
-      sections = {
-        lualine_c = {
-          {
-            'filename',
-            path = 1, -- 0: 名前のみ, 1: 相対パス, 2: 絶対パス, 3: ホームディレクトリからのパス
+    config = function()
+      local harpoon_files = require("harpoon_files")
+      require("lualine").setup {
+        options = { theme = 'codedark' },
+        sections = {
+          lualine_c = {
+            {
+              'filename',
+              path = 1,
+            }
           }
-        }
+        },
+        tabline = {
+          lualine_a = {
+            { harpoon_files.lualine_component },
+          },
+          lualine_b = {},
+          lualine_c = {},
+          lualine_x = {},
+          lualine_y = {},
+          lualine_z = {},
+        },
       }
-    }
+    end,
   },
   {
     "kevinhwang91/nvim-bqf",
@@ -243,5 +256,11 @@ return {
   {
     'nmac427/guess-indent.nvim',
     opts = {}
+  },
+  {
+    "simeji/winresizer",
+    config = function()
+      vim.g.winresizer_start_key = "<C-Q>"
+    end,
   },
 }
