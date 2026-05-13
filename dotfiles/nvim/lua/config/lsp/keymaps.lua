@@ -17,8 +17,8 @@ function M.setup()
       -- gr* は Neovim 0.11+ のデフォルト (grr=references, grn=rename, gra=code_action)
       bmap("n", "K", vim.lsp.buf.hover, "Hover documentation")
       bmap("n", "<C-s>", vim.lsp.buf.signature_help, "Signature help")
-      bmap("n", "[d", vim.diagnostic.goto_prev, "Previous diagnostic")
-      bmap("n", "]d", vim.diagnostic.goto_next, "Next diagnostic")
+      bmap("n", "[d", function() vim.diagnostic.jump({ count = -1 }) end, "Previous diagnostic")
+      bmap("n", "]d", function() vim.diagnostic.jump({ count = 1 }) end, "Next diagnostic")
 
       -- 低頻度操作: <leader>l プレフィックス付き
       local function nmap(suffix, func, desc)

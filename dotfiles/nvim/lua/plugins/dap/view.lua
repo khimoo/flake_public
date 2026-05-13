@@ -1,6 +1,7 @@
 return {
   "igorlfs/nvim-dap-view",
   ---@module 'dap-view'
+  ---@diagnostic disable-next-line: undefined-doc-name
   ---@type dapview.Config
   opts = {
     winbar = {

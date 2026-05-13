@@ -33,6 +33,7 @@ require("lazy").setup({
   install = {
       missing = true,
   },
+  ---@diagnostic disable-next-line: assign-type-mismatch
   dev = {
     -- Nixがインストールしたプラグインの場所を指定
     path = "${pkgs.vimUtils.packDir config.home-manager.users.USERNAME.programs.neovim.finalPackage.passthru.packpathDirs}/pack/myNeovimPackages/start",
