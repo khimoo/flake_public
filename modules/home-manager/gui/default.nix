@@ -9,27 +9,6 @@ let
 in lib.mkIf settings.features.gui {
   home.packages = with pkgs; [
     wezterm
-    thunderbird
-    slack
-    zoom-us
-    yt-dlp
-    transcribe
-    appimage-run
-    krita
-    tdf
-    typst
-    libreoffice
-    pdfarranger
-    obsidian
-    bitwarden-desktop
-    teams-for-linux
-    vmpk
-    vlc
-    xournalpp
-    google-chrome
-    mypaint
-    showmethekey
-    sticky-notes
 
     ipafont
     ipaexfont

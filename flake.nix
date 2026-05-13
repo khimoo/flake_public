@@ -36,7 +36,7 @@
         ./modules/home-manager/gui/default.nix
         ./modules/home-manager/gui/gnome.nix
         ./modules/home-manager/gui/ime.nix
-        ./modules/home-manager/gui/desktop-entry.nix
+        ./modules/home-manager/gui/apps.nix
         ./modules/home-manager/audio.nix
       ];
 
@@ -46,7 +46,6 @@
         gnome = false;
         ime = false;
         audio = false;
-        desktopEntry = false;
       };
 
       # SKK辞書の生成（system別にキャッシュ）
@@ -70,7 +69,6 @@
               gnome = true;
               ime = true;
               audio = true;
-              desktopEntry = true;
             };
           };
 
