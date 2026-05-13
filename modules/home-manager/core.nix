@@ -23,8 +23,12 @@
 
   home.sessionVariables = {
     EDITOR = "nvim";
-    SKK_DICTIONARY_PATH = "${skk-dict}";
   };
+
+  # Neovim が dofile で読む Nix 生成ファイル (環境変数と違い rebuild 即反映)
+  # 参照元: dotfiles/nvim/lua/plugins/skkeleton.lua
+  xdg.configFile."nvim/nix/skk-dict-path.lua".text =
+    ''return "${skk-dict}"'';
 
   programs = {
     home-manager.enable = true;

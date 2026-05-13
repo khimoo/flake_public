@@ -43,6 +43,7 @@ nvim .               # エディタで開く
 
 → [zoxide](./shell-tools.md#zoxide), [direnv](./shell-tools.md#direnv), [yazi](./yazi.md)
 
+
 ### 2. ファイルを探す・内容を検索する
 
 ```bash
@@ -97,6 +98,7 @@ top                           # bottom: プロセス/CPU/メモリ監視
 
 → [bottom](./shell-tools.md#bottom)
 
+
 ### 6. HTTP リクエスト (API テスト)
 
 ```bash
@@ -107,6 +109,7 @@ xh :8080/api/health                       # localhost 省略形
 ```
 
 → [xh](./shell-tools.md#xh)
+
 
 ### 7. ノイズ再生 (集中用)
 

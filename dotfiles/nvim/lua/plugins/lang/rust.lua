@@ -5,7 +5,8 @@ return {
     lazy = false,
     dependencies = { "mfussenegger/nvim-dap" },
     init = function()
-      local codelldb_path = tostring(os.getenv("CODELLDB_PATH") or "codelldb")
+      -- 生成元: modules/home-manager/dev.nix
+      local codelldb_path = dofile(vim.fn.stdpath("config") .. "/nix/codelldb-path.lua")
       local liblldb_path = vim.fn.fnamemodify(codelldb_path, ':h:h') .. '/lldb/lib/liblldb.so'
 
       vim.g.rustaceanvim = {

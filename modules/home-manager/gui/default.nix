@@ -58,6 +58,7 @@ in lib.mkIf settings.features.gui {
   home.sessionVariables.TERMINAL_TRANSPARENT = "1";
 
   xdg.configFile."wezterm/wezterm.lua".source = ../../../dotfiles/wezterm/wezterm.lua;
+  # 参照元: dotfiles/wezterm/wezterm.lua
   xdg.configFile."wezterm/font.lua".text = ''return "${terminalFont.name}"'';
 
   xdg.mimeApps = {

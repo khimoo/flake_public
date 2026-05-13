@@ -6,9 +6,9 @@
 
 ---
 
-## fzf — ファジーファインダー
+## fzf
 
-あらゆる一覧をインタラクティブに絞り込む。Bash integration により以下のショートカットが使える。
+ファジーファインダー。あらゆる一覧をインタラクティブに絞り込む。Bash integration により以下のショートカットが使える。
 
 ### シェルショートカット
 
@@ -55,9 +55,9 @@ fd -e py | fzf | xargs nvim
 
 ---
 
-## eza — ls 代替 {#eza}
+## eza
 
-ファイル一覧にアイコン、Git 状態、色分けを追加する `ls` の代替。
+`ls` の代替。ファイル一覧にアイコン、Git 状態、色分けを追加する。
 
 ### エイリアス (設定済み)
 
@@ -91,9 +91,9 @@ eza --only-dirs                  # ディレクトリのみ表示
 
 ---
 
-## zoxide — スマート cd {#zoxide}
+## zoxide
 
-訪問頻度と最終アクセス日時に基づく賢い `cd`。
+スマート cd。訪問頻度と最終アクセス日時に基づく賢い `cd`。
 
 ### エイリアス (設定済み)
 
@@ -117,7 +117,7 @@ zi                  # インタラクティブモード (fzf で選択)
 
 ---
 
-## fd — ファイル検索 {#fd}
+## fd
 
 `find` の代替。デフォルトで `.gitignore` を尊重し、隠しファイルを除外する。
 
@@ -145,7 +145,7 @@ fd -t d node_modules       # node_modules ディレクトリを探す
 
 ---
 
-## ripgrep (rg) — ファイル内容検索 {#ripgrep}
+## ripgrep
 
 `grep` の代替。デフォルトで再帰検索、`.gitignore` 尊重、シンタックスハイライト。
 
@@ -176,9 +176,9 @@ rg "use\s+\w+::\w+"         # Rust の use 文を検索
 
 ---
 
-## bat — cat 代替 {#bat}
+## bat
 
-シンタックスハイライト + 行番号付きでファイルを表示する `cat` の代替。
+`cat` の代替。シンタックスハイライト + 行番号付きでファイルを表示する。
 
 ### エイリアス (設定済み)
 
@@ -202,7 +202,7 @@ curl -s https://example.com/api | bat -l json  # API レスポンスを整形
 
 ---
 
-## bottom (btm) — システムモニター {#bottom}
+## bottom
 
 `top`/`htop` の代替。CPU、メモリ、ネットワーク、ディスク、プロセスを一画面で監視。
 
@@ -225,9 +225,9 @@ curl -s https://example.com/api | bat -l json  # API レスポンスを整形
 
 ---
 
-## direnv — ディレクトリ別の環境変数管理 {#direnv}
+## direnv
 
-ディレクトリに `.envrc` を置くと、そのディレクトリに入ったとき自動で環境変数が設定される。Nix devShell との組み合わせが主な用途。
+ディレクトリ別の環境変数管理。`.envrc` を置くと、そのディレクトリに入ったとき自動で環境変数が設定される。Nix devShell との組み合わせが主な用途。
 
 ### 基本操作
 
@@ -254,9 +254,9 @@ use flake
 
 ---
 
-## jq — JSON プロセッサ {#jq}
+## jq
 
-JSON データをフィルタ・変換・整形するコマンドラインツール。
+JSON プロセッサ。JSON データをフィルタ・変換・整形する。
 
 ```bash
 cat data.json | jq '.'                     # 整形表示
@@ -281,7 +281,7 @@ cat logs.jsonl | jq -c 'select(.level == "error")'
 
 ---
 
-## xh — HTTP クライアント {#xh}
+## xh
 
 `curl` の代替。リクエスト/レスポンスを色分けして見やすく表示する。
 
@@ -307,7 +307,9 @@ xh GET https://api.example.com/users \
 
 ---
 
-## gh — GitHub CLI {#gh}
+## gh
+
+GitHub CLI。
 
 ```bash
 gh pr create                   # PR 作成
@@ -321,9 +323,9 @@ gh api /repos/:owner/:repo     # GitHub API を直接叩く
 
 ---
 
-## starship — プロンプト
+## starship
 
-自動で検出・表示される情報:
+シェルプロンプト。自動で検出・表示される情報:
 
 - Git ブランチ名、変更状態
 - 現在のディレクトリに応じた言語バージョン (Rust, Python, Node.js 等)

@@ -22,12 +22,8 @@ return {
 
       local capabilities = require('blink.cmp').get_lsp_capabilities()
 
-      -- 環境変数からサーバー一覧を取得
-      local env = os.getenv("NEOVIM_LSP_SERVERS") or ""
-      local servers = {}
-      for name in env:gmatch("([^,]+)") do
-        table.insert(servers, name)
-      end
+      -- Nix 生成ファイルからサーバー一覧を取得 (生成元: modules/home-manager/dev.nix)
+      local servers = dofile(vim.fn.stdpath("config") .. "/nix/lsp-servers.lua")
 
       -- サーバー固有の設定
       local overrides = {

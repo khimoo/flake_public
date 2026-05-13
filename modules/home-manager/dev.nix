@@ -6,6 +6,7 @@ let
     { pkg = pkgs.lua-language-server; lsp = "lua_ls"; }
     { pkg = pkgs.nil; lsp = "nil_ls"; }
     { pkg = pkgs.tinymist; lsp = "tinymist"; }
+    { pkg = pkgs.marksman; lsp = "marksman"; }
   ];
 
   rustowlVersion = "1.0.0-rc.1";
@@ -28,10 +29,13 @@ in {
 
   home.sessionPath = [ "$HOME/.local/bin" ];
 
-  home.sessionVariables = {
-    NEOVIM_LSP_SERVERS = builtins.concatStringsSep "," (map (s: s.lsp) lspServers);
-    CODELLDB_PATH = "${pkgs.vscode-extensions.vadimcn.vscode-lldb}/share/vscode/extensions/vadimcn.vscode-lldb/adapter/codelldb";
-  };
+  # Neovim が dofile で読む Nix 生成ファイル (環境変数と違い rebuild 即反映)
+  # 参照元: dotfiles/nvim/lua/plugins/lsp/init.lua
+  xdg.configFile."nvim/nix/lsp-servers.lua".text =
+    "return {${builtins.concatStringsSep ", " (map (s: ''"${s.lsp}"'') lspServers)}}";
+  # 参照元: dotfiles/nvim/lua/plugins/lang/rust.lua
+  xdg.configFile."nvim/nix/codelldb-path.lua".text =
+    ''return "${pkgs.vscode-extensions.vadimcn.vscode-lldb}/share/vscode/extensions/vadimcn.vscode-lldb/adapter/codelldb"'';
 
   programs.neovim = {
     enable = true;
