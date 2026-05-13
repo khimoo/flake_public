@@ -7,7 +7,6 @@ let
     kimpanel
     gsconnect
     paperwm
-    panel-note
   ];
 
 in lib.mkIf settings.features.gnome {

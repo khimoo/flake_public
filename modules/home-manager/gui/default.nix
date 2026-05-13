@@ -29,6 +29,7 @@ in lib.mkIf settings.features.gui {
     google-chrome
     mypaint
     showmethekey
+    sticky-notes
 
     ipafont
     ipaexfont
