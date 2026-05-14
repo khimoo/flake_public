@@ -28,5 +28,4 @@ in lib.mkIf settings.features.gnome {
     };
   };
 
-  systemd.user.sessionVariables.NIXOS_OZONE_WL = "1";
 }

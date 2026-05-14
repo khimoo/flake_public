@@ -37,9 +37,14 @@ in lib.mkIf settings.features.gui {
   # wezterm の背景透過と nvim の背景透過 autocmd を連携させる
   home.sessionVariables.TERMINAL_TRANSPARENT = "1";
 
+  # Electron/Chromium 系アプリの Wayland ネイティブ動作に必要（GNOME / niri 共通）
+  systemd.user.sessionVariables.NIXOS_OZONE_WL = "1";
+
   xdg.configFile."wezterm/wezterm.lua".source = ../../../dotfiles/wezterm/wezterm.lua;
   # 参照元: dotfiles/wezterm/wezterm.lua
   xdg.configFile."wezterm/font.lua".text = ''return "${terminalFont.name}"'';
+
+  xdg.configFile."niri/config.kdl".source = ../../../dotfiles/niri/config.kdl;
 
   xdg.mimeApps = {
     enable = true;
