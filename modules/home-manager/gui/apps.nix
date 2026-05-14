@@ -19,8 +19,9 @@ let
     { pkg = pkgs.thunderbird;   autostart = true; }
     { pkg = pkgs.sticky-notes;  autostart = true; }
 
-    # -- Electron/Chromium 系（Wayland フラグのみ） --
-    { pkg = pkgs.spotify;       wayland = true; }
+    # -- オフィス・ドキュメント --
+    { pkg = pkgs.libreoffice; }
+    { pkg = pkgs.pdfarranger; }
     { pkg = pkgs.obsidian; }
     { pkg = pkgs.bitwarden-desktop; }
     { pkg = pkgs.teams-for-linux; }
@@ -33,13 +34,11 @@ let
 
     # -- ブラウザ --
     { pkg = pkgs.google-chrome; }
-
-    # -- オフィス・ドキュメント --
-    { pkg = pkgs.libreoffice; }
-    { pkg = pkgs.pdfarranger; }
-    { pkg = pkgs.typst; }
+    { pkg = pkgs.brave; }
+    { pkg = pkgs.spotify;       wayland = true; }
 
     # -- ユーティリティ --
+    { pkg = pkgs.typst; }
     { pkg = pkgs.yt-dlp; }
     { pkg = pkgs.transcribe; }
     { pkg = pkgs.appimage-run; }
