@@ -1,4 +1,11 @@
-{ settings, config, pkgs, kiro, lib, ... }:
+{
+  settings,
+  config,
+  pkgs,
+  kiro,
+  lib,
+  ...
+}:
 
 let
   waylandFlags = "--enable-features=UseOzonePlatform --ozone-platform=wayland --enable-wayland-ime --wayland-text-input-version=3";
@@ -14,10 +21,30 @@ let
 
   guiApps = [
     # -- 常駐系（自動起動） --
-    { pkg = pkgs.slack;         wayland = true;  autostart = true; startFlags = "--silent"; }
-    { pkg = pkgs.discord;       wayland = true;  autostart = true; startFlags = "--start-minimized"; }
-    { pkg = pkgs.thunderbird;   autostart = true; }
-    { pkg = pkgs.sticky-notes;  autostart = true; }
+    {
+      pkg = pkgs.slack;
+      wayland = true;
+      autostart = true;
+      startFlags = "--silent";
+    }
+    {
+      pkg = pkgs.discord;
+      wayland = true;
+      autostart = true;
+      startFlags = "--start-minimized";
+      binName = "Discord";
+      desktopName = "discord.desktop";
+    }
+    {
+      pkg = pkgs.thunderbird;
+      autostart = true;
+    }
+    {
+      pkg = pkgs.sticky-notes;
+      autostart = true;
+      binName = "com.vixalien.sticky";
+      desktopName = "com.vixalien.sticky.desktop";
+    }
 
     # -- オフィス・ドキュメント --
     { pkg = pkgs.libreoffice; }
@@ -35,7 +62,10 @@ let
     # -- ブラウザ --
     { pkg = pkgs.google-chrome; }
     { pkg = pkgs.brave; }
-    { pkg = pkgs.spotify;       wayland = true; }
+    {
+      pkg = pkgs.spotify;
+      wayland = true;
+    }
 
     # -- ユーティリティ --
     { pkg = pkgs.typst; }
@@ -60,18 +90,29 @@ let
 
   # ---- 導出ロジック ----
 
-  createWaylandDesktopEntry = { pkg, desktopName, execArgs, binName ? null }:
+  # 優先順位: 1. 明示的な binName, 2. meta.mainProgram, 3. pname
+  getBinName = app: app.binName or (app.pkg.meta.mainProgram or app.pkg.pname);
+
+  # 優先順位: 1. 明示的な desktopName, 2. pname + .desktop
+  getDesktopName = app: app.desktopName or "${app.pkg.pname}.desktop";
+
+  createWaylandDesktopEntry =
+    {
+      pkg,
+      desktopName,
+      execArgs,
+      binName,
+    }:
     let
       originalDesktop = "${pkg}/share/applications/${desktopName}";
-      execCmd = if binName != null then binName else pkg.pname;
-      newContent = pkgs.runCommand "modified-${desktopName}" {} ''
+      newContent = pkgs.runCommand "modified-${desktopName}" { } ''
         cp ${originalDesktop} $out
         if ! grep -q '^Exec=' $out; then
           echo "ERROR: No Exec= line found in ${desktopName}" >&2
           exit 1
         fi
-        sed -i 's|^Exec=.*|Exec=${execCmd} ${execArgs} %U|' $out
-        if ! grep -q '^Exec=${execCmd}' $out; then
+        sed -i 's|^Exec=.*|Exec=${binName} ${execArgs} %U|' $out
+        if ! grep -q '^Exec=${binName}' $out; then
           echo "ERROR: sed replacement failed for ${desktopName}" >&2
           exit 1
         fi
@@ -82,16 +123,26 @@ let
   withWayland = builtins.filter (a: a.wayland or false) guiApps;
   withAutostart = builtins.filter (a: a.autostart or false) guiApps;
 
-  waylandDesktopEntries = builtins.listToAttrs (map (app: {
-    name = ".local/share/applications/${app.pkg.pname}.desktop";
-    value = {
-      source = createWaylandDesktopEntry {
-        inherit (app) pkg;
-        desktopName = "${app.pkg.pname}.desktop";
-        execArgs = waylandFlags;
-      };
-    };
-  }) withWayland);
+  waylandDesktopEntries = builtins.listToAttrs (
+    map (
+      app:
+      let
+        desktopName = getDesktopName app;
+        binName = getBinName app;
+      in
+      {
+        name = ".local/share/applications/${desktopName}";
+        value = {
+          source = createWaylandDesktopEntry {
+            inherit (app) pkg;
+            desktopName = desktopName;
+            execArgs = waylandFlags;
+            binName = binName;
+          };
+        };
+      }
+    ) withWayland
+  );
 
   kiroDesktopEntry = {
     ".local/share/applications/${kiroApp.desktopName}" = {
@@ -107,54 +158,58 @@ let
   cursorDesktopEntry = {
     ".local/share/applications/cursor.desktop" = {
       text = ''
-[Desktop Entry]
-Name=Cursor AI
-Comment=AI-first code editor
-Exec=${pkgs.appimage-run}/bin/appimage-run ${cursorConfig.appImage} --enable-features=UseOzonePlatform --ozone-platform=wayland --enable-wayland-ime %U
-Icon=${cursorConfig.icon}
-Type=Application
-Categories=Development;IDE;
-Terminal=false
-StartupWMClass=Cursor
+        [Desktop Entry]
+        Name=Cursor AI
+        Comment=AI-first code editor
+        Exec=${pkgs.appimage-run}/bin/appimage-run ${cursorConfig.appImage} --enable-features=UseOzonePlatform --ozone-platform=wayland --enable-wayland-ime %U
+        Icon=${cursorConfig.icon}
+        Type=Application
+        Categories=Development;IDE;
+        Terminal=false
+        StartupWMClass=Cursor
       '';
     };
   };
 
-  autostartServices = builtins.listToAttrs (map (app:
-    let
-      bin = "${app.pkg}/bin/${app.pkg.pname}";
-      flags = lib.concatStringsSep " " (
-        lib.optional (app.wayland or false) waylandFlags
-        ++ lib.optional (app ? startFlags) app.startFlags
-      );
-      execStart = if flags != "" then "${bin} ${flags}" else bin;
-    in {
-      name = app.pkg.pname;
-      value = {
-        Unit = {
-          Description = "${app.pkg.pname} (autostart)";
-          After = [ "graphical-session.target" ];
-          PartOf = [ "graphical-session.target" ];
+  autostartServices = builtins.listToAttrs (
+    map (
+      app:
+      let
+        binName = getBinName app;
+        bin = "${app.pkg}/bin/${binName}";
+        flags = lib.concatStringsSep " " (
+          lib.optional (app.wayland or false) waylandFlags ++ lib.optional (app ? startFlags) app.startFlags
+        );
+        execStart = if flags != "" then "${bin} ${flags}" else bin;
+      in
+      {
+        name = app.pkg.pname;
+        value = {
+          Unit = {
+            Description = "${app.pkg.pname} (autostart)";
+            After = [ "graphical-session.target" ];
+            PartOf = [ "graphical-session.target" ];
+          };
+          Service = {
+            ExecStart = execStart;
+            Restart = "on-failure";
+            RestartSec = 5;
+          };
+          Install.WantedBy = [ "graphical-session.target" ];
         };
-        Service = {
-          ExecStart = execStart;
-          Restart = "on-failure";
-          RestartSec = 5;
-        };
-        Install.WantedBy = [ "graphical-session.target" ];
-      };
-    }
-  ) withAutostart);
+      }
+    ) withAutostart
+  );
 
-in lib.mkIf settings.features.gui {
-  home.packages = map (a: a.pkg) guiApps
-    ++ [ kiroApp.pkg ];
+in
+lib.mkIf settings.features.gui {
+  home.packages = map (a: a.pkg) guiApps ++ [ kiroApp.pkg ];
 
   home.file = waylandDesktopEntries // kiroDesktopEntry // cursorDesktopEntry;
 
   systemd.user.services = autostartServices;
 
-  home.activation.installCursor = lib.hm.dag.entryAfter ["writeBoundary"] ''
+  home.activation.installCursor = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     echo "Checking for Cursor AI updates..."
 
     $DRY_RUN_CMD mkdir -p "$(dirname ${cursorConfig.appImage})"
