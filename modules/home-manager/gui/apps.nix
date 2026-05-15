@@ -51,7 +51,6 @@ let
     { pkg = pkgs.pdfarranger; }
     { pkg = pkgs.obsidian; }
     { pkg = pkgs.bitwarden-desktop; }
-    { pkg = pkgs.teams-for-linux; }
 
     # -- メディア・クリエイティブ --
     { pkg = pkgs.krita; }

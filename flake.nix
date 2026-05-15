@@ -37,6 +37,7 @@
         ./modules/home-manager/gui/gnome.nix
         ./modules/home-manager/gui/ime.nix
         ./modules/home-manager/gui/apps.nix
+        ./modules/home-manager/gui/teams-dispatcher.nix
         ./modules/home-manager/audio.nix
       ];
 

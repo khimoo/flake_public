@@ -41,15 +41,4 @@ in lib.mkIf settings.features.gui {
   # 参照元: dotfiles/wezterm/wezterm.lua
   xdg.configFile."wezterm/font.lua".text = ''return "${terminalFont.name}"'';
 
-  xdg.mimeApps = {
-    enable = true;
-    defaultApplications = {
-      "text/html" = "firefox.desktop";
-      "text/xml" = "firefox.desktop";
-      "application/xhtml+xml" = "firefox.desktop";
-      "x-scheme-handler/http" = "firefox.desktop";
-      "x-scheme-handler/https" = "firefox.desktop";
-      "x-scheme-handler/about" = "firefox.desktop";
-    };
-  };
 }
