@@ -38,7 +38,7 @@ let
       *teams.microsoft.com*|*teams.live.com*)
         exec ${lib.getExe pkgs.junction} "$1" ;;
       *)
-        exec firefox "$1" ;;
+        exec ${lib.getExe pkgs.firefox} "$1" ;;
     esac
   '';
 
