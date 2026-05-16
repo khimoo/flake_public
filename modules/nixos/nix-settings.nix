@@ -23,6 +23,5 @@
     gnomeExtensions.gsconnect
   ];
 
-  programs.firefox.enable = true;
   programs.adb.enable = true;
 }

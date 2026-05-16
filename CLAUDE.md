@@ -94,3 +94,7 @@ home-manager switch --flake .#username-host
 - 設定ファイル（プラグインの追加・削除・キーバインド変更等）を変更した場合、`dotfiles/nvim/docs/` 以下の関連ドキュメントも必ず同時に更新すること
 - 特に `docs/README.md` のプラグイン一覧・ワークフロー例・キーバインド表は実態と乖離しやすいので注意
 - プラグインを削除した場合、そのプラグインへの参照がドキュメント全体に残っていないか確認すること
+
+### アーキテクチャドキュメント
+
+設定の設計判断・実装構造は `docs/architecture/` に記録している。設定変更時は必ず目次（[docs/architecture/README.md](docs/architecture/README.md)）を確認し、関連ドキュメントがあれば参照・更新すること。

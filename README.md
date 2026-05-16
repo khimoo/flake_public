@@ -4,22 +4,10 @@
 ## Features / ワークアラウンド
 
 Nix の純粋性やアプリの制約により、素直に実現できない機能のワークアラウンド一覧。
+詳細は [docs/architecture/](./docs/architecture/) を参照。
 
-### Teams マルチアカウント (`gui/teams-dispatcher.nix`)
-
-teams-for-linux はマルチアカウントに対応しておらず、切り替えに毎回ログアウトが必要。
-複数インスタンスを `--partition` で起動し、URL ディスパッチャで Teams リンクだけ [Junction](https://apps.gnome.org/Junction/)（アプリ選択ダイアログ）を表示することで、開き先を手動選択できるようにしている。
-
-- Junction 自体に URL フィルタリング機能がないため、シェルスクリプトでラップして Teams URL のみ Junction に振り分け、他は Firefox に直接渡す
-- teams-for-linux の公式マルチプロファイル機能 ([#1830](https://github.com/IsmaelMartinez/teams-for-linux/issues/1830)) が完成すれば不要になる
-
-### RustOwl (`dev.nix` の `home.activation.rustowl`)
-
-RustOwl は特定の nightly Rust sysroot を必要とし、nixpkgs でのパッケージングが困難。
-GitHub Releases のプリビルドバイナリを Nix store 外（`~/.local/share/rustowl/`）に展開し、NixOS の動的リンカパスに合わせて patchelf で修正している。
-
-- impure な要素であり、`home.activation` で命令的にインストールされる
-- 詳細は `CLAUDE.md` の「Nix の純粋性から外れている要素」を参照
+- **Teams マルチアカウント** — URL ディスパッチャで Teams リンクだけ Junction に振り分け ([詳細](./docs/architecture/teams-dispatcher.md))
+- **RustOwl** — impure なプリビルドバイナリを patchelf で NixOS 対応 ([詳細](./docs/architecture/rustowl.md))
 
 ## セットアップ
 ### 設定の適用

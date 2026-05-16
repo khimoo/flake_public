@@ -65,15 +65,8 @@ lib.mkIf settings.features.gui {
 
   home.file = teamsDesktopEntries // dispatcherDesktopEntry;
 
-  xdg.mimeApps = {
-    enable = true;
-    defaultApplications = {
-      "text/html" = "firefox.desktop";
-      "text/xml" = "firefox.desktop";
-      "application/xhtml+xml" = "firefox.desktop";
-      "x-scheme-handler/http" = "teams-url-dispatcher.desktop";
-      "x-scheme-handler/https" = "teams-url-dispatcher.desktop";
-      "x-scheme-handler/about" = "firefox.desktop";
-    };
+  xdg.mimeApps.defaultApplications = {
+    "x-scheme-handler/http" = "teams-url-dispatcher.desktop";
+    "x-scheme-handler/https" = "teams-url-dispatcher.desktop";
   };
 }

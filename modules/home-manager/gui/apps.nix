@@ -38,6 +38,10 @@ let
     {
       pkg = pkgs.thunderbird;
       autostart = true;
+      mimeTypes = {
+        "x-scheme-handler/mailto" = true;
+        "message/rfc822" = true;
+      };
     }
     {
       pkg = pkgs.sticky-notes;
@@ -48,14 +52,23 @@ let
 
     # -- オフィス・ドキュメント --
     { pkg = pkgs.libreoffice; }
-    { pkg = pkgs.pdfarranger; }
+    {
+      pkg = pkgs.pdfarranger;
+      mimeTypes = {
+        "application/pdf" = true;
+      };
+    }
     { pkg = pkgs.obsidian; }
     { pkg = pkgs.bitwarden-desktop; }
 
     # -- メディア・クリエイティブ --
-    { pkg = pkgs.krita; }
+    {
+      pkg = pkgs.krita;
+    }
     { pkg = pkgs.mypaint; }
-    { pkg = pkgs.vlc; }
+    {
+      pkg = pkgs.vlc;
+    }
     { pkg = pkgs.xournalpp; }
 
     # -- ブラウザ --
@@ -118,6 +131,11 @@ let
       '';
     in
     newContent;
+
+  defaultApplications = lib.foldl' (
+    acc: app:
+    if app ? mimeTypes then acc // (lib.mapAttrs (_: _: getDesktopName app) app.mimeTypes) else acc
+  ) { } guiApps;
 
   withWayland = builtins.filter (a: a.wayland or false) guiApps;
   withAutostart = builtins.filter (a: a.autostart or false) guiApps;
@@ -205,6 +223,11 @@ lib.mkIf settings.features.gui {
   home.packages = map (a: a.pkg) guiApps ++ [ kiroApp.pkg ];
 
   home.file = waylandDesktopEntries // kiroDesktopEntry // cursorDesktopEntry;
+
+  xdg.mimeApps = {
+    enable = true;
+    defaultApplications = defaultApplications;
+  };
 
   systemd.user.services = autostartServices;
 
