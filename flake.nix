@@ -39,6 +39,7 @@
         ./modules/home-manager/gui/apps.nix
         ./modules/home-manager/gui/firefox.nix
         ./modules/home-manager/gui/teams-dispatcher.nix
+        ./modules/home-manager/gui/xdg-scheme-workaround.nix
         ./modules/home-manager/audio.nix
       ];
 

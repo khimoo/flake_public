@@ -8,6 +8,7 @@ Nix の純粋性やアプリの制約により、素直に実現できない機�
 
 - **Teams マルチアカウント** — URL ディスパッチャで Teams リンクだけ Junction に振り分け ([詳細](./docs/architecture/teams-dispatcher.md))
 - **RustOwl** — impure なプリビルドバイナリを patchelf で NixOS 対応 ([詳細](./docs/architecture/rustowl.md))
+- **XDG スキームハンドラ** — NixOS が自動登録しないため手動設定 ([詳細](./docs/architecture/xdg-scheme-workaround.md))
 
 ## セットアップ
 ### 設定の適用

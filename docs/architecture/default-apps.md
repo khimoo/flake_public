@@ -12,6 +12,7 @@ MIME タイプに対するデフォルトアプリケーションは `xdg.mimeAp
 | PDF, 画像, 動画, 音声, メール等 | [gui/apps.nix](gui/apps.nix) | `guiApps` の `mimeTypes` 属性から導出 |
 | text/html, text/xml, about 等 | `gui/firefox.nix` | `programs.firefox` + 直接指定 |
 | HTTP/HTTPS | `gui/teams-dispatcher.nix` | Teams URL ディスパッチャ経由 |
+| カスタムスキーム (slack://, discord:// 等) | `gui/xdg-scheme-workaround.nix` | NixOS の XDG 問題のワークアラウンド ([詳細](./xdg-scheme-workaround.md)) |
 
 パスはすべて `modules/home-manager/` からの相対。
 
@@ -49,10 +50,6 @@ defaultApplications = lib.foldl' (acc: app:
 - **MIME 設定**: 同ファイル内で `text/html` 等を直接設定
 - **HTTP/HTTPS**: `teams-dispatcher.nix` がディスパッチャ経由で制御（Firefox に直接割り当てない）
 - 将来 `programs.firefox.profiles` でプロファイル・拡張機能等を宣言的に管理可能
-
-## teams-dispatcher の役割
-
-Teams URL (`teams.microsoft.com`, `teams.live.com`) のみ Junction（アプリ選択ダイアログ）に振り分け、それ以外の URL は Firefox に直接渡す。HTTP/HTTPS の `defaultApplications` はこのディスパッチャの `.desktop` を指す。
 
 ## 変更ガイド
 

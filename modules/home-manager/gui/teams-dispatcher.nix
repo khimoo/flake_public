@@ -8,6 +8,11 @@
 #   毎回ログアウトが必要。複数インスタンスを --partition で起動し、Junction で
 #   開き先を選択することで擬似的にマルチアカウントを実現する。
 #   Junction 自体に URL フィルタリング機能がないため、このスクリプトで補う。
+#
+# 注意:
+#   x-scheme-handler/https をディスパッチャに向けると、Firefox が mimeapps.list を
+#   参照して無限ループする。firefox.nix の network.protocol-handler.expose.{http,https}
+#   で Firefox 自身に HTTP/HTTPS を内部処理させることで回避している。
 
 let
   teamsAccounts = [

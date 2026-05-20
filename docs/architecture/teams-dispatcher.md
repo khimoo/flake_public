@@ -17,6 +17,13 @@ teams-for-linux はマルチアカウントに対応しておらず、アカウ�
 
 Junction 自体に URL フィルタリング機能がないため、シェルスクリプトで補っている。
 
+### Firefox 無限ループの回避
+
+`x-scheme-handler/https` をディスパッチャに向けると、Firefox が `mimeapps.list` を参照して HTTPS をディスパッチャに委譲 → ディスパッチャが Firefox を開く → 無限ループになる。
+`firefox.nix` で `network.protocol-handler.expose.{http,https} = true` を設定し、Firefox 自身に HTTP/HTTPS を内部処理させることで回避している。
+
+**検証時の注意:** この設定は `user.js` 経由で適用されるため、rebuild 後に Firefox の再起動が必要。
+
 ## アカウント管理
 
 `teamsAccounts` リストにアカウントを追加・削除する:
