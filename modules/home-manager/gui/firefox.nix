@@ -4,7 +4,6 @@ lib.mkIf settings.features.gui {
   programs.firefox = {
     enable = true;
     profiles.default = {
-      path = "gbvj989j.default";
       isDefault = true;
       settings = {
         "browser.shell.checkDefaultBrowser" = false;
