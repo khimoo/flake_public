@@ -122,6 +122,16 @@ home-manager switch --flake .#username-host
 - 特に `docs/README.md` のプラグイン一覧・ワークフロー例・キーバインド表は実態と乖離しやすいので注意
 - プラグインを削除した場合、そのプラグインへの参照がドキュメント全体に残っていないか確認すること
 
-### アーキテクチャドキュメント
+### ドキュメントの種類と配置
 
-設定の設計判断・実装構造は `docs/architecture/` に記録している。設定変更時は必ず目次（[docs/architecture/README.md](docs/architecture/README.md)）を確認し、関連ドキュメントがあれば参照・更新すること。
+ドキュメントは**使い方**と**実装方針**を分離して管理する:
+
+| 種類 | 配置先 | 内容 |
+|------|--------|------|
+| 使い方ガイド | `docs/howtouse/` | 設定の使い方・追加手順・属性一覧など、ユーザー向けの情報 |
+| 実装方針 | `docs/architecture/` | 設計判断・なぜそうしたか・トレードオフなど、開発者向けの情報 |
+| Neovim 固有 | `dotfiles/nvim/docs/` | プラグイン・キーバインド・ワークフロー |
+
+- 新しい機能のドキュメントを書く際は、使い方と実装方針を同じファイルに混ぜない
+- 各ドキュメントから対になるドキュメントへ相互リンクする（例: 使い方ガイドから実装方針へ、またはその逆）
+- 目次: [docs/howtouse/README.md](docs/howtouse/README.md), [docs/architecture/README.md](docs/architecture/README.md)

@@ -28,4 +28,15 @@ in {
   security.sudo.extraConfig = ''
     Defaults env_keep += "SSH_AUTH_SOCK"
   '';
+
+  # adminユーザーは nixos-rebuild をパスワードなしで実行可能にする
+  security.sudo.extraRules = let
+    adminUsers = builtins.filter (user: user.isAdmin or false) users;
+  in map (user: {
+    users = [ user.username ];
+    commands = [{
+      command = "/run/current-system/sw/bin/nixos-rebuild";
+      options = [ "NOPASSWD" ];
+    }];
+  }) adminUsers;
 }
