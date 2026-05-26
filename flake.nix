@@ -31,6 +31,7 @@
       homeModules = [
         ./modules/home-manager/core.nix
         ./modules/home-manager/git.nix
+        ./modules/home-manager/rclone.nix
         ./modules/home-manager/yazi.nix
         ./modules/home-manager/dev.nix
         ./modules/home-manager/gui/default.nix
