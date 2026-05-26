@@ -15,4 +15,13 @@
     requires = [ "nix.mount" ];
   };
   programs.niri.enable = true;
+
+  # リモートビルダ (nixos-desktop) へ初回 SSH 接続したときに
+  # ホスト鍵を自動で known_hosts に追加する。
+  # `sudo nixos-rebuild --build-host pomu@nixos-desktop.local` は root として
+  # SSH 接続するため、root の known_hosts に未登録だと接続が止まる
+  programs.ssh.extraConfig = ''
+    Host nixos-desktop nixos-desktop.local
+      StrictHostKeyChecking accept-new
+  '';
 }
