@@ -7,6 +7,7 @@
 | カテゴリ | 概要 | ドキュメント |
 |----------|------|-------------|
 | ユーザー管理 | ユーザーの追加・権限設定・home-manager 連携 | [users.md](./users.md) |
+| リモートビルド | 別ホストでビルドだけ走らせて成果物を持ってくる運用 | [remote-build.md](./remote-build.md) |
 | CLI ツール | シェル環境・ターミナル・ファイルマネージャ等 | [cli-tools/README.md](./cli-tools/README.md) |
 | Neovim | プラグイン・キーバインド・ワークフロー | [dotfiles/nvim/docs/README.md](../../dotfiles/nvim/docs/README.md) |
 | wezterm | ターミナルのキーバインド・ペイン・ワークスペース | [cli-tools/wezterm.md](./cli-tools/wezterm.md) |
