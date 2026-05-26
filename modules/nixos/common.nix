@@ -11,6 +11,7 @@
     ./printing.nix
     ./users.nix
     ./nix-settings.nix
+    ./ssh.nix
     ./bluetooth.nix
     ./libvirt.nix
     ./audio.nix
