@@ -19,7 +19,7 @@
 | 日本語入力 | skkeleton, fcitx5 連携 | [skkeleton.md](./plugins/skkeleton.md) |
 | ナビゲーション | harpoon2, smart-splits | [navigation.md](./plugins/navigation.md), [smart-splits.md](./plugins/smart-splits.md) |
 | 外観 | lualine, hlchunk, fidget, which-key | [appearance.md](./plugins/appearance.md) |
-| Markdown | render-markdown.nvim | [render-markdown.md](./plugins/render-markdown.md) |
+| Markdown | render-markdown.nvim, autolist.nvim, img-clip.nvim, marksman | [markdown.md](./plugins/markdown.md) |
 | Rust | rustaceanvim, rustowl | [lang-rust.md](./plugins/lang-rust.md) |
 
 ## リファレンス

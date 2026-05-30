@@ -9,6 +9,20 @@ let
     { pkg = pkgs.marksman; lsp = "marksman"; }
   ];
 
+  # Neovim プラグインが必要とする外部ツール (Neovim 実行時の PATH のみに注入)
+  # for: 依存元プラグイン/機能を明記。プラグイン削除時はここも消すこと。
+  nvimPluginDeps = [
+    { pkg = pkgs.deno;             for = "denols / 各種 deno ベースのプラグイン"; }
+    { pkg = pkgs.ripgrep;          for = "telescope (live_grep)"; }
+    { pkg = pkgs.nil;              for = "nil_ls (LSP 本体)"; }
+    { pkg = pkgs.nixfmt-rfc-style; for = "nil_ls の formatter"; }
+    { pkg = pkgs.vscode-extensions.vadimcn.vscode-lldb;
+                                   for = "rustaceanvim DAP (codelldb)"; }
+  ] ++ lib.optionals pkgs.stdenv.isLinux [
+    { pkg = pkgs.xclip;        for = "system clipboard 連携 (X11)"; }
+    { pkg = pkgs.wl-clipboard; for = "img-clip.nvim (Wayland 画像貼付)"; }
+  ];
+
   rustowlVersion = "1.0.0-rc.1";
   rustowlArchive = pkgs.fetchurl {
     url = "https://github.com/cordx56/rustowl/releases/download/v${rustowlVersion}/rustowl-x86_64-unknown-linux-gnu.tar.gz";
@@ -42,15 +56,7 @@ in {
     vimAlias = true;
     defaultEditor = true;
     withNodeJs = true;
-    extraPackages = with pkgs; [
-      deno
-      ripgrep
-      nil
-      nixfmt-rfc-style
-      vscode-extensions.vadimcn.vscode-lldb
-    ] ++ lib.optionals pkgs.stdenv.isLinux [
-      pkgs.xclip
-    ];
+    extraPackages = map (d: d.pkg) nvimPluginDeps;
     plugins = with pkgs.vimPlugins; [
       lazy-nvim
     ];
