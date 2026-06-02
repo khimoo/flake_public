@@ -52,5 +52,5 @@ in
   # 一時 markdown draft を nvim で開く。Claude への返信下書きなどに使う。
   # /tmp は systemd-tmpfiles が 10 日経過で自動削除するためメンテ不要。
   # nvim 本体への依存は let の nvimExe で構造的に表現済み。
-  home.shellAliases.d = ''${nvimExe} "$(mktemp --suffix=.md)"'';
+  home.shellAliases.draft = ''${nvimExe} "$(mktemp --suffix=.md)"'';
 }
