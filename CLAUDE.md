@@ -11,7 +11,7 @@ NixOS の設定を管理する Nix Flake リポジトリ。NixOS のシステム
 - `modules/nixos/` — NixOS モジュール（OS レベルの設定）
 - `modules/home-manager/` — home-manager モジュール（ユーザー環境の設定）
   - `modules/home-manager/dev/neovim/config/` — Neovim の lua 設定。mkOutOfStoreSymlink でリポジトリを `~/.config/nvim` に直接 symlink するため、編集が rebuild なしで反映される
-- `dotfiles/` — wezterm 等のドットファイル (nvim は `modules/home-manager/dev/neovim/config/` に集約済み)
+  - `modules/home-manager/gui/wezterm/wezterm.lua` — wezterm の lua 設定。同じく mkOutOfStoreSymlink で `~/.config/wezterm/wezterm.lua` に直接 symlink
 
 ### ビルド・適用コマンド
 

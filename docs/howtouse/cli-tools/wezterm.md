@@ -2,7 +2,7 @@
 
 tmux 不要のターミナル多重化環境。Leader キー体系でペイン/タブ/ワークスペースを管理する。
 
-> 設定: `dotfiles/wezterm/wezterm.lua`
+> 設定: `modules/home-manager/gui/wezterm/wezterm.lua` (Nix モジュール側は `modules/home-manager/gui/wezterm.nix`)
 
 ## Leader キー
 

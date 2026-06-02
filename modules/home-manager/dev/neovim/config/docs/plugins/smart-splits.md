@@ -3,7 +3,7 @@
 Neovim のウィンドウ分割と wezterm のペインをシームレスに行き来・リサイズできるプラグイン。
 
 - 設定ファイル (nvim): `lua/plugins/smart-splits.lua`
-- 設定ファイル (wezterm): `dotfiles/wezterm/wezterm.lua`
+- 設定ファイル (wezterm): `modules/home-manager/gui/wezterm/wezterm.lua`
 
 ## 仕組み
 
