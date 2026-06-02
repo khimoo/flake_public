@@ -15,9 +15,9 @@
 -- vim.opt.rtp:prepend(lazypath)
 
 -- Setup lazy.nvim
+-- ~/.config/nvim は mkOutOfStoreSymlink でリポジトリ実体を指す symlink のため、
+-- lockfile (lazy-lock.json) はデフォルト位置 (config dir 直下) のまま git で追跡できる。
 require("lazy").setup({
-  -- 本当はもっと上手くやりたいけど、一旦lockfileを書き込み可能な場所に移す；；
-  lockfile = vim.fn.stdpath("data") .. "/lazy-lock.json",
   performance = {
     reset_packpath = false, -- packpathのリセットを無効化
     rtp = {

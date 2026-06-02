@@ -8,7 +8,7 @@ return {
             local function skkeleton_init()
                 vim.fn['skkeleton#config']({
                     -- 生成元: modules/home-manager/core.nix
-                    globalDictionaries = {{dofile(vim.fn.stdpath("config") .. "/nix/skk-dict-path.lua"), 'euc-jp'}},
+                    globalDictionaries = {{dofile(vim.fn.stdpath("data") .. "/nix/skk-dict-path.lua"), 'euc-jp'}},
                     eggLikeNewline = true,
                     keepMode = true,
                     keepState = true,

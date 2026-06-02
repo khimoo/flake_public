@@ -2,9 +2,9 @@
 
 Markdown ファイル編集に関わるプラグインと設定をひとまとめにしたドキュメント。
 
-> 設定: `dotfiles/nvim/lua/plugins/lang/markdown.lua`
-> LSP (marksman) は `modules/home-manager/dev.nix` の `lspServers` 経由で導入され、
-> `dotfiles/nvim/lua/plugins/lsp/init.lua` が自動で有効化する。
+> 設定: `modules/home-manager/dev/neovim/config/lua/plugins/lang/markdown.lua`
+> LSP (marksman) は `modules/home-manager/dev/lsp.nix` の `lspServers` 経由で導入され、
+> `lua/plugins/lsp/init.lua` が自動で有効化する。
 
 ## 構成プラグイン
 
@@ -80,7 +80,7 @@ bullet 操作に取られる点に注意。
 | `<leader>p` | クリップボード画像を貼り付け |
 
 **依存ツール**: Wayland 環境では `wl-clipboard`、X11 環境では `xclip` が必要。
-両方とも `modules/home-manager/dev.nix` の `nvimPluginDeps` で導入される。
+両方とも `modules/home-manager/dev/neovim/default.nix` の `nvimPluginDeps` で導入される。
 不在時は起動時に WARN が出る。
 
 ## marksman (LSP)

@@ -1,66 +1,14 @@
-{ kiro, settings, config, pkgs, lib, ... }:
+{ pkgs, lib, ... }:
 
 let
-  lspServers = [
-    { pkg = pkgs.pyright; lsp = "pyright"; }
-    { pkg = pkgs.lua-language-server; lsp = "lua_ls"; }
-    { pkg = pkgs.nil; lsp = "nil_ls"; }
-    { pkg = pkgs.tinymist; lsp = "tinymist"; }
-    { pkg = pkgs.marksman; lsp = "marksman"; }
-  ];
-
-  # Neovim プラグインが必要とする外部ツール (Neovim 実行時の PATH のみに注入)
-  # for: 依存元プラグイン/機能を明記。プラグイン削除時はここも消すこと。
-  nvimPluginDeps = [
-    { pkg = pkgs.deno;             for = "denols / 各種 deno ベースのプラグイン"; }
-    { pkg = pkgs.ripgrep;          for = "telescope (live_grep)"; }
-    { pkg = pkgs.nil;              for = "nil_ls (LSP 本体)"; }
-    { pkg = pkgs.nixfmt-rfc-style; for = "nil_ls の formatter"; }
-    { pkg = pkgs.vscode-extensions.vadimcn.vscode-lldb;
-                                   for = "rustaceanvim DAP (codelldb)"; }
-  ] ++ lib.optionals pkgs.stdenv.isLinux [
-    { pkg = pkgs.xclip;        for = "system clipboard 連携 (X11)"; }
-    { pkg = pkgs.wl-clipboard; for = "img-clip.nvim (Wayland 画像貼付)"; }
-  ];
-
   rustowlVersion = "1.0.0-rc.1";
   rustowlArchive = pkgs.fetchurl {
     url = "https://github.com/cordx56/rustowl/releases/download/v${rustowlVersion}/rustowl-x86_64-unknown-linux-gnu.tar.gz";
     hash = "sha256-ir1fQfMEZg4xdNUrf2bgxziFtzm+xPZQv1IDIHbIOKM=";
   };
-
-in {
-  home.packages = with pkgs; [
-    vscode
-    jetbrains.idea
-    tree
-    ffmpeg
-    claude-code
-  ] ++ lib.optionals pkgs.stdenv.isLinux [
-    kiro.packages.${pkgs.stdenv.hostPlatform.system}.default
-    pkgs.antigravity-fhs
-  ] ++ map (s: s.pkg) lspServers;
-
+in
+{
   home.sessionPath = [ "$HOME/.local/bin" ];
-
-  # Neovim が dofile で読む Nix 生成ファイル (環境変数と違い rebuild 即反映)
-  # 参照元: dotfiles/nvim/lua/plugins/lsp/init.lua
-  xdg.configFile."nvim/nix/lsp-servers.lua".text =
-    "return {${builtins.concatStringsSep ", " (map (s: ''"${s.lsp}"'') lspServers)}}";
-  # 参照元: dotfiles/nvim/lua/plugins/lang/rust.lua
-  xdg.configFile."nvim/nix/codelldb-path.lua".text =
-    ''return "${pkgs.vscode-extensions.vadimcn.vscode-lldb}/share/vscode/extensions/vadimcn.vscode-lldb/adapter/codelldb"'';
-
-  programs.neovim = {
-    enable = true;
-    vimAlias = true;
-    defaultEditor = true;
-    withNodeJs = true;
-    extraPackages = map (d: d.pkg) nvimPluginDeps;
-    plugins = with pkgs.vimPlugins; [
-      lazy-nvim
-    ];
-  };
 
   # [impure] rustowl のプリビルドバイナリを ~/.local/ にインストール
   # rustowl は特定の nightly Rust sysroot を必要とし、nixpkgs でのパッケージングが困難なため
@@ -103,10 +51,4 @@ in {
       $DRY_RUN_CMD ln -sf "$RUSTOWL_DIR/rustowl" "$RUSTOWL_BIN"
     fi
   '';
-
-  # mkOutOfStoreSymlinkを使えばrebuild不要で即反映できるが、絶対パスのハードコードが必要になるため使用しない
-  xdg.configFile."nvim" = {
-    source = ../../dotfiles/nvim;
-    recursive = true;
-  };
 }

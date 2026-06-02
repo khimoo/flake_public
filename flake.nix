@@ -33,7 +33,7 @@
         ./modules/home-manager/git.nix
         ./modules/home-manager/rclone.nix
         ./modules/home-manager/yazi.nix
-        ./modules/home-manager/dev.nix
+        ./modules/home-manager/dev
         ./modules/home-manager/gui/default.nix
         ./modules/home-manager/gui/gnome.nix
         ./modules/home-manager/gui/ime.nix
@@ -64,10 +64,13 @@
         };
 
       # ホストごとの設定を生成するヘルパー関数
-      mkSystem = { hostname, system, users, timezone, keymap ? "us", stateVersion, primaryUser ? (builtins.head users).username }:
+      # flakeRoot: flake チェックアウト先の絶対パス。
+      # modules/home-manager/dev/neovim が mkOutOfStoreSymlink でこのパスを参照する。
+      # ホストごとの clone 位置に依存するため、各ホストの呼び出し側で指定する。
+      mkSystem = { hostname, system, users, timezone, keymap ? "us", stateVersion, primaryUser ? (builtins.head users).username, flakeRoot }:
         let
           settings = baseSettings // {
-            inherit hostname system users timezone keymap stateVersion primaryUser;
+            inherit hostname system users timezone keymap stateVersion primaryUser flakeRoot;
             features = {
               gui = true;
               gnome = true;
@@ -103,12 +106,13 @@
         };
 
       # スタンドアロンhome-manager設定を生成するヘルパー関数
-      mkHome = { username, system, homeFile ? null, stateVersion, allowUnfree ? false, features ? {}, extraSettings ? {} }:
+      # mkSystem と同じく flakeRoot は呼び出し側で指定 (環境ごとに clone 位置が違うため)。
+      mkHome = { username, system, homeFile ? null, stateVersion, allowUnfree ? false, features ? {}, flakeRoot, extraSettings ? {} }:
         let
           pkgs = import nixpkgs { inherit system; inherit overlays; };
           skk-dict = mkSkkDict system;
           settings = baseSettings // {
-            inherit system stateVersion;
+            inherit system stateVersion flakeRoot;
             features = defaultFeatures // features;
           } // extraSettings;
         in
@@ -143,6 +147,7 @@
           timezone = "Asia/Tokyo";
           keymap = "us";
           stateVersion = "25.05";
+          flakeRoot = "/home/pomu/sagyo/flake_public";
         };
 
         nixos-desktop = mkSystem {
@@ -165,6 +170,7 @@
           timezone = "Asia/Tokyo";
           keymap = "us";
           stateVersion = "25.05";
+          flakeRoot = "/home/pomu/sagyo/flake_public";
         };
       };
 
@@ -177,6 +183,7 @@
           system = "x86_64-linux";
           stateVersion = "25.05";
           allowUnfree = true;
+          flakeRoot = "/home/pomu/sagyo/flake_public";
         };
 
         # macOS (CLI のみ、GUI は homeFile で追加可能)
@@ -185,6 +192,7 @@
           system = "aarch64-darwin";  # Intel Mac なら x86_64-darwin
           stateVersion = "25.05";
           allowUnfree = true;
+          flakeRoot = "/Users/pomu/sagyo/flake_public";
         };
 
         # NixOS スタンドアロン (フル機能)
@@ -200,6 +208,7 @@
             audio = true;
             desktopEntry = true;
           };
+          flakeRoot = "/home/pomu/sagyo/flake_public";
         };
       };
     };

@@ -1,6 +1,6 @@
 # RustOwl (impure インストール)
 
-設定ファイル: `modules/home-manager/dev.nix` の `home.activation.rustowl`
+設定ファイル: `modules/home-manager/dev/rustowl.nix` の `home.activation.rustowl`
 
 ## 背景
 
@@ -19,7 +19,7 @@ Nix store 外に命令的にインストールする impure な要素。
 
 ## バージョン更新手順
 
-1. `dev.nix` の `rustowlVersion` を更新
+1. `dev/rustowl.nix` の `rustowlVersion` を更新
 2. `rustowlArchive` の `hash` を更新（ビルド時にハッシュ不一致エラーから正しい値を取得）
 3. sysroot バージョン (`SYSROOT` のパス内の Rust バージョン) が変わった場合はそちらも更新
 

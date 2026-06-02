@@ -22,8 +22,8 @@ return {
 
       local capabilities = require('blink.cmp').get_lsp_capabilities()
 
-      -- Nix 生成ファイルからサーバー一覧を取得 (生成元: modules/home-manager/dev.nix)
-      local servers = dofile(vim.fn.stdpath("config") .. "/nix/lsp-servers.lua")
+      -- Nix 生成ファイルからサーバー一覧を取得 (生成元: modules/home-manager/dev/neovim/default.nix, リスト定義は dev/lsp.nix)
+      local servers = dofile(vim.fn.stdpath("data") .. "/nix/lsp-servers.lua")
 
       -- サーバー固有の設定
       local overrides = {

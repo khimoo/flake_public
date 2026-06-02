@@ -1,7 +1,7 @@
 -- Markdown 関連の設定を集約。
--- LSP (marksman) 本体は modules/home-manager/dev.nix の lspServers で導入され、
+-- LSP (marksman) 本体は modules/home-manager/dev/{lsp,neovim/default}.nix の lspServers で導入され、
 -- plugins/lsp/init.lua が動的に有効化する (このファイルでは触れない)。
--- 外部ツール依存 (wl-clipboard 等) は modules/home-manager/dev.nix の nvimPluginDeps を参照。
+-- 外部ツール依存 (wl-clipboard 等) は modules/home-manager/dev/{lsp,neovim/default}.nix の nvimPluginDeps を参照。
 
 -- filetype オプション (ftplugin/markdown.lua 相当)
 -- ・wrap + linebreak + breakindent: 長い段落の表示折り返し
@@ -49,7 +49,7 @@ return {
   },
 
   -- クリップボード画像を貼り付けて assets/ に保存 + リンク挿入
-  -- 依存: wl-clipboard (Wayland) / xclip (X11) — dev.nix の nvimPluginDeps で導入
+  -- 依存: wl-clipboard (Wayland) / xclip (X11) — dev/neovim/default.nix の nvimPluginDeps で導入
   {
     "HakonHarnes/img-clip.nvim",
     ft = { "markdown" },
@@ -60,7 +60,7 @@ return {
         if not has_clipboard_tool then
           vim.notify(
             "img-clip.nvim: wl-clipboard または xclip が必要です " ..
-            "(modules/home-manager/dev.nix の nvimPluginDeps を確認)",
+            "(modules/home-manager/dev/{lsp,neovim/default}.nix の nvimPluginDeps を確認)",
             vim.log.levels.WARN
           )
         end

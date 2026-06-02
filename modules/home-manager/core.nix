@@ -25,9 +25,11 @@
     EDITOR = "nvim";
   };
 
-  # Neovim が dofile で読む Nix 生成ファイル (環境変数と違い rebuild 即反映)
-  # 参照元: dotfiles/nvim/lua/plugins/skkeleton.lua
-  xdg.configFile."nvim/nix/skk-dict-path.lua".text =
+  # Neovim が dofile で読む Nix 生成ファイル (環境変数と違い rebuild 即反映)。
+  # ~/.config/nvim は mkOutOfStoreSymlink でリポジトリへの symlink のため、
+  # 配下に追加ファイルを置けない。stdpath("data") = ~/.local/share/nvim/nix/ に配置する。
+  # 参照元: modules/home-manager/dev/neovim/config/lua/plugins/skkeleton.lua
+  xdg.dataFile."nvim/nix/skk-dict-path.lua".text =
     ''return "${skk-dict}"'';
 
   programs = {

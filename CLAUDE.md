@@ -10,7 +10,8 @@ NixOS の設定を管理する Nix Flake リポジトリ。NixOS のシステム
 - `hosts/` — ホスト固有の設定（hardware.nix, default.nix, home.nix 等）
 - `modules/nixos/` — NixOS モジュール（OS レベルの設定）
 - `modules/home-manager/` — home-manager モジュール（ユーザー環境の設定）
-- `dotfiles/` — neovim, wezterm 等のドットファイル
+  - `modules/home-manager/dev/neovim/config/` — Neovim の lua 設定。mkOutOfStoreSymlink でリポジトリを `~/.config/nvim` に直接 symlink するため、編集が rebuild なしで反映される
+- `dotfiles/` — wezterm 等のドットファイル (nvim は `modules/home-manager/dev/neovim/config/` に集約済み)
 
 ### ビルド・適用コマンド
 
@@ -31,7 +32,7 @@ home-manager switch --flake .#username-host
 | rustowl (プリビルドバイナリ + ランタイムダウンロードの sysroot) | `~/.local/share/rustowl/` | 特定の nightly Rust sysroot を必要とし、nixpkgs でのパッケージングが困難 |
 | rustowl (symlink) | `~/.local/bin/` | 上記バイナリへのシンボリックリンク |
 
-詳細は `modules/home-manager/dev.nix` の `home.activation.rustowl` を参照。
+詳細は `modules/home-manager/dev/rustowl.nix` の `home.activation.rustowl` を参照。
 
 ### TODO: デスクトップ側の Firefox プロファイルリネーム（帰宅後に実施）
 
@@ -118,7 +119,7 @@ home-manager switch --flake .#username-host
 
 ### ドキュメントの同期
 
-- 設定ファイル（プラグインの追加・削除・キーバインド変更等）を変更した場合、`dotfiles/nvim/docs/` 以下の関連ドキュメントも必ず同時に更新すること
+- 設定ファイル（プラグインの追加・削除・キーバインド変更等）を変更した場合、`modules/home-manager/dev/neovim/config/docs/` 以下の関連ドキュメントも必ず同時に更新すること
 - 特に `docs/README.md` のプラグイン一覧・ワークフロー例・キーバインド表は実態と乖離しやすいので注意
 - プラグインを削除した場合、そのプラグインへの参照がドキュメント全体に残っていないか確認すること
 
@@ -130,7 +131,7 @@ home-manager switch --flake .#username-host
 |------|--------|------|
 | 使い方ガイド | `docs/howtouse/` | 設定の使い方・追加手順・属性一覧など、ユーザー向けの情報 |
 | 実装方針 | `docs/architecture/` | 設計判断・なぜそうしたか・トレードオフなど、開発者向けの情報 |
-| Neovim 固有 | `dotfiles/nvim/docs/` | プラグイン・キーバインド・ワークフロー |
+| Neovim 固有 | `modules/home-manager/dev/neovim/config/docs/` | プラグイン・キーバインド・ワークフロー |
 
 - 新しい機能のドキュメントを書く際は、使い方と実装方針を同じファイルに混ぜない
 - 各ドキュメントから対になるドキュメントへ相互リンクする（例: 使い方ガイドから実装方針へ、またはその逆）
