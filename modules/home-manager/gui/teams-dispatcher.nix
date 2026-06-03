@@ -15,8 +15,16 @@
 #   で Firefox 自身に HTTP/HTTPS を内部処理させることで回避している。
 
 let
+  # id はファイル名 teams-${id}.desktop に展開される。
+  # - "for-linux" を選んだ理由: パッケージ同梱の teams-for-linux.desktop と
+  #   同名にすることで XDG の探索順により自前のエントリでパッケージ版を shadow し、
+  #   アプリメニューに「Microsoft Teams for Linux」と「Teams」が両方並ぶ重複を防ぐ。
+  # - partition = null は --partition フラグを付けず teams-for-linux の
+  #   デフォルトプロファイルで起動する＝「通常の Teams」を意味する。
+  #   それ以外の値は擬似マルチアカウント用の独立パーティションを示す。
   teamsAccounts = [
-    { id = "uni"; label = "Teams (Uni)"; }
+    { id = "for-linux"; label = "Teams";       partition = null;  }
+    { id = "uni";       label = "Teams (Uni)"; partition = "uni"; }
   ];
 
   teamsBin = lib.getExe pkgs.teams-for-linux;
@@ -24,16 +32,20 @@ let
   teamsDesktopEntries = builtins.listToAttrs (map (account: {
     name = ".local/share/applications/teams-${account.id}.desktop";
     value = {
+      # MimeType に x-scheme-handler/https,http を宣言しているのは Junction の
+      # URL ハンドラ候補に列挙させるため。mimeapps.list のデフォルトは
+      # teams-url-dispatcher.desktop のままなので、ブラウザ等の通常フローには影響しない。
       text = ''
         [Desktop Entry]
         Name=${account.label}
         Comment=Microsoft Teams - ${account.label}
-        Exec=${teamsBin} --partition=${account.id}
+        Exec=${teamsBin}${lib.optionalString (account.partition != null) " --partition=${account.partition}"} %U
         Icon=teams-for-linux
         Type=Application
         Categories=Network;Chat;
         Terminal=false
         StartupWMClass=teams-for-linux
+        MimeType=x-scheme-handler/https;x-scheme-handler/http;
       '';
     };
   }) teamsAccounts);
@@ -73,5 +85,12 @@ lib.mkIf settings.features.gui {
   xdg.mimeApps.defaultApplications = {
     "x-scheme-handler/http" = "teams-url-dispatcher.desktop";
     "x-scheme-handler/https" = "teams-url-dispatcher.desktop";
+  };
+
+  # Junction の候補ウィンドウでアイコン下にアプリ名を表示する。
+  # 同じ teams-for-linux アイコンを使う複数エントリ（Teams / Teams (Uni) など）を
+  # 視覚的に区別するために必須。Junction 組み込みの "Show App Names" 設定。
+  dconf.settings."re/sonny/Junction" = {
+    show-app-names = true;
   };
 }
