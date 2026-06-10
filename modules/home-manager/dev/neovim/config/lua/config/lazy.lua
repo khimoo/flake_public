@@ -33,6 +33,18 @@ require("lazy").setup({
   install = {
       missing = true,
   },
+  -- luarocks 統合を無効化。Nix 環境では lazy.nvim 内蔵の hererocks (luarocks 用の
+  -- 埋め込み Lua) が組めず、rockspec を持つプラグイン (image.nvim 等) が落ちる。
+  -- 必要な luarock は programs.neovim.extraLuaPackages 経由で nixpkgs から注入する。
+  rocks = {
+      enabled = false,
+  },
+  -- rockspec の自動読み込みも無効化。rocks.enabled = false だけでは image.nvim 等の
+  -- .rockspec を依然パースし、依存 (magick) を「未解決プラグイン」扱いし続けて
+  -- "Too many rounds of missing plugins" になる。
+  pkg = {
+      sources = { "lazy", "packspec" },
+  },
   ---@diagnostic disable-next-line: assign-type-mismatch
   dev = {
     -- Nixがインストールしたプラグインの場所を指定

@@ -10,6 +10,8 @@ let
     { pkg = pkgs.nixfmt-rfc-style; for = "nil_ls の formatter"; }
     { pkg = pkgs.vscode-extensions.vadimcn.vscode-lldb;
                                    for = "rustaceanvim DAP (codelldb)"; }
+    { pkg = pkgs.mermaid-cli;      for = "diagram.nvim (mermaid → PNG レンダリング, mmdc)"; }
+    { pkg = pkgs.imagemagick;      for = "image.nvim (画像リサイズ/変換, magick CLI backend)"; }
   ] ++ lib.optionals pkgs.stdenv.isLinux [
     { pkg = pkgs.xclip;        for = "system clipboard 連携 (X11)"; }
     { pkg = pkgs.wl-clipboard; for = "img-clip.nvim (Wayland 画像貼付)"; }
@@ -26,6 +28,9 @@ in
     defaultEditor = true;
     withNodeJs = true;
     extraPackages = map (d: d.pkg) nvimPluginDeps;
+    # image.nvim が必要とする ImageMagick の Lua バインディング (magick luarock)。
+    # nixpkgs 経由で注入することで luarocks をユーザ環境に出さずに済む。
+    extraLuaPackages = ps: [ ps.magick ];
     plugins = with pkgs.vimPlugins; [
       lazy-nvim
     ];

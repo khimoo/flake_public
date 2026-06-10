@@ -14,6 +14,8 @@ Markdown ファイル編集に関わるプラグインと設定をひとまと�
 | `autolist.nvim` | 箇条書きの自動継続 + Tab/Shift-Tab で outline 増減 |
 | `img-clip.nvim` | クリップボード画像の貼り付けとリンク挿入 |
 | `marksman` (LSP) | 見出しシンボル、Wiki-link 補完、ジャンプ |
+| `diagram.nvim` | Mermaid 等の図ブロックを抽出してインラインプレビュー |
+| `image.nvim` | バッファ内に画像を表示する基盤 (diagram.nvim の依存) |
 
 ## filetype オプション (ftplugin 相当)
 
@@ -82,6 +84,73 @@ bullet 操作に取られる点に注意。
 **依存ツール**: Wayland 環境では `wl-clipboard`、X11 環境では `xclip` が必要。
 両方とも `modules/home-manager/dev/neovim/default.nix` の `nvimPluginDeps` で導入される。
 不在時は起動時に WARN が出る。
+
+## diagram.nvim + image.nvim — Mermaid プレビュー
+
+Markdown 内の mermaid コードブロックを、ブラウザを開かずに **バッファ内インラインで**
+PNG プレビュー表示する。WezTerm の Kitty graphics protocol を使うため、
+ターミナル内で完結する。
+
+### 使い方
+
+1. `.md` ファイルを開く
+2. 以下のような mermaid ブロックを書く:
+   ````
+   ```mermaid
+   graph TD
+     A[Start] --> B[End]
+   ```
+   ````
+3. 数秒待つと、コードブロックの下にレンダリング結果が表示される
+
+初回は `mmdc` が内部で Chromium ヘッドレスを起動するため数秒重い。
+2 回目以降はキャッシュされて高速。
+
+### 構成と依存
+
+```
+.md バッファ
+  └─ diagram.nvim         mermaid ブロックを treesitter で抽出
+       └─ mmdc            PNG にレンダリング (内部で Chromium ヘッドレス使用)
+            └─ image.nvim WezTerm の Kitty graphics protocol で画像表示
+                 └─ magick (luarock) 画像処理
+```
+
+外部ツール (すべて `modules/home-manager/dev/neovim/default.nix` で注入済み):
+
+| 依存 | 用途 |
+|------|------|
+| `mermaid-cli` (mmdc) | mermaid → PNG レンダリング |
+| `imagemagick` (magick CLI) | 画像のリサイズ/変換 |
+| `magick` luarock | image.nvim の画像処理バインディング |
+| treesitter `mermaid` parser | コードブロック抽出 (`ensure_installed` 経由) |
+
+### Nix 環境固有の注意
+
+lazy.nvim の **luarocks 統合は無効化**してある (`lua/config/lazy.lua` 参照):
+
+- `rocks.enabled = false`: lazy.nvim 内蔵の hererocks (Lua 5.1 + luarocks の埋め込み環境) は
+  Nix で読み取り専用な `/nix/store` 配下では組めないため無効化
+- `pkg.sources = { "lazy", "packspec" }`: image.nvim の `.rockspec` を読まないようにする。
+  読むと「magick 依存が未解決」とみなされ "Too many rounds of missing plugins" エラーになる
+- 代わりに `programs.neovim.extraLuaPackages = ps: [ ps.magick ];` で nixpkgs 側から
+  magick luarock を `package.path` に注入している
+
+将来 image.nvim 以外で luarock 依存のプラグインを追加するときも、同じく
+`extraLuaPackages` に追記すれば動く。
+
+### コマンド
+
+| コマンド | 動作 |
+|---------|------|
+| `:Diagram show` | 現在のバッファの図を強制再レンダリング |
+| `:Diagram hide` | プレビューを非表示 |
+| `:checkhealth image` | image.nvim の依存（magick 等）が揃っているか確認 |
+
+### ペイン分割時の挙動
+
+WezTerm の画像はペインの境界を越えて表示されない。大きな図でも他のペインにはみ出さない。
+スプリット直後に画像が消えることがあるが、`<C-l>` (画面再描画) で復活する。
 
 ## marksman (LSP)
 

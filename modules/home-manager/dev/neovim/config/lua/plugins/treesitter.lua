@@ -3,7 +3,11 @@ return {
         "nvim-treesitter/nvim-treesitter",
         build = ":TSUpdate",
         main = 'nvim-treesitter.configs',
-        opts = { highlight = { enable = true } },
+        opts = {
+            highlight = { enable = true },
+            -- diagram.nvim が markdown 内の mermaid ブロックを抽出するため
+            ensure_installed = { "mermaid", "markdown", "markdown_inline" },
+        },
     },
     {
         'Wansmer/treesj',
