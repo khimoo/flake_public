@@ -16,6 +16,8 @@
     ./libvirt.nix
     ./audio.nix
     ./sns-block.nix
+    ./insecure-app.nix
+    ./gui/bitwarden.nix
   ];
 
   # システム状態バージョン

@@ -59,7 +59,8 @@ let
       };
     }
     { pkg = pkgs.obsidian; }
-    { pkg = pkgs.bitwarden-desktop; }
+    # bitwarden-desktop は modules/nixos/gui/bitwarden.nix で別管理
+    # (insecureApps 抽象を通じて install と insecure 許可を同時宣言)
 
     # -- メディア・クリエイティブ --
     {
