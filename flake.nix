@@ -71,6 +71,7 @@
         let
           settings = baseSettings // {
             inherit hostname system users timezone keymap stateVersion primaryUser flakeRoot;
+            standalone = false;
             features = {
               gui = true;
               gnome = true;
@@ -113,6 +114,7 @@
           skk-dict = mkSkkDict system;
           settings = baseSettings // {
             inherit system stateVersion flakeRoot;
+            standalone = true;
             features = defaultFeatures // features;
           } // extraSettings;
         in

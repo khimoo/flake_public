@@ -59,8 +59,13 @@ let
       };
     }
     { pkg = pkgs.obsidian; }
-    # bitwarden-desktop は modules/nixos/gui/bitwarden.nix で別管理
-    # (insecureApps 抽象を通じて install と insecure 許可を同時宣言)
+    {
+      pkg = pkgs.bitwarden-desktop;
+      # bitwarden-desktop が依存している electron 39 は EOL のため insecure 扱い。
+      # 上流が electron を新しいバージョンに上げたら、insecurePackages 行を削除する。
+      # 関連: https://github.com/NixOS/nixpkgs/issues/529107
+      insecurePackages = [ "electron-39.8.10" ];
+    }
 
     # -- メディア・クリエイティブ --
     {
@@ -219,20 +224,39 @@ let
     ) withAutostart
   );
 
+  # guiApps 内で宣言された insecurePackages を集約。
+  # NixOS 統合時は modules/nixos/permit-insecure.nix がこれを読み取り
+  # nixpkgs.config.permittedInsecurePackages に転記する。
+  # standalone home-manager 時は下の config で直接 nixpkgs.config に設定する。
+  permittedInsecure = lib.unique (lib.concatMap (a: a.insecurePackages or [ ]) guiApps);
+
 in
-lib.mkIf settings.features.gui {
-  home.packages = map (a: a.pkg) guiApps ++ [ kiroApp.pkg ];
-
-  home.file = waylandDesktopEntries // kiroDesktopEntry // cursorDesktopEntry;
-
-  xdg.mimeApps = {
-    enable = true;
-    defaultApplications = defaultApplications;
+{
+  options.local.insecurePackages = lib.mkOption {
+    type = lib.types.listOf lib.types.str;
+    default = [ ];
+    description = ''
+      home-manager 側で宣言された、nixpkgs.config.permittedInsecurePackages
+      への追加が必要なパッケージ名のリスト。NixOS 側 (modules/nixos/permit-insecure.nix)
+      が集約して OS 側の nixpkgs.config に転記する。
+    '';
   };
 
-  systemd.user.services = autostartServices;
+  config = lib.mkIf settings.features.gui ({
+    home.packages = map (a: a.pkg) guiApps ++ [ kiroApp.pkg ];
 
-  home.activation.installCursor = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    home.file = waylandDesktopEntries // kiroDesktopEntry // cursorDesktopEntry;
+
+    xdg.mimeApps = {
+      enable = true;
+      defaultApplications = defaultApplications;
+    };
+
+    systemd.user.services = autostartServices;
+
+    local.insecurePackages = permittedInsecure;
+
+    home.activation.installCursor = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     echo "Checking for Cursor AI updates..."
 
     $DRY_RUN_CMD mkdir -p "$(dirname ${cursorConfig.appImage})"
@@ -260,4 +284,10 @@ lib.mkIf settings.features.gui {
 
     $DRY_RUN_CMD chmod +x "${cursorConfig.appImage}"
   '';
+  } // lib.optionalAttrs settings.standalone {
+    # standalone home-manager (mkHome 経由) の場合のみ、自分で nixpkgs.config を設定する。
+    # NixOS 統合時 (useGlobalPkgs = true) は home-manager から nixpkgs.config を
+    # 触れないため、modules/nixos/permit-insecure.nix が代わりに集約する。
+    nixpkgs.config.permittedInsecurePackages = permittedInsecure;
+  });
 }
