@@ -5,8 +5,9 @@ return {
         main = 'nvim-treesitter.configs',
         opts = {
             highlight = { enable = true },
-            -- diagram.nvim が markdown 内の mermaid ブロックを抽出するため
-            ensure_installed = { "mermaid", "markdown", "markdown_inline" },
+            -- ensure_installed は各言語モジュール (lang/<x>/treesitter.lua) から
+            -- spec マージで追加される
+            ensure_installed = {},
         },
     },
     {

@@ -2,9 +2,12 @@
 
 Markdown ファイル編集に関わるプラグインと設定をひとまとめにしたドキュメント。
 
-> 設定: `modules/home-manager/dev/neovim/config/lua/plugins/lang/markdown.lua`
+> 設定: `modules/home-manager/dev/neovim/config/lua/plugins/lang/markdown/` 配下に
+> サブモジュール (filetype / render / autolist / img-clip / treesitter / skk-bridge) で分割。
 > LSP (marksman) は `modules/home-manager/dev/lsp.nix` の `lspServers` 経由で導入され、
-> `lua/plugins/lsp/init.lua` が自動で有効化する。
+> `lua/plugins/lsp/init.lua` が自動で有効化する。サーバー固有の override が必要に
+> なった際は、本ディレクトリに `lsp.lua` を追加して `nvim-lspconfig` の
+> `opts.servers.marksman` を spec マージで宣言する想定。
 
 ## 構成プラグイン
 
@@ -68,6 +71,14 @@ Markdown ファイルを開くと自動適用:
 **Tab の競合について**: `blink.cmp` のスニペット placeholder ジャンプ (`<Tab>`) と
 バッファローカルではないため衝突する。Markdown でスニペット展開中の `<Tab>` は
 bullet 操作に取られる点に注意。
+
+### skkeleton 連携 (skk-bridge.lua)
+
+skkeleton 有効中は insert-mode の `<CR>` が skkeleton に横取りされ、autolist の
+`<CR>` マップが発火しない。これを補うため `skk-bridge.lua` が
+`User skkeleton-handled` イベントでバッファ行数の増加を監視し、改行が挿入された
+場合のみ `AutolistNewBullet` を呼ぶ。変換確定時の `<CR>` (`eggLikeNewline=true`
+により改行なし) では行数が変わらないため、誤発火しない。
 
 ## img-clip.nvim — クリップボード画像の貼り付け
 
