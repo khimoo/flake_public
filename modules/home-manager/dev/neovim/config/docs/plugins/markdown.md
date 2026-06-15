@@ -13,7 +13,7 @@ Markdown ファイル編集に関わるプラグインと設定をひとまと�
 
 | プラグイン | 役割 |
 |-----------|------|
-| `render-markdown.nvim` | バッファ内装飾レンダリング |
+| `render-markdown.nvim` | バッファ内装飾レンダリング + 数式の Unicode 近似 |
 | `autolist.nvim` | 箇条書きの自動継続 + Tab/Shift-Tab で outline 増減 |
 | `img-clip.nvim` | クリップボード画像の貼り付けとリンク挿入 |
 | `marksman` (LSP) | 見出しシンボル、Wiki-link 補完、ジャンプ |
@@ -55,6 +55,48 @@ Markdown ファイルを開くと自動適用:
 | `:RenderMarkdown toggle` | 装飾表示の ON/OFF 切替 |
 | `:RenderMarkdown enable` | 装飾表示を有効化 |
 | `:RenderMarkdown disable` | 装飾表示を無効化 |
+
+### 数式 (`$...$`, `$$...$$`) の Unicode 近似表示
+
+LaTeX 風の数式を Unicode 文字列に変換して inline 表示する。
+
+| 記法 | 入力例 | 表示 |
+|------|--------|------|
+| inline math | `$x^2 + y^2 = r^2$` | `x² + y² = r²` |
+| display math | `$$\sum_{i=0}^{n} i$$` | `∑ᵢ₌₀ⁿ i` (中央寄せ extmark) |
+
+**実装**: render-markdown.nvim が `latex2text` (pylatexenc) を起動して LaTeX を Unicode
+近似へ変換し、extmark で描画する。**画像ではない**ため:
+
+- 利点: ターミナル要件なし (Kitty graphics protocol 不要)、依存軽量
+- 制約: 行列・複雑な分数・integral with limits などは粗くなる
+
+依存 (`modules/home-manager/dev/neovim/default.nix` の `nvimPluginDeps` で注入):
+
+| パッケージ | 提供 | 用途 |
+|-----------|------|------|
+| `python3Packages.pylatexenc` | `latex2text` コマンド | LaTeX → Unicode 変換 |
+| `tree-sitter` | `tree-sitter` CLI | `latex` parser のビルド (※下記) |
+
+treesitter parser として `latex` が `lang/markdown/treesitter.lua` の `ensure_installed` に含まれている。`render-markdown.nvim` は `markdown_inline` parser で `$...$` ブロックを検出し、injection で `latex` parser に内部を解析させる二段構え。**`latex` parser を入れないと extmark が一切置かれず `:RenderMarkdown debug` が "no marks on row" になる**。
+
+`latex` parser は nvim-treesitter の parser リストで `requires_generate_from_grammar = true` 扱いなので、初回 `:TSInstall latex` 時に `tree-sitter generate` で grammar.js から parser.c を生成する。そのため `tree-sitter` CLI と nodejs (`withNodeJs = true` で注入済) が PATH 上に必要。新環境セットアップでは `ensure_installed` により自動でこのフローが走るので、手動で `:TSInstall` する必要はない。
+
+### サポートされない記法
+
+| 記法 | 例 | 状態 |
+|------|------|------|
+| dollar 記法 | `$...$`, `$$...$$` | ✓ サポート |
+| AMS 記法 inline | `\(...\)` | ✗ render-markdown が非対応 |
+| AMS 記法 block | `\[...\]` | ✗ 同上 |
+
+`\[...\]` 形式の数式は通常 markdown のテキストとしてしか表示されない。`$...$` 系で書くこと。
+
+### 高品質レンダリングへの拡張余地
+
+真の PDF 品質で表示したい場合は、`diagram.nvim` の renderer に LaTeX → PNG 変換を
+プラグインする (texlive + dvipng or matplotlib.mathtext 等) 余地がある。現状は
+mermaid のみが diagram.nvim で画像化されている。
 
 ## autolist.nvim — 箇条書きの outline 操作
 

@@ -12,6 +12,9 @@ let
                                    for = "rustaceanvim DAP (codelldb)"; }
     { pkg = pkgs.mermaid-cli;      for = "diagram.nvim (mermaid → PNG レンダリング, mmdc)"; }
     { pkg = pkgs.imagemagick;      for = "image.nvim (画像リサイズ/変換, magick CLI backend)"; }
+    { pkg = pkgs.python3Packages.pylatexenc;
+                                   for = "render-markdown.nvim (latex2text による数式 → Unicode 近似変換)"; }
+    { pkg = pkgs.tree-sitter;      for = "nvim-treesitter (requires_generate_from_grammar=true な parser のビルドに必要。latex parser 等)"; }
   ] ++ lib.optionals pkgs.stdenv.isLinux [
     { pkg = pkgs.xclip;        for = "system clipboard 連携 (X11)"; }
     { pkg = pkgs.wl-clipboard; for = "img-clip.nvim (Wayland 画像貼付)"; }
