@@ -27,6 +27,10 @@
 - [キーバインド分類チートシート](./cheatsheet.md) — 「覚える必要があるもの」と「which-key に任せられるもの」の分類一覧
 - [キーバインド変更メモ](./keybindings-memo.md) — デファクトスタンダードに合わせた修正の記録
 
+## 設計方針 (architecture/)
+
+- [lazy.nvim spec マージ前提のディレクトリ設計](./architecture/spec-merge.md) — `lang/<name>/` から共通プラグインの opts を後付け差し込みする設計の根拠
+
 ---
 
 # ワークフローごと使い方

@@ -7,9 +7,37 @@
 
 ## サーバーの設定方法
 
-環境変数 `NEOVIM_LSP_SERVERS` にカンマ区切りでサーバー名を指定すると自動で有効化される。devShell ごとに異なる LSP を使う設計。
+### サーバー一覧 (どの LSP を有効化するか)
 
-サーバー固有の設定は `overrides` テーブルで管理:
+`modules/home-manager/dev/lsp.nix` の `lspServers` に nixpkgs パッケージと LSP 識別子のペアを書く。Nix が `~/.local/share/nvim/nix/lsp-servers.lua` に識別子の Lua 配列を生成し、`plugins/lsp/init.lua` が `dofile` で読み込んでループ有効化する。
+
+新しい LSP を追加する手順:
+1. `dev/lsp.nix` の `lspServers` に `{ pkg = pkgs.foo; lsp = "foo_ls"; }` を追加
+2. rebuild
+3. 自動で `vim.lsp.enable("foo_ls")` まで走る
+
+この設計の利点: LSP サーバーバイナリの導入 (`home.packages`) と nvim 側での有効化が **同じリストの 1 行から両方派生する** ので、片方を書き忘れない。
+
+### サーバー固有の設定 (capabilities 以外の override)
+
+`plugins/lsp/init.lua` の `opts.servers` テーブルで設定する。例:
+
+```lua
+opts = {
+  servers = {
+    tinymist = {
+      settings = { exportPdf = "onType", outputPath = "/tmp/tinymist" },
+    },
+    nil_ls = {
+      settings = { ['nil'] = { formatting = { command = { "nixfmt" } } } },
+    },
+  },
+},
+```
+
+このテーブルは **lazy.nvim の spec マージで言語モジュールから拡張可能**。例えば `lang/markdown/lsp.lua` で `opts.servers.marksman = { ... }` を返す spec を書けば、`nvim-lspconfig` の opts に deep-merge される。詳細は [架構ドキュメント (spec マージ)](../architecture/spec-merge.md) を参照。
+
+現状の override:
 - `tinymist`: Typst 用。`exportPdf = "onType"` でリアルタイム PDF 出力
 - `nil_ls`: Nix 用。`nixfmt` でフォーマット
 

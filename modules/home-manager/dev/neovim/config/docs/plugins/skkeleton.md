@@ -26,9 +26,15 @@ skkeleton の入力モード (ひらがな/カタカナ/英数) をインジケ�
 |------|------|
 | 大文字で入力開始 | 漢字変換モードに入る (例: `Kanji`) |
 | `<Space>` | 変換候補を表示 |
-| `<CR>` | 確定 |
+| `<CR>` | 確定 (`eggLikeNewline=true` のため変換確定時は改行を伴わない) |
 | `q` | カタカナ変換 |
 | `l` | 英数モード |
+
+### markdown バッファでの `<CR>` の追加挙動
+
+markdown ファイル編集中は、SKK 有効状態で `<CR>` を押すと **改行に加えて autolist の bullet 自動継続も発火する**。SKK が `<CR>` を横取りするため通常のキーマップでは autolist が呼ばれないが、`lang/markdown/skk-bridge.lua` が `User skkeleton-handled` でバッファ行数の増加を検知して `:AutolistNewBullet` を補っている。
+
+詳細は [markdown.md の skkeleton 連携セクション](./markdown.md#skkeleton-連携-skk-bridgelua) を参照。
 
 ## fcitx5 連携 (init.lua)
 
