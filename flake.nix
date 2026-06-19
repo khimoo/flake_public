@@ -213,5 +213,21 @@
           flakeRoot = "/home/pomu/sagyo/flake_public";
         };
       };
+
+      # コードリーディング/小さな実験用に ~/sagyo 配下の各プロジェクトから
+      # `.envrc` 経由で参照する共通 devShell 群。
+      # 使い方:
+      #   echo 'use flake "/home/pomu/sagyo/flake_public#rust-bevy"' > .envrc
+      #   direnv allow
+      # 詳細: docs/howtouse/devshells.md / docs/architecture/devshells.md
+      devShells.x86_64-linux =
+        let
+          devPkgs = import nixpkgs {
+            system = "x86_64-linux";
+            inherit overlays;
+            config.allowUnfree = true;
+          };
+        in
+          import ./devShells { pkgs = devPkgs; };
     };
 }
