@@ -15,4 +15,7 @@ in {
 
   dconf.settings."org/gnome/shell".enabled-extensions =
     lib.mkAfter (map (ext: ext.extensionUuid) extraGnomeExtensionsList);
+
+  # スリープ前に active だった display-configuration-switcher 設定を復帰時に再適用する
+  programs.gnomeDisplayDefault.enable = true;
 }
