@@ -15,7 +15,7 @@ in {
       isNormalUser = true;
       description = user.description or username;
       extraGroups = (user.extraGroups or [])
-        ++ [ "networkmanager" "libvirtd" "adbusers" ]
+        ++ [ "networkmanager" "libvirtd" "adbusers" "audio" ]
         ++ lib.optionals (user.isAdmin or false) [ "wheel" ];
       shell = user.shell or pkgs.bash;
       initialPassword = user.initialPassword or null;
