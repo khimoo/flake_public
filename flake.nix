@@ -36,7 +36,6 @@
         ./modules/home-manager/dev
         ./modules/home-manager/gui/default.nix
         ./modules/home-manager/gui/gnome.nix
-        ./modules/home-manager/gui/gnome-display-default.nix
         ./modules/home-manager/gui/ime.nix
         ./modules/home-manager/gui/apps.nix
         ./modules/home-manager/gui/firefox.nix
