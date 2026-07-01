@@ -159,6 +159,41 @@ PNG プレビュー表示する。WezTerm の Kitty graphics protocol を使う�
 初回は `mmdc` が内部で Chromium ヘッドレスを起動するため数秒重い。
 2 回目以降はキャッシュされて高速。
 
+### 再描画のタイミング
+
+`diagram.lua` の `opts.events.render_buffer` で再描画トリガを
+`{ "InsertLeave", "BufWinEnter", "BufWritePost" }` に絞っている。
+
+- `BufWinEnter` — ファイルを開いた／ウィンドウに表示した時
+- `InsertLeave` — 挿入モードを抜けた時（＝入力が一区切りした時）
+- `BufWritePost` — 保存した時（ノーマルモードでの編集を拾う）
+
+**なぜ `TextChanged` を外したか**: diagram.nvim のデフォルトは `TextChanged` を含み
+**打鍵ごと**に再描画する。`diagram.nvim` は同時実行数を制限せず、キャッシュミスした
+図の数だけ `mmdc`（1 図 ≈ 3 秒、内部で Chromium 起動）を**一斉に**起動するため、
+mermaid ブロックを複数持つ .md では初回描画や編集中に Chromium プロセスが大量に
+湧いて RAM を食い潰し、システムが swap スラッシングを起こしてフリーズする。
+トリガを間引くことで、編集が一区切りした時だけ再描画する。
+
+> 図を即座に再描画したい場合は `:Diagram show` を手動実行する。
+
+### 同時実行数の制限（mmdc スロットリング）
+
+トリガを間引いても、**複数図を含む .md を初回に開いた瞬間**は全図が一斉にキャッシュ
+ミスし、mmdc が同時に大量起動する問題が残る（8 図同時起動で Chromium 系 466 プロセス／
+ピーク RSS 数十 GB を実測）。diagram.nvim には同時実行数の制限機能が無いため、
+`diagram.lua` で mermaid renderer の `render` を**上限付きキュー**でラップしている。
+
+- 同時に走る `mmdc` は `MAX_CONCURRENT`（既定 2）個まで。残りはキューで待機。
+- 図は 2 個ずつ順次レンダリングされ、完了ごとにバッファを再描画して表示される
+  （多数の図では全部表示されるまで数秒かかるが、その間もエディタは固まらない）。
+- キャッシュ済みの図は即座に表示される（mmdc を起動しない）。
+
+**実装上の注意**: patch 対象は `require("diagram/renderers/mermaid")` を**スラッシュ記法**で
+require したテーブル。ドット記法だと `package.loaded` 上で別モジュール扱いになり二重ロード
+され、patch がプラグイン側に反映されない。キャッシュパスの生成式も mermaid.lua と一致させて
+いる（ズレると mmdc の出力先と表示先が食い違い画像が出ない）。
+
 ### 構成と依存
 
 ```
