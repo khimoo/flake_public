@@ -16,6 +16,10 @@
        url = "github:winapps-org/winapps";
        inputs.nixpkgs.follows = "nixpkgs";
     };
+    sops-nix = {
+      url = "github:Mic92/sops-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = inputs@{ nixpkgs, home-manager, skk-jisyo, kiro, ... }:
@@ -32,6 +36,7 @@
         ./modules/home-manager/core.nix
         ./modules/home-manager/git.nix
         ./modules/home-manager/rclone.nix
+        ./modules/home-manager/rclone-gdrive
         ./modules/home-manager/yazi.nix
         ./modules/home-manager/dev
         ./modules/home-manager/gui/default.nix
@@ -50,6 +55,7 @@
         gnome = false;
         ime = false;
         audio = false;
+        zoteroSync = false;
       };
 
       # SKK辞書の生成（system別にキャッシュ）
@@ -77,6 +83,7 @@
               gnome = true;
               ime = true;
               audio = true;
+              zoteroSync = true;
             };
           };
 
@@ -94,7 +101,7 @@
                 backupFileExtension = "bak";
                 useGlobalPkgs = true;
                 useUserPackages = true;
-                extraSpecialArgs = { inherit skk-dict kiro; inherit settings; };
+                extraSpecialArgs = { inherit inputs skk-dict kiro; inherit settings; };
                 users = builtins.listToAttrs (map (user: {
                   name = user.username;
                   value = {
@@ -120,7 +127,7 @@
         in
         home-manager.lib.homeManagerConfiguration {
           inherit pkgs;
-          extraSpecialArgs = { inherit skk-dict kiro; inherit settings; };
+          extraSpecialArgs = { inherit inputs skk-dict kiro; inherit settings; };
           modules = homeModules ++ [
             {
               nixpkgs.config.allowUnfree = allowUnfree;

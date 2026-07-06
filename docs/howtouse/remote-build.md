@@ -15,8 +15,9 @@
 
 設定ファイル側は既に構成済み：
 
-- デスクトップ：`services.openssh.enable`、`nix.settings.trusted-users = [ "@wheel" ]`、`users.users.pomu.openssh.authorizedKeys.keys`
-- ラップトップ：`programs.ssh.extraConfig` に `StrictHostKeyChecking accept-new`（初回接続時に host key を自動受け入れ）
+- 鍵登録と `.local` への `accept-new` 接続は `hosts/machines.nix` を元に `ssh.nix` が
+  全ホストぶん生成する（マシン間 SSH の共通基盤。[machine-ssh.md](./machine-ssh.md) を参照）
+- デスクトップ：`nix.settings.trusted-users = [ "@wheel" ]`（ビルダーとしての信頼設定）
 - 両ホスト：`services.avahi.publish` で `<hostname>.local` を LAN に広告
 
 ## 基本コマンド
@@ -68,7 +69,7 @@ avahi のキャッシュが温まっていないだけ。数秒待ってから�
 
 ### `Host key verification failed`
 
-`/root/.ssh/known_hosts` に `nixos-desktop.local` のエントリが無く、かつ `accept-new` が効いていない。`programs.ssh.extraConfig`（ラップトップの `hosts/nixos-spin713/default.nix`）に `StrictHostKeyChecking accept-new` が含まれているか確認。手動回避は `sudo ssh-keyscan -H nixos-desktop.local >> /root/.ssh/known_hosts`。
+`/root/.ssh/known_hosts` に `nixos-desktop.local` のエントリが無く、かつ `accept-new` が効いていない。`ssh.nix` が `machines.nix` から生成する `/etc/ssh/ssh_config`（root にも効く）に `Host ... nixos-desktop.local` の `StrictHostKeyChecking accept-new` が含まれるはず。デスクトップが `machines.nix` に登録済みか確認。手動回避は `sudo ssh-keyscan -H nixos-desktop.local >> /root/.ssh/known_hosts`。
 
 ### SSH 認証で鍵が使われずパスワードを聞かれる
 
@@ -78,10 +79,12 @@ avahi のキャッシュが温まっていないだけ。数秒待ってから�
 
 ### クライアントを増やす（新しいホストからデスクトップでビルド）
 
-1. 新規ホストで SSH 鍵を生成：`ssh-keygen -t ed25519`
-2. 公開鍵を `hosts/nixos-desktop/default.nix` の `users.users.pomu.openssh.authorizedKeys.keys` に追加
-3. デスクトップを rebuild：`sudo nixos-rebuild switch --flake .#nixos-desktop`
-4. 新規ホスト側に `programs.ssh.extraConfig` で `StrictHostKeyChecking accept-new`（または declarative に host key を `programs.ssh.knownHosts` で登録）
+新規ホストを `hosts/machines.nix` に登録すれば、鍵登録も `accept-new` 接続設定も
+自動で入る（[machine-ssh.md](./machine-ssh.md) の「マシンを追加するとき」を参照）。
+
+1. 新規ホストで SSH 鍵を用意：`ls ~/.ssh/id_ed25519 || ssh-keygen -t ed25519`
+2. 公開鍵（`cat ~/.ssh/id_ed25519.pub`）を `hosts/machines.nix` に1行足す
+3. デスクトップと新規ホストを rebuild（既存機は新しい鍵を authorized_keys に取り込む）
 
 ### ビルダーを増やす（別のホストもビルドサーバ化）
 
@@ -102,8 +105,8 @@ sudo nixos-rebuild switch --flake .#<client-host> --build-host <user>@<new-build
 
 ## 関連ファイル
 
-- [modules/nixos/ssh.nix](../../modules/nixos/ssh.nix) — openssh + avahi publish
+- [modules/nixos/ssh.nix](../../modules/nixos/ssh.nix) — openssh + avahi publish + マシン間 SSH 生成
+- [hosts/machines.nix](../../hosts/machines.nix) — 全マシンの公開鍵レジストリ（authorized_keys / accept-new の元）
 - [modules/nixos/nix-settings.nix](../../modules/nixos/nix-settings.nix) — trusted-users
-- [hosts/nixos-desktop/default.nix](../../hosts/nixos-desktop/default.nix) — authorized_keys
-- [hosts/nixos-spin713/default.nix](../../hosts/nixos-spin713/default.nix) — accept-new 設定
 - [modules/nixos/users.nix](../../modules/nixos/users.nix) — sudo の `SSH_AUTH_SOCK` 引き継ぎ
+- マシン間 SSH の使い方・設計: [machine-ssh.md](./machine-ssh.md) / [../architecture/machine-ssh.md](../architecture/machine-ssh.md)
