@@ -4,11 +4,14 @@
 
 設定ファイル:
 
-- `modules/nixos/ssh.nix` — openssh + avahi publish
+- `modules/nixos/ssh.nix` — openssh + avahi publish + マシン間 SSH の生成
 - `modules/nixos/nix-settings.nix` — `nix.settings.trusted-users`
-- `hosts/nixos-desktop/default.nix` — `authorizedKeys.keys`
-- `hosts/nixos-spin713/default.nix` — `programs.ssh.extraConfig`
+- `hosts/machines.nix` — 全マシンの公開鍵レジストリ（`authorizedKeys` と host key 受理設定の元）
 
+> SSH の鍵管理・ホスト鍵受理・`.local` 接続の配線はリモートビルド専用ではなく、
+> flake 内マシン間 SSH の共通基盤である [machine-ssh.md](./machine-ssh.md) に集約した。
+> このドキュメントはその上に乗る「ビルドのオフロード」固有の判断だけを扱う。
+>
 > 使い方は [docs/howtouse/remote-build.md](../howtouse/remote-build.md) を参照
 
 ## 方式選択：`--build-host` vs `nix.buildMachines`
@@ -84,62 +87,22 @@ nix.settings.trusted-users = [ "@wheel" ];
 
 `trusted-users` は実質的に root 相当の権限（任意のストアパスを書き込めるため、`/nix/store` 経由でシステムを汚染可能）。`@wheel` は既に sudo 権限を持っており、信頼レベルは等価なので拡大はしていない。
 
-## SSH 鍵管理：`authorizedKeys.keys` で宣言的に
+## SSH 鍵管理・ホスト鍵受理は machine-ssh に集約
 
-`hosts/nixos-desktop/default.nix` 内に：
+以前はデスクトップの `authorizedKeys.keys` とラップトップの `programs.ssh.extraConfig`
+（`accept-new`）を各 `hosts/<host>/default.nix` に直書きしていたが、マシン間 SSH を
+双方向化した際に `hosts/machines.nix` を単一の情報源とする方式へ移した。
 
-```nix
-users.users.pomu.openssh.authorizedKeys.keys = [
-  "ssh-rsa AAAA... pomu@nixos"
-];
-```
+- 誰の鍵を受け入れるか（`authorizedKeys`）と、`.local` への `accept-new` 接続設定は、
+  `ssh.nix` が `machines.nix` から全ホストぶん生成する
+- リモートビルドが必要とする「root の `known_hosts` に `nixos-desktop.local` を
+  accept-new で入れる」動作も、この生成される `/etc/ssh/ssh_config`（root にも効く）が兼ねる
 
-### 命令的（`ssh-copy-id`）でなく宣言的にする理由
+設計判断（per-machine 鍵、集約、accept-new の TOFU トレードオフ、CA 不採用など）は
+[machine-ssh.md](./machine-ssh.md) を参照。
 
-- **再現性**：このリポジトリから rebuild した時点で接続できる状態が保証される
-- **可視性**：誰の鍵を受け入れているかが git で追える
-- **削除も宣言的**：ラップトップを廃棄／鍵を入れ替えたときにこの行を削除するだけで除去できる
-
-### 鍵の置き場所
-
-ホストごとに「そのホストへの ssh アクセス権を持つ鍵」を `hosts/<host>/default.nix` に直書きする。共通モジュールではなくホスト固有設定に置くことで、「どのホストへのアクセス権を誰に与えているか」がホスト単位で見える。
-
-公開鍵リストが増えてきたら `hosts/<host>/authorized-keys.nix` を切り出す余地はある。
-
-## ホスト鍵検証：`StrictHostKeyChecking accept-new`
-
-`hosts/nixos-spin713/default.nix`：
-
-```nix
-programs.ssh.extraConfig = ''
-  Host nixos-desktop nixos-desktop.local
-    StrictHostKeyChecking accept-new
-'';
-```
-
-### なぜ必要か
-
-`sudo nixos-rebuild --build-host pomu@nixos-desktop.local` は root として SSH 接続する。`/root/.ssh/known_hosts` に `nixos-desktop.local` のエントリが無いと初回接続で対話プロンプトが出てしまい、`nixos-rebuild` の流れが止まる。
-
-### `accept-new` の TOFU トレードオフ
-
-- 初回接続時の host key を無検証で受け入れる（Trust On First Use）
-- 以降の接続では key が変わると拒否される（中間者攻撃を検出できる）
-- 完全な対策ではないが、家庭 LAN で初回接続時に攻撃者が介入するリスクは現実的に低い
-
-より厳密にやるなら `programs.ssh.knownHosts` で host key を flake 内にハードコードする選択肢もある：
-
-```nix
-programs.ssh.knownHosts."nixos-desktop.local" = {
-  hostNames = [ "nixos-desktop" "nixos-desktop.local" ];
-  publicKey = "ssh-ed25519 AAAA...";
-};
-```
-
-採用しなかった理由：
-
-- host key を flake にコミットする必要があり、デスクトップを再インストールするたびに更新が必要
-- 家庭 LAN の脅威モデルでは accept-new で十分
+> デスクトップ `hosts/nixos-desktop/default.nix` に残る RSA 鍵は、ed25519 集約前からの
+> ラップトップ用リモートビルド鍵。ed25519 でのリモートビルドを確認後に削除してよい暫定物。
 
 ## `sudo` 経由でも SSH 鍵が使われる仕組み
 
@@ -159,9 +122,10 @@ security.sudo.extraConfig = ''
 
 | モジュール | 責務 |
 |-----------|------|
-| `modules/nixos/ssh.nix` | openssh の有効化、mDNS publish |
+| `modules/nixos/ssh.nix` | openssh の有効化、mDNS publish、`machines.nix` から authorized_keys とクライアント設定を生成 |
 | `modules/nixos/nix-settings.nix` | trusted-users（nix-daemon の信頼境界） |
 | `modules/nixos/users.nix` | sudo の `SSH_AUTH_SOCK` 引き継ぎ |
-| `hosts/<host>/default.nix` | そのホスト固有の `authorizedKeys.keys` と SSH client 設定 |
+| `hosts/machines.nix` | 全マシンの公開鍵レジストリ（マシン間 SSH の単一の情報源） |
 
-「共通インフラ」と「ホスト固有のアクセス制御」を分離し、新ホストを追加するときに触る場所を `hosts/<host>/default.nix` に局所化している。
+「共通インフラ」と「マシン登録簿」を分離し、新ホストを追加するときに触る場所を
+`hosts/machines.nix` の1エントリに局所化している（詳細は [machine-ssh.md](./machine-ssh.md)）。
