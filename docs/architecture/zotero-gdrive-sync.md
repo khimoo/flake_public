@@ -86,6 +86,12 @@ Linux/macOS 両対応なので、監視コマンド自体はプラットフォ�
   pull した結果もローカル書き込みなので watcher が再発火するが、差分なしで収束する有界サイクル
 - **初回 `--resync` は破壊的**。誤用（既存 baseline の上書き）はラッパースクリプトが
   baseline の存在を検知して中止する（`ZOTERO_FORCE_RESYNC=1` で override）
+- **空ディレクトリでは baseline を作れない**。bisync は空の listing を異常の兆候とみなし、
+  空↔空で resync した後の同期を `Empty prior Path1 listing` で拒否する。よって初回 resync は
+  **PDF が入った状態**で行う必要がある（空で始められない）。使い方の手順6・スモークテスト参照
+- **Drive 側フォルダは rclone に作らせる**。scope=`drive.file` では Drive UI で手動作成した
+  フォルダが rclone から見えず、未作成のまま resync すると `directory not found` になる。
+  初回だけ `rclone mkdir gdrive:Zotero-PDFs` で作る（以降は既存なので不要）
 - **監視ディレクトリはこのモジュールが所有しない**。未作成時は起動ラッパーが正常終了(0)し、
   `Restart=on-failure` / `KeepAlive.SuccessfulExit=false` と組み合わせてクラッシュループを避ける
 - **flake 評価には `secrets/rclone.yaml` の実体が必要**（feature 有効な構成のみ）。
