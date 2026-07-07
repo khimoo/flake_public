@@ -15,3 +15,4 @@ Flake 設定の設計判断・実装構造のドキュメント。設定変更�
 | [xdg-scheme-workaround.md](./xdg-scheme-workaround.md) | XDG スキームハンドラの手動登録（一時的） |
 | [devshells.md](./devshells.md) | コードリーディング用共通 devShell の設計判断 |
 | [papis-gdrive-sync.md](./papis-gdrive-sync.md) | papis ライブラリの Google Drive 同期（rclone bisync + sops）の設計判断 |
+| [disk-tiering.md](./disk-tiering.md) | NVMe/SATA の 2 層ディスク構成（btrfs subvol・NOCOW・ブートメニュー）の設計判断 |

@@ -14,6 +14,7 @@
 | wezterm | ターミナルのキーバインド・ペイン・ワークスペース | [cli-tools/wezterm.md](./cli-tools/wezterm.md) |
 | 共通 devShell | コードリーディング用 devShell を `.envrc` から参照する運用 | [devshells.md](./devshells.md) |
 | papis ライブラリ同期 | papis ライブラリを Google Drive 経由で複数マシン同期する使い方・鍵運用 | [papis-gdrive-sync.md](./papis-gdrive-sync.md) |
+| ディスク階層構成 | NVMe(ホット)/SATA(コールド)の 2 層・btrfs subvol のレイアウトとセットアップ | [disk-tiering.md](./disk-tiering.md) |
 
 ## 関連
 
