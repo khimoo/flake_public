@@ -36,7 +36,7 @@
         ./modules/home-manager/core.nix
         ./modules/home-manager/git.nix
         ./modules/home-manager/rclone.nix
-        ./modules/home-manager/rclone-gdrive
+        ./modules/home-manager/papis
         ./modules/home-manager/yazi.nix
         ./modules/home-manager/dev
         ./modules/home-manager/gui/default.nix
@@ -55,7 +55,7 @@
         gnome = false;
         ime = false;
         audio = false;
-        zoteroSync = false;
+        referenceSync = false;
       };
 
       # SKK辞書の生成（system別にキャッシュ）
@@ -83,7 +83,7 @@
               gnome = true;
               ime = true;
               audio = true;
-              zoteroSync = true;
+              referenceSync = true;
             };
           };
 

@@ -13,7 +13,7 @@
 | Neovim | プラグイン・キーバインド・ワークフロー | [modules/home-manager/dev/neovim/config/docs/README.md](../../modules/home-manager/dev/neovim/config/docs/README.md) |
 | wezterm | ターミナルのキーバインド・ペイン・ワークスペース | [cli-tools/wezterm.md](./cli-tools/wezterm.md) |
 | 共通 devShell | コードリーディング用 devShell を `.envrc` から参照する運用 | [devshells.md](./devshells.md) |
-| Zotero PDF 同期 | Zotero の PDF を Google Drive 経由で複数マシン同期する使い方・鍵運用 | [zotero-gdrive-sync.md](./zotero-gdrive-sync.md) |
+| papis ライブラリ同期 | papis ライブラリを Google Drive 経由で複数マシン同期する使い方・鍵運用 | [papis-gdrive-sync.md](./papis-gdrive-sync.md) |
 
 ## 関連
 
