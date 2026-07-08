@@ -1,5 +1,25 @@
 {
   "nodes": {
+    "claude-history": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1783280557,
+        "narHash": "sha256-PLVOMwOqSuC1oZNdXsZ+aYGXb92oGt9nOihwF60cVKw=",
+        "owner": "raine",
+        "repo": "claude-history",
+        "rev": "524b80c4bbb0e940d8d6a92bbd52eda25ca98d51",
+        "type": "github"
+      },
+      "original": {
+        "owner": "raine",
+        "repo": "claude-history",
+        "type": "github"
+      }
+    },
     "flake-compat": {
       "locked": {
         "lastModified": 1733328505,
@@ -173,6 +193,7 @@
     },
     "root": {
       "inputs": {
+        "claude-history": "claude-history",
         "home-manager": "home-manager",
         "kiro": "kiro",
         "musnix": "musnix",
