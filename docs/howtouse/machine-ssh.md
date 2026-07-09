@@ -35,14 +35,14 @@ ssh spin713     # = pomu@nixos-spin713.local
 
 これで新マシンは全既存機と相互に SSH でき、`ssh <短縮名>` エイリアスも全機で使える。
 
-> secret（papis ライブラリ同期など）も使うマシンなら、同じ鍵を age 形式に変換して `.sops.yaml`
-> にも登録する。手順は [papis-gdrive-sync.md](./papis-gdrive-sync.md) を参照。
+> secret（papis ライブラリ同期など）も使うマシンなら、同じ鍵を age 形式に変換して vault repo
+> （`~/sagyo/zettelkasten`）の `.sops.yaml` にも登録する。手順は [papis-gdrive-sync.md](./papis-gdrive-sync.md) を参照。
 
 ## マシンを廃棄するとき
 
 `hosts/machines.nix` からその行を削除して各機を rebuild。以降そのマシンの鍵では
-ログインできなくなる。secret を扱っていたら `.sops.yaml` からも受信者を外して
-`sops updatekeys`。
+ログインできなくなる。secret を扱っていたら vault repo（`~/sagyo/zettelkasten`）の
+`.sops.yaml` からも受信者を外して `sops updatekeys`。
 
 ## 注意
 

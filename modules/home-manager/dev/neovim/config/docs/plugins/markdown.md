@@ -126,13 +126,20 @@ skkeleton 有効中は insert-mode の `<CR>` が skkeleton に横取りされ�
 
 スクリーンショットをクリップボードに保持した状態で `<leader>p`:
 
-1. 画像を `<カレントファイルのあるディレクトリ>/assets/` に保存
+1. **zettelkasten vault の `attachments/`**（`~/sagyo/zettelkasten/attachments`）に画像を保存
 2. ファイル名は `YYYY-MM-DD-HH-MM-SS.png`
-3. カーソル位置に `![](assets/...)` の Markdown リンクを挿入
+3. カーソル位置に現在ファイルからの相対パスで `![](.../attachments/...)` の Markdown リンクを挿入
+
+> 保存先は暫定でハードコード。**将来 neovim 設定を独立モジュール化する際に option 化**する予定
+> （TODO は `img-clip.lua` に記載）。現状は zettelkasten 以外の vault で貼っても保存先がここに固定される。
 
 | キー | 動作 |
 |------|------|
 | `<leader>p` | クリップボード画像を貼り付け |
+
+保存先は Obsidian の `attachmentFolderPath="attachments"` と物理的に一致し、rclone bisync で
+Google Drive に同期される単一フォルダ（`~/sagyo/zettelkasten/attachments`）へ集約される。
+同期の仕組みは [zettelkasten 添付同期のドキュメント](../../../../../../../docs/howtouse/zettelkasten-attachments-sync.md)を参照。
 
 **依存ツール**: Wayland 環境では `wl-clipboard`、X11 環境では `xclip` が必要。
 両方とも `modules/home-manager/dev/neovim/default.nix` の `nvimPluginDeps` で導入される。

@@ -16,12 +16,15 @@
        url = "github:winapps-org/winapps";
        inputs.nixpkgs.follows = "nixpkgs";
     };
-    sops-nix = {
-      url = "github:Mic92/sops-nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
     claude-history = {
       url = "github:raine/claude-history";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    # Zettelkasten(Obsidian vault)の完結型ワークフロー(添付/papis の Drive 同期 + secret 暗号文の
+    # 実行時復号)。flake_public は modules/home-manager/zettelkasten.nix で clone 位置だけ注入する。
+    # repo は private のため github:(API 経由)ではなく git+ssh で取得する(各マシンの SSH 鍵で認証)。
+    zettelkasten = {
+      url = "git+ssh://git@github.com/khimoo/zettelkasten";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
@@ -40,7 +43,7 @@
         ./modules/home-manager/core.nix
         ./modules/home-manager/git.nix
         ./modules/home-manager/rclone.nix
-        ./modules/home-manager/papis
+        ./modules/home-manager/zettelkasten.nix
         ./modules/home-manager/yazi.nix
         ./modules/home-manager/dev
         ./modules/home-manager/gui/default.nix
@@ -60,6 +63,7 @@
         ime = false;
         audio = false;
         referenceSync = false;
+        zettelkastenSync = false;
       };
 
       # SKK辞書の生成（system別にキャッシュ）
@@ -77,10 +81,13 @@
       # flakeRoot: flake チェックアウト先の絶対パス。
       # modules/home-manager/dev/neovim が mkOutOfStoreSymlink でこのパスを参照する。
       # ホストごとの clone 位置に依存するため、各ホストの呼び出し側で指定する。
-      mkSystem = { hostname, system, users, timezone, keymap ? "us", stateVersion, primaryUser ? (builtins.head users).username, flakeRoot }:
+      # zettelkastenRoot: Obsidian vault(zettelkasten)の clone 先絶対パス。
+      # modules/home-manager/zettelkasten.nix が添付フォルダの同期対象として参照する。
+      # flakeRoot と同様に環境ごとの clone 位置に依存するため、呼び出し側で指定する。
+      mkSystem = { hostname, system, users, timezone, keymap ? "us", stateVersion, primaryUser ? (builtins.head users).username, flakeRoot, zettelkastenRoot }:
         let
           settings = baseSettings // {
-            inherit hostname system users timezone keymap stateVersion primaryUser flakeRoot;
+            inherit hostname system users timezone keymap stateVersion primaryUser flakeRoot zettelkastenRoot;
             standalone = false;
             features = {
               gui = true;
@@ -88,6 +95,7 @@
               ime = true;
               audio = true;
               referenceSync = true;
+              zettelkastenSync = true;
             };
           };
 
@@ -119,12 +127,13 @@
 
       # スタンドアロンhome-manager設定を生成するヘルパー関数
       # mkSystem と同じく flakeRoot は呼び出し側で指定 (環境ごとに clone 位置が違うため)。
-      mkHome = { username, system, homeFile ? null, stateVersion, allowUnfree ? false, features ? {}, flakeRoot, extraSettings ? {} }:
+      # zettelkastenRoot は zettelkastenSync を有効化する standalone 環境のみ必要（既定 null）。
+      mkHome = { username, system, homeFile ? null, stateVersion, allowUnfree ? false, features ? {}, flakeRoot, zettelkastenRoot ? null, extraSettings ? {} }:
         let
           pkgs = import nixpkgs { inherit system; inherit overlays; };
           skk-dict = mkSkkDict system;
           settings = baseSettings // {
-            inherit system stateVersion flakeRoot;
+            inherit system stateVersion flakeRoot zettelkastenRoot;
             standalone = true;
             features = defaultFeatures // features;
           } // extraSettings;
@@ -161,6 +170,7 @@
           keymap = "us";
           stateVersion = "25.05";
           flakeRoot = "/home/pomu/sagyo/flake_public";
+          zettelkastenRoot = "/home/pomu/sagyo/zettelkasten";
         };
 
         nixos-desktop = mkSystem {
@@ -184,6 +194,7 @@
           keymap = "us";
           stateVersion = "25.05";
           flakeRoot = "/home/pomu/sagyo/flake_public";
+          zettelkastenRoot = "/home/pomu/sagyo/zettelkasten";
         };
       };
 

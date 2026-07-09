@@ -199,8 +199,8 @@
         "musnix": "musnix",
         "nixpkgs": "nixpkgs_3",
         "skk-jisyo": "skk-jisyo",
-        "sops-nix": "sops-nix",
-        "winapps": "winapps"
+        "winapps": "winapps",
+        "zettelkasten": "zettelkasten"
       }
     },
     "skk-jisyo": {
@@ -213,26 +213,6 @@
       "original": {
         "type": "file",
         "url": "https://skk-dev.github.io/dict/SKK-JISYO.L.gz"
-      }
-    },
-    "sops-nix": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1783174389,
-        "narHash": "sha256-aCWC8ngycU7OdJrU2+Je3qf+1a2ykuBvpPhZT/9tXMc=",
-        "owner": "Mic92",
-        "repo": "sops-nix",
-        "rev": "f1406619a3884cd5c47992a70b8b35c9c0fcb4c9",
-        "type": "github"
-      },
-      "original": {
-        "owner": "Mic92",
-        "repo": "sops-nix",
-        "type": "github"
       }
     },
     "systems": {
@@ -286,6 +266,26 @@
         "owner": "winapps-org",
         "repo": "winapps",
         "type": "github"
+      }
+    },
+    "zettelkasten": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1783566028,
+        "narHash": "sha256-AYe2wxENcvuTVhoPi3Fs1FqD8l769bRC2vDrse4EP1k=",
+        "ref": "refs/heads/main",
+        "rev": "ae10655e5de3fb867b7d48e93900a2a0eb82c5aa",
+        "revCount": 7,
+        "type": "git",
+        "url": "ssh://git@github.com/khimoo/zettelkasten"
+      },
+      "original": {
+        "type": "git",
+        "url": "ssh://git@github.com/khimoo/zettelkasten"
       }
     }
   },

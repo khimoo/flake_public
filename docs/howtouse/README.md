@@ -13,7 +13,8 @@
 | Neovim | プラグイン・キーバインド・ワークフロー | [modules/home-manager/dev/neovim/config/docs/README.md](../../modules/home-manager/dev/neovim/config/docs/README.md) |
 | wezterm | ターミナルのキーバインド・ペイン・ワークスペース | [cli-tools/wezterm.md](./cli-tools/wezterm.md) |
 | 共通 devShell | コードリーディング用 devShell を `.envrc` から参照する運用 | [devshells.md](./devshells.md) |
-| papis ライブラリ同期 | papis ライブラリを Google Drive 経由で複数マシン同期する使い方・鍵運用 | [papis-gdrive-sync.md](./papis-gdrive-sync.md) |
+| papis ライブラリ同期 | papis ライブラリ（vault 内 references/）を Google Drive 経由で複数マシン同期する使い方・鍵運用 | [papis-gdrive-sync.md](./papis-gdrive-sync.md) |
+| Zettelkasten 添付同期 | Obsidian vault の添付フォルダを Google Drive 同期する使い方（papis と secret 共有） | [zettelkasten-attachments-sync.md](./zettelkasten-attachments-sync.md) |
 | ディスク階層構成 | NVMe(ホット)/SATA(コールド)の 2 層・btrfs subvol のレイアウトとセットアップ | [disk-tiering.md](./disk-tiering.md) |
 
 ## 関連

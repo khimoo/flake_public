@@ -1,11 +1,12 @@
 # papis ライブラリの Google Drive 同期（使い方・鍵運用）
 
-papis ライブラリ (`~/papis-library`) を、複数マシン間で Google Drive 経由で
+papis ライブラリ (`~/sagyo/zettelkasten/references`) を、複数マシン間で Google Drive 経由で
 双方向同期する。同期は rclone bisync、トリガーは watchexec のフォルダ監視。
-秘密（rclone.conf）は sops-nix で暗号化管理する。
+秘密（rclone.conf）は sops で暗号化して vault repo に置き、`papis-sync` が実行のたびに
+自動で復号する（復号先の常駐ファイルは無い）。
 
 papis は item ごとに `info.yaml`（平文メタデータ）と PDF 実体を同じフォルダに置くので、
-`~/papis-library` を丸ごと 1 本の bisync で同期すればメタデータも PDF も同時に揃う
+`~/sagyo/zettelkasten/references` を丸ごと 1 本の bisync で同期すればメタデータも PDF も同時に揃う
 （Zotero 時代の「メタデータ=純正同期 / PDF=rclone」の 2 系統が 1 系統に減る）。
 
 設計判断・セキュリティモデルは [../architecture/papis-gdrive-sync.md](../architecture/papis-gdrive-sync.md) を参照。
@@ -17,14 +18,15 @@ papis は item ごとに `info.yaml`（平文メタデータ）と PDF 実体を
 
 `features.referenceSync` が偽の環境（WSL 等）では一切読み込まれず影響しない。
 
-papis 本体は `modules/home-manager/papis/app.nix` が `gui` 有効な環境に導入する
-（`referenceSync` とは独立）。本書は papis が入っている前提で、そのライブラリ同期の
-セットアップを扱う。
+papis 本体・設定・同期は vault flake（`git+ssh://git@github.com/khimoo/zettelkasten`）の統合モジュール
+`services.zettelkasten` が `referenceSync` 有効時にまとめて導入する（旧構成の「本体は `gui`／
+同期は `referenceSync`」から一本化。設計は[設計ドキュメント](../architecture/papis-gdrive-sync.md#本体と同期を-papisenable-でまとめて出すreferencesync-単一トグル)参照）。
+本書はそのセットアップを扱う。
 
 ## papis の基本ワークフロー（全マシン共通）
 
 Zotero と違いリンク添付や純正ファイル同期の設定は不要。papis は追加した item を
-`~/papis-library/<item>/` フォルダにまとめ、その中に `info.yaml`（メタデータ）と
+`~/sagyo/zettelkasten/references/<item>/` フォルダにまとめ、その中に `info.yaml`（メタデータ）と
 PDF 実体を同居させる。このフォルダごと rclone bisync するだけで両方が揃う。
 
 ### 1. 文献を追加する
@@ -37,7 +39,7 @@ papis add --set ref hottbook path/to/paper.pdf
 papis add --from doi 10.1000/xyz123
 ```
 
-`~/papis-library/<item>/{info.yaml, *.pdf}` が作られる。この瞬間から watcher が検知して
+`~/sagyo/zettelkasten/references/<item>/{info.yaml, *.pdf}` が作られる。この瞬間から watcher が検知して
 自動同期する（初回 baseline を作成済みの場合。未作成なら[初回 baseline](#6-papis-library-と初回-baseline) 参照）。
 
 ### 2. citekey を pin する（`ref:`）
@@ -47,7 +49,7 @@ papis add --from doi 10.1000/xyz123
 理由は[設計ドキュメント](../architecture/papis-gdrive-sync.md)参照）。
 
 ```yaml
-# ~/papis-library/<item>/info.yaml
+# ~/sagyo/zettelkasten/references/<item>/info.yaml
 ref: hottbook
 author: ...
 title: ...
@@ -66,14 +68,28 @@ papis export --all --format bibtex > references.bib
 
 ## このリポジトリを初めて使うマシンのセットアップ
 
+> **secret の所在（重要）**: 暗号化 secret とその受信者定義（`secrets/rclone.yaml` と `.sops.yaml`）は
+> **vault リポジトリ**（`~/sagyo/zettelkasten`, private repo `khimoo/zettelkasten`）が所有する。この secret は
+> 添付・papis 同期でしか使わない vault 専用 secret だから。よって以下の `sops ...` / `git add secrets/...` /
+> `.sops.yaml` 編集は **vault repo 内で**行う（`cd ~/sagyo/zettelkasten`）。一方 `features.referenceSync` の
+> 設定や `nixos-rebuild` は従来どおり flake_public 側。
+>
 > **`sops` コマンドについて**: この環境では `sops` をグローバル導入していない。以下の
 > `sops ...` は `nix shell nixpkgs#sops -c sops ...` の形で実行する
 > （例: `nix shell nixpkgs#sops -c sops updatekeys secrets/rclone.yaml`）。
 >
-> **復号先パス（`$SECRET`）**: sops が復号した rclone.conf の場所。Linux は
-> `~/.config/sops-nix/secrets/rclone_conf`、macOS は `config.sops.secrets."rclone_conf".path`
-> （`nix eval` 等で確認）。素の `rclone` を叩くときはこれを `--config` に渡す
-> （`papis-sync` ラッパーは自動で使う）。本書のシェル例では `SECRET` 変数に入れて参照する。
+> **手動で素の `rclone` を叩くとき（`$SECRET`）**: 復号は `papis-sync` / `zettelkasten-sync` が
+> 実行時に自動で行うので、常駐の復号先パスは無い。素の `rclone` コマンド（初回の mkdir や
+> スモークテスト）にだけ、一時的に復号して渡す。本書のシェル例では `SECRET` 変数で参照する:
+>
+> ```sh
+> cd ~/sagyo/zettelkasten
+> export SOPS_AGE_KEY="$(nix run nixpkgs#ssh-to-age -- -private-key -i ~/.ssh/id_ed25519)"
+> SECRET="${XDG_RUNTIME_DIR:-/tmp}/rclone.conf"
+> nix run nixpkgs#sops -- --decrypt --extract '["rclone_conf"]' secrets/rclone.yaml > "$SECRET"
+> # ... rclone --config "$SECRET" ... を使う ...
+> rm "$SECRET"; unset SOPS_AGE_KEY   # 使い終わったら消す
+> ```
 
 ### 1. ユーザ SSH 鍵を用意（復号鍵に流用する）
 
@@ -118,7 +134,7 @@ rclone config
 | プロンプト | 回答 | 補足 |
 |-----------|------|------|
 | `n/s/q>` | `n` | New remote |
-| `name>` | `gdrive` | `sync.nix` の `remoteName` と一致必須 |
+| `name>` | `gdrive` | `papis.remote`（既定 `gdrive:papis-library`）の remote 名と一致必須 |
 | `Storage>` | `drive` | Google Drive |
 | `client_id>` | （空 Enter） | rclone 内蔵アプリを使う。自前 OAuth アプリがあるなら設定 |
 | `client_secret>` | （空 Enter） | 同上 |
@@ -180,7 +196,7 @@ token = {"access_token":"...","refresh_token":"...","expiry":"..."}
 ```
 
 > `.sops.yaml` の受信者に全マシンの鍵が入った状態で `sops updatekeys secrets/rclone.yaml`
-> を実行してからコミットする。暗号化ファイルは公開リポジトリにコミットしてよい（平文は絶対に不可）。
+> を実行してから vault repo にコミットする。暗号化ファイルは公開リポジトリにコミットしてよい（平文は絶対に不可）。
 
 ### 5. rebuild / switch
 
@@ -196,20 +212,19 @@ home-manager switch --flake .#pomu-macos
 
 ### 6. papis-library と初回 baseline
 
-`~/papis-library` は `papis add` が初めて item を追加したときに作られる
+`~/sagyo/zettelkasten/references` は `papis add` が初めて item を追加したときに作られる
 （このモジュールは作らない）。以下の順序を守る:
 
 ```sh
-SECRET=~/.config/sops-nix/secrets/rclone_conf   # 復号先（前述）
-
 # a. Drive 側フォルダを一度だけ作る（無いと resync が directory not found で失敗する）
+#    $SECRET はセットアップ節冒頭の注記どおり一時復号で用意する
 rclone --config "$SECRET" mkdir gdrive:papis-library
 
 # b. item が入った状態で baseline を作る（空ディレクトリで作ると以降の同期を拒否される）
 papis-sync --resync
 
 # c. baseline が出来てから watcher を起動する
-systemctl --user restart papis-watch
+systemctl --user restart papis-sync
 ```
 
 > **順序が重要**（理由は設計ドキュメントの
@@ -224,13 +239,10 @@ systemctl --user restart papis-watch
 ## 動作確認（スモークテスト）
 
 rebuild 直後、papis に item を入れる前でも「復号 → rclone → Drive 到達」まで確認できる。以下の
-`SECRET` は前述の復号先パス（macOS では値が異なる。セットアップ節冒頭の注記を参照）。
+`SECRET` はセットアップ節冒頭の注記どおり一時復号したパス。
 
 ```sh
-SECRET=~/.config/sops-nix/secrets/rclone_conf
-
-# 1. sops が復号できているか（[gdrive]/type/scope が見える。token 行は出さない）
-ls -l "$SECRET"                                    # mode 0400・所有者=自分
+# 1. sops が復号できたか（[gdrive]/type/scope が見える。token 行は出さない）
 grep -e '^\[gdrive\]' -e '^type' -e '^scope' "$SECRET"
 
 # 2. rclone がこの config を認識するか
@@ -239,23 +251,23 @@ rclone --config "$SECRET" listremotes              # → gdrive:
 # 3. Drive への到達（OAuth 実地。exit 0 なら認証OK。drive.file なので中身は空でよい）
 rclone --config "$SECRET" lsd gdrive:; echo "exit=$?"
 
-# 4. watcher の状態（~/papis-library 未作成なら「正常終了(0)で待機」が正しい姿）
-systemctl --user status papis-watch --no-pager | head
+# 4. watcher の状態（~/sagyo/zettelkasten/references 未作成なら「正常終了(0)で待機」が正しい姿）
+systemctl --user status papis-sync --no-pager | head
 ```
 
 書き込み往復まで確かめたい場合（テスト後に消す）:
 
 ```sh
-mkdir -p ~/papis-library
+mkdir -p ~/sagyo/zettelkasten/references
 rclone --config "$SECRET" mkdir gdrive:papis-library      # 初回のみ
-echo "test $(date)" > ~/papis-library/__synctest__.txt
+echo "test $(date)" > ~/sagyo/zettelkasten/references/__synctest__.txt
 PAPIS_FORCE_RESYNC=1 papis-sync --resync                  # 中身ありで baseline を作る
 rclone --config "$SECRET" lsf gdrive:papis-library        # → __synctest__.txt が見えれば UP OK
 
 # 後始末（両側から直接消す。bisync 経由だと 100% 削除で --max-delete に掛かる）
 rclone --config "$SECRET" delete gdrive:papis-library/__synctest__.txt
-rm -f ~/papis-library/__synctest__.txt
-rm -f ~/.cache/rclone/bisync/*                            # 本番前に baseline をクリア
+rm -f ~/sagyo/zettelkasten/references/__synctest__.txt
+rm -f ~/.cache/rclone/bisync-papis/*                      # 本番前に baseline をクリア
 ```
 
 > スモークテストで作る baseline は空/テスト用。本番の item を入れたら手順6で作り直すこと。
@@ -284,21 +296,21 @@ bisync の初回 `--resync` は baseline を確立する破壊的操作。**順�
 - 削除は双方向に伝播するが、Drive 側はゴミ箱に送られる（30 日は復元可）。
   さらに `--max-delete`（既定 50%）ガードで大量削除は中断する
 - 同期の実行ログ・エラーを見る:
-  - Linux: `journalctl --user -u papis-watch -f`
-  - macOS: `~/Library/Logs/papis-watch.log`（`launchd.agents` の出力先）
+  - Linux: `journalctl --user -u papis-sync -f`
+  - macOS: `~/Library/Logs/papis-sync.log`（`launchd.agents` の出力先）
 
 ## トークンが失効/ローテートしたとき
 
-sops の復号先 rclone.conf（前述の `$SECRET`、mode 0400）は
-**読み取り専用**なので、rclone は refresh 後の access token を書き戻せず warning を出す。
-ただし refresh token は長命なので継続動作する（warning は無視してよい）。
+実行時に復号された rclone.conf は同期のたびに作られて捨てられるので、rclone が refresh 後の
+access token を書き戻しても破棄される（warning が出ることがある）。refresh token 自体は
+長命で不変なので継続動作する（warning は無視してよい）。
 
 Google が refresh token 自体を失効させた（長期間未使用・パスワード変更・アプリ連携解除など）
 場合のみ、手順 4-1 の `rclone config` で再認証し、手順 4-2 で再暗号化 → コミット → rebuild。
 
 ## デバイスを廃棄するとき
 
-`.sops.yaml` からそのマシンの受信者（`&host_...` と `age:` の参照）を削除し、
+vault repo（`~/sagyo/zettelkasten`）の `.sops.yaml` からそのマシンの受信者（`&host_...` と `age:` の参照）を削除し、
 
 ```sh
 sops updatekeys secrets/rclone.yaml
@@ -310,11 +322,12 @@ sops updatekeys secrets/rclone.yaml
 
 | 症状 | 原因 / 対処 |
 |------|-------------|
-| `papis-watch` が inactive で始まらない | `~/papis-library` が未作成。`papis add` で item を追加後 `systemctl --user restart papis-watch` |
+| `papis-sync` が inactive で始まらない | `~/sagyo/zettelkasten/references` が未作成。`papis add` で item を追加後 `systemctl --user restart papis-sync` |
 | bisync が `must run --resync` で失敗 | baseline 未作成。`papis-sync --resync`（順序は上記） |
 | resync が `directory not found` で失敗 | Drive 側 `papis-library` フォルダが未作成。`rclone --config "$SECRET" mkdir gdrive:papis-library`（`$SECRET`=前述の復号先）を一度だけ実行してから resync |
 | `Empty prior Path1 listing ...` で失敗 | 空ディレクトリで baseline を作った。`papis add` で item を入れて `PAPIS_FORCE_RESYNC=1 papis-sync --resync` で作り直す |
 | `--resync` が中止される | baseline が既存。誤操作防止ガード。意図的なら `PAPIS_FORCE_RESYNC=1` |
 | 新ホストで復号失敗 / secret が空 | `.sops.yaml` にそのホストの鍵を追加し `sops updatekeys` したか確認 |
+| `復号鍵が見つかりません` / `復号に失敗しました` | `~/.ssh/id_ed25519` が無い／受信者未登録。鍵を置くか `.sops.yaml` に追加して `sops updatekeys` |
 | `.conflict` ファイルが出る | 2 台が同時更新した衝突。中身を確認して手動で正しい方を残す |
-| token 書き戻し warning | 仕様（read-only）。refresh token が生きていれば無視してよい |
+| token 書き戻し warning | 仕様（実行時復号の一時ファイルは破棄される）。refresh token が生きていれば無視してよい |
