@@ -23,7 +23,12 @@ let
 
   # {subvol, path, opts} のリストから fileSystems を生成し、8 エントリの手書き重複を避ける。
   mounts = [
-    { subvol = "@papis";     path = "/home/pomu/papis-library"; opts = dataOpts; }
+    # papis ライブラリは vault(Obsidian)配下の references/ に置く方針(vault で完結)。
+    # マウント先を vault の中にすることで、実体は SATA(コールド/バルク層)のまま、論理的には
+    # ~/sagyo/zettelkasten/references として vault の 1 フォルダに見える。papis の同期は
+    # zettelkasten flake の services.zettelkasten.papis が所有する(既定 libraryDir と一致)。
+    # 前提: mount 先の親 ~/sagyo/zettelkasten(vault の clone)が存在すること。
+    { subvol = "@papis";     path = "/home/pomu/sagyo/zettelkasten/references"; opts = dataOpts; }
     { subvol = "@downloads"; path = "/home/pomu/ダウンロード";  opts = dataOpts; }
     { subvol = "@videos";    path = "/home/pomu/ビデオ";        opts = dataOpts; }
     { subvol = "@music";     path = "/home/pomu/音楽";          opts = dataOpts; }

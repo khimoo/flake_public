@@ -11,7 +11,7 @@ SATA SSD（`/dev/sda`）は btrfs 単一パーティション。subvol を最終
 
 | subvol | マウント先 | オプション | 用途 |
 |--------|-----------|-----------|------|
-| `@papis` | `~/papis-library` | `noatime,compress=zstd` | Google Drive 同期ライブラリ |
+| `@papis` | `~/sagyo/zettelkasten/references` | `noatime,compress=zstd` | papis ライブラリ（vault 内・Google Drive 同期） |
 | `@downloads` | `~/ダウンロード` | `noatime,compress=zstd` | ダウンロード |
 | `@videos` | `~/ビデオ` | `noatime,compress=zstd` | 動画 |
 | `@music` | `~/音楽` | `noatime,compress=zstd` | 音楽 |
@@ -21,6 +21,11 @@ SATA SSD（`/dev/sda`）は btrfs 単一パーティション。subvol を最終
 | `@backup` | `/mnt/backup` | `noatime,compress=zstd` | NVMe の退避先 |
 
 全 subvol は FS 全体で 1 つの UUID を共有し、`subvol=@xxx` で選ぶ。
+
+`@papis` だけはマウント先が vault clone の内側（`~/sagyo/zettelkasten/references`）にある。
+マウント先の親 `~/sagyo/zettelkasten`（vault の clone）が先に存在している必要がある。
+無いとマウントできず、papis のライブラリが空の NVMe ディレクトリに載ってしまう。
+なぜ vault の中かつ SATA なのかは [../architecture/disk-tiering.md](../architecture/disk-tiering.md) を参照。
 
 ## 状態確認
 

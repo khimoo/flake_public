@@ -13,7 +13,7 @@ nixos-desktop は 2 台の SSD を **速度で 2 層に分けて**使う。
 ```
 NVMe (Samsung 980, 466G) = ホット層          SATA (Samsung 860, 233G) = コールド/バルク層
   /            (ext4)                           btrfs 単一パーティション（1 UUID）
-  /nix/store   ← rebuild/GC の小ファイル IO      @papis     → ~/papis-library   (Google Drive ミラー)
+  /nix/store   ← rebuild/GC の小ファイル IO      @papis     → ~/sagyo/zettelkasten/references (Drive ミラー)
   swap                                           @downloads → ~/ダウンロード
   ~/sagyo      ← 開発作業（cargo target 等）      @videos    → ~/ビデオ
   ~/.cache 他                                    @music     → ~/音楽
@@ -74,10 +74,23 @@ btrfs は CoW のため qcow2/raw の VM イメージを置くと激しく断片
 ### 各 subvol を最終パスに直接マウント（bind/symlink を使わない）
 
 `~/ダウンロード` 等を bind-mount や symlink で間接化せず、`subvol=@downloads` を最終パスへ
-直接マウントする。アプリから見たパスは `~` のまま、実体だけ SATA になる。papis も同様で、
-`~/papis-library` を `@papis` の直接マウントにすることで、`app.nix`/`sync.nix` の
-`libraryDir`（`~/papis-library` とベタ書き）は**無改造**のまま保存先だけ差し替わる。papis 層が
-保存 backend を知らないという依存方向（[papis-gdrive-sync.md](./papis-gdrive-sync.md)）と一致する。
+直接マウントする。アプリから見たパスは `~` のまま、実体だけ SATA になる。
+
+papis も同様だが、マウント先が **NVMe 側の `~/sagyo` ツリーの内側**にある点が特殊:
+`@papis` を `~/sagyo/zettelkasten/references`（vault clone の直下）へマウントする。
+`references/` という**ディレクトリだけ**が NVMe の `~/sagyo` 上に存在し、そこに SATA の
+`@papis` を被せるので、中身（papis のライブラリ本体）は SATA に載る。papis の
+`libraryDir` は vault flake の `services.zettelkasten.papis.libraryDir`（既定
+`${zettelkastenRoot}/references`）が単一の出所で、マウントはその保存先を SATA に差し替える
+だけ。papis 層が保存 backend を知らないという依存方向
+（[papis-gdrive-sync.md](./papis-gdrive-sync.md)）と一致する。
+
+この配置は 2 つの要求を同時に満たすための折衷:
+- **papis を vault の中に置く**（Obsidian vault で完結。`references/` は vault の 1 フォルダ）
+- **papis を SATA に置く**（同期はネットワーク律速なので SATA で体感差ゼロ、NVMe を空ける）
+
+前提として、マウント先の親 `~/sagyo/zettelkasten`（vault の clone）が存在すること。
+存在しないと SATA subvol の被せ先が無く、`references/` は空の NVMe ディレクトリのままになる。
 
 ### fileSystems は map 生成する
 
