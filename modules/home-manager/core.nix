@@ -19,6 +19,7 @@
     ripgrep
     jq
     xh
+    nodejs_22
   ];
 
   home.sessionVariables = {
