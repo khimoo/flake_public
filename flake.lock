@@ -177,11 +177,11 @@
     },
     "nixpkgs_3": {
       "locked": {
-        "lastModified": 1781509190,
-        "narHash": "sha256-uJZs9Di8I6ciTp6jiojj0HzlNpBkud8ax5aT/O5aJkw=",
+        "lastModified": 1782847189,
+        "narHash": "sha256-twXPFqFsrrY5r28Zh7Homgcp2gUMBgQ6WDS98Q/3xFI=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "d6df3513510aa548c83868fd22bfddd0a8c0a0d4",
+        "rev": "b6018f87da91d19d0ab4cf979885689b469cdd41",
         "type": "github"
       },
       "original": {
@@ -255,11 +255,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1780830314,
-        "narHash": "sha256-i7odo7wn2IO2oEeu21U1+hhWW1GNwNnCw1piKZftv0I=",
+        "lastModified": 1783436030,
+        "narHash": "sha256-mx3ag4EJdosy90FEwMwtQftrSCCyP+TYyJ2tephvRgU=",
         "owner": "winapps-org",
         "repo": "winapps",
-        "rev": "abc2c3da1a7980a8e87c616f7387bd898aadfeb3",
+        "rev": "5cbf7381f9a12af630e5a289d6dab5f7adc70e5d",
         "type": "github"
       },
       "original": {
@@ -275,11 +275,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1783566028,
-        "narHash": "sha256-AYe2wxENcvuTVhoPi3Fs1FqD8l769bRC2vDrse4EP1k=",
+        "lastModified": 1783746972,
+        "narHash": "sha256-6ljc6f3Ehv8g6mkk5hcwH2QA1nJMc//6xp8D8/sVHrU=",
         "ref": "refs/heads/main",
-        "rev": "ae10655e5de3fb867b7d48e93900a2a0eb82c5aa",
-        "revCount": 7,
+        "rev": "1a4975597f350ef91391b4b7d02f8097d5c04657",
+        "revCount": 12,
         "type": "git",
         "url": "ssh://git@github.com/khimoo/zettelkasten"
       },
