@@ -275,11 +275,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1783746972,
-        "narHash": "sha256-6ljc6f3Ehv8g6mkk5hcwH2QA1nJMc//6xp8D8/sVHrU=",
+        "lastModified": 1783939261,
+        "narHash": "sha256-6AQh81jGHkyK9xzpzNIUBQ77cwWFC5lad/bNQI1C8dg=",
         "ref": "refs/heads/main",
-        "rev": "1a4975597f350ef91391b4b7d02f8097d5c04657",
-        "revCount": 12,
+        "rev": "85ca4f8a42ac62bd227c903ae9945ec1a6871c3d",
+        "revCount": 17,
         "type": "git",
         "url": "ssh://git@github.com/khimoo/zettelkasten"
       },
