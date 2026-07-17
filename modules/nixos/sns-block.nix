@@ -7,8 +7,8 @@
       "www.x.com"
       "twitter.com"
       "www.twitter.com"
-      # "youtube.com"
-      # "www.youtube.com"
+      "youtube.com"
+      "www.youtube.com"
     ];
   in builtins.concatStringsSep "\n" (map (host: "0.0.0.0 ${host}") blockedHosts);
 }
