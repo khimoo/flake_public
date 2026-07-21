@@ -17,3 +17,4 @@ Flake 設定の設計判断・実装構造のドキュメント。設定変更�
 | [papis-gdrive-sync.md](./papis-gdrive-sync.md) | papis ライブラリの Google Drive 同期（vault flake で仕組みを所有・rclone bisync + sops）の設計判断 |
 | [zettelkasten-attachments-sync.md](./zettelkasten-attachments-sync.md) | Obsidian vault 添付の Google Drive 同期（vault flake で仕組みを所有・secret 共有）の設計判断 |
 | [disk-tiering.md](./disk-tiering.md) | NVMe/SATA の 2 層ディスク構成（btrfs subvol・NOCOW・ブートメニュー）の設計判断 |
+| [claude-config.md](./claude-config.md) | Claude Code ユーザー設定の git 管理（パス注入 + out-of-store symlink、flake input を退けた理由） |

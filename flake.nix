@@ -84,10 +84,13 @@
       # zettelkastenRoot: Obsidian vault(zettelkasten)の clone 先絶対パス。
       # modules/home-manager/zettelkasten.nix が添付フォルダの同期対象として参照する。
       # flakeRoot と同様に環境ごとの clone 位置に依存するため、呼び出し側で指定する。
-      mkSystem = { hostname, system, users, timezone, keymap ? "us", stateVersion, primaryUser ? (builtins.head users).username, flakeRoot, zettelkastenRoot }:
+      # claudeConfigRoot: Claude Code のユーザー設定 repo の clone 先絶対パス (null で無効)。
+      # modules/home-manager/dev/claude.nix が ~/.claude 配下への symlink 元として参照する。
+      # private repo なので clone がある環境だけ指定する（抜き差し可能）。
+      mkSystem = { hostname, system, users, timezone, keymap ? "us", stateVersion, primaryUser ? (builtins.head users).username, flakeRoot, zettelkastenRoot, claudeConfigRoot ? null }:
         let
           settings = baseSettings // {
-            inherit hostname system users timezone keymap stateVersion primaryUser flakeRoot zettelkastenRoot;
+            inherit hostname system users timezone keymap stateVersion primaryUser flakeRoot zettelkastenRoot claudeConfigRoot;
             standalone = false;
             features = {
               gui = true;
@@ -128,12 +131,12 @@
       # スタンドアロンhome-manager設定を生成するヘルパー関数
       # mkSystem と同じく flakeRoot は呼び出し側で指定 (環境ごとに clone 位置が違うため)。
       # zettelkastenRoot は zettelkastenSync を有効化する standalone 環境のみ必要（既定 null）。
-      mkHome = { username, system, homeFile ? null, stateVersion, allowUnfree ? false, features ? {}, flakeRoot, zettelkastenRoot ? null, extraSettings ? {} }:
+      mkHome = { username, system, homeFile ? null, stateVersion, allowUnfree ? false, features ? {}, flakeRoot, zettelkastenRoot ? null, claudeConfigRoot ? null, extraSettings ? {} }:
         let
           pkgs = import nixpkgs { inherit system; inherit overlays; };
           skk-dict = mkSkkDict system;
           settings = baseSettings // {
-            inherit system stateVersion flakeRoot zettelkastenRoot;
+            inherit system stateVersion flakeRoot zettelkastenRoot claudeConfigRoot;
             standalone = true;
             features = defaultFeatures // features;
           } // extraSettings;
@@ -171,6 +174,7 @@
           stateVersion = "25.05";
           flakeRoot = "/home/pomu/sagyo/flake_public";
           zettelkastenRoot = "/home/pomu/sagyo/zettelkasten";
+          claudeConfigRoot = "/home/pomu/sagyo/claude-private";
         };
 
         nixos-desktop = mkSystem {
@@ -195,6 +199,7 @@
           stateVersion = "25.05";
           flakeRoot = "/home/pomu/sagyo/flake_public";
           zettelkastenRoot = "/home/pomu/sagyo/zettelkasten";
+          claudeConfigRoot = "/home/pomu/sagyo/claude-private";
         };
       };
 

@@ -16,6 +16,7 @@
 | papis ライブラリ同期 | papis ライブラリ（vault 内 references/）を Google Drive 経由で複数マシン同期する使い方・鍵運用 | [papis-gdrive-sync.md](./papis-gdrive-sync.md) |
 | Zettelkasten 添付同期 | Obsidian vault の添付フォルダを Google Drive 同期する使い方（papis と secret 共有） | [zettelkasten-attachments-sync.md](./zettelkasten-attachments-sync.md) |
 | ディスク階層構成 | NVMe(ホット)/SATA(コールド)の 2 層・btrfs subvol のレイアウトとセットアップ | [disk-tiering.md](./disk-tiering.md) |
+| Claude Code 設定 | グローバル CLAUDE.md・skills を private repo で git 管理し symlink で挿す運用 | [claude-config.md](./claude-config.md) |
 
 ## 関連
 
