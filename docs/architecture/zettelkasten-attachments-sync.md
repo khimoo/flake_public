@@ -6,21 +6,23 @@ Drive とミラーする。git には blob を載せない。
 
 使い方・鍵運用の手順は [../howtouse/zettelkasten-attachments-sync.md](../howtouse/zettelkasten-attachments-sync.md) を参照。
 
-## 責務分離：仕組みと vault 専用 secret は vault flake、環境固有の配線は flake_public
+## 責務分離：仕組みと 同期専用 secret は workflow flake、環境固有の配線は flake_public
 
-同期の**仕組み**・vault 専用 secret（rclone.conf の暗号文）・その実行時復号は、すべて vault
-リポジトリ（private repo `khimoo/zettelkasten`）自身の `flake.nix` が所有する。`flake_public` はそれを
-input として取り込み、vault の clone 位置という環境固有の配線だけを注入する。復号鍵（各マシンの
+同期の**仕組み**・同期専用 secret（rclone.conf の暗号文）・その実行時復号は、すべて
+mechanism リポジトリ（public repo `khimoo/zettelkasten-workflow`）の `flake.nix` が所有する。
+`flake_public` はそれを `github:`（https 取得）で input に取り込み、vault の clone 位置という
+環境固有の配線だけを注入する。ノート本文は別の private repo `khimoo/zettelkasten` にあり、
+mechanism を public 分割したことで flake_public の eval に SSH 鍵は要らない。復号鍵（各マシンの
 SSH 鍵）は flake の外・環境側に残る。
 
 ```
-khimoo/zettelkasten (private。vault flake = 仕組み + vault 専用 secret + 実行時復号)
+khimoo/zettelkasten-workflow (public。workflow flake = 仕組み + 同期専用 secret + 実行時復号)
 ├─ nix/bisync-lib.nix … bisync 本体(preflight + resync ガード)。sync-script/papis-sync-script が spec を渡す薄ラッパー
 ├─ nix/with-rclone-secret.nix … 実行時復号ラッパー(全環境の唯一の入口)。鍵発見 → secrets/rclone.yaml を
 │    tmpfs へ復号 → RCLONE_CONFIG を向けて同期本体を実行 → 終了時に平文削除
 ├─ nix/hm-module.nix  … 統合モジュール services.zettelkasten(+ nix/papis.nix)。watcher 常駐(systemd/launchd)
 │    options { zettelkastenRoot, rcloneConfigPath, after, wants, attachments.*, papis.* }
-├─ .sops.yaml / secrets/rclone.yaml … 暗号化された rclone.conf(vault 専用 secret)と受信者一覧(公開鍵のみ)
+├─ .sops.yaml / secrets/rclone.yaml … 暗号化された rclone.conf(同期専用 secret)と受信者一覧(公開鍵のみ)
 └─ packages/apps.<sys>.{zettelkasten-sync,papis-sync} … `nix run` 用スクリプト(HM と同じラップ済み入口)
 
 flake_public (環境固有の配線だけ注入)
@@ -38,10 +40,11 @@ flake_public (環境固有の配線だけ注入)
   （持つのは暗号文と受信者=公開鍵のみ）、復号鍵は各マシンの SSH 鍵か持ち込みの age 鍵として
   環境側に残る。
 
-### なぜ vault flake 側に置くのか（`nix run` 単独動作）
+### なぜ workflow flake 側に置くのか（`nix run` 単独動作）
 
 **自分自身が** home-manager を使えないマシン（借り物 PC・一時的なマシン）に居るときも、
-`nix run git+ssh://git@github.com/khimoo/zettelkasten` で自分の Drive 同期をワンショット実行できるようにするため。
+`nix run github:khimoo/zettelkasten-workflow` で自分の Drive 同期をワンショット実行できるようにするため
+（public repo なので取得に SSH 鍵は要らず、復号鍵だけ用意すればよい）。
 `hm-module.nix` と `packages/apps` は同じスクリプト（`nix/with-rclone-secret.nix` +
 `nix/sync-script.nix`）を**共有**し、復号も同期もロジックを二重に持たない
 （HM は watcher で常駐、`nix run` はワンショット、中身は同一）。
@@ -56,8 +59,8 @@ flake_public (環境固有の配線だけ注入)
 （rclone bisync + watchexec + sops）だが、次の点で独立している:
 
 - **secret は共有**。同じ gdrive remote・同じ `rclone_conf` secret を使う。暗号文も
-  [実行時復号](./papis-gdrive-sync.md#secret-は-vault-が所有し同期スクリプト自身が実行時に復号する)も
-  vault 側 1 箇所だけで、papis と Zettelkasten の両 sync が同じ入口を通る。
+  [実行時復号](./papis-gdrive-sync.md#secret-は-workflow-flake-が所有し同期スクリプト自身が実行時に復号する)も
+  workflow flake 側 1 箇所だけで、papis と Zettelkasten の両 sync が同じ入口を通る。
 - **baseline は隔離**。rclone bisync のベースラインを papis と混ぜないよう、
   `--workdir` を専用ディレクトリ `~/.cache/rclone/bisync-zettelkasten` に固定する
   （papis は `~/.cache/rclone/bisync-papis`）。同一 remote 名でも別フォルダを同期するので
@@ -135,10 +138,12 @@ Google Drive の OAuth トークンは宣言的に生成できない（対話認
   （`Empty prior Path1 listing`）。まず Obsidian か img-clip で画像を 1 枚貼ってから resync する。
 - **Drive 側フォルダは rclone に作らせる**。scope=`drive.file` では Drive UI で手動作成した
   フォルダが rclone から見えない。初回だけ `rclone mkdir gdrive:zettelkasten-attachments`。
-- **flake 評価には vault flake input が必要**。`flake_public` は
-  `git+ssh://git@github.com/khimoo/zettelkasten` を input に持つので、vault flake
+- **flake 評価には workflow flake input が必要**。`flake_public` は
+  `github:khimoo/zettelkasten-workflow` を input に持つので、workflow flake
   （`flake.nix` / `nix/`）が push 済みでないと `nix flake lock` が解決できない。
-  ローカル検証は `--override-input zettelkasten path:/path/to/zettelkasten` で回避可能。
-- **repo は private**。`github:`（GitHub API 経由）では認証なしに取得できないため
-  git+ssh で fetch する。flake の取得自体に GitHub へアクセスできる SSH 鍵が要る
-  （復号用の各マシン SSH 鍵と同じものを流用）。
+  ローカル検証は `--override-input zettelkasten path:/path/to/zettelkasten-workflow` で回避可能。
+- **repo は public**。`github:`（https 取得）で認証なしに取得でき、flake の eval / 取得に
+  SSH 鍵は要らない（mechanism を public 分割した狙い。ノート本文は別の private repo
+  `khimoo/zettelkasten`）。SSH 鍵を使うのは **runtime の rclone 復号だけ**（各マシンの
+  `~/.ssh/id_ed25519` を ssh-to-age 変換）。この ssh-to-age 依存は将来もっと良い形に
+  改善したい（→ [復号鍵の設計と将来改善](./papis-gdrive-sync.md#復号鍵は各マシンの-user-ssh-鍵ssh-to-age)）。

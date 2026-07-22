@@ -65,15 +65,26 @@ symlink と同じ思想）。
 clone 先パス（`claudeConfigRoot`）と clone 元 URL（`claudeConfigRepo`）を別軸にしたのは、
 「symlink だけ欲しい（手動 clone）」と「clone も自動化したい」を独立に選べるようにするため。
 
+## ゼロからの復元（eval 時の鍵依存は解消済み）
+
+以前は fresh 環境で flake の評価自体に `~/.ssh/id_ed25519` が必要だった。`inputs.zettelkasten`
+を `git+ssh://` で取得していたため、鍵が無いと switch に到達する前の eval で失敗し、「age 鍵だけ
+渡せば完全にゼロから復元」は成立しなかった。
+
+この制約は zettelkasten の mechanism を public repo（`github:khimoo/zettelkasten-workflow`）へ
+分割し、input を `github:`（https 取得）に切り替えたことで**解消した**
+（[zettelkasten-attachments-sync.md](./zettelkasten-attachments-sync.md) 参照）。eval が SSH 鍵を
+要求しなくなったので、いまは:
+
+- **専用 age 鍵 1 本を `~/.config/sops/age/keys.txt` に置く**（既存マシンから SSH 送信、または
+  Bitwarden から取得）
+- 公開 flake を clone して switch する
+
+だけでゼロから復元できる。SSH 鍵（`~/.ssh/id_ed25519`）は switch 中の activation が
+`secrets.yaml` を age 鍵で復号して書き出すので、事前に置かなくてよい。
+
 ## 限界
 
-- **fresh な環境では flake の評価自体に `~/.ssh/id_ed25519` が既に必要**。
-  `inputs.zettelkasten` を `git+ssh://` で取得するため、鍵が無いと switch に到達する前の
-  eval で失敗する。つまり「age 鍵だけ渡せば完全にゼロから復元」は現状まだ成立しない
-  （新環境ではユーザー SSH 鍵も先に置く必要がある）。この制約が消えるのは
-  zettelkasten input が eval 時に鍵を要求しなくなったとき（zettelkasten の public 分割 =
-  別 topic）。それまでは、この仕組みの主な効果は「手動 `git clone` の除去」と
-  「暗号文をコミットして 1 本の age 鍵で持ち運べる状態」に留まる
 - `secrets/secrets.yaml` が無いまま `claudeConfigRepo` を指定すると、そのホストの eval で
   失敗する（activation が secret を store path として参照するため）。URL 未指定なら
   参照されないので、公開 flake の `nix flake check` は壊れない

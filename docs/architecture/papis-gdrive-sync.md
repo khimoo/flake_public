@@ -1,16 +1,17 @@
 # papis ライブラリの Google Drive 同期（設計判断）
 
 設定ファイル:
-- vault flake `git+ssh://git@github.com/khimoo/zettelkasten` … papis の**仕組み**と vault 専用 secret を所有（どのマシン
-  でも同一のワークフローを再現できる完結型モジュール）:
+- workflow flake `github:khimoo/zettelkasten-workflow`（public repo。取得に SSH 鍵不要）… papis の**仕組み**と
+  同期専用 secret を所有（どのマシンでも同一のワークフローを再現できる完結型モジュール。ノート本文は
+  別の private repo `khimoo/zettelkasten`）:
   - `nix/hm-module.nix`（統合モジュール `services.zettelkasten`。options を宣言し `nix/papis.nix` を import）
   - `nix/papis.nix`（papis 本体＋`programs.papis` 設定と同期 watcher を `papis.enable` で導入）
   - `nix/papis-sync-script.nix` / `nix/bisync-lib.nix`（同期スクリプト本体。env 駆動で secret も保存先も知らない）
   - `nix/with-rclone-secret.nix`（実行時復号ラッパー。同期の直前に `secrets/rclone.yaml` を復号し
     `RCLONE_CONFIG` として同期本体へ渡す。全環境の唯一の入口）
-  - `.sops.yaml` / `secrets/rclone.yaml`（暗号化された rclone.conf。vault 専用 secret なので vault が持つ）
+  - `.sops.yaml` / `secrets/rclone.yaml`（暗号化された rclone.conf。同期専用 secret なので仕組みと同じ workflow flake が持つ）
 - flake_public 側（環境固有の配線だけ）:
-  - `modules/home-manager/zettelkasten.nix`（唯一の glue。vault 本体を import し clone 位置 `zettelkastenRoot` と
+  - `modules/home-manager/zettelkasten.nix`（唯一の glue。workflow flake 本体を import し clone 位置 `zettelkastenRoot` と
     feature toggle を注入するだけ。secret の配線は不要＝同期スクリプト自身が実行時に復号する）
 
 使い方・鍵運用の手順は [../howtouse/papis-gdrive-sync.md](../howtouse/papis-gdrive-sync.md) を参照。
@@ -101,15 +102,23 @@ git/リモートビルドで各マシンに既にある ed25519 ユーザ鍵を�
 SSH 鍵を置けない環境（借り物 PC 等）では `SOPS_AGE_KEY(_FILE)` で持ち込みの age 鍵を渡せる
 （受信者登録した専用鍵を Bitwarden 等に保管しておく運用）。
 
-### papis の仕組みは vault flake が所有（flake_public は配線だけ）
+> **将来改善したい点**: この runtime 復号が `~/.ssh/id_ed25519` の ssh-to-age に依存している形は
+> ベストではない。[private repo の宣言的 clone](./private-repo-clone.md) は既に「専用 age 鍵 1 本
+> （`~/.config/sops/age/keys.txt`）」に統一しており、rclone secret の復号だけが別スキーム
+> （SSH 鍵の ssh-to-age）で残っている。fresh マシンでは SSH 鍵自体が activation で
+> `secrets.yaml` から復号されて初めて置かれるので、rclone 復号がその SSH 鍵に依存すると
+> 順序の綱渡りにもなる。将来は復号の種を専用 age 鍵に寄せて両者を一本化するのが望ましい
+> （具体案は未確定。受信者の付け替え = 再暗号化のコストとの兼ね合いで決める）。
 
-papis 本体＋設定と同期は、vault リポジトリ（private repo `khimoo/zettelkasten`）の統合モジュール
-`services.zettelkasten` が所有する。目的は **vault の完結性**: home-manager の有無に依らず、
+### papis の仕組みは workflow flake が所有（flake_public は配線だけ）
+
+papis 本体＋設定と同期は、workflow リポジトリ（public repo `khimoo/zettelkasten-workflow`）の統合モジュール
+`services.zettelkasten` が所有する。目的は **ワークフローの完結性**: home-manager の有無に依らず、
 この flake を使えばどのマシンでも同じ papis ワークフロー（本体・設定・Drive 同期）を再現できる。
 `flake_public` はそれを input に取り込み、`modules/home-manager/zettelkasten.nix` で vault clone 位置と
-feature toggle を注入するだけ（提供側=vault flake / 配線側=flake_public の依存性逆転）。
+feature toggle を注入するだけ（提供側=workflow flake / 配線側=flake_public の依存性逆転）。
 
-vault flake 内では papis を `nix/papis.nix` に分離し、統合モジュール本体（`nix/hm-module.nix`）が
+workflow flake 内では papis を `nix/papis.nix` に分離し、統合モジュール本体（`nix/hm-module.nix`）が
 options を宣言してこれを import する。同期スクリプト本体（`nix/papis-sync-script.nix`）は env
 （`PAPIS_LIBRARY_DIR` / `PAPIS_REMOTE` / `RCLONE_CONFIG`）だけを読み、保存先も secret も知らない。
 gdrive を NAS 等へ差し替えても sync-script の差し替えで済み、`programs.papis` 設定は不変。
@@ -126,13 +135,14 @@ gdrive を NAS 等へ差し替えても sync-script の差し替えで済み、`
 環境（standalone `pomu-nixos` 等）では papis 本体も入らなくなる。WSL のような無効環境では papis も
 sops も一切読み込まれない点は従来どおり。
 
-### secret は vault が所有し、同期スクリプト自身が実行時に復号する
+### secret は workflow flake が所有し、同期スクリプト自身が実行時に復号する
 
-rclone.conf の token は添付同期・papis 同期でしか使わない **vault 専用 secret**。そこで
-「唯一の消費者」である vault flake が暗号文（`secrets/rclone.yaml`）・受信者一覧（`.sops.yaml`）・
-復号処理（`nix/with-rclone-secret.nix`）をすべて所有する。環境側に残るのは復号鍵だけ:
+rclone.conf の token は添付同期・papis 同期でしか使わない **同期専用 secret**。そこで
+「唯一の消費者」である workflow flake が暗号文（`secrets/rclone.yaml`）・受信者一覧（`.sops.yaml`）・
+復号処理（`nix/with-rclone-secret.nix`）をすべて所有する。暗号文なので public repo に載せてよい。
+環境側に残るのは復号鍵だけ:
 
-- **vault 側**: with-rclone-secret が同期スクリプトをラップし、実行のたびに「鍵発見
+- **workflow flake 側**: with-rclone-secret が同期スクリプトをラップし、実行のたびに「鍵発見
   （`SOPS_AGE_KEY(_FILE)` → `~/.ssh/id_ed25519` の ssh-to-age 変換）→ tmpfs へ復号 →
   `RCLONE_CONFIG` を向けて同期本体を実行 → 平文削除」を行う。secret 名 "rclone_conf" を
   知るのはここだけに閉じる。同期本体（bisync-lib / sync-script）は sops を知らないまま
@@ -141,12 +151,12 @@ rclone.conf の token は添付同期・papis 同期でしか使わない **vaul
   秘密鍵は絶対に載らない（載るのは暗号文と公開鍵のみ）。
 
 papis 同期（`referenceSync`）と Zettelkasten 添付同期（`zettelkastenSync`）は同じ secret を
-共有するが、暗号文も復号処理も vault 側 1 箇所なので二重管理は無い。
+共有するが、暗号文も復号処理も workflow flake 側 1 箇所なので二重管理は無い。
 
 `RCLONE_CONFIG` を明示した場合は復号をスキップしてそのパスを使う（escape hatch。平文
 rclone.conf 運用や fork 利用者向け。`services.zettelkasten.rcloneConfigPath` も同じ穴に通じる）。
 第三者の実行時利用は設計対象外（fork して個人固有部分を差し替える想定。
-[zettelkasten-attachments-sync.md](./zettelkasten-attachments-sync.md#なぜ-vault-flake-側に置くのかnix-run-単独動作) 参照）。
+[zettelkasten-attachments-sync.md](./zettelkasten-attachments-sync.md#なぜ-workflow-flake-側に置くのかnix-run-単独動作) 参照）。
 
 ## セキュリティモデル
 
@@ -178,7 +188,7 @@ rclone.conf 運用や fork 利用者向け。`services.zettelkasten.rcloneConfig
 - **監視ディレクトリはこのモジュールが所有しない**。ライブラリは `papis add` が初めて作る。
   未作成時は起動ラッパーが正常終了(0)し、`Restart=on-failure` /
   `KeepAlive.SuccessfulExit=false` と組み合わせてクラッシュループを避ける
-- **flake 評価には vault flake input 内の `secrets/rclone.yaml` が必要**（feature 有効な構成のみ）。
-  この実体は vault リポジトリにコミット済みなので、`flake_public` は input 経由で常に参照できる。
-  ローカルで vault を編集中に検証するときは `--override-input zettelkasten path:/path/to/zettelkasten`
+- **flake 評価には workflow flake input 内の `secrets/rclone.yaml` が必要**（feature 有効な構成のみ）。
+  この実体は workflow リポジトリ（public）にコミット済みなので、`flake_public` は input 経由で常に参照できる。
+  ローカルで workflow flake を編集中に検証するときは `--override-input zettelkasten path:/path/to/zettelkasten-workflow`
   で差し替える。無効構成（WSL 等）は影響を受けない

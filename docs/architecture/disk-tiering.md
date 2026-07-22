@@ -80,7 +80,7 @@ papis も同様だが、マウント先が **NVMe 側の `~/sagyo` ツリーの�
 `@papis` を `~/sagyo/zettelkasten/references`（vault clone の直下）へマウントする。
 `references/` という**ディレクトリだけ**が NVMe の `~/sagyo` 上に存在し、そこに SATA の
 `@papis` を被せるので、中身（papis のライブラリ本体）は SATA に載る。papis の
-`libraryDir` は vault flake の `services.zettelkasten.papis.libraryDir`（既定
+`libraryDir` は workflow flake の `services.zettelkasten.papis.libraryDir`（既定
 `${zettelkastenRoot}/references`）が単一の出所で、マウントはその保存先を SATA に差し替える
 だけ。papis 層が保存 backend を知らないという依存方向
 （[papis-gdrive-sync.md](./papis-gdrive-sync.md)）と一致する。

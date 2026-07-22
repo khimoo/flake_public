@@ -90,6 +90,7 @@ age 鍵 1 本を全環境で共有するため、マシンごとの受信者追�
 ## 注意
 
 - `secrets/secrets.yaml` は暗号文。**平文の秘密鍵・age 鍵を repo に置かないこと**
-- 新しい環境で **flake を評価するには `~/.ssh/id_ed25519` が既に必要**
-  （`inputs.zettelkasten` を `git+ssh` で取得するため）。この制約と回避策は
-  [architecture ドキュメントの「限界」](../architecture/private-repo-clone.md#限界)を参照
+- 新しい環境の switch に **事前の `~/.ssh/id_ed25519` は不要**。`inputs.zettelkasten` を
+  `github:`（public repo）で取得するようになり eval が SSH 鍵を要求しなくなったため、
+  専用 age 鍵 1 本だけで switch でき、SSH 鍵は activation が `secrets.yaml` から書き出す
+  （経緯は [architecture ドキュメント](../architecture/private-repo-clone.md#ゼロからの復元eval-時の鍵依存は解消済み)を参照）

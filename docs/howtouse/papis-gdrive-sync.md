@@ -2,8 +2,8 @@
 
 papis ライブラリ (`~/sagyo/zettelkasten/references`) を、複数マシン間で Google Drive 経由で
 双方向同期する。同期は rclone bisync、トリガーは watchexec のフォルダ監視。
-秘密（rclone.conf）は sops で暗号化して vault repo に置き、`papis-sync` が実行のたびに
-自動で復号する（復号先の常駐ファイルは無い）。
+秘密（rclone.conf）は sops で暗号化して workflow repo（`khimoo/zettelkasten-workflow`）に置き、
+`papis-sync` が実行のたびに自動で復号する（復号先の常駐ファイルは無い）。
 
 papis は item ごとに `info.yaml`（平文メタデータ）と PDF 実体を同じフォルダに置くので、
 `~/sagyo/zettelkasten/references` を丸ごと 1 本の bisync で同期すればメタデータも PDF も同時に揃う
@@ -18,7 +18,7 @@ papis は item ごとに `info.yaml`（平文メタデータ）と PDF 実体を
 
 `features.referenceSync` が偽の環境（WSL 等）では一切読み込まれず影響しない。
 
-papis 本体・設定・同期は vault flake（`git+ssh://git@github.com/khimoo/zettelkasten`）の統合モジュール
+papis 本体・設定・同期は workflow flake（public repo `github:khimoo/zettelkasten-workflow`）の統合モジュール
 `services.zettelkasten` が `referenceSync` 有効時にまとめて導入する（旧構成の「本体は `gui`／
 同期は `referenceSync`」から一本化。設計は[設計ドキュメント](../architecture/papis-gdrive-sync.md#本体と同期を-papisenable-でまとめて出すreferencesync-単一トグル)参照）。
 本書はそのセットアップを扱う。
@@ -69,10 +69,11 @@ papis export --all --format bibtex > references.bib
 ## このリポジトリを初めて使うマシンのセットアップ
 
 > **secret の所在（重要）**: 暗号化 secret とその受信者定義（`secrets/rclone.yaml` と `.sops.yaml`）は
-> **vault リポジトリ**（`~/sagyo/zettelkasten`, private repo `khimoo/zettelkasten`）が所有する。この secret は
-> 添付・papis 同期でしか使わない vault 専用 secret だから。よって以下の `sops ...` / `git add secrets/...` /
-> `.sops.yaml` 編集は **vault repo 内で**行う（`cd ~/sagyo/zettelkasten`）。一方 `features.referenceSync` の
-> 設定や `nixos-rebuild` は従来どおり flake_public 側。
+> **workflow リポジトリ**（`~/sagyo/zettelkasten-workflow`, public repo `khimoo/zettelkasten-workflow`）が所有する。
+> この secret は添付・papis 同期でしか使わない同期専用 secret で、仕組み（flake）と同じ repo に同居する。よって
+> 以下の `sops ...` / `git add secrets/...` / `.sops.yaml` 編集は **workflow repo 内で**行う（`cd ~/sagyo/zettelkasten-workflow`）。
+> 暗号文なので public repo に置いてよい（平文の秘密鍵・token は絶対にコミットしない）。一方 `features.referenceSync`
+> の設定や `nixos-rebuild` は従来どおり flake_public 側。
 >
 > **`sops` コマンドについて**: この環境では `sops` をグローバル導入していない。以下の
 > `sops ...` は `nix shell nixpkgs#sops -c sops ...` の形で実行する
@@ -83,7 +84,7 @@ papis export --all --format bibtex > references.bib
 > スモークテスト）にだけ、一時的に復号して渡す。本書のシェル例では `SECRET` 変数で参照する:
 >
 > ```sh
-> cd ~/sagyo/zettelkasten
+> cd ~/sagyo/zettelkasten-workflow
 > export SOPS_AGE_KEY="$(nix run nixpkgs#ssh-to-age -- -private-key -i ~/.ssh/id_ed25519)"
 > SECRET="${XDG_RUNTIME_DIR:-/tmp}/rclone.conf"
 > nix run nixpkgs#sops -- --decrypt --extract '["rclone_conf"]' secrets/rclone.yaml > "$SECRET"
@@ -196,7 +197,7 @@ token = {"access_token":"...","refresh_token":"...","expiry":"..."}
 ```
 
 > `.sops.yaml` の受信者に全マシンの鍵が入った状態で `sops updatekeys secrets/rclone.yaml`
-> を実行してから vault repo にコミットする。暗号化ファイルは公開リポジトリにコミットしてよい（平文は絶対に不可）。
+> を実行してから workflow repo にコミットする。暗号化ファイルは公開リポジトリにコミットしてよい（平文は絶対に不可）。
 
 ### 5. rebuild / switch
 
@@ -310,7 +311,7 @@ Google が refresh token 自体を失効させた（長期間未使用・パス�
 
 ## デバイスを廃棄するとき
 
-vault repo（`~/sagyo/zettelkasten`）の `.sops.yaml` からそのマシンの受信者（`&host_...` と `age:` の参照）を削除し、
+workflow repo（`~/sagyo/zettelkasten-workflow`）の `.sops.yaml` からそのマシンの受信者（`&host_...` と `age:` の参照）を削除し、
 
 ```sh
 sops updatekeys secrets/rclone.yaml

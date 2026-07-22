@@ -5,7 +5,7 @@ Google Drive と双方向同期する。実体はローカルにも残し、rclo
 git には blob を載せない（vault の `.gitignore` で `/attachments/` を除外）。
 
 同期は rclone bisync、トリガーは watchexec のフォルダ監視。秘密（rclone.conf）は
-[papis 同期](./papis-gdrive-sync.md)と**同じ secret を共有**し（sops 暗号化、vault repo が所有）、
+[papis 同期](./papis-gdrive-sync.md)と**同じ secret を共有**し（sops 暗号化、workflow repo が所有）、
 同期コマンドが実行のたびに自動で復号する（復号先の常駐ファイルは無い）。
 
 設計判断・責務分離は [../architecture/zettelkasten-attachments-sync.md](../architecture/zettelkasten-attachments-sync.md) を参照。
@@ -14,15 +14,15 @@ git には blob を載せない（vault の `.gitignore` で `/attachments/` を
 
 - NixOS ホスト（`nixos-desktop`, `nixos-spin713`）: `features.zettelkastenSync = true` を設定済み
 - standalone home-manager（macOS 等）: `mkHome` の `features.zettelkastenSync = true` で有効化
-- **home-manager 非対応環境**: `nix run git+ssh://git@github.com/khimoo/zettelkasten` でワンショット同期（下記）
+- **home-manager 非対応環境**: `nix run github:khimoo/zettelkasten-workflow` でワンショット同期（下記）
 
 `features.zettelkastenSync` が偽の環境（WSL 等）では一切読み込まれず影響しない。
 
-## 仕組みの所在（vault flake / flake_public）
+## 仕組みの所在（workflow flake / flake_public）
 
-- 同期の**仕組み**は vault リポジトリ（private repo `khimoo/zettelkasten`。取得は git+ssh）の `flake.nix` が持つ
+- 同期の**仕組み**は mechanism リポジトリ（public repo `khimoo/zettelkasten-workflow`。取得は `github:`）の `flake.nix` が持つ
   （`nix/sync-script.nix` = 同期本体、`nix/with-rclone-secret.nix` = 実行時復号、
-  `nix/hm-module.nix` = watcher 常駐）。
+  `nix/hm-module.nix` = watcher 常駐）。ノート本文は別の private repo `khimoo/zettelkasten`。
 - `flake_public` は input として取り込み、`modules/home-manager/zettelkasten.nix` が
   vault clone 位置（`zettelkastenRoot`。添付フォルダは既定でその下の `attachments/`）を注入する。
   secret の配線は不要（同期コマンド自身が復号するため）。
@@ -33,7 +33,7 @@ papis 同期と**まったく同じ** gdrive remote・`rclone_conf` secret を�
 既に papis 同期をセットアップ済みなら、secret はそのまま流用され追加作業は不要。
 未セットアップなら、[papis 同期の使い方](./papis-gdrive-sync.md#このリポジトリを初めて使うマシンのセットアップ)
 の「SSH 鍵を age に変換 → `secrets/rclone.yaml` を作成/更新」の手順をそのまま行う。
-暗号文・受信者一覧・実行時復号はすべて vault repo が所有し、`zettelkasten-sync` が
+暗号文・受信者一覧・実行時復号はすべて workflow repo が所有し、`zettelkasten-sync` が
 実行のたびに `~/.ssh/id_ed25519`（ssh-to-age 変換）で復号する。rebuild 側の配線は無い。
 
 > **素の `rclone` を手で叩くとき（`$SECRET`）**: 常駐の復号先は無いので一時的に復号する。
@@ -69,10 +69,10 @@ systemctl --user restart zettelkasten-sync
 # 鍵: 受信者登録済みの ~/.ssh/id_ed25519 があれば何もしなくてよい。
 # 無いマシンでは、受信者登録済みの age 鍵（Bitwarden 等に保管）を渡す:
 #   export SOPS_AGE_KEY='AGE-SECRET-KEY-...'
-# ※ repo は private なので flake の取得自体に GitHub へ SSH アクセスできる鍵が必要
-#   （復号用の SSH 鍵と同じものでよい。age 鍵だけでは flake を取得できない）
+# ※ mechanism repo は public なので flake の取得に SSH 鍵は不要（github: で https 取得）。
+#   鍵が要るのは runtime の rclone 復号だけ（上の SOPS_AGE_KEY / id_ed25519）。
 ZETTELKASTEN_ATTACHMENTS_DIR="$HOME/path/to/vault/attachments" \
-  nix run git+ssh://git@github.com/khimoo/zettelkasten -- --resync   # 初回のみ --resync、以降は引数なし
+  nix run github:khimoo/zettelkasten-workflow -- --resync   # 初回のみ --resync、以降は引数なし
 ```
 
 - sops を使わず手元の rclone.conf で同期する場合は `RCLONE_CONFIG=/path/to/rclone.conf` を

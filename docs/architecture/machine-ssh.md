@@ -8,7 +8,7 @@ flake 内の全 NixOS ホストが相互に SSH でき、`ssh <短縮名>`（例
 - `hosts/machines.nix` — 各マシンの user 公開鍵レジストリ（単一の情報源）
 - `modules/nixos/ssh.nix` — レジストリから authorized_keys とクライアント設定を生成
 - `.sops.yaml` — 同じ鍵ペアの age 版（sops 受信者）。別管理の理由は下記。
-  実体は vault repo（`~/sagyo/zettelkasten`）にあり、secret を持つマシンだけ登録する
+  実体は workflow repo（`~/sagyo/zettelkasten-workflow`, public repo `khimoo/zettelkasten-workflow`）にあり、secret を持つマシンだけ登録する
 
 使い方は [../howtouse/machine-ssh.md](../howtouse/machine-ssh.md) を参照。
 
@@ -72,7 +72,7 @@ N×N の直書きになり重複する。単一の情報源に集約し、`ssh.n
 同じ ed25519 鍵ペアが SSH 認証と（`ssh-to-age` 変換で）sops 復号を兼ねるが、sops は
 age 形式・専用フォーマットの `.sops.yaml` を要求するため `machines.nix` に統合できない。
 secret が要るマシンは `machines.nix`（SSH 形式）と `.sops.yaml`（age 形式）の両方に登録する。
-後者の `.sops.yaml` は secret 本体とともに vault repo（`~/sagyo/zettelkasten`）が所有する
+後者の `.sops.yaml` は secret 本体とともに workflow repo（`~/sagyo/zettelkasten-workflow`）が所有する
 （[papis 同期の設計](./papis-gdrive-sync.md)を参照）。
 
 ## セキュリティモデル

@@ -21,13 +21,16 @@ flake_public 側が設定 repo について知るのはレイアウト規約
 （`CLAUDE.md` + `skills/`、`~/.claude` の構造をそのまま鏡写し）だけで、
 repo の固有名・URL・中身には依存しない。
 
-## 検討して退けた案: private repo を flake input にする（zettelkasten 方式）
+## 検討して退けた案: 設定 repo を flake input にする（zettelkasten 方式）
 
-zettelkasten は git+ssh の flake input だが、claude 設定には合わない:
+zettelkasten（同期の仕組み）は flake input（`github:khimoo/zettelkasten-workflow`）だが、
+claude 設定には合わない:
 
-- **公開利用性**: private な git+ssh input が増えると、アクセス権のない人は
-  `nix flake update` / `nix flake check` で失敗する。zettelkasten で既に一箇所
-  妥協しているが、これ以上増やさない
+- **公開利用性**: private repo を flake input にすると、アクセス権のない人は
+  `nix flake update` / `nix flake check` で失敗する。zettelkasten は仕組みを
+  public repo（`github:`, https 取得）に分割してこれを回避した（ノート本文だけ別の
+  private repo に残す）。claude 設定 repo は public 化する動機のない純粋な private
+  コンテンツなので、input にすると回避策のない形でこの制約を持ち込むことになる
 - **編集サイクル**: skills は頻繁に編集する「生きた設定」で、input 経由の store コピーだと
   編集のたびに commit + `nix flake update` + rebuild が必要になる。
   neovim 設定が out-of-store symlink である理由と同じ
