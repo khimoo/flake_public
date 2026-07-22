@@ -17,6 +17,7 @@
 ## マシンに挿す手順
 
 1. 設定 repo を任意の場所に clone する
+   （NixOS なら [private-repo-clone.md](./private-repo-clone.md) で自動 clone にできる）
 2. `flake.nix` の対象ホスト（`mkSystem` / `mkHome` の呼び出し）に clone 先を指定する:
 
    ```nix

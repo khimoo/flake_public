@@ -1,0 +1,28 @@
+# sops の受信者(recipients)定義。secrets/ 配下の暗号文を「どの age 鍵で復号できるか」を決める。
+#
+# この repo は専用 age 鍵を 1 本だけ使う(NixOS / home-manager / 全マシン共通)。同じ鍵が:
+#   - 復号の種      … 各マシンの ~/.config/sops/age/keys.txt に out-of-band で設置
+#                     (既存マシンから SSH 送信、または Bitwarden から取得)
+#   - 暗号文の編集鍵 … secret を追加・更新する人間が使う
+# ホスト鍵は使わない(root しか読めず home-manager から扱えないため)。
+#
+# ★ 下の age1... はプレースホルダ。実鍵に差し替えてから sops を実行すること。
+#   専用 age 鍵の作成:
+#     nix-shell -p age --run 'age-keygen -o keys.txt'
+#     # keys.txt の "public key:" 行(age1...)をここへ。keys.txt 自体は Bitwarden へ保管し、
+#     # 各マシンの ~/.config/sops/age/keys.txt に配置する(公開 repo にはコミットしない)。
+#
+# secret(GitHub 登録済みユーザー SSH 鍵)の暗号化:
+#   mkdir -p secrets
+#   sops secrets/secrets.yaml   # エディタが開くので git_ssh_key: |- として秘密鍵本文を貼る
+#   # 既存鍵から直接作るなら:
+#   #   SOPS_AGE_RECIPIENTS=age1... sops --encrypt \
+#   #     ... (下記 architecture ドキュメント参照)
+keys:
+  - &deploy age1REPLACE_DEDICATED_AGE_PUBLIC_KEY
+
+creation_rules:
+  - path_regex: secrets/[^/]+\.(yaml|json|env|ini)$
+    key_groups:
+      - age:
+          - *deploy

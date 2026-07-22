@@ -17,6 +17,7 @@
 | Zettelkasten 添付同期 | Obsidian vault の添付フォルダを Google Drive 同期する使い方（papis と secret 共有） | [zettelkasten-attachments-sync.md](./zettelkasten-attachments-sync.md) |
 | ディスク階層構成 | NVMe(ホット)/SATA(コールド)の 2 層・btrfs subvol のレイアウトとセットアップ | [disk-tiering.md](./disk-tiering.md) |
 | Claude Code 設定 | グローバル CLAUDE.md・skills を private repo で git 管理し symlink で挿す運用 | [claude-config.md](./claude-config.md) |
+| private repo 自動 clone | ユーザー SSH 鍵を sops 暗号化し、age 鍵 1 本で新環境（NixOS/WSL/macOS）が switch 一発 clone する運用 | [private-repo-clone.md](./private-repo-clone.md) |
 
 ## 関連
 
