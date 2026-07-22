@@ -66,6 +66,7 @@
         audio = false;
         referenceSync = false;
         zettelkastenSync = false;
+        obsidianSeed = false;
       };
 
       # SKK辞書の生成（system別にキャッシュ）
@@ -104,6 +105,7 @@
               audio = true;
               referenceSync = true;
               zettelkastenSync = true;
+              obsidianSeed = true;
             };
           };
 

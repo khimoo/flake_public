@@ -13,7 +13,10 @@
 let
   attachmentsOn = settings.features.zettelkastenSync or false;
   papisOn = settings.features.referenceSync or false;
-  enabled = attachmentsOn || papisOn;
+  # obsidianSeed は同期(rclone/gdrive)に依存しない独立の関心。vault に .obsidian 設定を
+  # 非破壊で配置するだけで、Nix さえあれば同期なしでも成立する。ゆえに別 feature で持つ。
+  obsidianOn = settings.features.obsidianSeed or false;
+  enabled = attachmentsOn || papisOn || obsidianOn;
 in
 {
   imports = [ inputs.zettelkasten.homeManagerModules.zettelkasten ];
@@ -24,6 +27,7 @@ in
       zettelkastenRoot = settings.zettelkastenRoot;
       attachments.enable = attachmentsOn;
       papis.enable = papisOn;
+      obsidian.enable = obsidianOn;
     };
   };
 }
