@@ -275,17 +275,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1783939261,
-        "narHash": "sha256-6AQh81jGHkyK9xzpzNIUBQ77cwWFC5lad/bNQI1C8dg=",
-        "ref": "refs/heads/main",
-        "rev": "85ca4f8a42ac62bd227c903ae9945ec1a6871c3d",
-        "revCount": 17,
-        "type": "git",
-        "url": "ssh://git@github.com/khimoo/zettelkasten"
+        "lastModified": 1784709282,
+        "narHash": "sha256-8Nc53nF/8ZVpbzo5/Y/ZD6rCgDncWZlvr9+Hd1qwLoU=",
+        "owner": "khimoo",
+        "repo": "zettelkasten-workflow",
+        "rev": "91cda2f43419243e708ffa90d19e265eac44e14e",
+        "type": "github"
       },
       "original": {
-        "type": "git",
-        "url": "ssh://git@github.com/khimoo/zettelkasten"
+        "owner": "khimoo",
+        "repo": "zettelkasten-workflow",
+        "type": "github"
       }
     }
   },

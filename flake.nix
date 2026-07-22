@@ -20,11 +20,12 @@
       url = "github:raine/claude-history";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # Zettelkasten(Obsidian vault)の完結型ワークフロー(添付/papis の Drive 同期 + secret 暗号文の
+    # Zettelkasten(Obsidian vault)同期の mechanism(添付/papis の Drive 同期 + secret 暗号文の
     # 実行時復号)。flake_public は modules/home-manager/zettelkasten.nix で clone 位置だけ注入する。
-    # repo は private のため github:(API 経由)ではなく git+ssh で取得する(各マシンの SSH 鍵で認証)。
+    # mechanism は public repo に切り出したので github:(https 取得)で引く。ノート本文は別の
+    # private repo。git+ssh をやめたことで、この flake の eval に SSH 鍵が要らなくなる。
     zettelkasten = {
-      url = "git+ssh://git@github.com/khimoo/zettelkasten";
+      url = "github:khimoo/zettelkasten-workflow";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
