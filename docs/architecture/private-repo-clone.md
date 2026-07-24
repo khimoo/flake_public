@@ -3,6 +3,10 @@
 使い方は [docs/howtouse/private-repo-clone.md](../howtouse/private-repo-clone.md) を参照。
 実装: [modules/home-manager/private-repos.nix](../../modules/home-manager/private-repos.nix)。
 
+> **今後の方向性**: age 鍵の bootstrap 経路（現在「SSH 送信 or Bitwarden から取得」の
+> 2 経路併存）は [new-machine.md](./new-machine.md) の nixos-anywhere ベース 1 コマンド
+> プロビジョニングに一本化する予定。silent skip も strict 化で撤廃する。
+
 ## 何を解決するか
 
 新しい環境へ flake を適用するとき、従来は private repo を手で `git clone` する必要がある。
