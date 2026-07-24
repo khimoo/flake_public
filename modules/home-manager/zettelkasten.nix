@@ -6,8 +6,8 @@
 #     実行時復号は inputs.zettelkasten が所有する。同期スクリプト自身が実行のたびに
 #     secrets/rclone.yaml をこのマシンの SSH 鍵(~/.ssh/id_ed25519 を ssh-to-age 変換)で復号する
 #     ため、sops-nix や起動順序の配線は不要。
-#   - ここが注入するのは純粋に環境固有の配線だけ: vault の clone 位置(zettelkastenRoot)と
-#     feature toggle。
+#   - ここが注入するのは純粋に環境固有の配線だけ: vault の clone 位置(zettelkastenRoot)、
+#     feature toggle、config ミラー先の checkout 位置(obsidianConfigRepo → obsidian.mirrorRepo)。
 { inputs, settings, lib, ... }:
 
 let
@@ -28,6 +28,9 @@ in
       attachments.enable = attachmentsOn;
       papis.enable = papisOn;
       obsidian.enable = obsidianOn;
+      # config を config repo へミラーする mirror-obsidian の宛先(環境固有 checkout)を注入。
+      # null なら PATH に載らない。obsidian.enable と非 null が揃ったときだけ有効。
+      obsidian.mirrorRepo = settings.obsidianConfigRepo or null;
     };
   };
 }

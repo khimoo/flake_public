@@ -93,10 +93,14 @@
       # claudeConfigRepo: 上記を宣言的に自動 clone する場合の clone 元 URL (null で自動 clone 無効)。
       # modules/home-manager/private-repos.nix が age 鍵で復号した SSH 鍵で clone する。
       # root だけ指定して repo=null なら symlink のみ効き、clone は手動運用のまま。
-      mkSystem = { hostname, system, users, timezone, keymap ? "us", stateVersion, primaryUser ? (builtins.head users).username, flakeRoot, zettelkastenRoot, claudeConfigRoot ? null, claudeConfigRepo ? null }:
+      # obsidianConfigRepo: vault の tracked .obsidian をミラーする config repo(workflow repo)の
+      # local checkout 絶対パス (null で mirror-obsidian を PATH に載せない)。
+      # modules/home-manager/zettelkasten.nix が services.zettelkasten.obsidian.mirrorRepo に注入する。
+      # 環境固有の checkout 位置なので flakeRoot 同様に呼び出し側で指定する。
+      mkSystem = { hostname, system, users, timezone, keymap ? "us", stateVersion, primaryUser ? (builtins.head users).username, flakeRoot, zettelkastenRoot, claudeConfigRoot ? null, claudeConfigRepo ? null, obsidianConfigRepo ? null }:
         let
           settings = baseSettings // {
-            inherit hostname system users timezone keymap stateVersion primaryUser flakeRoot zettelkastenRoot claudeConfigRoot claudeConfigRepo;
+            inherit hostname system users timezone keymap stateVersion primaryUser flakeRoot zettelkastenRoot claudeConfigRoot claudeConfigRepo obsidianConfigRepo;
             standalone = false;
             features = {
               gui = true;
@@ -138,12 +142,12 @@
       # スタンドアロンhome-manager設定を生成するヘルパー関数
       # mkSystem と同じく flakeRoot は呼び出し側で指定 (環境ごとに clone 位置が違うため)。
       # zettelkastenRoot は zettelkastenSync を有効化する standalone 環境のみ必要（既定 null）。
-      mkHome = { username, system, homeFile ? null, stateVersion, allowUnfree ? false, features ? {}, flakeRoot, zettelkastenRoot ? null, claudeConfigRoot ? null, claudeConfigRepo ? null, extraSettings ? {} }:
+      mkHome = { username, system, homeFile ? null, stateVersion, allowUnfree ? false, features ? {}, flakeRoot, zettelkastenRoot ? null, claudeConfigRoot ? null, claudeConfigRepo ? null, obsidianConfigRepo ? null, extraSettings ? {} }:
         let
           pkgs = import nixpkgs { inherit system; inherit overlays; };
           skk-dict = mkSkkDict system;
           settings = baseSettings // {
-            inherit system stateVersion flakeRoot zettelkastenRoot claudeConfigRoot claudeConfigRepo;
+            inherit system stateVersion flakeRoot zettelkastenRoot claudeConfigRoot claudeConfigRepo obsidianConfigRepo;
             standalone = true;
             features = defaultFeatures // features;
           } // extraSettings;
@@ -182,6 +186,7 @@
           flakeRoot = "/home/pomu/sagyo/flake_public";
           zettelkastenRoot = "/home/pomu/sagyo/zettelkasten";
           claudeConfigRoot = "/home/pomu/sagyo/claude-private";
+          obsidianConfigRepo = "/home/pomu/sagyo/zettelkasten-workflow";
         };
 
         nixos-desktop = mkSystem {
@@ -207,6 +212,7 @@
           flakeRoot = "/home/pomu/sagyo/flake_public";
           zettelkastenRoot = "/home/pomu/sagyo/zettelkasten";
           claudeConfigRoot = "/home/pomu/sagyo/claude-private";
+          obsidianConfigRepo = "/home/pomu/sagyo/zettelkasten-workflow";
         };
       };
 
