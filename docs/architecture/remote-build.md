@@ -37,7 +37,7 @@ NixOS でビルドを別ホストにオフロードする方法は大別して 2
 
 - **固定 IP に依存しない**：自宅 LAN・宿泊先 LAN・テザリングなどで IP が変わっても、同セグメント内であれば mDNS が解決する
 - **DNS サーバ不要**：ルータの DHCP/DNS 設定に手を入れない
-- **トレードオフ**：mDNS が届かない環境（VLAN 分離、VPN 越し等）では別途 `/etc/hosts` か Tailscale が必要
+- **トレードオフ**：mDNS が届かない環境（VLAN 分離、VPN 越し等）では別途 `/etc/hosts` か Tailscale が必要（Tailscale 化の設計メモ: [remote-build-tailscale.md](./remote-build-tailscale.md)）
 
 実装は `modules/nixos/ssh.nix` の `services.avahi.publish` で：
 
