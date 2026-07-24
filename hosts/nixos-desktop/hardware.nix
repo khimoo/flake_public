@@ -8,7 +8,9 @@
     [ (modulesPath + "/installer/scan/not-detected.nix")
     ];
 
-  boot.kernelPackages = pkgs.linuxPackages_latest; # blender-hipを使うために最新版(https://wiki.nixos.org/wiki/AMD_GPU)
+  # 7.0 系にピン留め: latest(7.1 系)は X399 の ACPI S5 バグを踏み poweroff で電源が切れない。
+  # 7.0 は blender-hip/AMD GPU(https://wiki.nixos.org/wiki/AMD_GPU)に十分新しい。詳細: docs/architecture/kernel-pin.md
+  boot.kernelPackages = pkgs.linuxPackages_7_0;
   boot.initrd.availableKernelModules = [ "xhci_pci" "ahci" "nvme" "usbhid" "usb_storage" "sd_mod" ];
   boot.initrd.kernelModules = [ "v4l2loopback" ];
   boot.kernelModules = [ "kvm-amd" ];
