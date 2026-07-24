@@ -7,7 +7,8 @@
 
 新しい環境へ flake を適用するとき、従来は private repo を手で `git clone` する必要がある。
 これを無くし、switch するだけで clone される状態にしたい。対象は NixOS だけでなく
-非 NixOS（WSL / macOS）も含む。
+非 NixOS（WSL / macOS）も含む。対象 repo は 1 つに限定せず、Claude 設定と Obsidian
+workflow など複数の private repo を **同じ経路** で自動化する。
 
 ## なぜ home-manager 単独か
 
@@ -49,8 +50,8 @@ Bitwarden 保管 + 漏洩時の rotate（age 鍵を作り直し `sops updatekeys
 
 ## clone-if-absent（冪等・非破壊）
 
-`claudeConfigRoot` が存在しないときだけ clone する。SSH 鍵も `~/.ssh/id_ed25519` が
-無いときだけ書き出す。
+各 `{ url, dest }` について `dest` が存在しないときだけ clone する。SSH 鍵も
+`~/.ssh/id_ed25519` が無いときだけ書き出す。
 
 - 既に clone / 鍵設置済みなら何もしない（毎 switch で pull・上書きしない）
 - live に編集する working tree・既存の鍵を Nix が破壊しない
@@ -59,11 +60,20 @@ Bitwarden 保管 + 漏洩時の rotate（age 鍵を作り直し `sops updatekeys
 immutable に管理しようとしない（[claude-config.md](./claude-config.md) の out-of-store
 symlink と同じ思想）。
 
+## 複数 repo へ汎用化
+
+`private-repos.nix` は `settings.privateRepos = [{ url; dest; }]` を回して clone する。
+リストは `flake.nix` が高レベル設定（`claudeConfigRepo` / `obsidianConfigRepoUrl` などの
+URL 側と、`claudeConfigRoot` / `obsidianConfigRepo` などの dest 側）から自動で組み立てる。
+これで新しい private repo を足すときも `private-repos.nix` は触らず、`flake.nix` の
+`buildPrivateRepos` に 1 行追加するだけで済む。
+
 ## 抜き差し可能性
 
-`claudeConfigRepo`（URL）が `null`（既定）なら activation も secret 参照も生えない。
-clone 先パス（`claudeConfigRoot`）と clone 元 URL（`claudeConfigRepo`）を別軸にしたのは、
-「symlink だけ欲しい（手動 clone）」と「clone も自動化したい」を独立に選べるようにするため。
+URL 側（`claudeConfigRepo` / `obsidianConfigRepoUrl` 等）が `null`（既定）ならその repo は
+リストに入らず、全 URL が null なら activation も secret 参照も生えない。
+dest 側とは別軸で持つことで「symlink（あるいは mirror-obsidian）だけ欲しい（手動 clone）」と
+「clone も自動化したい」を repo ごとに独立に選べる。
 
 ## ゼロからの復元（eval 時の鍵依存は解消済み）
 
@@ -85,6 +95,6 @@ clone 先パス（`claudeConfigRoot`）と clone 元 URL（`claudeConfigRepo`）
 
 ## 限界
 
-- `secrets/secrets.yaml` が無いまま `claudeConfigRepo` を指定すると、そのホストの eval で
-  失敗する（activation が secret を store path として参照するため）。URL 未指定なら
-  参照されないので、公開 flake の `nix flake check` は壊れない
+- `secrets/secrets.yaml` が無いまま URL 側（`claudeConfigRepo` / `obsidianConfigRepoUrl` 等）を
+  指定すると、そのホストの eval で失敗する（activation が secret を store path として
+  参照するため）。全 URL 未指定なら参照されないので、公開 flake の `nix flake check` は壊れない

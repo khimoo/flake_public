@@ -1,6 +1,6 @@
 # private repo の宣言的 clone（home-manager・age 鍵 1 本）
 
-新しい環境に flake を適用したとき、private repo（Claude 設定など）を
+新しい環境に flake を適用したとき、private repo（Claude 設定・Obsidian workflow 等）を
 **手で `git clone` せず**に自動 clone する運用。NixOS でも 非 NixOS（WSL / macOS）でも
 同じ経路（home-manager の `home.activation`）で動く。
 
@@ -16,11 +16,13 @@
   `secrets/secrets.yaml` にコミット**する。暗号文なので公開 repo でも安全。
 - `home.activation` が switch のたびに:
   1. age 鍵があれば `secrets.yaml` を復号し、`~/.ssh/id_ed25519` が無ければ書き出す
-  2. `claudeConfigRoot` が無ければ、その SSH 鍵で `claudeConfigRepo` を clone する
+  2. `settings.privateRepos` の各 `{ url, dest }` について、`dest` が無ければ SSH 鍵で clone する
   既にあるものは触らない（上書き・pull はしない＝非破壊）。
 
-`claudeConfigRepo`（clone 元 URL）を指定しない限り、activation は一切生えない。
-公開 flake をそのまま使う人・自前 repo を手動 clone したい人には無影響。
+`settings.privateRepos` は `flake.nix` が高レベル設定（`claudeConfigRepo` /
+`obsidianConfigRepoUrl` など、URL 側の設定）から自動で組み立てる。dest 側だけ指定して
+URL 側を null のままにすれば、その repo だけ手動 clone 運用に留められる。全 URL が
+未指定なら activation は一切生えない（公開 flake をそのまま使う人には無影響）。
 
 ## 有効化する（初回セットアップ、1 回だけ）
 
@@ -61,17 +63,23 @@ git_ssh_key: |
 保存すると `secrets/secrets.yaml` が暗号化された状態で書かれる。
 `git add secrets/secrets.yaml` してコミットする。
 
-### 4. `claudeConfigRepo` を指定して switch
+### 4. clone 元 URL を指定して switch
 
-対象環境の `flake.nix` 呼び出しに clone 元 URL を足す（clone 先 `claudeConfigRoot` は既存）:
+対象環境の `flake.nix` 呼び出しに、各 repo の clone 元 URL を足す（clone 先の絶対パス側は既存）。
+現在自動 clone に対応しているのは以下 2 種類の repo:
 
 ```nix
+# Claude Code のユーザー設定 (private)
 claudeConfigRoot = "/home/pomu/sagyo/claude-private";
 claudeConfigRepo = "git@github.com:khimoo/claude-private.git";
+
+# Obsidian workflow repo (mirror-obsidian の宛先)
+obsidianConfigRepo    = "/home/pomu/sagyo/zettelkasten-workflow";
+obsidianConfigRepoUrl = "git@github.com:khimoo/zettelkasten-workflow.git";
 ```
 
-switch すると、`claudeConfigRoot` が無い環境では clone され、その後 `dev/claude.nix` の
-symlink が張られる。
+switch すると、それぞれ dest が無い環境で clone される。その後 `dev/claude.nix` の
+symlink（Claude 側）や `mirror-obsidian`（Obsidian 側）がそれぞれ配線される。
 
 ## 新しい環境を足す
 
@@ -84,8 +92,10 @@ age 鍵 1 本を全環境で共有するため、マシンごとの受信者追�
 
 ## 無効化する
 
-`flake.nix` の `claudeConfigRepo` を消す（既定 `null`）と自動 clone は止まる。
-`claudeConfigRoot` だけ残せば symlink は効くので、clone を手動運用に戻せる。
+`flake.nix` の URL 側（`claudeConfigRepo` / `obsidianConfigRepoUrl`）を消す（既定 `null`）と
+その repo の自動 clone は止まる。dest 側（`claudeConfigRoot` / `obsidianConfigRepo`）だけ
+残せば、対応する symlink や `mirror-obsidian` は効くので、clone を手動運用に戻せる。
+全 URL を消せば activation 自体が生えない。
 
 ## 注意
 

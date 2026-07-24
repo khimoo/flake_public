@@ -97,10 +97,23 @@
       # local checkout 絶対パス (null で mirror-obsidian を PATH に載せない)。
       # modules/home-manager/zettelkasten.nix が services.zettelkasten.obsidian.mirrorRepo に注入する。
       # 環境固有の checkout 位置なので flakeRoot 同様に呼び出し側で指定する。
-      mkSystem = { hostname, system, users, timezone, keymap ? "us", stateVersion, primaryUser ? (builtins.head users).username, flakeRoot, zettelkastenRoot, claudeConfigRoot ? null, claudeConfigRepo ? null, obsidianConfigRepo ? null }:
+      # obsidianConfigRepoUrl: 上記を宣言的に自動 clone する場合の clone 元 URL (null で自動 clone 無効)。
+      # claudeConfigRepo と同じ経路 (private-repos.nix + age 鍵) で clone される。
+      # obsidianConfigRepo だけ指定して Url=null なら手動 clone 運用のまま。
+      # buildPrivateRepos: {root, repo} 対のリストから、URL も指定されている項目だけを
+      # private-repos.nix が食う {url, dest} リストに畳む。
+      buildPrivateRepos = pairs:
+        map (p: { url = p.repo; dest = p.root; })
+          (builtins.filter (p: p.root != null && p.repo != null) pairs);
+
+      mkSystem = { hostname, system, users, timezone, keymap ? "us", stateVersion, primaryUser ? (builtins.head users).username, flakeRoot, zettelkastenRoot, claudeConfigRoot ? null, claudeConfigRepo ? null, obsidianConfigRepo ? null, obsidianConfigRepoUrl ? null }:
         let
+          privateRepos = buildPrivateRepos [
+            { root = claudeConfigRoot;   repo = claudeConfigRepo; }
+            { root = obsidianConfigRepo; repo = obsidianConfigRepoUrl; }
+          ];
           settings = baseSettings // {
-            inherit hostname system users timezone keymap stateVersion primaryUser flakeRoot zettelkastenRoot claudeConfigRoot claudeConfigRepo obsidianConfigRepo;
+            inherit hostname system users timezone keymap stateVersion primaryUser flakeRoot zettelkastenRoot claudeConfigRoot claudeConfigRepo obsidianConfigRepo privateRepos;
             standalone = false;
             features = {
               gui = true;
@@ -142,12 +155,16 @@
       # スタンドアロンhome-manager設定を生成するヘルパー関数
       # mkSystem と同じく flakeRoot は呼び出し側で指定 (環境ごとに clone 位置が違うため)。
       # zettelkastenRoot は zettelkastenSync を有効化する standalone 環境のみ必要（既定 null）。
-      mkHome = { username, system, homeFile ? null, stateVersion, allowUnfree ? false, features ? {}, flakeRoot, zettelkastenRoot ? null, claudeConfigRoot ? null, claudeConfigRepo ? null, obsidianConfigRepo ? null, extraSettings ? {} }:
+      mkHome = { username, system, homeFile ? null, stateVersion, allowUnfree ? false, features ? {}, flakeRoot, zettelkastenRoot ? null, claudeConfigRoot ? null, claudeConfigRepo ? null, obsidianConfigRepo ? null, obsidianConfigRepoUrl ? null, extraSettings ? {} }:
         let
           pkgs = import nixpkgs { inherit system; inherit overlays; };
           skk-dict = mkSkkDict system;
+          privateRepos = buildPrivateRepos [
+            { root = claudeConfigRoot;   repo = claudeConfigRepo; }
+            { root = obsidianConfigRepo; repo = obsidianConfigRepoUrl; }
+          ];
           settings = baseSettings // {
-            inherit system stateVersion flakeRoot zettelkastenRoot claudeConfigRoot claudeConfigRepo obsidianConfigRepo;
+            inherit system stateVersion flakeRoot zettelkastenRoot claudeConfigRoot claudeConfigRepo obsidianConfigRepo privateRepos;
             standalone = true;
             features = defaultFeatures // features;
           } // extraSettings;
@@ -186,7 +203,9 @@
           flakeRoot = "/home/pomu/sagyo/flake_public";
           zettelkastenRoot = "/home/pomu/sagyo/zettelkasten";
           claudeConfigRoot = "/home/pomu/sagyo/claude-private";
+          claudeConfigRepo = "git@github.com:khimoo/claude-private.git";
           obsidianConfigRepo = "/home/pomu/sagyo/zettelkasten-workflow";
+          obsidianConfigRepoUrl = "git@github.com:khimoo/zettelkasten-workflow.git";
         };
 
         nixos-desktop = mkSystem {
@@ -212,7 +231,9 @@
           flakeRoot = "/home/pomu/sagyo/flake_public";
           zettelkastenRoot = "/home/pomu/sagyo/zettelkasten";
           claudeConfigRoot = "/home/pomu/sagyo/claude-private";
+          claudeConfigRepo = "git@github.com:khimoo/claude-private.git";
           obsidianConfigRepo = "/home/pomu/sagyo/zettelkasten-workflow";
+          obsidianConfigRepoUrl = "git@github.com:khimoo/zettelkasten-workflow.git";
         };
       };
 

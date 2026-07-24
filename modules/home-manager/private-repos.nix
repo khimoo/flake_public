@@ -7,18 +7,17 @@
 #      (既存マシンから SSH 送信、または Bitwarden から取得)。マシンに縛られない小さな鍵。
 #   2) 暗号文 = secrets/secrets.yaml(この repo にコミット・sops で暗号化済み)。中身は GitHub 登録
 #      済みのユーザー SSH 鍵(既存のものを流用)。age 鍵で復号し ~/.ssh/id_ed25519 が無ければ書き出す。
-#   3) その SSH 鍵で claudeConfigRepo を claudeConfigRoot へ clone(既に在れば何もしない)。
+#   3) その SSH 鍵で 各 { url, dest } を dest 未存在時のみ clone(冪等・非破壊)。
 #
-# claudeConfigRepo が null(既定)なら activation 自体が生えない。公開 flake をそのまま使う人・
-# 自前 repo を手動 clone したい人に無影響(抜き差し可能)。dev/claude.nix の symlink は
-# claudeConfigRoot さえ在れば clone の有無に関わらず効く。
+# 対象 repo は settings.privateRepos = [{ url, dest }] で受ける。空リスト(既定)なら activation
+# 自体が生えない。公開 flake をそのまま使う人・自前 repo を手動 clone したい人には無影響。
+# 個々の (url, dest) は flake.nix 側で claudeConfig* / obsidianConfig* 等の高レベル設定から
+# 組み立てる (dest だけ指定・URL 未指定は手動 clone のまま = 抜き差し可能)。
 { config, lib, pkgs, settings, ... }:
 
 let
-  claudeRoot = settings.claudeConfigRoot or null;
-  claudeRepo = settings.claudeConfigRepo or null;
-  # clone 自動化を有効化するのは clone 先(root)と clone 元(repo)の両方が指定されたときだけ。
-  enable = claudeRoot != null && claudeRepo != null;
+  repos = settings.privateRepos or [];
+  enable = repos != [];
 
   home = config.home.homeDirectory;
   ageKeyFile = "${home}/.config/sops/age/keys.txt";
@@ -26,14 +25,26 @@ let
 
   # コミット済みの暗号文。store path になる(暗号化済みなので world-readable でも安全)。
   secretsFile = ../../secrets/secrets.yaml;
+
+  # 1 repo 分の clone スニペット。SSH 鍵と age 鍵の下準備は外側で 1 度だけ行う前提。
+  cloneRepoSnippet = { url, dest }: ''
+    repo=${lib.escapeShellArg url}
+    dest=${lib.escapeShellArg dest}
+    if [ ! -e "$dest" ]; then
+      mkdir -p "$(dirname "$dest")"
+      GIT_SSH_COMMAND="ssh -i $ssh_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new" \
+        ${pkgs.git}/bin/git clone "$repo" "$dest"
+    fi
+  '';
+
+  dryRunListSnippet = { url, dest }:
+    "echo 'private-repos: (dry-run) ${url} を ${dest} へ clone する予定' >&2";
 in
 {
   config = lib.mkIf enable {
     home.activation.privateRepos = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
       age_key=${lib.escapeShellArg ageKeyFile}
       ssh_key=${lib.escapeShellArg sshKey}
-      repo=${lib.escapeShellArg claudeRepo}
-      dest=${lib.escapeShellArg claudeRoot}
       secrets=${lib.escapeShellArg (toString secretsFile)}
 
       if [ ! -f "$age_key" ]; then
@@ -41,7 +52,7 @@ in
         echo "private-repos: age 復号鍵 $age_key が無いのでスキップ(SSH 送信 or Bitwarden で設置)" >&2
       elif [ -n "''${DRY_RUN_CMD:-}" ]; then
         # dry-run 時は SSH 鍵ファイルを絶対に触らない(リダイレクトは DRY_RUN_CMD で包めないため)。
-        echo "private-repos: (dry-run) $repo を $dest へ clone する予定" >&2
+        ${lib.concatMapStringsSep "\n        " dryRunListSnippet repos}
       else
         # ユーザー SSH 鍵が無ければ暗号文から復元(既存鍵は上書きしない=非破壊)。
         if [ ! -f "$ssh_key" ]; then
@@ -52,12 +63,8 @@ in
           chmod 600 "$ssh_key"
         fi
 
-        # clone 先が無ければ初回 clone(既存 working tree は触らない・pull もしない)。
-        if [ ! -e "$dest" ]; then
-          mkdir -p "$(dirname "$dest")"
-          GIT_SSH_COMMAND="ssh -i $ssh_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new" \
-            ${pkgs.git}/bin/git clone "$repo" "$dest"
-        fi
+        # 各 repo を dest 未存在時のみ clone(既存 working tree は触らない・pull もしない)。
+        ${lib.concatMapStringsSep "\n\n        " (r: "(\n          ${cloneRepoSnippet r}\n        )") repos}
       fi
     '';
   };
