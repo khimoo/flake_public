@@ -88,6 +88,43 @@ sagyo-install pomu@<new-ip> nixos-<newhost>
 Bitwarden 自体もアクセス不能なら？ → 物理バックアップ（USB・紙印刷）を金庫・実家に
 分散配置しておく。個人利用の判断。
 
+## 解決される問題
+
+この設計を Phase 4 まで完成させた時点で、以下が同時に解決される:
+
+1. **今回発生した silent skip の再発防止** — activation の strict 化により、age 鍵不在
+   なら次の rebuild で必ず気付く。「rebuild は成功したのに実は clone されてなかった」
+   が原理的に起きない
+2. **新マシン追加の手数削減** — 現状「NixOS install → age 鍵配送を手で判断 → rebuild
+   → warning 見逃し確認」の 4 段階から、「installer 起動 + `sagyo-install pomu@<ip> <host>`
+   を既存機から叩く」の 1 段階に短縮
+3. **ドキュメント経路併記の腐敗防止** — `private-repo-clone.md` の「SSH 送信 or Bitwarden
+   から取得」の 2 経路併記が撤去され、new-machine.md の single-path 手順書に一本化。
+   将来自分で読み直したときにどちらが正解か迷わなくなる
+4. **DR パニック時の実行可能性** — 家焼失時に「どうやるんだっけ」のパニック下でも
+   new-machine.md の「最初の 1 台目」節を上から読むだけで復元できる。手順の暗記が不要
+5. **bootstrap 挙動の予測可能性** — 今は「rebuild すると activation が clone するかも
+   しれないししないかもしれない」という条件付き挙動。strict 化後は「rebuild が成功した
+   = bootstrap 済み」と一意に決まる。他人（未来の自分含む）がコードを読むときの認知
+   負荷が下がる
+6. **新マシンの disk layout の宣言化（副次的）** — Phase 3 で新機に disko を導入する
+   ことで、パーティション定義が nix expression 化される。将来同じマシンを再構築する
+   ときにパーティション作業が消える（既存機は無理に移行しないので恩恵無し）
+
+## 解決されない問題（正直に）
+
+この設計は install 時 bootstrap の silent skip 問題を解くが、以下は依然として人間の
+責務として残る:
+
+- **最初の 1 台目の chicken-and-egg** — 世界に NixOS 機が 0 台の状態からのブートストラップ
+  は物理的に人間の対話が要る（Bitwarden or USB）。詳細は下記「検討事項」節参照
+- **Bitwarden アカウント運用リスク** — master password 紛失、2FA デバイス紛失は自動化
+  できない。物理バックアップの分散配置で保険をかけるのは個人の判断
+- **ハードウェア故障の物理的復旧** — 通販でマザーボード買うのは自動化できない
+- **`secrets.yaml` 内の他シークレット追加 / rotate** — SSH 鍵以外のシークレット追加時は
+  `sops` を手で叩く手順が残る（bootstrap とは別関心）
+- **`flake.lock` 更新の判断** — 依然人間の責務（bootstrap の話とは別関心）
+
 ## 決定事項（このセッションで決まったこと）
 
 | 論点 | 決定 |
@@ -120,21 +157,97 @@ Bitwarden 自体もアクセス不能なら？ → 物理バックアップ（US
 - `secrets/secrets.yaml`、`.sops.yaml`、`hosts/machines.nix`、既存の age → sops → SSH 鍵チェーン
 - 既存マシンの `hardware.nix` の `fileSystems`（disko 化はやらない）
 
-## 実装ステップ（TODO checklist）
+## 実装優先度と日程感
 
-- [ ] `nixos-anywhere` を試す: 既存の nixos-desktop → 適当な VM に対して素の
-      `nixos-anywhere --flake .#nixos-spin713 ...` を叩いて感触を掴む
-- [ ] `sagyo-install` を `flake.nix` の `apps.x86_64-linux.sagyo-install` として実装:
-      nixos-anywhere を呼び、`--extra-files` に age 鍵を自動注入
-- [ ] `private-repos.nix` の activation を strict 化（age 鍵不在で error 停止）
-- [ ] `docs/howtouse/new-machine.md` を書く: N 台目手順 / 最初の 1 台目手順（両経路）
-- [ ] `docs/howtouse/private-repo-clone.md` の bootstrap 節を new-machine.md に置換
-- [ ] 実装完了後、この doc を「設計判断のみ」に絞って書き直す（TODO tag を外す）
+### 優先度
 
-新マシンを実際に足すタイミングで最終ステップ:
+**Phase 0 → 1 → 4 のセットが最優先で価値が高い**:
 
-- [ ] 新マシンの `hosts/<newhost>/disko.nix` を書く
-- [ ] `sagyo-install pomu@<ip> nixos-<newhost>` で実プロビジョニング
+- **Phase 4** で silent skip の根絶が達成される（今回問題の根本解決）
+- ただし Phase 4 単独では復元手段が Bitwarden 手入力しか残らず UX が退化する
+- **Phase 0 → 1** で `sagyo-install` の受け皿を先に作っておくことで、Phase 4 の
+  エラーメッセージから誘導先が実在する状態を作る
+- **Phase 3**（実マシン検証）は実機購入まで自然に遅延するので、Phase 4 を先にやっても良い
+- **Phase 2**（howtouse docs）・**Phase 5**（architecture doc 書き直し）は保守性のため
+
+### 日程感の目安
+
+- **Phase 0〜2** 集中してやれば 1 日
+- **Phase 4** は別日で 1 時間（既存マシンでの検証込み）
+- **Phase 3** は実マシン購入次第（数ヶ月〜数年後もあり得る）
+- **Phase 5** は Phase 3〜4 完了後、30 分
+
+## 実装ステップ（Phase 単位）
+
+### Phase 依存グラフ
+
+```
+Phase 0 ──▶ Phase 1 ──▶ Phase 2 ──▶ Phase 3 ──▶ Phase 4 ──▶ Phase 5
+(nixos-      (sagyo-      (howtouse    (実マシン    (activation   (arch doc
+ anywhere    install      docs)        検証・       strict 化)   書き直し)
+ 素で試す)   wrapper)                  disko)
+```
+
+Phase 0〜2 は連続してやるのが集中力的に良い。Phase 3 は実マシン準備次第で自然に延びる。
+Phase 4 は Phase 3 完了直後にやるのが理想（頭の中に文脈がある間）。
+
+### Phase 0: 素の nixos-anywhere を触る
+
+- **やること**: 既存の nixos-spin713 の設定を VM に対して `nixos-anywhere` で流し込む。
+  `--extra-files` で任意ファイルが指定パスに落ちることも確認
+- **なぜ最初**: ツール自体の挙動を知らないと `sagyo-install` の設計が空想になる。
+  VM でやるのは壊しても失うものが無いから
+- **既存機への影響**: なし（VM のみ）
+- **完了時の便益**: nixos-anywhere の挙動理解（無形資産）。設計を差し戻すなら今が
+  最も低コスト
+
+### Phase 1: sagyo-install wrapper 実装
+
+- **やること**: `flake.nix` の `apps.x86_64-linux.sagyo-install` として nixos-anywhere の
+  薄いラッパーを追加。既存機の `~/.config/sops/age/keys.txt` を自動で `--extra-files` に
+  載せる
+- **なぜここ**: Phase 0 で挙動が分かった直後にラップする。VM で 2 回目を実行して
+  one-shot で age 鍵まで含まれることを確認
+- **既存機への影響**: なし（flake output が増えるだけ）
+- **完了時の便益**: `nix run .#sagyo-install` が実装完了
+
+### Phase 2: `docs/howtouse/new-machine.md` 作成 + `private-repo-clone.md` 置換
+
+- **やること**: 最初の 1 台目 + N 台目の手順書を書き、`private-repo-clone.md` の
+  bootstrap 節を new-machine.md にリダイレクト
+- **なぜここ**: 実装が動いた直後に書くのが最も正確（「動いた通りに書く」）。
+  実装前に書くと理想論になる
+- **既存機への影響**: なし（docs のみ）
+- **完了時の便益**: 手順書と実装が一致した状態、DR 手順が明文化される
+
+### Phase 3: 実マシンでの検証
+
+- **やること**: 実際に新マシンが必要になったタイミングで `hosts/<newhost>/disko.nix` を
+  書き、`sagyo-install` で通す
+- **なぜここ**: 実マシンでしか本当の検証はできない。Phase 2 まで既存機に影響しない
+  ので、ここまで待っても損は無い
+- **既存機への影響**: なし（新規マシンのみ）
+- **完了時の便益**: **実利: 新マシンを 1 コマンドで足せることが実証される**
+- **タイミング**: 実マシン購入待ち。テスト用に VM でもう 1 回検証するのも可
+
+### Phase 4: activation の strict 化
+
+- **やること**: `modules/home-manager/private-repos.nix` を「age 鍵不在なら error で停止」
+  に変更。エラーメッセージに sagyo-install / Bitwarden / USB の 3 経路を明記
+- **なぜ最後**: 唯一の後戻りしにくい変更。`sagyo-install` が動く状態でやることで、
+  エラーメッセージの誘導先が実在する
+- **既存機への影響**: **あり**。rebuild が失敗する可能性がある。既存 2 マシンで age
+  鍵ある状態を確認 + 試しに age 鍵をリネームして rebuild が正しく error になることを
+  確認 → 元に戻す
+- **完了時の便益**: **実利: silent skip の根絶。今回のような事象がゼロに**
+
+### Phase 5: architecture doc 書き直し
+
+- **やること**: この `new-machine.md` から TODO tag を外し、「設計判断のみ」に絞る
+  （実装ステップ節は削除、実装済み事項に置換）
+- **なぜここ**: 実装完了後に書き直すのがドキュメントとして最も正確
+- **既存機への影響**: なし（docs のみ）
+- **完了時の便益**: 保守性（doc が正確）
 
 ## 検討事項・トレードオフ
 
