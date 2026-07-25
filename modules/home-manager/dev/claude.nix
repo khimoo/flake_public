@@ -8,16 +8,26 @@
 # ~/.claude 自体は Claude Code が settings.json や履歴等を書き込む live なディレクトリ
 # なので丸ごとは symlink せず、git 管理したいエントリだけを個別に symlink する。
 # out-of-store symlink のため、repo 側の編集は rebuild なしで即反映される。
+#
+# configDirs は Claude Code がユーザー設定を読む既知カテゴリ。各ディレクトリを丸ごと
+# symlink するので、配下の skill/agent/command 追加・編集は rebuild なしで即反映される。
+# repo にまだ存在しないカテゴリは dangling symlink になるが、Claude Code からは
+# 「設定なし」に見えるだけで壊れない。repo 側でそのディレクトリを作った時点で live に
+# なるため、Claude Code が全く新しいカテゴリを導入した時以外は switch が要らない。
 { config, settings, lib, ... }:
 
 let
   root = settings.claudeConfigRoot;
+  configDirs = [ "skills" "agents" "commands" "output-styles" ];
+  mkLink = path: config.lib.file.mkOutOfStoreSymlink "${root}/${path}";
 in
 {
   config = lib.mkIf (root != null) {
-    home.file.".claude/CLAUDE.md".source =
-      config.lib.file.mkOutOfStoreSymlink "${root}/CLAUDE.md";
-    home.file.".claude/skills".source =
-      config.lib.file.mkOutOfStoreSymlink "${root}/skills";
+    home.file = {
+      ".claude/CLAUDE.md".source = mkLink "CLAUDE.md";
+    } // builtins.listToAttrs (map (d: {
+      name = ".claude/${d}";
+      value.source = mkLink d;
+    }) configDirs);
   };
 }
