@@ -14,6 +14,7 @@
     gh
     uv
     ghostscript
+    poppler_utils
     mpv
     fd
     ripgrep
