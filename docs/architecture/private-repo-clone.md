@@ -72,6 +72,21 @@ URL 側と、`claudeConfigRoot` / `obsidianConfigRepo` などの dest 側）か�
 これで新しい private repo を足すときも `private-repos.nix` は触らず、`flake.nix` の
 `buildPrivateRepos` に 1 行追加するだけで済む。
 
+## vault フォルダの所有者は clone
+
+Obsidian vault（ノート本文の private repo）もこのリストに載せている。vault を用意する経路は
+もう一つあり、`services.zettelkasten.initializeVault`（外部 flake 側の option）が switch 中に
+フォルダ作成と `git init` を行う。**両方を有効にしてはいけない**——先に空フォルダができると
+`git clone` が「空でないディレクトリ」で失敗するため。
+
+この repo では clone 側に一本化した。ノート本文が既に GitHub にある以上、`git init` は
+初期化ではなく衝突でしかない。`initializeVault` は既定 `false` なので、明示的に何も書かない
+ことが正しい設定になる。
+
+同じ理由で、vault の中へ mount する btrfs subvol（papis ライブラリ）も clone より先に
+mount 先を作ってはいけない。これは `fileSystems` ではなく条件付き `systemd.mounts` で
+表現している（[disk-tiering.md](./disk-tiering.md) 参照）。
+
 ## 抜き差し可能性
 
 URL 側（`claudeConfigRepo` / `obsidianConfigRepoUrl` 等）が `null`（既定）ならその repo は

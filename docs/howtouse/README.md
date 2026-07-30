@@ -13,8 +13,8 @@
 | Neovim | プラグイン・キーバインド・ワークフロー | [modules/home-manager/dev/neovim/config/docs/README.md](../../modules/home-manager/dev/neovim/config/docs/README.md) |
 | wezterm | ターミナルのキーバインド・ペイン・ワークスペース | [cli-tools/wezterm.md](./cli-tools/wezterm.md) |
 | 共通 devShell | コードリーディング用 devShell を `.envrc` から参照する運用 | [devshells.md](./devshells.md) |
-| papis ライブラリ同期 | papis ライブラリ（vault 内 references/）を Google Drive 経由で複数マシン同期する使い方・鍵運用 | [papis-gdrive-sync.md](./papis-gdrive-sync.md) |
-| Zettelkasten 添付同期 | Obsidian vault の添付フォルダを Google Drive 同期する使い方（papis と secret 共有） | [zettelkasten-attachments-sync.md](./zettelkasten-attachments-sync.md) |
+| papis の使い方 | 文献の追加・citekey の pin・BibTeX 書き出しと、papis 固有の同期上の注意 | [papis-gdrive-sync.md](./papis-gdrive-sync.md) |
+| Zettelkasten の Drive 同期 | 添付と papis ライブラリの Google Drive 同期。新マシンのセットアップ（rclone 認証・初回同期）と日常運用 | [zettelkasten-attachments-sync.md](./zettelkasten-attachments-sync.md) |
 | Obsidian 設定の配布・ミラー | `.obsidian` を fresh マシンへ配る（seed）・live 設定を config repo へ写す（mirror）使い方と fork | [zettelkasten-obsidian-config.md](./zettelkasten-obsidian-config.md) |
 | ディスク階層構成 | NVMe(ホット)/SATA(コールド)の 2 層・btrfs subvol のレイアウトとセットアップ | [disk-tiering.md](./disk-tiering.md) |
 | Claude Code 設定 | グローバル CLAUDE.md・skills を private repo で git 管理し symlink で挿す運用 | [claude-config.md](./claude-config.md) |

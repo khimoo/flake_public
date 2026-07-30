@@ -15,8 +15,8 @@ Flake 設定の設計判断・実装構造のドキュメント。設定変更�
 | [remote-build-tailscale.md](./remote-build-tailscale.md) | **TODO**: 外出先から Tailscale 経由で `--build-host` を効かせる（設計メモ・未実装） |
 | [xdg-scheme-workaround.md](./xdg-scheme-workaround.md) | XDG スキームハンドラの手動登録（一時的） |
 | [devshells.md](./devshells.md) | コードリーディング用共通 devShell の設計判断 |
-| [papis-gdrive-sync.md](./papis-gdrive-sync.md) | papis ライブラリの Google Drive 同期（workflow flake で仕組みを所有・rclone bisync + sops）の設計判断 |
-| [zettelkasten-attachments-sync.md](./zettelkasten-attachments-sync.md) | Obsidian vault 添付の Google Drive 同期（workflow flake で仕組みを所有・secret 共有）の設計判断 |
+| [papis-gdrive-sync.md](./papis-gdrive-sync.md) | 参照文献マネージャに papis を選んだ理由と、ライブラリを vault 内 `references/` に置く判断 |
+| [zettelkasten-attachments-sync.md](./zettelkasten-attachments-sync.md) | vault の添付・papis ライブラリの Google Drive 同期（workflow flake が仕組みを所有・認証は各マシンの rclone.conf）の設計判断 |
 | [zettelkasten-obsidian-config.md](./zettelkasten-obsidian-config.md) | `.obsidian` 設定の配布（seed = public→vault）とミラー（mirror = vault→public の派生更新）。live source-of-truth は vault（obsidian-git）、public は派生スナップショットとして分離維持する設計判断 |
 | [disk-tiering.md](./disk-tiering.md) | NVMe/SATA の 2 層ディスク構成（btrfs subvol・NOCOW・ブートメニュー）の設計判断 |
 | [claude-config.md](./claude-config.md) | Claude Code ユーザー設定の git 管理（パス注入 + out-of-store symlink、flake input を退けた理由） |

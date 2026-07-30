@@ -79,22 +79,36 @@ btrfs は CoW のため qcow2/raw の VM イメージを置くと激しく断片
 papis も同様だが、マウント先が **NVMe 側の `~/sagyo` ツリーの内側**にある点が特殊:
 `@papis` を `~/sagyo/zettelkasten/references`（vault clone の直下）へマウントする。
 `references/` という**ディレクトリだけ**が NVMe の `~/sagyo` 上に存在し、そこに SATA の
-`@papis` を被せるので、中身（papis のライブラリ本体）は SATA に載る。papis の
-`libraryDir` は workflow flake の `services.zettelkasten.papis.libraryDir`（既定
-`${zettelkastenRoot}/references`）が単一の出所で、マウントはその保存先を SATA に差し替える
-だけ。papis 層が保存 backend を知らないという依存方向
+`@papis` を被せるので、中身（papis のライブラリ本体）は SATA に載る。papis のライブラリ位置は
+workflow flake が `<vaultDir>/references` に規約で固定していて、マウントはその保存先を SATA に
+差し替えるだけ。papis 層が保存 backend を知らないという依存方向
 （[papis-gdrive-sync.md](./papis-gdrive-sync.md)）と一致する。
 
 この配置は 2 つの要求を同時に満たすための折衷:
 - **papis を vault の中に置く**（Obsidian vault で完結。`references/` は vault の 1 フォルダ）
 - **papis を SATA に置く**（同期はネットワーク律速なので SATA で体感差ゼロ、NVMe を空ける）
 
-前提として、マウント先の親 `~/sagyo/zettelkasten`（vault の clone）が存在すること。
-存在しないと SATA subvol の被せ先が無く、`references/` は空の NVMe ディレクトリのままになる。
+### `@papis` だけ条件付き systemd.mounts にする
+
+マウント先の親 `~/sagyo/zettelkasten` は vault の clone なので、**マウントが clone より先に
+走ってはいけない**。`fileSystems` に書くと systemd が boot 時に無条件でマウント先を作り、
+root 所有の中間ディレクトリができる。すると
+[private-repos.nix](./private-repo-clone.md) の `git clone` が「空でないディレクトリ」
+「書き込めない」で失敗し、`dest` があるので次の switch 以降は skip される——vault が永久に
+来ないまま静かに壊れる。実際に起きた。
+
+そこで `@papis` だけ `fileSystems` から外し、`systemd.mounts` に
+`ConditionPathExists = "${zettelkastenRoot}/.git"` を付けて表現している。vault が実在するとき
+だけマウントする、という順序制約を条件として書けるのが `systemd.mounts` を選ぶ理由。
+新マシンでは初回 clone の後に一度 reboot（または `systemctl start`）してマウントを有効にする。
+
+条件が偽の間 `references/` は NVMe 上の（存在しないか空の）ディレクトリになる。ここは
+`nofail` によるサイレント障害（後述）とは別で、「vault がまだ無いのだから papis ライブラリも
+無い」という一貫した状態なので、書き込みが NVMe に落ちる事故は起きない。
 
 ### fileSystems は map 生成する
 
-8 個の subvol マウントを手書きすると device/fsType/オプションが重複する。`{subvol, path,
+subvol マウントを手書きすると device/fsType/オプションが重複する。`{subvol, path,
 opts}` のリストから `builtins.listToAttrs` で生成し、共通部分を一箇所に閉じる。
 
 ### ブートメニュー無効化（timeout=0）は desktop 限定

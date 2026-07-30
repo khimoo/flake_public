@@ -13,7 +13,7 @@
 #
 # 設計判断: docs/architecture/disk-tiering.md
 # 使い方:   docs/howtouse/disk-tiering.md
-{ pkgs, ... }:
+{ pkgs, lib, settings, ... }:
 let
   # btrfs は FS 全体で 1 UUID。各 subvol は subvol= オプションで選ぶので全マウントで共有する。
   device = "/dev/disk/by-uuid/57ba3e14-4099-4708-a643-edfc45d3eb18";
@@ -21,14 +21,8 @@ let
   # SSD 向けに noatime、コールド/メディア層は zstd 圧縮（既圧縮ファイルは btrfs が自動スキップ）。
   dataOpts = [ "noatime" "compress=zstd" ];
 
-  # {subvol, path, opts} のリストから fileSystems を生成し、8 エントリの手書き重複を避ける。
+  # {subvol, path, opts} のリストから fileSystems を生成し、エントリの手書き重複を避ける。
   mounts = [
-    # papis ライブラリは vault(Obsidian)配下の references/ に置く方針(vault で完結)。
-    # マウント先を vault の中にすることで、実体は SATA(コールド/バルク層)のまま、論理的には
-    # ~/sagyo/zettelkasten/references として vault の 1 フォルダに見える。papis の同期は
-    # zettelkasten flake の services.zettelkasten.papis が所有する(既定 libraryDir と一致)。
-    # 前提: mount 先の親 ~/sagyo/zettelkasten(vault の clone)が存在すること。
-    { subvol = "@papis";     path = "/home/pomu/sagyo/zettelkasten/references"; opts = dataOpts; }
     { subvol = "@downloads"; path = "/home/pomu/ダウンロード";  opts = dataOpts; }
     { subvol = "@videos";    path = "/home/pomu/ビデオ";        opts = dataOpts; }
     { subvol = "@music";     path = "/home/pomu/音楽";          opts = dataOpts; }
@@ -48,6 +42,24 @@ in
       options = [ "subvol=${m.subvol}" ] ++ m.opts;
     };
   }) mounts);
+
+  # papis ライブラリは vault(Obsidian)配下の references/ に置く方針(vault で完結)。マウント先を
+  # vault の中にすることで、実体は SATA(コールド/バルク層)のまま、論理的には vault の 1 フォルダに
+  # 見える。同期は services.zettelkasten.papis が所有する(同じパスを見ている)。
+  #
+  # ここだけ fileSystems ではなく systemd.mounts なのは、mount 先の親が vault の clone だから。
+  # 無条件に mount すると systemd が clone より先に root 所有の中間ディレクトリを作り、
+  # private-repos.nix の git clone が「空でない」「書けない」で失敗する。vault が実在するとき
+  # (= .git がある)だけ mount することで、clone → mount の順序を条件で表現する。
+  # 新マシンでは初回 clone の後に一度 reboot(または systemctl start)して mount を有効にする。
+  systemd.mounts = [{
+    what = device;
+    where = "${settings.zettelkastenRoot}/references";
+    type = "btrfs";
+    options = lib.concatStringsSep "," ([ "subvol=@papis" ] ++ dataOpts);
+    unitConfig.ConditionPathExists = "${settings.zettelkastenRoot}/.git";
+    wantedBy = [ "local-fs.target" ];
+  }];
 
   # btrfs をカーネル/システムで扱えるように（root は ext4 なので既定では無効）+ メンテ用 CLI。
   boot.supportedFilesystems = [ "btrfs" ];

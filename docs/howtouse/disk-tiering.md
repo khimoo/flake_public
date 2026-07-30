@@ -22,9 +22,19 @@ SATA SSD（`/dev/sda`）は btrfs 単一パーティション。subvol を最終
 
 全 subvol は FS 全体で 1 つの UUID を共有し、`subvol=@xxx` で選ぶ。
 
-`@papis` だけはマウント先が vault clone の内側（`~/sagyo/zettelkasten/references`）にある。
-マウント先の親 `~/sagyo/zettelkasten`（vault の clone）が先に存在している必要がある。
-無いとマウントできず、papis のライブラリが空の NVMe ディレクトリに載ってしまう。
+`@papis` だけはマウント先が vault clone の内側（`~/sagyo/zettelkasten/references`）にあるため、
+`fileSystems` ではなく `systemd.mounts` で定義し、**vault が clone 済み
+（`~/sagyo/zettelkasten/.git` がある）のときだけマウントする**条件を付けている。無条件に
+マウントすると、clone より先に root 所有のディレクトリができて `git clone` が失敗する。
+
+そのため新しいマシンでは、初回 switch で vault が clone された**あと**に一度マウントを
+起こす必要がある:
+
+```sh
+sudo systemctl start home-pomu-sagyo-zettelkasten-references.mount
+```
+
+（再起動でも同じ。以降の boot では条件が真なので自動でマウントされる。）
 なぜ vault の中かつ SATA なのかは [../architecture/disk-tiering.md](../architecture/disk-tiering.md) を参照。
 
 ## 状態確認
