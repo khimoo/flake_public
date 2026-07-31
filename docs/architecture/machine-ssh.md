@@ -68,11 +68,14 @@ N×N の直書きになり重複する。単一の情報源に集約し、`ssh.n
 ### IdentitiesOnly は付けない
 
 生成する `Host` ブロックは `IdentityFile` を指定するが `IdentitiesOnly yes` は付けない。
-`/etc/ssh/ssh_config` は root にも効き、root の `~/.ssh/id_lan` は存在しない。
-`sudo nixos-rebuild --build-host` は `env_keep` した `SSH_AUTH_SOCK` 越しに
-ユーザーの agent で認証しており、`IdentitiesOnly yes` を付けると agent の鍵が無視されて
-リモートビルドが壊れる。存在しない `IdentityFile` は単に読み飛ばされるので、
-指定するだけなら root に無害。
+`/etc/ssh/ssh_config` は root にも効くので、root の認証手段を狭めないためである。
+
+`sudo nixos-rebuild --build-host` の root は 2 通りで認証できる:
+①`IdentityFile` が指す `/home/pomu/.ssh/id_lan` を直読みする（root は他ユーザーのファイルを
+読めるし、ssh が拒否するのは所有者以外にも読めるモードの場合だけで 600 なら通る）、
+②`users.nix` で `env_keep` した `SSH_AUTH_SOCK` 越しにユーザーの agent を使う。
+`IdentitiesOnly yes` を付けると②が消え、①も鍵ファイルが無い環境では成立しないため、
+リモートビルドが壊れうる。付けないことで得られる利便が失われる安全性を上回る。
 
 ### ホスト鍵は accept-new（TOFU）
 
