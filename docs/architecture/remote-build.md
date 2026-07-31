@@ -6,7 +6,7 @@
 
 - `modules/nixos/ssh.nix` — openssh + avahi publish + マシン間 SSH の生成
 - `modules/nixos/nix-settings.nix` — `nix.settings.trusted-users`
-- `hosts/machines.nix` — 全マシンの公開鍵レジストリ（`authorizedKeys` と host key 受理設定の元）
+- `hosts/machines.nix` — ホスト一覧と LAN 共通鍵の公開鍵（`authorizedKeys` と host key 受理設定の元）
 
 > SSH の鍵管理・ホスト鍵受理・`.local` 接続の配線はリモートビルド専用ではなく、
 > flake 内マシン間 SSH の共通基盤である [machine-ssh.md](./machine-ssh.md) に集約した。
@@ -98,7 +98,7 @@ nix.settings.trusted-users = [ "@wheel" ];
 - リモートビルドが必要とする「root の `known_hosts` に `nixos-desktop.local` を
   accept-new で入れる」動作も、この生成される `/etc/ssh/ssh_config`（root にも効く）が兼ねる
 
-設計判断（per-machine 鍵、集約、accept-new の TOFU トレードオフ、CA 不採用など）は
+設計判断（LAN 共通鍵、集約、accept-new の TOFU トレードオフ、CA 不採用など）は
 [machine-ssh.md](./machine-ssh.md) を参照。
 
 > デスクトップ `hosts/nixos-desktop/default.nix` に残る RSA 鍵は、ed25519 集約前からの
@@ -125,7 +125,7 @@ security.sudo.extraConfig = ''
 | `modules/nixos/ssh.nix` | openssh の有効化、mDNS publish、`machines.nix` から authorized_keys とクライアント設定を生成 |
 | `modules/nixos/nix-settings.nix` | trusted-users（nix-daemon の信頼境界） |
 | `modules/nixos/users.nix` | sudo の `SSH_AUTH_SOCK` 引き継ぎ |
-| `hosts/machines.nix` | 全マシンの公開鍵レジストリ（マシン間 SSH の単一の情報源） |
+| `hosts/machines.nix` | ホスト一覧と LAN 共通鍵の公開鍵（マシン間 SSH の単一の情報源） |
 
 「共通インフラ」と「マシン登録簿」を分離し、新ホストを追加するときに触る場所を
 `hosts/machines.nix` の1エントリに局所化している（詳細は [machine-ssh.md](./machine-ssh.md)）。

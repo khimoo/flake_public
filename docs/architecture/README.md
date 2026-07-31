@@ -10,7 +10,7 @@ Flake 設定の設計判断・実装構造のドキュメント。設定変更�
 | [teams-dispatcher.md](./teams-dispatcher.md) | Teams マルチアカウント URL ディスパッチャ |
 | [rustowl.md](./rustowl.md) | RustOwl の impure インストール |
 | [users.md](./users.md) | ユーザー管理・sudo 設定・home-manager 連携 |
-| [machine-ssh.md](./machine-ssh.md) | flake 内マシンの相互 SSH（`machines.nix` 集約・per-machine 鍵）の設計判断 |
+| [machine-ssh.md](./machine-ssh.md) | flake 内マシンの相互 SSH（`machines.nix` 集約・LAN 共通鍵）の設計判断 |
 | [remote-build.md](./remote-build.md) | SSH 経由のリモートビルド（`--build-host`）の設計判断 |
 | [remote-build-tailscale.md](./remote-build-tailscale.md) | **TODO**: 外出先から Tailscale 経由で `--build-host` を効かせる（設計メモ・未実装） |
 | [xdg-scheme-workaround.md](./xdg-scheme-workaround.md) | XDG スキームハンドラの手動登録（一時的） |
@@ -20,6 +20,6 @@ Flake 設定の設計判断・実装構造のドキュメント。設定変更�
 | [zettelkasten-obsidian-config.md](./zettelkasten-obsidian-config.md) | `.obsidian` 設定の配布（seed = public→vault）とミラー（mirror = vault→public の派生更新）。live source-of-truth は vault（obsidian-git）、public は派生スナップショットとして分離維持する設計判断 |
 | [disk-tiering.md](./disk-tiering.md) | NVMe/SATA の 2 層ディスク構成（btrfs subvol・NOCOW・ブートメニュー）の設計判断 |
 | [claude-config.md](./claude-config.md) | Claude Code ユーザー設定の git 管理（パス注入 + out-of-store symlink、flake input を退けた理由） |
-| [private-repo-clone.md](./private-repo-clone.md) | private repo の宣言的 clone（home-manager の home.activation で age 鍵 1 本から SSH 鍵を復号し clone・NixOS/WSL/macOS 共通・zettelkasten の public 分割で eval 時の鍵依存は解消） |
+| [private-repo-clone.md](./private-repo-clone.md) | SSH 鍵配布と private repo の宣言的 clone（home.activation で age 鍵 1 本から id_github / id_lan を復号し clone・NixOS/WSL/macOS 共通・復号と clone のモジュール分離） |
 | [new-machine.md](./new-machine.md) | **TODO**: nixos-anywhere + disko + age 鍵自動注入で新マシンを 1 コマンドプロビジョニングし、silent skip を根絶する設計メモ（未実装） |
 | [kernel-pin.md](./kernel-pin.md) | nixos-desktop のカーネルを 7.0 系にピン留め（7.1 系が X399 の ACPI S5 バグを踏み poweroff で電源が切れないのを回避）の設計判断 |

@@ -1,7 +1,8 @@
 # private repo の宣言的 clone（設計判断）
 
 使い方は [docs/howtouse/private-repo-clone.md](../howtouse/private-repo-clone.md) を参照。
-実装: [modules/home-manager/private-repos.nix](../../modules/home-manager/private-repos.nix)。
+実装: [modules/home-manager/ssh-keys.nix](../../modules/home-manager/ssh-keys.nix)（鍵の書き出し）と
+[modules/home-manager/private-repos.nix](../../modules/home-manager/private-repos.nix)（clone）。
 
 > **今後の方向性**: age 鍵の bootstrap 経路（現在「SSH 送信 or Bitwarden から取得」の
 > 2 経路併存）は [new-machine.md](./new-machine.md) の nixos-anywhere ベース 1 コマンド
@@ -32,13 +33,27 @@ Darwin でも動く。これで全環境を 1 実装に統一した。
 
 1. **復号の種 = 専用 age 鍵 1 本**。`~/.config/sops/age/keys.txt` に out-of-band で置く
    （既存マシンから SSH 送信、または Bitwarden から取得）
-2. **暗号文 = GitHub 登録済みのユーザー SSH 鍵**（既存のものを流用）を sops で暗号化し
-   `secrets/secrets.yaml` にコミット。activation が age 鍵で復号し、`~/.ssh/id_ed25519` が
-   無ければ書き出す
-3. その SSH 鍵で clone する
+2. **暗号文 = SSH 秘密鍵**を sops で暗号化し `secrets/secrets.yaml` にコミット。
+   `ssh-keys.nix` の activation が age 鍵で復号し、まだ無いファイルだけ書き出す
+3. `private-repos.nix` が書き出された `~/.ssh/id_github` で clone する
 
-新しい read-write 鍵を発行して GitHub に登録し直す手間を避けるため、既存のユーザー鍵を
-そのまま暗号文に載せた。
+## 復号と clone は別モジュールに分ける
+
+鍵の書き出し（`ssh-keys.nix`）と clone（`private-repos.nix`）を分離した。
+clone は sops も age 鍵も知らず、`~/.ssh/id_github` が既に置かれている前提で動く。
+順序は `home.activation` の DAG（`entryAfter [ "sshKeys" ]`）が保証する。
+
+分けた理由は、`secrets.yaml` が配るものが GitHub 鍵だけではなくなったこと。
+LAN 共通鍵（`~/.ssh/id_lan`, [machine-ssh.md](./machine-ssh.md) 参照）は clone とは
+無関係だが復号経路は同じで、clone モジュールに同居させると偶発的凝集になる。
+`settings.sshKeys = [{ secret, name }]` で「何をどこへ書き出すか」だけを受ける形にした。
+
+## 鍵は用途で名付ける
+
+`secrets.yaml` に入るのは `git_ssh_key`（→ `~/.ssh/id_github`）と
+`lan_ssh_key`（→ `~/.ssh/id_lan`）。`id_ed25519` のようなアルゴリズム名だと 1 ファイルに
+複数の役割が同居しても気づけず、片方の rotate がもう片方を巻き込む
+（[machine-ssh.md](./machine-ssh.md) に経緯）。
 
 ## age 鍵 1 本に統一した理由
 
@@ -55,7 +70,7 @@ Bitwarden 保管 + 漏洩時の rotate（age 鍵を作り直し `sops updatekeys
 ## clone-if-absent（冪等・非破壊）
 
 各 `{ url, dest }` について `dest` が存在しないときだけ clone する。SSH 鍵も
-`~/.ssh/id_ed25519` が無いときだけ書き出す。
+同名のファイルが無いときだけ書き出す。
 
 - 既に clone / 鍵設置済みなら何もしない（毎 switch で pull・上書きしない）
 - live に編集する working tree・既存の鍵を Nix が破壊しない
@@ -63,6 +78,10 @@ Bitwarden 保管 + 漏洩時の rotate（age 鍵を作り直し `sops updatekeys
 「初回だけ面倒を見て、以降の pull/push はユーザーに委ねる」割り切り。mutable な状態を
 immutable に管理しようとしない（[claude-config.md](./claude-config.md) の out-of-store
 symlink と同じ思想）。
+
+代償として、鍵を差し替えたときは各マシンで手動で消してから switch する必要がある。
+上書きを選ぶと「switch のたびに手元の鍵が Nix に戻される」ほうの事故が起きるので、
+差し替えの手間を取った。
 
 ## 複数 repo へ汎用化
 
@@ -90,13 +109,17 @@ mount 先を作ってはいけない。これは `fileSystems` ではなく条�
 ## 抜き差し可能性
 
 URL 側（`claudeConfigRepo` / `obsidianConfigRepoUrl` 等）が `null`（既定）ならその repo は
-リストに入らず、全 URL が null なら activation も secret 参照も生えない。
+リストに入らず、全 URL が null なら clone の activation は生えない。
 dest 側とは別軸で持つことで「symlink（あるいは mirror-obsidian）だけ欲しい（手動 clone）」と
 「clone も自動化したい」を repo ごとに独立に選べる。
 
+鍵の書き出し側は環境の種類で決まる。standalone（WSL / macOS）は LAN の一員ではないので
+`id_lan` を配らず、clone 対象も無ければ `sshKeys = []` となって activation ごと消える。
+NixOS ホストは `ssh.nix` が `id_lan` を前提にするため常に両方を配る。
+
 ## ゼロからの復元（eval 時の鍵依存は解消済み）
 
-以前は fresh 環境で flake の評価自体に `~/.ssh/id_ed25519` が必要だった。`inputs.zettelkasten`
+以前は fresh 環境で flake の評価自体にユーザー SSH 鍵が必要だった。`inputs.zettelkasten`
 を `git+ssh://` で取得していたため、鍵が無いと switch に到達する前の eval で失敗し、「age 鍵だけ
 渡せば完全にゼロから復元」は成立しなかった。
 
@@ -109,11 +132,13 @@ dest 側とは別軸で持つことで「symlink（あるいは mirror-obsidian�
   Bitwarden から取得）
 - 公開 flake を clone して switch する
 
-だけでゼロから復元できる。SSH 鍵（`~/.ssh/id_ed25519`）は switch 中の activation が
-`secrets.yaml` を age 鍵で復号して書き出すので、事前に置かなくてよい。
+だけでゼロから復元できる。SSH 鍵（`~/.ssh/id_github` と `~/.ssh/id_lan`）は switch 中の
+activation が `secrets.yaml` を age 鍵で復号して書き出すので、事前に置かなくてよい。
 
 ## 限界
 
-- `secrets/secrets.yaml` が無いまま URL 側（`claudeConfigRepo` / `obsidianConfigRepoUrl` 等）を
-  指定すると、そのホストの eval で失敗する（activation が secret を store path として
-  参照するため）。全 URL 未指定なら参照されないので、公開 flake の `nix flake check` は壊れない
+- NixOS ホストは `sshKeys` が常に非空なので、`secrets/secrets.yaml` が store path として
+  参照される。この repo をそのまま fork して自分の暗号文に差し替える場合、
+  `secrets.yaml` をコミットするまで eval が通らない
+- standalone（`homeConfigurations`）は URL 側を全て未指定にすれば `secrets.yaml` を
+  参照しないので、age 鍵も暗号文も無しで switch できる

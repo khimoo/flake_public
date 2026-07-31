@@ -43,6 +43,7 @@
       homeModules = [
         ./modules/home-manager/core.nix
         ./modules/home-manager/git.nix
+        ./modules/home-manager/ssh-keys.nix
         ./modules/home-manager/private-repos.nix
         ./modules/home-manager/rclone.nix
         ./modules/home-manager/zettelkasten.nix
@@ -109,6 +110,11 @@
         map (p: { url = p.repo; dest = p.root; })
           (builtins.filter (p: p.root != null && p.repo != null) pairs);
 
+      # ssh-keys.nix が secrets/secrets.yaml から書き出す共通鍵。鍵は用途で名付ける
+      # (アルゴリズム名の id_ed25519 だと 1 ファイルに複数の役割が同居しても気づけない)。
+      githubSshKey = { secret = "git_ssh_key"; name = "id_github"; };  # GitHub 認証
+      lanSshKey    = { secret = "lan_ssh_key"; name = "id_lan"; };     # LAN 内 machine-to-machine
+
       mkSystem = { hostname, system, users, timezone, keymap ? "us", stateVersion, primaryUser ? (builtins.head users).username, flakeRoot, zettelkastenRoot, zettelkastenRepoUrl ? null, claudeConfigRoot ? null, claudeConfigRepo ? null, obsidianConfigRepo ? null, obsidianConfigRepoUrl ? null }:
         let
           privateRepos = buildPrivateRepos [
@@ -118,6 +124,8 @@
           ];
           settings = baseSettings // {
             inherit hostname system users timezone keymap stateVersion primaryUser flakeRoot zettelkastenRoot claudeConfigRoot claudeConfigRepo obsidianConfigRepo privateRepos;
+            # NixOS ホストは LAN の一員でもあるので id_lan も要る(modules/nixos/ssh.nix が使う)。
+            sshKeys = [ githubSshKey lanSshKey ];
             standalone = false;
             features = {
               gui = true;
@@ -170,6 +178,9 @@
           ];
           settings = baseSettings // {
             inherit system stateVersion flakeRoot zettelkastenRoot claudeConfigRoot claudeConfigRepo obsidianConfigRepo privateRepos;
+            # standalone(WSL/macOS)は LAN の一員ではないので id_lan は配らない。
+            # clone 対象が無ければ id_github も不要 = activation 自体が生えない。
+            sshKeys = nixpkgs.lib.optionals (privateRepos != []) [ githubSshKey ];
             standalone = true;
             features = defaultFeatures // features;
           } // extraSettings;

@@ -2,12 +2,8 @@
 # 同じ経路で動くよう systemd ではなく home.activation を使う(nixos-rebuild switch でも
 # home-manager switch でも走り、Darwin でも動く)。
 #
-# 認証の流れ:
-#   1) 復号の種 = 専用 age 秘密鍵。~/.config/sops/age/keys.txt に out-of-band で置く
-#      (既存マシンから SSH 送信、または Bitwarden から取得)。マシンに縛られない小さな鍵。
-#   2) 暗号文 = secrets/secrets.yaml(この repo にコミット・sops で暗号化済み)。中身は GitHub 登録
-#      済みのユーザー SSH 鍵(既存のものを流用)。age 鍵で復号し ~/.ssh/id_ed25519 が無ければ書き出す。
-#   3) その SSH 鍵で 各 { url, dest } を dest 未存在時のみ clone(冪等・非破壊)。
+# 認証に使う ~/.ssh/id_github は ssh-keys.nix が secrets.yaml から書き出す。このモジュールは
+# 復号を知らず、鍵が既に置かれている前提で clone だけを担う(activation の順序で保証する)。
 #
 # 対象 repo は settings.privateRepos = [{ url, dest }] で受ける。空リスト(既定)なら activation
 # 自体が生えない。公開 flake をそのまま使う人・自前 repo を手動 clone したい人には無影響。
@@ -20,13 +16,9 @@ let
   enable = repos != [];
 
   home = config.home.homeDirectory;
-  ageKeyFile = "${home}/.config/sops/age/keys.txt";
-  sshKey = "${home}/.ssh/id_ed25519";
+  sshKey = "${home}/.ssh/id_github";
 
-  # コミット済みの暗号文。store path になる(暗号化済みなので world-readable でも安全)。
-  secretsFile = ../../secrets/secrets.yaml;
-
-  # 1 repo 分の clone スニペット。SSH 鍵と age 鍵の下準備は外側で 1 度だけ行う前提。
+  # 1 repo 分の clone スニペット。dest が既にあれば触らない(冪等・非破壊)。
   cloneRepoSnippet = { url, dest }: ''
     repo=${lib.escapeShellArg url}
     dest=${lib.escapeShellArg dest}
@@ -42,27 +34,15 @@ let
 in
 {
   config = lib.mkIf enable {
-    home.activation.privateRepos = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-      age_key=${lib.escapeShellArg ageKeyFile}
+    home.activation.privateRepos = lib.hm.dag.entryAfter [ "sshKeys" ] ''
       ssh_key=${lib.escapeShellArg sshKey}
-      secrets=${lib.escapeShellArg (toString secretsFile)}
 
-      if [ ! -f "$age_key" ]; then
-        # 復号の種が無ければ何も進められない。破壊はせず警告して抜ける(次の switch で再試行)。
-        echo "private-repos: age 復号鍵 $age_key が無いのでスキップ(SSH 送信 or Bitwarden で設置)" >&2
-      elif [ -n "''${DRY_RUN_CMD:-}" ]; then
-        # dry-run 時は SSH 鍵ファイルを絶対に触らない(リダイレクトは DRY_RUN_CMD で包めないため)。
+      if [ -n "''${DRY_RUN_CMD:-}" ]; then
         ${lib.concatMapStringsSep "\n        " dryRunListSnippet repos}
+      elif [ ! -f "$ssh_key" ]; then
+        # ssh-keys.nix が書き出せていない(age 鍵が無い)。破壊はせず警告して抜ける。
+        echo "private-repos: $ssh_key が無いので clone をスキップ(age 鍵を置いて switch し直す)" >&2
       else
-        # ユーザー SSH 鍵が無ければ暗号文から復元(既存鍵は上書きしない=非破壊)。
-        if [ ! -f "$ssh_key" ]; then
-          mkdir -p "$(dirname "$ssh_key")"
-          ( umask 077
-            SOPS_AGE_KEY_FILE="$age_key" \
-              ${pkgs.sops}/bin/sops --decrypt --extract '["git_ssh_key"]' "$secrets" > "$ssh_key" )
-          chmod 600 "$ssh_key"
-        fi
-
         # 各 repo を dest 未存在時のみ clone(既存 working tree は触らない・pull もしない)。
         ${lib.concatMapStringsSep "\n\n        " (r: "(\n          ${cloneRepoSnippet r}\n        )") repos}
       fi

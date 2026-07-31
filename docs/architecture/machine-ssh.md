@@ -5,57 +5,74 @@ flake 内の全 NixOS ホストが相互に SSH でき、`ssh <短縮名>`（例
 この上に乗る一利用例。
 
 設定ファイル:
-- `hosts/machines.nix` — 各マシンの user 公開鍵レジストリ（単一の情報源）
-- `modules/nixos/ssh.nix` — レジストリから authorized_keys とクライアント設定を生成
-- `.sops.yaml` — 同じ鍵ペアの age 版（sops 受信者）。別管理の理由は下記。
-  実体は workflow repo（`~/sagyo/zettelkasten-workflow`, public repo `khimoo/zettelkasten-workflow`）にあり、secret を持つマシンだけ登録する
+- `hosts/machines.nix` — ホスト名一覧と LAN 共通鍵の公開鍵（単一の情報源）
+- `modules/nixos/ssh.nix` — そこから authorized_keys とクライアント設定を生成
+- `modules/home-manager/ssh-keys.nix` — 秘密鍵側を `secrets/secrets.yaml` から書き出す
+  （[private-repo-clone.md](./private-repo-clone.md) 参照）
 
 使い方は [../howtouse/machine-ssh.md](../howtouse/machine-ssh.md) を参照。
 
 ## 全体構成
 
-`machines.nix`（hostname → ssh 公開鍵）を単一の情報源とし、共通モジュール `ssh.nix`
-が2方向に展開する:
+`machines.nix` を単一の情報源とし、共通モジュール `ssh.nix` が2方向に展開する:
 
-- **サーバ側**: 全マシンの公開鍵を primaryUser の `authorized_keys` に登録 → 相互ログイン可
-- **クライアント側**: 各マシンぶんの `Host` ブロック（短縮エイリアス＋`accept-new`）を生成
-  → `ssh desktop` 等で接続可
+- **サーバ側**: `lanPublicKey` を primaryUser の `authorized_keys` に登録 → 相互ログイン可
+- **クライアント側**: `hosts` の各要素ぶんの `Host` ブロック（短縮エイリアス＋`IdentityFile`
+  ＋`accept-new`）を生成 → `ssh desktop` 等で接続可
 
-マシンの追加/廃棄は `machines.nix` の1行増減だけで、全ホストの `authorized_keys` と
-エイリアスに反映される。
+秘密鍵の実体はここには無い。`ssh-keys.nix` が switch のたびに `secrets/secrets.yaml`
+から `~/.ssh/id_lan` を書き出す。つまり**新マシンで手作業が要るのは age 鍵 1 本の設置だけ**で、
+SSH 鍵の生成も登録も無い。
 
 ## 設計判断
 
-### 鍵は各マシンで別（per-machine）。1本を使い回さない
+### 鍵は用途で名付ける（id_lan / id_github）
 
-各マシンが自分の ed25519 鍵ペアを持ち、公開鍵だけを `machines.nix` に登録する。
-秘密鍵は生成マシンから出ない。
+`id_ed25519` のようなアルゴリズム名だと、1 ファイルに複数の役割が同居しても気づけない。
+実際この repo では長らく `~/.ssh/id_ed25519` が「LAN の身元」と「GitHub 認証鍵」を兼ねており、
+GitHub 側の鍵を rotate したときに LAN 接続を巻き込んで壊した。役割ごとにファイルを分ければ、
+片方の失効がもう片方に波及しない。
 
-- **個別失効**: 1台を廃棄/紛失したら `machines.nix` からその行を消して rebuild するだけで、
-  その台だけ締め出せる。他機の鍵は無傷
-- **被害の局所化**: この flake は公開リポジトリで、同じ鍵が `ssh-to-age` 変換で sops
-  secret の復号も兼ねる。鍵を共有するとコピーが増え、1本漏れると全機の SSH＋全 secret が
-  一度に危険になる。per-machine なら被害をその台に閉じ込められる
+- `~/.ssh/id_lan` — LAN 内 machine-to-machine。`machines.nix` の `lanPublicKey` と対
+- `~/.ssh/id_github` — GitHub 認証（clone/push）。`private-repos.nix` の clone が使う
 
-共有鍵は増設が最も楽（新機に鍵を置くだけ）だが、上記の失効性・被害局所化を失うため不採用。
-SSH 証明書（CA）方式は「既存機を触らず増設」を実現できるが、CA 鍵という新たな最重要秘密と
-署名運用が増え、3台規模では過剰。台数が増えたら CA 移行を検討する余地はある。
+### LAN 認証は全マシン共通の鍵 1 本
+
+以前は per-machine 鍵（各マシンが自分の鍵ペアを持ち、公開鍵を `machines.nix` に登録）を
+採っていた。共通鍵に反転した。
+
+理由は per-machine を選んだ根拠が消滅したこと。当時は同じ SSH 鍵が `ssh-to-age` 変換で
+sops secret の復号も兼ねており、1本漏れれば全 secret が一度に危険だった。この変換は廃止され、
+復号の種は独立した age 鍵（`~/.config/sops/age/keys.txt`）に移った。今の `id_lan` は
+LAN ログイン以外に何も開けない。
+
+得られるもの: 新マシンの立ち上げが age 鍵の設置だけで完結する。マシン追加時に
+既存全機を rebuild して回る必要がなくなった（`authorized_keys` が変わらないため）。
+
+失うもの: **個別失効ができない**。1台紛失したら `lan_ssh_key` を作り直して
+`secrets.yaml` を再暗号化し、全機を switch する必要がある。3台規模ではこの手間より
+「増設のたびに全機 rebuild」を消すほうが効く。台数や共有者が増えるなら per-machine か
+SSH 証明書（CA）方式へ戻す。
 
 ### 鍵管理は per-host 直書きでなく machines.nix に集約
 
 以前は各 `hosts/<host>/default.nix` に `authorizedKeys` を直書きしていたが、双方向化すると
 N×N の直書きになり重複する。単一の情報源に集約し、`ssh.nix` が全ホストぶんを生成する。
-増設時に触る場所が `machines.nix` の1箇所になる。
-
-> デスクトップの `hosts/nixos-desktop/default.nix` には旧リモートビルド用の RSA 鍵が
-> 1つ残っている。ラップトップが ed25519 でリモートビルドできることを確認したら削除して
-> よい暫定物（`machines.nix` の ed25519 で置き換わる）。
 
 ### クライアント設定も同じ情報源から生成
 
 `ssh <短縮名>` で繋がるには ①認証 ②名前解決 ③ホスト鍵受理 が要る。②は avahi の mDNS
 （[remote-build.md](./remote-build.md) 参照）、①③と短縮エイリアスを `machines.nix` から
 生成する。`nixos-` プレフィックスを剥がして `desktop` / `spin713` を短縮名にする。
+
+### IdentitiesOnly は付けない
+
+生成する `Host` ブロックは `IdentityFile` を指定するが `IdentitiesOnly yes` は付けない。
+`/etc/ssh/ssh_config` は root にも効き、root の `~/.ssh/id_lan` は存在しない。
+`sudo nixos-rebuild --build-host` は `env_keep` した `SSH_AUTH_SOCK` 越しに
+ユーザーの agent で認証しており、`IdentitiesOnly yes` を付けると agent の鍵が無視されて
+リモートビルドが壊れる。存在しない `IdentityFile` は単に読み飛ばされるので、
+指定するだけなら root に無害。
 
 ### ホスト鍵は accept-new（TOFU）
 
@@ -67,19 +84,13 @@ N×N の直書きになり重複する。単一の情報源に集約し、`ssh.n
 `/etc/ssh/ssh_config`（`programs.ssh.extraConfig`）は root にも効くため、
 `sudo nixos-rebuild --build-host` の root known_hosts 追加もこの生成設定が兼ねる。
 
-### age 鍵（sops）は別ファイルで対に管理
-
-同じ ed25519 鍵ペアが SSH 認証と（`ssh-to-age` 変換で）sops 復号を兼ねるが、sops は
-age 形式・専用フォーマットの `.sops.yaml` を要求するため `machines.nix` に統合できない。
-secret が要るマシンは `machines.nix`（SSH 形式）と `.sops.yaml`（age 形式）の両方に登録する。
-後者の `.sops.yaml` は secret 本体とともに workflow repo（`~/sagyo/zettelkasten-workflow`）が所有する
-（[papis 同期の設計](./papis-gdrive-sync.md)を参照）。
-
 ## セキュリティモデル
 
-- 秘密鍵は各マシンから出ない。`machines.nix` / `.sops.yaml` に載るのは公開鍵のみ
-  （公開リポジトリにコミット可）
+- repo にコミットされるのは `machines.nix` の公開鍵と、age で暗号化された
+  `secrets/secrets.yaml` のみ。平文の秘密鍵は入らない
+- 秘密鍵は各マシンに存在するが、**同一の鍵**である。1台が侵害されたら全機の LAN 認証を
+  作り直す（上記トレードオフ）
 - `PasswordAuthentication = false`（`ssh.nix` 共通）。鍵認証のみ
 - 自分自身の公開鍵も `authorized_keys` に含むが、自機への self-login が増えるだけで無害
 - 対象は NixOS ホストのみ（`ssh.nix` は NixOS モジュール）。standalone home-manager
-  （macOS 等）は現状この生成対象外
+  （macOS 等）は LAN の一員とみなさず `id_lan` を配らない

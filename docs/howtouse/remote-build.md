@@ -79,12 +79,12 @@ avahi のキャッシュが温まっていないだけ。数秒待ってから�
 
 ### クライアントを増やす（新しいホストからデスクトップでビルド）
 
-新規ホストを `hosts/machines.nix` に登録すれば、鍵登録も `accept-new` 接続設定も
-自動で入る（[machine-ssh.md](./machine-ssh.md) の「マシンを追加するとき」を参照）。
+LAN 認証は全マシン共通の鍵 1 本なので、鍵の生成も登録も要らない
+（[machine-ssh.md](./machine-ssh.md) の「マシンを追加するとき」を参照）。
 
-1. 新規ホストで SSH 鍵を用意：`ls ~/.ssh/id_ed25519 || ssh-keygen -t ed25519`
-2. 公開鍵（`cat ~/.ssh/id_ed25519.pub`）を `hosts/machines.nix` に1行足す
-3. デスクトップと新規ホストを rebuild（既存機は新しい鍵を authorized_keys に取り込む）
+1. 新規ホストの `~/.config/sops/age/keys.txt` に age 鍵を置く
+2. `hosts/machines.nix` の `hosts` に1行足す
+3. 新規ホストを rebuild（switch 中に `~/.ssh/id_lan` が書き出される）
 
 ### ビルダーを増やす（別のホストもビルドサーバ化）
 
@@ -106,7 +106,7 @@ sudo nixos-rebuild switch --flake .#<client-host> --build-host <user>@<new-build
 ## 関連ファイル
 
 - [modules/nixos/ssh.nix](../../modules/nixos/ssh.nix) — openssh + avahi publish + マシン間 SSH 生成
-- [hosts/machines.nix](../../hosts/machines.nix) — 全マシンの公開鍵レジストリ（authorized_keys / accept-new の元）
+- [hosts/machines.nix](../../hosts/machines.nix) — ホスト一覧と LAN 共通鍵の公開鍵（authorized_keys / accept-new の元）
 - [modules/nixos/nix-settings.nix](../../modules/nixos/nix-settings.nix) — trusted-users
 - [modules/nixos/users.nix](../../modules/nixos/users.nix) — sudo の `SSH_AUTH_SOCK` 引き継ぎ
 - マシン間 SSH の使い方・設計: [machine-ssh.md](./machine-ssh.md) / [../architecture/machine-ssh.md](../architecture/machine-ssh.md)

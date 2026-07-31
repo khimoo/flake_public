@@ -18,7 +18,7 @@
 | Obsidian 設定の配布・ミラー | `.obsidian` を fresh マシンへ配る（seed）・live 設定を config repo へ写す（mirror）使い方と fork | [zettelkasten-obsidian-config.md](./zettelkasten-obsidian-config.md) |
 | ディスク階層構成 | NVMe(ホット)/SATA(コールド)の 2 層・btrfs subvol のレイアウトとセットアップ | [disk-tiering.md](./disk-tiering.md) |
 | Claude Code 設定 | グローバル CLAUDE.md・skills を private repo で git 管理し symlink で挿す運用 | [claude-config.md](./claude-config.md) |
-| private repo 自動 clone | ユーザー SSH 鍵を sops 暗号化し、age 鍵 1 本で新環境（NixOS/WSL/macOS）が switch 一発 clone する運用 | [private-repo-clone.md](./private-repo-clone.md) |
+| SSH 鍵配布と private repo 自動 clone | SSH 鍵（id_github / id_lan）を sops 暗号化し、age 鍵 1 本で新環境（NixOS/WSL/macOS）が switch 一発で鍵設置＋clone する運用 | [private-repo-clone.md](./private-repo-clone.md) |
 
 ## 関連
 

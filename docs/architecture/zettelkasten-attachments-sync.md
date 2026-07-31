@@ -30,7 +30,7 @@ flake_public の eval に SSH 鍵は要らない。
 ### 認証情報はどちらの repo も持たない（各マシンの rclone.conf に委ねる）
 
 以前は rclone.conf を sops で暗号化して workflow repo にコミットし、同期スクリプトが実行の
-たびに `~/.ssh/id_ed25519` を ssh-to-age 変換して復号していた。これを廃止し、各マシンで
+たびにユーザーの SSH 鍵を ssh-to-age 変換して復号していた。これを廃止し、各マシンで
 `rclone config` が作る `~/.config/rclone/rclone.conf` に委ねている。
 
 理由は **第三者が自分の Drive で使えること**。暗号文を repo に載せる形は所有者専用

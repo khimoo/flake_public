@@ -149,7 +149,7 @@ Bitwarden 自体もアクセス不能なら？ → 物理バックアップ（US
 
 | 部品 | 変更 |
 |------|------|
-| `modules/home-manager/private-repos.nix` | activation を **strict** 化: age 鍵不在なら error で停止。silent skip を撤廃 |
+| `modules/home-manager/ssh-keys.nix` / `private-repos.nix` | activation を **strict** 化: age 鍵不在なら error で停止。silent skip を撤廃 |
 | `docs/howtouse/private-repo-clone.md` | 「SSH 送信 or Bitwarden から取得」の 2 経路併記を削除、`new-machine.md` にリダイレクト |
 
 ### 温存
