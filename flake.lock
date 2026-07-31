@@ -275,11 +275,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1785428414,
-        "narHash": "sha256-D2qZoG7CnqRPJzkpi4drvlFEE0irRwGP9Xcy9RKtlds=",
+        "lastModified": 1785476568,
+        "narHash": "sha256-1A4fBv0Gpf72IuPLUAN/4GarSz0MxDJr2XETBcPjAEs=",
         "owner": "khimoo",
         "repo": "zettelkasten-workflow",
-        "rev": "9da24f157a4ad3126c457d750a9724183e1e3fca",
+        "rev": "380284351fb1e80cba18e9569eb435f996296e2e",
         "type": "github"
       },
       "original": {

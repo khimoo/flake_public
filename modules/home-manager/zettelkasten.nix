@@ -22,7 +22,7 @@ let
   enabled = attachmentsOn || papisOn || obsidianOn;
 in
 {
-  imports = [ inputs.zettelkasten.homeManagerModules.zettelkasten ];
+  imports = [ inputs.zettelkasten.homeModules.zettelkasten ];
 
   config = lib.mkIf enabled {
     services.zettelkasten = {
