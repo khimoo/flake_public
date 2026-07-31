@@ -78,5 +78,5 @@ switch 中に `id_lan` / `id_github` が書き出され、その時点で新マ�
 - 対象は NixOS ホストのみ（`ssh.nix` は NixOS モジュール）。standalone home-manager
   （macOS / WSL）は LAN の一員とみなさず `id_lan` を配らない
 - `PasswordAuthentication = false` なので鍵認証必須。age 鍵を置かずに switch すると
-  `id_lan` が書き出されず、そのマシンからは SSH できない（activation は警告のみ出して続行する）
+  `id_lan` を書き出せないので activation が error で停止する（[private-repo-clone.md](./private-repo-clone.md) 参照）
 - 同一 LAN（mDNS が届く範囲）が前提。VLAN 分離・VPN 越しでは別途 `/etc/hosts` 等が要る

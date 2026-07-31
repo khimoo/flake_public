@@ -3,7 +3,9 @@
 # home-manager switch でも走り、Darwin でも動く)。
 #
 # 認証に使う ~/.ssh/id_github は ssh-keys.nix が secrets.yaml から書き出す。このモジュールは
-# 復号を知らず、鍵が既に置かれている前提で clone だけを担う(activation の順序で保証する)。
+# 復号を知らず、鍵が既に置かれている前提で clone だけを担う。
+# privateRepos が非空なら flake.nix は必ず githubSshKey も配り、ssh-keys.nix は書き出せなければ
+# activation を止める。よって鍵の存在確認はここでは行わない(到達しない分岐を作らない)。
 #
 # 対象 repo は settings.privateRepos = [{ url, dest }] で受ける。空リスト(既定)なら activation
 # 自体が生えない。公開 flake をそのまま使う人・自前 repo を手動 clone したい人には無影響。
@@ -39,9 +41,6 @@ in
 
       if [ -n "''${DRY_RUN_CMD:-}" ]; then
         ${lib.concatMapStringsSep "\n        " dryRunListSnippet repos}
-      elif [ ! -f "$ssh_key" ]; then
-        # ssh-keys.nix が書き出せていない(age 鍵が無い)。破壊はせず警告して抜ける。
-        echo "private-repos: $ssh_key が無いので clone をスキップ(age 鍵を置いて switch し直す)" >&2
       else
         # 各 repo を dest 未存在時のみ clone(既存 working tree は触らない・pull もしない)。
         ${lib.concatMapStringsSep "\n\n        " (r: "(\n          ${cloneRepoSnippet r}\n        )") repos}

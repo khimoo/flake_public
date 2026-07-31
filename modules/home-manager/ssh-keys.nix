@@ -23,13 +23,21 @@ let
   secretsFile = ../../secrets/secrets.yaml;
 
   # 既存ファイルは上書きしない(非破壊)。手で差し替えたい場合は消してから switch する。
+  #
+  # 復号は一時ファイル経由。dest へ直接リダイレクトすると、sops が失敗しても空の dest が
+  # 残り、次の switch が「もうある」と判定して二度と復号し直さない(壊れた鍵が固定される)。
   extractSnippet = { secret, name }: ''
     dest=${lib.escapeShellArg "${home}/.ssh/${name}"}
     if [ ! -f "$dest" ]; then
-      ( umask 077
-        SOPS_AGE_KEY_FILE="$age_key" \
-          ${pkgs.sops}/bin/sops --decrypt --extract '["${secret}"]' "$secrets" > "$dest" )
-      chmod 600 "$dest"
+      tmp="$dest.tmp.$$"
+      if ! ( umask 077
+             SOPS_AGE_KEY_FILE="$age_key" \
+               ${pkgs.sops}/bin/sops --decrypt --extract '["${secret}"]' "$secrets" > "$tmp" ); then
+        rm -f "$tmp"
+        echo "ssh-keys: ${secret} の復号に失敗した。$age_key がこの暗号文の受信者か確認する" >&2
+        exit 1
+      fi
+      mv "$tmp" "$dest"
     fi
   '';
 
@@ -44,12 +52,16 @@ in
 
       mkdir -p ${lib.escapeShellArg "${home}/.ssh"}
 
-      if [ ! -f "$age_key" ]; then
-        # 復号の種が無ければ何も進められない。破壊はせず警告して抜ける(次の switch で再試行)。
-        echo "ssh-keys: age 復号鍵 $age_key が無いのでスキップ(SSH 送信 or Bitwarden で設置)" >&2
-      elif [ -n "''${DRY_RUN_CMD:-}" ]; then
+      if [ -n "''${DRY_RUN_CMD:-}" ]; then
         # dry-run 時は鍵ファイルを絶対に触らない(リダイレクトは DRY_RUN_CMD で包めないため)。
         ${lib.concatMapStringsSep "\n        " dryRunSnippet keys}
+      elif [ ! -f "$age_key" ]; then
+        # 復号の種が無ければ何も進められない。ここで止めないと「switch は成功したのに鍵が無い」
+        # 状態が黙って出来上がり、後続の clone や LAN SSH が原因の分かりにくい形で失敗する。
+        echo "ssh-keys: age 復号鍵 $age_key が無い。" >&2
+        echo "  既存マシンから送る: ( umask 077; ssh <既存機> 'cat ~/.config/sops/age/keys.txt' > $age_key )" >&2
+        echo "  または Bitwarden から取り出して同じパスに 600 で置く。" >&2
+        exit 1
       else
         ${lib.concatMapStringsSep "\n\n        " (k: "(\n          ${extractSnippet k}\n        )") keys}
       fi

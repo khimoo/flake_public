@@ -6,7 +6,7 @@
 
 > **今後の方向性**: age 鍵の bootstrap 経路（現在「SSH 送信 or Bitwarden から取得」の
 > 2 経路併存）は [new-machine.md](./new-machine.md) の nixos-anywhere ベース 1 コマンド
-> プロビジョニングに一本化する予定。silent skip も strict 化で撤廃する。
+> プロビジョニングに一本化する予定。
 
 ## 何を解決するか
 
@@ -82,6 +82,25 @@ symlink と同じ思想）。
 代償として、鍵を差し替えたときは各マシンで手動で消してから switch する必要がある。
 上書きを選ぶと「switch のたびに手元の鍵が Nix に戻される」ほうの事故が起きるので、
 差し替えの手間を取った。
+
+復号は一時ファイルへ書いてから `mv` する。`> "$dest"` と直接リダイレクトすると、sops が
+失敗してもシェルが先に空の `$dest` を作ってしまい、以降の switch が clone-if-absent の
+判定で「もうある」と見なして二度と復号し直さない。壊れた鍵が固定される経路なので塞いだ。
+
+## fail-fast（age 鍵が無ければ switch を失敗させる）
+
+以前は age 鍵が無いとき警告だけ出して続行していた。これをやめ、`exit 1` で activation を
+止めるようにした。
+
+きっかけは実際に踏んだこと。新マシンで age 鍵の取得に失敗したまま switch したところ、
+`nixos-rebuild switch` は成功と表示し、鍵が無いことに気づけなかった。警告は
+`home-manager-<user>.service` の journal に落ちるので端末に出ない。「switch が成功した」と
+「環境が意図どおりになった」がずれる状態を作らないほうがよい。
+
+副作用として、既存マシンで age 鍵を失うと `nixos-rebuild switch` が完全に通らなくなる。
+NixOS ホストは `id_lan` のために `sshKeys` が常に非空だからである。回復手段は
+[howtouse 側](../howtouse/private-repo-clone.md#age-鍵を作り直す)に書いてある。
+switch できないと回復もできないという循環は起きない——age 鍵を置く操作に switch は要らない。
 
 ## 複数 repo へ汎用化
 

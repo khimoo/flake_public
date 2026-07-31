@@ -22,11 +22,13 @@ Claude 設定・Obsidian workflow）も switch が clone する。NixOS でも �
   | `lan_ssh_key` | `~/.ssh/id_lan` | LAN 内 machine-to-machine（[machine-ssh.md](./machine-ssh.md)） |
 
 - `home.activation` が switch のたびに:
-  1. age 鍵があれば `secrets.yaml` を復号し、まだ無い鍵ファイルだけ書き出す
+  1. `secrets.yaml` を age 鍵で復号し、まだ無い鍵ファイルだけ書き出す
   2. `settings.privateRepos` の各 `{ url, dest }` について、`dest` が無ければ
      `id_github` で clone する
 
   既にあるものは触らない（上書き・pull はしない＝非破壊）。
+  **age 鍵が無い / 復号に失敗した場合は警告ではなく error で停止する**（switch が失敗する）。
+  「switch は成功したのに鍵が無い」状態を作らないため。
 
 どの鍵を配るかは環境の種類で決まる。NixOS ホストは `id_lan` も要るので両方、
 standalone（WSL / macOS）は clone 対象がある場合に `id_github` だけ。
@@ -177,7 +179,8 @@ LAN 鍵も同様に作り直す。
 効くので、clone を手動運用に戻せる。
 
 standalone 環境で全 URL を消せば SSH 鍵の書き出しごと生えなくなり、age 鍵も
-`secrets.yaml` も無しで switch できる。NixOS ホストは `id_lan` が要るので鍵の書き出しは残る。
+`secrets.yaml` も無しで switch できる。NixOS ホストは `id_lan` が要るので鍵の書き出しは残る
+——つまり **NixOS ホストは age 鍵が無いと switch できない**（[fail-fast の設計判断](../architecture/private-repo-clone.md#fail-fastage-鍵が無ければ-switch-を失敗させる)）。
 
 ## 注意
 

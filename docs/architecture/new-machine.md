@@ -149,7 +149,7 @@ Bitwarden 自体もアクセス不能なら？ → 物理バックアップ（US
 
 | 部品 | 変更 |
 |------|------|
-| `modules/home-manager/ssh-keys.nix` / `private-repos.nix` | activation を **strict** 化: age 鍵不在なら error で停止。silent skip を撤廃 |
+| `modules/home-manager/ssh-keys.nix` | activation を **strict** 化: age 鍵不在なら error で停止（**実装済み**。残りはエラー文言に `sagyo-install` 経路を足すだけ） |
 | `docs/howtouse/private-repo-clone.md` | 「SSH 送信 or Bitwarden から取得」の 2 経路併記を削除、`new-machine.md` にリダイレクト |
 
 ### 温存
@@ -230,16 +230,18 @@ Phase 4 は Phase 3 完了直後にやるのが理想（頭の中に文脈があ
 - **完了時の便益**: **実利: 新マシンを 1 コマンドで足せることが実証される**
 - **タイミング**: 実マシン購入待ち。テスト用に VM でもう 1 回検証するのも可
 
-### Phase 4: activation の strict 化
+### Phase 4: activation の strict 化 — **実装済み**
 
-- **やること**: `modules/home-manager/private-repos.nix` を「age 鍵不在なら error で停止」
-  に変更。エラーメッセージに sagyo-install / Bitwarden / USB の 3 経路を明記
-- **なぜ最後**: 唯一の後戻りしにくい変更。`sagyo-install` が動く状態でやることで、
-  エラーメッセージの誘導先が実在する
-- **既存機への影響**: **あり**。rebuild が失敗する可能性がある。既存 2 マシンで age
-  鍵ある状態を確認 + 試しに age 鍵をリネームして rebuild が正しく error になることを
-  確認 → 元に戻す
-- **完了時の便益**: **実利: silent skip の根絶。今回のような事象がゼロに**
+`modules/home-manager/ssh-keys.nix` が age 鍵不在で `exit 1` する。誘導先は
+「既存マシンから SSH で送る」「Bitwarden から取り出す」の 2 経路
+（`sagyo-install` は未実装なのでまだ挙げていない。Phase 1 完了時に追記する）。
+
+Phase 1〜3 を待たずに前倒しした。SSH 鍵配布を `ssh-keys.nix` に切り出した際、
+実際に silent skip を踏んで「switch は成功したのに鍵が無い」状態を作ってしまい、
+原因が journal に埋もれて分かりにくかったため。
+
+同時に、復号が失敗しても空の鍵ファイルが残って以降 clone-if-absent が
+「もうある」と誤判定する経路も塞いだ（一時ファイルへ復号してから `mv`）。
 
 ### Phase 5: architecture doc 書き直し
 
