@@ -9,7 +9,7 @@
 #
 # 対象 repo は settings.privateRepos = [{ url, dest }] で受ける。空リスト(既定)なら activation
 # 自体が生えない。公開 flake をそのまま使う人・自前 repo を手動 clone したい人には無影響。
-# 個々の (url, dest) は flake.nix 側で claudeConfig* / obsidianConfig* 等の高レベル設定から
+# 個々の (url, dest) は flake.nix 側で claudeConfig* / vaultSkeletonRepo* 等の高レベル設定から
 # 組み立てる (dest だけ指定・URL 未指定は手動 clone のまま = 抜き差し可能)。
 { config, lib, pkgs, settings, ... }:
 

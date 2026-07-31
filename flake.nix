@@ -67,7 +67,7 @@
         audio = false;
         referenceSync = false;
         zettelkastenSync = false;
-        obsidianSeed = false;
+        obsidian = false;
       };
 
       # SKK辞書の生成（system別にキャッシュ）
@@ -97,13 +97,13 @@
       # claudeConfigRepo: 上記を宣言的に自動 clone する場合の clone 元 URL (null で自動 clone 無効)。
       # modules/home-manager/private-repos.nix が age 鍵で復号した SSH 鍵で clone する。
       # root だけ指定して repo=null なら symlink のみ効き、clone は手動運用のまま。
-      # obsidianConfigRepo: vault の tracked .obsidian をミラーする config repo(workflow repo)の
-      # local checkout 絶対パス (null で mirror-obsidian を PATH に載せない)。
-      # modules/home-manager/zettelkasten.nix が services.zettelkasten.obsidian.mirrorRepo に注入する。
+      # vaultSkeletonRepo: vault の骨格(分類フォルダ・運用ドキュメント・.obsidian)をミラーする
+      # workflow repo の local checkout 絶対パス (null で mirror-vault を PATH に載せない)。
+      # modules/home-manager/zettelkasten.nix が services.zettelkasten.mirrorRepo に注入する。
       # 環境固有の checkout 位置なので flakeRoot 同様に呼び出し側で指定する。
-      # obsidianConfigRepoUrl: 上記を宣言的に自動 clone する場合の clone 元 URL (null で自動 clone 無効)。
+      # vaultSkeletonRepoUrl: 上記を宣言的に自動 clone する場合の clone 元 URL (null で自動 clone 無効)。
       # claudeConfigRepo と同じ経路 (private-repos.nix + age 鍵) で clone される。
-      # obsidianConfigRepo だけ指定して Url=null なら手動 clone 運用のまま。
+      # vaultSkeletonRepo だけ指定して Url=null なら手動 clone 運用のまま。
       # buildPrivateRepos: {root, repo} 対のリストから、URL も指定されている項目だけを
       # private-repos.nix が食う {url, dest} リストに畳む。
       buildPrivateRepos = pairs:
@@ -115,15 +115,15 @@
       githubSshKey = { secret = "git_ssh_key"; name = "id_github"; };  # GitHub 認証
       lanSshKey    = { secret = "lan_ssh_key"; name = "id_lan"; };     # LAN 内 machine-to-machine
 
-      mkSystem = { hostname, system, users, timezone, keymap ? "us", stateVersion, primaryUser ? (builtins.head users).username, flakeRoot, zettelkastenRoot, zettelkastenRepoUrl ? null, claudeConfigRoot ? null, claudeConfigRepo ? null, obsidianConfigRepo ? null, obsidianConfigRepoUrl ? null }:
+      mkSystem = { hostname, system, users, timezone, keymap ? "us", stateVersion, primaryUser ? (builtins.head users).username, flakeRoot, zettelkastenRoot, zettelkastenRepoUrl ? null, claudeConfigRoot ? null, claudeConfigRepo ? null, vaultSkeletonRepo ? null, vaultSkeletonRepoUrl ? null }:
         let
           privateRepos = buildPrivateRepos [
-            { root = zettelkastenRoot;   repo = zettelkastenRepoUrl; }
-            { root = claudeConfigRoot;   repo = claudeConfigRepo; }
-            { root = obsidianConfigRepo; repo = obsidianConfigRepoUrl; }
+            { root = zettelkastenRoot;  repo = zettelkastenRepoUrl; }
+            { root = claudeConfigRoot;  repo = claudeConfigRepo; }
+            { root = vaultSkeletonRepo; repo = vaultSkeletonRepoUrl; }
           ];
           settings = baseSettings // {
-            inherit hostname system users timezone keymap stateVersion primaryUser flakeRoot zettelkastenRoot claudeConfigRoot claudeConfigRepo obsidianConfigRepo privateRepos;
+            inherit hostname system users timezone keymap stateVersion primaryUser flakeRoot zettelkastenRoot claudeConfigRoot claudeConfigRepo vaultSkeletonRepo privateRepos;
             # NixOS ホストは LAN の一員でもあるので id_lan も要る(modules/nixos/ssh.nix が使う)。
             sshKeys = [ githubSshKey lanSshKey ];
             standalone = false;
@@ -134,7 +134,7 @@
               audio = true;
               referenceSync = true;
               zettelkastenSync = true;
-              obsidianSeed = true;
+              obsidian = true;
             };
           };
 
@@ -167,17 +167,17 @@
       # スタンドアロンhome-manager設定を生成するヘルパー関数
       # mkSystem と同じく flakeRoot は呼び出し側で指定 (環境ごとに clone 位置が違うため)。
       # zettelkastenRoot は zettelkastenSync を有効化する standalone 環境のみ必要（既定 null）。
-      mkHome = { username, system, homeFile ? null, stateVersion, allowUnfree ? false, features ? {}, flakeRoot, zettelkastenRoot ? null, zettelkastenRepoUrl ? null, claudeConfigRoot ? null, claudeConfigRepo ? null, obsidianConfigRepo ? null, obsidianConfigRepoUrl ? null, extraSettings ? {} }:
+      mkHome = { username, system, homeFile ? null, stateVersion, allowUnfree ? false, features ? {}, flakeRoot, zettelkastenRoot ? null, zettelkastenRepoUrl ? null, claudeConfigRoot ? null, claudeConfigRepo ? null, vaultSkeletonRepo ? null, vaultSkeletonRepoUrl ? null, extraSettings ? {} }:
         let
           pkgs = import nixpkgs { inherit system; inherit overlays; };
           skk-dict = mkSkkDict system;
           privateRepos = buildPrivateRepos [
-            { root = zettelkastenRoot;   repo = zettelkastenRepoUrl; }
-            { root = claudeConfigRoot;   repo = claudeConfigRepo; }
-            { root = obsidianConfigRepo; repo = obsidianConfigRepoUrl; }
+            { root = zettelkastenRoot;  repo = zettelkastenRepoUrl; }
+            { root = claudeConfigRoot;  repo = claudeConfigRepo; }
+            { root = vaultSkeletonRepo; repo = vaultSkeletonRepoUrl; }
           ];
           settings = baseSettings // {
-            inherit system stateVersion flakeRoot zettelkastenRoot claudeConfigRoot claudeConfigRepo obsidianConfigRepo privateRepos;
+            inherit system stateVersion flakeRoot zettelkastenRoot claudeConfigRoot claudeConfigRepo vaultSkeletonRepo privateRepos;
             # standalone(WSL/macOS)は LAN の一員ではないので id_lan は配らない。
             # clone 対象が無ければ id_github も不要 = activation 自体が生えない。
             sshKeys = nixpkgs.lib.optionals (privateRepos != []) [ githubSshKey ];
@@ -221,8 +221,8 @@
           zettelkastenRepoUrl = "git@github.com:khimoo/zettelkasten.git";
           claudeConfigRoot = "/home/pomu/sagyo/claude-private";
           claudeConfigRepo = "git@github.com:khimoo/claude-private.git";
-          obsidianConfigRepo = "/home/pomu/sagyo/zettelkasten-workflow";
-          obsidianConfigRepoUrl = "git@github.com:khimoo/zettelkasten-workflow.git";
+          vaultSkeletonRepo = "/home/pomu/sagyo/zettelkasten-workflow";
+          vaultSkeletonRepoUrl = "git@github.com:khimoo/zettelkasten-workflow.git";
         };
 
         nixos-desktop = mkSystem {
@@ -250,8 +250,8 @@
           zettelkastenRepoUrl = "git@github.com:khimoo/zettelkasten.git";
           claudeConfigRoot = "/home/pomu/sagyo/claude-private";
           claudeConfigRepo = "git@github.com:khimoo/claude-private.git";
-          obsidianConfigRepo = "/home/pomu/sagyo/zettelkasten-workflow";
-          obsidianConfigRepoUrl = "git@github.com:khimoo/zettelkasten-workflow.git";
+          vaultSkeletonRepo = "/home/pomu/sagyo/zettelkasten-workflow";
+          vaultSkeletonRepoUrl = "git@github.com:khimoo/zettelkasten-workflow.git";
         };
       };
 

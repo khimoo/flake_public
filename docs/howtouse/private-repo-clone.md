@@ -34,7 +34,7 @@ Claude 設定・Obsidian workflow）も switch が clone する。NixOS でも �
 standalone（WSL / macOS）は clone 対象がある場合に `id_github` だけ。
 
 `settings.privateRepos` は `flake.nix` の `buildPrivateRepos` が高レベル設定
-（`claudeConfigRepo` / `obsidianConfigRepoUrl` など、URL 側の設定）から組み立てる。
+（`claudeConfigRepo` / `vaultSkeletonRepoUrl` など、URL 側の設定）から組み立てる。
 URL 側が `null` の項目は落とされるので、dest 側だけ指定すればその repo は手動 clone 運用に
 留まる。
 
@@ -112,14 +112,14 @@ zettelkastenRepoUrl = "git@github.com:khimoo/zettelkasten.git";
 claudeConfigRoot = "/home/pomu/sagyo/claude-private";
 claudeConfigRepo = "git@github.com:khimoo/claude-private.git";
 
-# Obsidian workflow repo (mirror-obsidian の宛先)
-obsidianConfigRepo    = "/home/pomu/sagyo/zettelkasten-workflow";
-obsidianConfigRepoUrl = "git@github.com:khimoo/zettelkasten-workflow.git";
+# Zettelkasten workflow repo (mirror-vault の宛先)
+vaultSkeletonRepo    = "/home/pomu/sagyo/zettelkasten-workflow";
+vaultSkeletonRepoUrl = "git@github.com:khimoo/zettelkasten-workflow.git";
 ```
 
 switch すると、それぞれ dest が無い環境で clone される。その後 `dev/claude.nix` の
-symlink（Claude 側）、`services.zettelkasten` の `.obsidian` 配置と同期（vault 側）、
-`mirror-obsidian`（Obsidian config 側）がそれぞれ配線される。
+symlink（Claude 側）、`services.zettelkasten` の骨格配置と同期（vault 側）、
+`mirror-vault`（workflow repo 側）がそれぞれ配線される。
 
 vault は `services.zettelkasten.initializeVault` でも作れるが、この repo では使わない。
 clone より先に空フォルダができると clone が失敗するため、vault の用意は clone 側に一本化する。
@@ -173,9 +173,9 @@ LAN 鍵も同様に作り直す。
 
 ## 無効化する
 
-`flake.nix` の URL 側（`zettelkastenRepoUrl` / `claudeConfigRepo` / `obsidianConfigRepoUrl`）を
+`flake.nix` の URL 側（`zettelkastenRepoUrl` / `claudeConfigRepo` / `vaultSkeletonRepoUrl`）を
 消す（既定 `null`）とその repo の自動 clone は止まる。dest 側（`zettelkastenRoot` /
-`claudeConfigRoot` / `obsidianConfigRepo`）だけ残せば、同期や symlink、`mirror-obsidian` は
+`claudeConfigRoot` / `vaultSkeletonRepo`）だけ残せば、同期や symlink、`mirror-vault` は
 効くので、clone を手動運用に戻せる。
 
 standalone 環境で全 URL を消せば SSH 鍵の書き出しごと生えなくなり、age 鍵も

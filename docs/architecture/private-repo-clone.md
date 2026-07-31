@@ -105,8 +105,8 @@ switch できないと回復もできないという循環は起きない——a
 ## 複数 repo へ汎用化
 
 `private-repos.nix` は `settings.privateRepos = [{ url; dest; }]` を回して clone する。
-リストは `flake.nix` が高レベル設定（`claudeConfigRepo` / `obsidianConfigRepoUrl` などの
-URL 側と、`claudeConfigRoot` / `obsidianConfigRepo` などの dest 側）から自動で組み立てる。
+リストは `flake.nix` が高レベル設定（`claudeConfigRepo` / `vaultSkeletonRepoUrl` などの
+URL 側と、`claudeConfigRoot` / `vaultSkeletonRepo` などの dest 側）から自動で組み立てる。
 これで新しい private repo を足すときも `private-repos.nix` は触らず、`flake.nix` の
 `buildPrivateRepos` に 1 行追加するだけで済む。
 
@@ -127,9 +127,9 @@ mount 先を作ってはいけない。これは `fileSystems` ではなく条�
 
 ## 抜き差し可能性
 
-URL 側（`claudeConfigRepo` / `obsidianConfigRepoUrl` 等）が `null`（既定）ならその repo は
+URL 側（`claudeConfigRepo` / `vaultSkeletonRepoUrl` 等）が `null`（既定）ならその repo は
 リストに入らず、全 URL が null なら clone の activation は生えない。
-dest 側とは別軸で持つことで「symlink（あるいは mirror-obsidian）だけ欲しい（手動 clone）」と
+dest 側とは別軸で持つことで「symlink（あるいは mirror-vault）だけ欲しい（手動 clone）」と
 「clone も自動化したい」を repo ごとに独立に選べる。
 
 鍵の書き出し側は環境の種類で決まる。standalone（WSL / macOS）は LAN の一員ではないので

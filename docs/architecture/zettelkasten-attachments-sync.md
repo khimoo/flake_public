@@ -15,11 +15,12 @@ khimoo/zettelkasten-workflow (public。ワークフローの仕組みを所有)
 ├─ nix/sync-script.nix  … 何をどこへ同期するかを eval 時に焼き込む層 → zettelkasten-sync
 ├─ nix/sync-job.nix     … 同期 job の OS 非依存定義(systemd / launchd をここ1か所から導出)
 ├─ nix/setup.nix        … 宣言で届かない残りを進める対話 CLI → zettelkasten-setup
-├─ nix/init-vault.nix / seed-obsidian.nix … vault と .obsidian の用意(activation が呼ぶ)
-└─ .obsidian/           … 配布する Obsidian 設定と community plugin 本体
+├─ nix/init-vault.nix / seed-vault.nix … vault と骨格の用意(activation が呼ぶ)
+├─ nix/skeleton-paths.nix … 骨格として配るファイル/フォルダの allowlist(mirror-vault が使う)
+└─ skeleton/            … 配布する骨格(分類フォルダ・運用ドキュメント・.obsidian)
 
 flake_public (環境固有の配線だけ注入)
-└─ modules/home-manager/zettelkasten.nix … vaultDir / feature toggle / obsidian.mirrorRepo
+└─ modules/home-manager/zettelkasten.nix … vaultDir / feature toggle / mirrorRepo
 ```
 
 ノート本文は別の private repo `khimoo/zettelkasten`。mechanism を public 分割したことで
