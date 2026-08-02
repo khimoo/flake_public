@@ -63,6 +63,28 @@ tmux 不要のターミナル多重化環境。Leader キー体系でペイン/�
 | `Ctrl+-` | 透過度を下げる (透明に) |
 | `Ctrl+0` | 透過度をデフォルト (75%) にリセット |
 
+### カラースキーム
+
+| キー | 操作 |
+|------|------|
+| `Ctrl+Shift+P` | コマンドパレット → `Select color scheme` を選ぶと一覧が開く |
+
+一覧の各行はその scheme 自身の地色・文字色で描画され、右に ANSI 8 色が並ぶ。適用する前に読みやすさを判断できる。
+
+選択は一時的で、wezterm を再起動すると設定ファイルの状態に戻る。
+
+明るい場所で作業するとき用のお気に入りは `Paraiso (light) (terminal.sexy)`。
+
+現在の scheme は `Ctrl+Shift+L` のデバッグオーバーレイで確認する。
+
+```lua
+window:effective_config().color_scheme
+```
+
+設定ファイルに `color_scheme` を書いていないため、一度も選んでいなければ `nil` が返る。
+
+Neovim 内部の文字色は wezterm の scheme に追従しない。light に切り替えたら Neovim 側で `:set background=light` も実行する（戻すときは `dark`）。
+
 ### フォントサイズ
 
 | 操作 | 方法 |
