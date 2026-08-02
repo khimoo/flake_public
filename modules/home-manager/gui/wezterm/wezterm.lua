@@ -19,7 +19,6 @@ config.hide_tab_bar_if_only_one_tab = true
 config.tab_bar_at_bottom = true
 config.show_new_tab_button_in_tab_bar = false
 config.show_tab_index_in_tab_bar = false
-config.window_background_gradient = { colors = { '#000000' } }
 config.colors = { tab_bar = { inactive_tab_edge = 'none' } }
 
 -- Font (生成元: modules/home-manager/gui/default.nix)
@@ -46,6 +45,49 @@ local function reset_opacity()
     win:set_config_overrides(overrides)
   end)
 end
+
+-- Color scheme picker (Ctrl+Shift+P -> "Select color scheme")
+-- 各行を scheme 自身の配色で描画してプレビューにする
+local function scheme_label(name, scheme)
+  local parts = {
+    { Background = { Color = scheme.background } },
+    { Foreground = { Color = scheme.foreground } },
+    { Text = ' ' .. name .. ' ' },
+    'ResetAttributes',
+    { Text = ' ' },
+  }
+  for _, color in ipairs(scheme.ansi) do
+    table.insert(parts, { Background = { Color = color } })
+    table.insert(parts, { Text = ' ' })
+  end
+  table.insert(parts, 'ResetAttributes')
+  return wezterm.format(parts)
+end
+
+local function scheme_choices()
+  local choices = {}
+  for name, scheme in pairs(wezterm.color.get_builtin_schemes()) do
+    table.insert(choices, { id = name, label = scheme_label(name, scheme) })
+  end
+  table.sort(choices, function(a, b) return a.id < b.id end)
+  return choices
+end
+
+local select_color_scheme = act.InputSelector {
+  title = 'Select color scheme',
+  fuzzy = true,
+  choices = scheme_choices(),
+  action = wezterm.action_callback(function(win, _pane, id, _label)
+    if not id then return end
+    local overrides = win:get_config_overrides() or {}
+    overrides.color_scheme = id
+    win:set_config_overrides(overrides)
+  end),
+}
+
+wezterm.on('augment-command-palette', function()
+  return { { brief = 'Select color scheme', icon = 'md_palette', action = select_color_scheme } }
+end)
 
 -- Leader key (tmux-style prefix)
 config.leader = { key = 's', mods = 'CTRL', timeout_milliseconds = 2000 }
