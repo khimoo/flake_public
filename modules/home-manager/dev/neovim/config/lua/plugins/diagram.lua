@@ -119,14 +119,25 @@ return {
     {
         "3rd/image.nvim",
         dependencies = { "nvim-treesitter/nvim-treesitter" },
+        -- only_render_image_at_cursor: 同時に転送する画像を 1 枚に絞る。全画像を描画すると
+        -- ペイン分割等のリサイズ時に全枚数が一括再送され、WezTerm の GUI スレッドが
+        -- CPU 100% + メモリ増加のまま無限ループに入る (wezterm#7400, 未修正)。
+        -- mode は既定の "popup" だとフロート窓表示になるため "inline" を明示する。
+        -- typst 統合は image.nvim 側で既定有効なので、markdown と同じ設定を明示的に入れる。
         opts = {
             backend = "kitty", -- WezTerm は Kitty graphics protocol 互換
             processor = "magick_cli",
             integrations = {
                 markdown = {
                     enabled = true,
-                    only_render_image_at_cursor = false,
+                    only_render_image_at_cursor = true,
+                    only_render_image_at_cursor_mode = "inline",
                     filetypes = { "markdown", "vimwiki" },
+                },
+                typst = {
+                    enabled = true,
+                    only_render_image_at_cursor = true,
+                    only_render_image_at_cursor_mode = "inline",
                 },
             },
             max_width = 100,

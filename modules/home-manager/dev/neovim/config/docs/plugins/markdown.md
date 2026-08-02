@@ -161,10 +161,25 @@ PNG プレビュー表示する。WezTerm の Kitty graphics protocol を使う�
      A[Start] --> B[End]
    ```
    ````
-3. 数秒待つと、コードブロックの下にレンダリング結果が表示される
+3. **カーソルをそのブロックに置く**と、数秒後にレンダリング結果が表示される
 
 初回は `mmdc` が内部で Chromium ヘッドレスを起動するため数秒重い。
 2 回目以降はキャッシュされて高速。
+
+### 表示はカーソル行の 1 枚のみ
+
+`only_render_image_at_cursor = true`（表示方式は `"inline"`）を markdown と typst の
+両統合に設定しており、**カーソルが乗っている図/画像だけ**が表示される。カーソルを
+外すと消える。
+
+**なぜ全部表示しないか**: WezTerm はペイン分割などのリサイズが起きると、表示中の
+画像を全枚数まとめて Kitty graphics protocol で再送する。この再送で WezTerm の GUI
+スレッドが CPU 100% ＋メモリ増加のまま無限ループに入り、ウィンドウごとフリーズする
+（[wezterm#7400](https://github.com/wezterm/wezterm/issues/7400)、未修正）。転送枚数を
+1 枚に絞って発生確率を下げている。
+
+typst 統合は image.nvim 側で既定有効なため、markdown と同じ設定を明示的に入れてある
+（未指定だと typst バッファだけ全画像表示のままになる）。
 
 ### 再描画のタイミング
 
