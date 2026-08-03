@@ -2,6 +2,8 @@
   description = "NixOS configuration";
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
+    # 更新の速いツールだけをここから取る。用途は overlays/unstable-packages.nix を参照。
+    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
     home-manager = {
       url = "github:nix-community/home-manager/release-25.11";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -197,8 +199,9 @@
           ] ++ (if homeFile != null then [ homeFile ] else []);
         };
 
-      # 一時的なパッチ等の overlay（overlays/default.nix）
-      overlays = import ./overlays;
+      # 一時的なパッチ等の overlay（overlays/default.nix）と、
+      # unstable から取るパッケージの overlay（overlays/unstable-packages.nix）
+      overlays = import ./overlays ++ [ (import ./overlays/unstable-packages.nix inputs) ];
 
     in {
       nixosConfigurations = {

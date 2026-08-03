@@ -29,6 +29,7 @@ in
     jetbrains.idea
     claude-code
     claude-history-wrapped
+    codex
   ] ++ lib.optionals pkgs.stdenv.isLinux [
     kiro.packages.${pkgs.stdenv.hostPlatform.system}.default
   ];
