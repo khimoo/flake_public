@@ -61,6 +61,14 @@ in
     wantedBy = [ "local-fs.target" ];
   }];
 
+  # @backup subvol は root 所有なので、そのままではユーザーのバックアップ処理が書き込めない。
+  # 用途ごとのディレクトリを primaryUser 所有で用意する（/mnt/backup 直下は root のまま残し、
+  # 用途が増えたときに混ざらないようにする）。systemd-tmpfiles は local-fs.target の後に走るので、
+  # マウント前の root ファイルシステム側に作られてマウントに隠される事故は起きない。
+  systemd.tmpfiles.rules = [
+    "d /mnt/backup/minecraft 0755 ${settings.primaryUser} users -"
+  ];
+
   # btrfs をカーネル/システムで扱えるように（root は ext4 なので既定では無効）+ メンテ用 CLI。
   boot.supportedFilesystems = [ "btrfs" ];
   environment.systemPackages = [ pkgs.btrfs-progs ];

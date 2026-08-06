@@ -19,6 +19,7 @@ Flake 設定の設計判断・実装構造のドキュメント。設定変更�
 | [zettelkasten-attachments-sync.md](./zettelkasten-attachments-sync.md) | vault の添付・papis ライブラリの Google Drive 同期（workflow flake が仕組みを所有・認証は各マシンの rclone.conf）の設計判断 |
 | [zettelkasten-vault-skeleton.md](./zettelkasten-vault-skeleton.md) | vault 骨格（分類フォルダ・運用ドキュメント・`.obsidian`）の配布（seed = public→vault）とミラー（mirror = vault→public の派生更新）。live source-of-truth は vault（obsidian-git）、public は派生スナップショット。`.obsidian` は denylist・骨格は allowlist と選び方を逆にする理由と、seed の受益者が `initializeVault` 環境に限られる非対称 |
 | [disk-tiering.md](./disk-tiering.md) | NVMe/SATA の 2 層ディスク構成（btrfs subvol・NOCOW・ブートメニュー）の設計判断 |
+| [minecraft-backup.md](./minecraft-backup.md) | 発火を定時タイマーではなく PrismLauncher の post-exit フックにした理由と、ZIP を restic に替えなかった判断 |
 | [claude-config.md](./claude-config.md) | Claude Code ユーザー設定の git 管理（パス注入 + out-of-store symlink、flake input を退けた理由） |
 | [unstable-packages.md](./unstable-packages.md) | 更新の速いパッケージ（codex）だけを nixos-unstable から差し替える overlay と、全体を unstable に上げなかった理由 |
 | [private-repo-clone.md](./private-repo-clone.md) | SSH 鍵配布と private repo の宣言的 clone（home.activation で age 鍵 1 本から id_github / id_lan を復号し clone・NixOS/WSL/macOS 共通・復号と clone のモジュール分離） |
