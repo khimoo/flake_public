@@ -2,6 +2,7 @@
   imports = [ # Include the results of the hardware scan.
     ./hardware.nix
     ./data-disk.nix
+    ./keyd-turbo.nix
     ../../modules/nixos/common.nix
   ];
   boot.kernelParams = [ "btusb.enable_autosuspend=n" ];
