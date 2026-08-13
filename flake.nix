@@ -106,6 +106,12 @@
       # vaultSkeletonRepoUrl: 上記を宣言的に自動 clone する場合の clone 元 URL (null で自動 clone 無効)。
       # claudeConfigRepo と同じ経路 (private-repos.nix + age 鍵) で clone される。
       # vaultSkeletonRepo だけ指定して Url=null なら手動 clone 運用のまま。
+      # llmWikisRoot: LLM 向けナレッジベース(LLM Wiki)群の clone 先絶対パス (null で無効)。
+      # flake 側にこれを読むモジュールは無く、private-repos.nix の clone 対象として渡すためだけに
+      # 存在する。運用は該当ドメインのディレクトリで Claude Code を起動し、そこの CLAUDE.md を
+      # スキーマとして使うので、~/.claude への配線は要らない (docs/architecture/llm-wikis.md 参照)。
+      # llmWikisRepoUrl: 上記を宣言的に自動 clone する場合の clone 元 URL (null で自動 clone 無効)。
+      # claudeConfigRepo と同じ経路 (private-repos.nix + age 鍵) で clone される。
       # buildPrivateRepos: {root, repo} 対のリストから、URL も指定されている項目だけを
       # private-repos.nix が食う {url, dest} リストに畳む。
       buildPrivateRepos = pairs:
@@ -117,12 +123,13 @@
       githubSshKey = { secret = "git_ssh_key"; name = "id_github"; };  # GitHub 認証
       lanSshKey    = { secret = "lan_ssh_key"; name = "id_lan"; };     # LAN 内 machine-to-machine
 
-      mkSystem = { hostname, system, users, timezone, keymap ? "us", stateVersion, primaryUser ? (builtins.head users).username, flakeRoot, zettelkastenRoot, zettelkastenRepoUrl ? null, claudeConfigRoot ? null, claudeConfigRepo ? null, vaultSkeletonRepo ? null, vaultSkeletonRepoUrl ? null }:
+      mkSystem = { hostname, system, users, timezone, keymap ? "us", stateVersion, primaryUser ? (builtins.head users).username, flakeRoot, zettelkastenRoot, zettelkastenRepoUrl ? null, claudeConfigRoot ? null, claudeConfigRepo ? null, vaultSkeletonRepo ? null, vaultSkeletonRepoUrl ? null, llmWikisRoot ? null, llmWikisRepoUrl ? null }:
         let
           privateRepos = buildPrivateRepos [
             { root = zettelkastenRoot;  repo = zettelkastenRepoUrl; }
             { root = claudeConfigRoot;  repo = claudeConfigRepo; }
             { root = vaultSkeletonRepo; repo = vaultSkeletonRepoUrl; }
+            { root = llmWikisRoot;      repo = llmWikisRepoUrl; }
           ];
           settings = baseSettings // {
             inherit hostname system users timezone keymap stateVersion primaryUser flakeRoot zettelkastenRoot claudeConfigRoot claudeConfigRepo vaultSkeletonRepo privateRepos;
@@ -169,7 +176,7 @@
       # スタンドアロンhome-manager設定を生成するヘルパー関数
       # mkSystem と同じく flakeRoot は呼び出し側で指定 (環境ごとに clone 位置が違うため)。
       # zettelkastenRoot は zettelkastenSync を有効化する standalone 環境のみ必要（既定 null）。
-      mkHome = { username, system, homeFile ? null, stateVersion, allowUnfree ? false, features ? {}, flakeRoot, zettelkastenRoot ? null, zettelkastenRepoUrl ? null, claudeConfigRoot ? null, claudeConfigRepo ? null, vaultSkeletonRepo ? null, vaultSkeletonRepoUrl ? null, extraSettings ? {} }:
+      mkHome = { username, system, homeFile ? null, stateVersion, allowUnfree ? false, features ? {}, flakeRoot, zettelkastenRoot ? null, zettelkastenRepoUrl ? null, claudeConfigRoot ? null, claudeConfigRepo ? null, vaultSkeletonRepo ? null, vaultSkeletonRepoUrl ? null, llmWikisRoot ? null, llmWikisRepoUrl ? null, extraSettings ? {} }:
         let
           pkgs = import nixpkgs { inherit system; inherit overlays; };
           skk-dict = mkSkkDict system;
@@ -177,6 +184,7 @@
             { root = zettelkastenRoot;  repo = zettelkastenRepoUrl; }
             { root = claudeConfigRoot;  repo = claudeConfigRepo; }
             { root = vaultSkeletonRepo; repo = vaultSkeletonRepoUrl; }
+            { root = llmWikisRoot;      repo = llmWikisRepoUrl; }
           ];
           settings = baseSettings // {
             inherit system stateVersion flakeRoot zettelkastenRoot claudeConfigRoot claudeConfigRepo vaultSkeletonRepo privateRepos;
@@ -226,6 +234,8 @@
           claudeConfigRepo = "git@github.com:khimoo/claude-private.git";
           vaultSkeletonRepo = "/home/pomu/sagyo/zettelkasten-workflow";
           vaultSkeletonRepoUrl = "git@github.com:khimoo/zettelkasten-workflow.git";
+          llmWikisRoot = "/home/pomu/sagyo/llm-wikis";
+          llmWikisRepoUrl = "git@github.com:khimoo/llm-wikis.git";
         };
 
         nixos-desktop = mkSystem {
@@ -255,6 +265,8 @@
           claudeConfigRepo = "git@github.com:khimoo/claude-private.git";
           vaultSkeletonRepo = "/home/pomu/sagyo/zettelkasten-workflow";
           vaultSkeletonRepoUrl = "git@github.com:khimoo/zettelkasten-workflow.git";
+          llmWikisRoot = "/home/pomu/sagyo/llm-wikis";
+          llmWikisRepoUrl = "git@github.com:khimoo/llm-wikis.git";
         };
       };
 

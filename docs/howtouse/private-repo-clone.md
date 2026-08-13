@@ -101,7 +101,7 @@ grep -c 'BEGIN OPENSSH' secrets/secrets.yaml   # 0 なら OK
 ## clone 元 URL を指定して switch
 
 対象環境の `flake.nix` 呼び出しに、各 repo の clone 元 URL を足す（clone 先の絶対パス側は既存）。
-現在自動 clone に対応しているのは以下 3 種類の repo:
+現在自動 clone に対応しているのは以下 4 種類の repo:
 
 ```nix
 # Obsidian vault（ノート本文, private）
@@ -115,6 +115,10 @@ claudeConfigRepo = "git@github.com:khimoo/claude-private.git";
 # Zettelkasten workflow repo (mirror-vault の宛先)
 vaultSkeletonRepo    = "/home/pomu/sagyo/zettelkasten-workflow";
 vaultSkeletonRepoUrl = "git@github.com:khimoo/zettelkasten-workflow.git";
+
+# LLM Wiki 群 (private, clone するだけで他の配線は無い)
+llmWikisRoot    = "/home/pomu/sagyo/llm-wikis";
+llmWikisRepoUrl = "git@github.com:khimoo/llm-wikis.git";
 ```
 
 switch すると、それぞれ dest が無い環境で clone される。その後 `dev/claude.nix` の
