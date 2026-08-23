@@ -8,11 +8,12 @@ let
 in {
   imports = [ ../../modules/home-manager/minecraft-backup.nix ];
 
-  # 出力先を NVMe(/) ではなく SATA の @backup subvol にする。/ は残り 2 割を切っており、
-  # 1 回で 700M 近く積むため。ディレクトリの作成と所有者付けは data-disk.nix が行う。
+  # リポジトリを NVMe(/) ではなく SATA の @backup subvol に置く。/ は残り 2 割を切っている。
+  # ディレクトリの作成と所有者付けは data-disk.nix が行う。
+  # /mnt/backup/minecraft 直下には restic 移行前の ZIP が残っているので、repo/ に分ける。
   local.minecraftBackup = {
     enable = true;
-    outDir = "/mnt/backup/minecraft";
+    repoDir = "/mnt/backup/minecraft/repo";
     remote = "gdrive:minecraft-backups";
   };
 

@@ -17,7 +17,7 @@
 | Zettelkasten の Drive 同期 | 添付と papis ライブラリの Google Drive 同期。新マシンのセットアップ（rclone 認証・初回同期）と日常運用 | [zettelkasten-attachments-sync.md](./zettelkasten-attachments-sync.md) |
 | vault 骨格の配布・ミラー | 分類フォルダ・運用ドキュメント・`.obsidian` を public repo へ写す（mirror）手順、何が公開され何が落ちるか、seed が自分のマシンでは動かない理由 | [zettelkasten-vault-skeleton.md](./zettelkasten-vault-skeleton.md) |
 | ディスク階層構成 | NVMe(ホット)/SATA(コールド)の 2 層・btrfs subvol のレイアウトとセットアップ | [disk-tiering.md](./disk-tiering.md) |
-| Minecraft バックアップ | インスタンス終了で自動 ZIP＋Drive 送信。PrismLauncher 側のフック設定・復元手順・世代の掃除 | [minecraft-backup.md](./minecraft-backup.md) |
+| Minecraft バックアップ | インスタンス終了で restic に世代を積み Drive へ写す。フック設定・復元手順・別マシンとの往復 | [minecraft-backup.md](./minecraft-backup.md) |
 | Claude Code 設定 | グローバル CLAUDE.md・skills を private repo で git 管理し symlink で挿す運用 | [claude-config.md](./claude-config.md) |
 | LLM Wiki | AI に読ませる知識ベースをドメインごとに育てる運用。ingest / query / lint の回し方、新ドメインの足し方 | [llm-wikis.md](./llm-wikis.md) |
 | SSH 鍵配布と private repo 自動 clone | SSH 鍵（id_github / id_lan）を sops 暗号化し、age 鍵 1 本で新環境（NixOS/WSL/macOS）が switch 一発で鍵設置＋clone する運用 | [private-repo-clone.md](./private-repo-clone.md) |
