@@ -34,29 +34,6 @@ home-manager switch --flake .#username-host
 
 詳細は `modules/home-manager/dev/rustowl.nix` の `home.activation.rustowl` を参照。
 
-### TODO: デスクトップ側の Firefox プロファイルリネーム（帰宅後に実施）
-
-ラップトップ側では `gbvj989j.default`（デスクトップのプロファイル）がハードコードされていたが、
-`firefox.nix` の `path` 指定を削除し（home-manager のデフォルト `"default"` を使用）、
-ラップトップのプロファイルを `default` にリネームして対応済み。
-デスクトップ側でも以下の手順を実施すること：
-
-1. Firefox を完全に終了する
-2. プロファイルをリネーム:
-   ```sh
-   mv ~/.mozilla/firefox/gbvj989j.default ~/.mozilla/firefox/default
-   ```
-3. 起動キャッシュを削除（旧パスが記録されており拡張機能が読み込めなくなるため）:
-   ```sh
-   rm ~/.mozilla/firefox/default/addonStartup.json.lz4
-   ```
-4. rebuild（Nix 設定はすでに更新済み）:
-   ```sh
-   sudo nixos-rebuild switch --flake .#nixos-desktop
-   ```
-5. Firefox を起動して拡張機能が正常に使えることを確認
-6. 確認できたらこの TODO を CLAUDE.md から削除する
-
 ---
 
 ## コード編集のルール
