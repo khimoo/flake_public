@@ -78,6 +78,11 @@ let
       pkg = pkgs.vlc;
     }
     { pkg = pkgs.xournalpp; }
+    # Google Photos から引き上げた写真の仕分け用。年フォルダ・動画のサムネイル・重複検出が
+    # 揃っているのがこれだけ。7z は Takeout の zip を開くのに要る（unzip は日本語の
+    # フォルダ名を化けさせる）。使い方: docs/howtouse/photo-triage.md
+    { pkg = pkgs.digikam; }
+    { pkg = pkgs.p7zip; }
 
     # -- ブラウザ --
     { pkg = pkgs.google-chrome; }
