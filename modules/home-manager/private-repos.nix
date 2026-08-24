@@ -21,12 +21,14 @@ let
   sshKey = "${home}/.ssh/id_github";
 
   # 1 repo 分の clone スニペット。dest が既にあれば触らない(冪等・非破壊)。
+  # git/ssh を絶対パスで呼ぶのは、NixOS では activation が systemd unit として走り
+  # PATH に coreutils 等しか入らないため(裸の ssh は対話シェル経由でしか解決できない)。
   cloneRepoSnippet = { url, dest }: ''
     repo=${lib.escapeShellArg url}
     dest=${lib.escapeShellArg dest}
     if [ ! -e "$dest" ]; then
       mkdir -p "$(dirname "$dest")"
-      GIT_SSH_COMMAND="ssh -i $ssh_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new" \
+      GIT_SSH_COMMAND="${pkgs.openssh}/bin/ssh -i $ssh_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new" \
         ${pkgs.git}/bin/git clone "$repo" "$dest"
     fi
   '';
