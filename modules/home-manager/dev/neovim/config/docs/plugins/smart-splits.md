@@ -55,7 +55,7 @@ wezterm 側に smart-splits のプラグインを読み込み、`apply_to_config
 ### 1. コードを読みながらターミナルで確認
 
 ```
-Ctrl+s v          wezterm で横ペイン分割（Leader+v）
+Ctrl+a v          wezterm で横ペイン分割（Leader+v）
                    → 右ペインでシェルが開く
 (左ペインで nvim、右ペインでシェル)
 Ctrl+l            nvim → シェルにフォーカス移動
@@ -73,8 +73,8 @@ Alt+h / Alt+l      分割の幅を調整
 ### 3. 複数ペインのレイアウト調整
 
 ```
-Ctrl+s s          wezterm で縦ペイン分割（Leader+s）
-Ctrl+s v          wezterm で横ペイン分割（Leader+v）
+Ctrl+a s          wezterm で縦ペイン分割（Leader+s）
+Ctrl+a v          wezterm で横ペイン分割（Leader+v）
 Alt+h/j/k/l       各ペインのサイズを調整
 Ctrl+h/j/k/l      ペイン間を自由に移動
 ```

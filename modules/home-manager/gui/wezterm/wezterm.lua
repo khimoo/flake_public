@@ -90,7 +90,12 @@ wezterm.on('augment-command-palette', function()
 end)
 
 -- Leader key (tmux-style prefix)
-config.leader = { key = 's', mods = 'CTRL', timeout_milliseconds = 2000 }
+config.leader = { key = 'a', mods = 'CTRL', timeout_milliseconds = 2000 }
+
+-- kitty keyboard protocol (CSI u) は有効にできない。
+-- 有効にすると fcitx5 の 1 文字コミットが落ち、シェルでひらがなが入力できなくなる。
+-- https://github.com/wezterm/wezterm/issues/5224
+-- config.enable_kitty_keyboard = true
 
 -- Keybindings
 -- Default keybindings are preserved unless explicitly overridden below.
@@ -123,6 +128,9 @@ config.keys = {
 
   -- Fullscreen (addition to default Alt+Enter)
   { key = 'F11', action = act.ToggleFullScreen },
+
+  -- Leader: send the prefix itself through (tmux's send-prefix idiom)
+  { key = 'a', mods = 'LEADER|CTRL', action = act.SendKey { key = 'a', mods = 'CTRL' } },
 
   -- Leader: shell line editing
   { key = '0', mods = 'LEADER', action = act.SendKey { key = 'a', mods = 'CTRL' } },

@@ -6,9 +6,13 @@ tmux 不要のターミナル多重化環境。Leader キー体系でペイン/�
 
 ## Leader キー
 
-**`Ctrl+S`** が Leader キー (tmux の prefix に相当)。押してから 2 秒以内に次のキーを入力する。
+**`Ctrl+A`** が Leader キー (tmux の prefix に相当)。押してから 2 秒以内に次のキーを入力する。
 
-以下の表記で `<Leader>x` は「`Ctrl+S` を押して離してから `x` を押す」を意味する。
+以下の表記で `<Leader>x` は「`Ctrl+A` を押して離してから `x` を押す」を意味する。
+
+Leader に取られた素の `Ctrl+A` をアプリに送りたい場合は **`Ctrl+A` を二度押す**。tmux の
+`send-prefix` と同じ仕組みで、Neovim の `<C-a>` (dial.nvim のインクリメント) やシェルの
+行頭移動はこれで届く。
 
 ## キーバインド一覧
 
@@ -52,6 +56,7 @@ tmux 不要のターミナル多重化環境。Leader キー体系でペイン/�
 | `<Leader>A` | 行末に移動 | `Ctrl+E` |
 | `<Leader>d` | カーソルより前を削除 | `Ctrl+U` |
 | `<Leader>w` | 次の単語へ移動 | `Meta+F` |
+| `<Leader>Ctrl+A` | 素の `Ctrl+A` を送る | `Ctrl+A` |
 
 > Neovim 内では Neovim のキーバインドが優先されるため、これらは Neovim 外のシェルプロンプトで有効。
 
