@@ -13,6 +13,9 @@ return {
         -- <C-b> / <C-f>: ドキュメントをスクロール
         -- <C-k>: シグネチャヘルプ表示トグル
         -- <Tab> / <S-Tab>: スニペットの次/前のプレースホルダ
+
+        -- kitty keyboard protocol 対応端末でのみ届く。非対応環境では <C-y> がそのまま残る
+        ['<C-CR>'] = { 'select_and_accept', 'fallback' },
       },
       completion = {
         documentation = {

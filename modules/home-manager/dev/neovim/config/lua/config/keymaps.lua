@@ -7,6 +7,9 @@ map("n", "<Esc><Esc>", ":nohlsearch<CR>", { silent = true })
 map("x", "d", '"_d', { noremap = true })
 map("x", "p", '"_dP', { noremap = true })
 
+-- kitty keyboard protocol 対応端末でのみ届く。非対応環境では <C-w> がそのまま残る
+map("i", "<C-BS>", "<C-w>")
+
 -- 表示行移動
 map("n", "k", "gk", { noremap = true })
 map("n", "gk", "k", { noremap = true })

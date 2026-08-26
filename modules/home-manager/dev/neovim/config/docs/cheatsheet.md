@@ -153,7 +153,23 @@ Vim 標準だが頻出のもの。
 |------|------|------|
 | `<C-space>` | 補完を手動で開く | blink.cmp |
 | `<C-n>` / `<C-p>` | 次/前の候補 | blink.cmp |
-| `<CR>` | 候補を確定 | blink.cmp |
+| `<C-y>` | 候補を確定 | blink.cmp |
+| `<C-CR>` | 候補を確定 (対応端末のみ。下記参照) | blink.cmp |
 | `<C-e>` | 補完をキャンセル | blink.cmp |
 | `<Tab>` / `<S-Tab>` | スニペットの次/前のプレースホルダ | blink.cmp |
+| `<C-w>` | 直前の単語を削除 | Vim 組み込み |
+| `<C-BS>` | 直前の単語を削除 (対応端末のみ。下記参照) | keymaps.lua |
 | `<C-g>s` | 囲みを追加 (挿入モード) | surround |
+
+### 対応端末でのみ届くキー
+
+`<C-CR>` と `<C-BS>` は kitty keyboard protocol (CSI u) が有効な端末でしか Neovim に届かない。
+旧来の符号化では `<CR>` / `<C-h>` と同じバイトになるため区別できない。
+
+これらは `<C-y>` / `<C-w>` の別名として置いてある。非対応の端末では効かないが、元のキーが
+そのまま残るので操作を失うことはない。**逆に、この 2 つでしか到達できない操作を作らないこと。**
+
+> **wezterm では現在使えない。**`enable_kitty_keyboard = true` にすると fcitx5 の 1 文字
+> コミットが落ち、シェルでひらがなが入力できなくなるため無効にしている
+> ([wezterm#5224](https://github.com/wezterm/wezterm/issues/5224), 未修正)。
+> kitty や ghostty で Neovim を使う場合には有効。
