@@ -98,7 +98,7 @@ in {
         };
         alt = {
           backspace = "delete";
-          meta = "capslock";
+          # meta = "capslock";
           brightnessdown = "kbdillumdown";
           brightnessup = "kbdillumup";
           f6 = "kbdillumdown";
