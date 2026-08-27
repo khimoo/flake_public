@@ -12,6 +12,7 @@
 | CLI ツール | シェル環境・ターミナル・ファイルマネージャ等 | [cli-tools/README.md](./cli-tools/README.md) |
 | Neovim | プラグイン・キーバインド・ワークフロー | [modules/home-manager/dev/neovim/config/docs/README.md](../../modules/home-manager/dev/neovim/config/docs/README.md) |
 | wezterm | ターミナルのキーバインド・ペイン・ワークスペース | [cli-tools/wezterm.md](./cli-tools/wezterm.md) |
+| キーボードのレイヤー | 修飾キーごとの割り当てを調べる手順。keyd / xkb / アプリの 3 層と、GNOME の表に出ない変換の追い方 | [keyboard-layers.md](./keyboard-layers.md) |
 | 共通 devShell | コードリーディング用 devShell を `.envrc` から参照する運用 | [devshells.md](./devshells.md) |
 | papis の使い方 | 文献の追加・citekey の pin・BibTeX 書き出しと、papis 固有の同期上の注意 | [papis-gdrive-sync.md](./papis-gdrive-sync.md) |
 | Zettelkasten の Drive 同期 | 添付と papis ライブラリの Google Drive 同期。新マシンのセットアップ（rclone 認証・初回同期）と日常運用 | [zettelkasten-attachments-sync.md](./zettelkasten-attachments-sync.md) |
