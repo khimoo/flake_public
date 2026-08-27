@@ -21,6 +21,7 @@
 | 外観 | lualine, hlchunk, fidget, which-key | [appearance.md](./plugins/appearance.md) |
 | Markdown | render-markdown.nvim, autolist.nvim, img-clip.nvim, marksman, diagram.nvim, image.nvim | [markdown.md](./plugins/markdown.md) |
 | Rust | rustaceanvim, rustowl | [lang-rust.md](./plugins/lang-rust.md) |
+| Typst | tinymist, typst-preview.nvim | [lang-typst.md](./plugins/lang-typst.md) |
 
 ## リファレンス
 

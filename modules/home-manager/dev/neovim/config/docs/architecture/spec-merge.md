@@ -34,14 +34,13 @@ return {
 
 `plugins/treesitter.lua` には `ensure_installed = {}` のベース spec を置き、各言語モジュールが list_extend で追加する。
 
-### 具体例: LSP override の追加 (現状は未使用、設計のみ)
+### 具体例: LSP override の追加
 
 `plugins/lsp/init.lua` で `opts.servers` を table として宣言:
 
 ```lua
 opts = {
   servers = {
-    tinymist = { settings = { ... } },
     nil_ls = { settings = { ... } },
   },
 },
@@ -50,19 +49,21 @@ config = function(_, opts)
 end,
 ```
 
-将来 marksman の override が必要になった際は `lang/markdown/lsp.lua` で:
+`lang/typst/lsp.lua` が同じ spec を宣言して tinymist を差し込んでいる:
 
 ```lua
 return {
   "neovim/nvim-lspconfig",
-  opts = function(_, opts)
-    opts.servers = opts.servers or {}
-    opts.servers.marksman = { settings = { ... } }
-  end,
+  opts = {
+    servers = {
+      tinymist = { settings = { ... }, on_attach = function(client, bufnr) ... end },
+    },
+  },
 }
 ```
 
-を返せば、ベースの `opts.servers` に deep-merge される。
+`settings` だけでなく `on_attach` のような関数値も deep-merge の対象になるので、
+サーバー固有の autocmd 登録まで言語モジュール側に置ける。
 
 ## 設計上のトレードオフ
 

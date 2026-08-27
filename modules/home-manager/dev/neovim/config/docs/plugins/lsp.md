@@ -25,9 +25,6 @@
 ```lua
 opts = {
   servers = {
-    tinymist = {
-      settings = { exportPdf = "onType", outputPath = "/tmp/tinymist" },
-    },
     nil_ls = {
       settings = { ['nil'] = { formatting = { command = { "nixfmt" } } } },
     },
@@ -38,8 +35,8 @@ opts = {
 このテーブルは **lazy.nvim の spec マージで言語モジュールから拡張可能**。例えば `lang/markdown/lsp.lua` で `opts.servers.marksman = { ... }` を返す spec を書けば、`nvim-lspconfig` の opts に deep-merge される。詳細は [架構ドキュメント (spec マージ)](../architecture/spec-merge.md) を参照。
 
 現状の override:
-- `tinymist`: Typst 用。`exportPdf = "onType"` でリアルタイム PDF 出力
-- `nil_ls`: Nix 用。`nixfmt` でフォーマット
+- `nil_ls`: Nix 用。`nixfmt` でフォーマット。`plugins/lsp/init.lua` に直接書いている
+- `tinymist`: Typst 用。spec マージを使って `lang/typst/lsp.lua` から差し込む。詳細は [lang-typst.md](./lang-typst.md)
 
 ## キーバインド
 

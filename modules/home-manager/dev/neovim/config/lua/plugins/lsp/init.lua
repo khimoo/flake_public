@@ -21,12 +21,7 @@ return {
     -- opts.servers.<name> = {...} を書けば lazy.nvim が deep-merge する。
     opts = {
       servers = {
-        tinymist = {
-          settings = {
-            exportPdf = "onType",
-            outputPath = "/tmp/tinymist",
-          },
-        },
+        -- tinymist は lang/typst/lsp.lua で宣言する。
         nil_ls = {
           settings = {
             ['nil'] = { formatting = { command = { "nixfmt" } } },
