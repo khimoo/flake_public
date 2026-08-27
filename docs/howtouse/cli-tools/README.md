@@ -10,6 +10,7 @@
 | ターミナル | wezterm | GPU 加速ターミナル (Leader キー体系) | [wezterm.md](./wezterm.md) |
 | Git UI | lazygit | Git TUI クライアント (delta 連携) | [lazygit.md](./lazygit.md) |
 | シェルツール | fzf, eza, zoxide, fd, rg, bat, btm, direnv, jq, xh | モダン CLI ツール群 | [shell-tools.md](./shell-tools.md) |
+| PDF ビューア | tdf | 端末内で PDF を表示 (kitty graphics protocol) | [shell-tools.md#tdf](./shell-tools.md#tdf) |
 
 ## シェルエイリアス (core.nix)
 
