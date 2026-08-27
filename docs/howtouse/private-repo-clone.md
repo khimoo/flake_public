@@ -128,6 +128,22 @@ symlink（Claude 側）、`services.zettelkasten` の骨格配置と同期（vau
 vault は `services.zettelkasten.initializeVault` でも作れるが、この repo では使わない。
 clone より先に空フォルダができると clone が失敗するため、vault の用意は clone 側に一本化する。
 
+## 手元の checkout をまとめて更新する（`pull-repos`）
+
+clone は初回だけで、switch は既存の working tree を触らない。更新は `pull-repos` で行う:
+
+```sh
+pull-repos
+```
+
+対象は自動 clone の対象 repo に flake 自身を加えたもの。この環境では
+`flake_public` / `zettelkasten` / `claude-private` / `zettelkasten-workflow` / `llm-wikis`。
+`settings.privateRepos` から組み立てるので、`flake.nix` に repo を足せば対象も増える。
+
+各 repo で `git pull --ff-only` を走らせる。ローカルにコミットがあって分岐している repo は
+git が拒否するので、そこだけ手で rebase / merge する。1 つ失敗しても残りは処理し、
+最後に非ゼロで終わる。まだ clone されていない dest は報告のみで、clone は switch に任せる。
+
 ## 新しい環境を足す
 
 1. 専用 age 鍵を新環境の `~/.config/sops/age/keys.txt` に置く

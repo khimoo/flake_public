@@ -11,6 +11,9 @@
 # 自体が生えない。公開 flake をそのまま使う人・自前 repo を手動 clone したい人には無影響。
 # 個々の (url, dest) は flake.nix 側で claudeConfig* / vaultSkeletonRepo* 等の高レベル設定から
 # 組み立てる (dest だけ指定・URL 未指定は手動 clone のまま = 抜き差し可能)。
+#
+# clone は初回だけなので、以降の更新は pull-repos コマンドで手動で走らせる
+# (flake 自身 + private repo 群をまとめて git pull --ff-only)。
 { config, lib, pkgs, settings, ... }:
 
 let
@@ -20,33 +23,62 @@ let
   home = config.home.homeDirectory;
   sshKey = "${home}/.ssh/id_github";
 
-  # 1 repo 分の clone スニペット。dest が既にあれば触らない(冪等・非破壊)。
   # git/ssh を絶対パスで呼ぶのは、NixOS では activation が systemd unit として走り
   # PATH に coreutils 等しか入らないため(裸の ssh は対話シェル経由でしか解決できない)。
+  gitSshCommand = "${pkgs.openssh}/bin/ssh -i ${sshKey} -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new";
+
+  # 1 repo 分の clone スニペット。dest が既にあれば触らない(冪等・非破壊)。
   cloneRepoSnippet = { url, dest }: ''
     repo=${lib.escapeShellArg url}
     dest=${lib.escapeShellArg dest}
     if [ ! -e "$dest" ]; then
       mkdir -p "$(dirname "$dest")"
-      GIT_SSH_COMMAND="${pkgs.openssh}/bin/ssh -i $ssh_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new" \
+      GIT_SSH_COMMAND=${lib.escapeShellArg gitSshCommand} \
         ${pkgs.git}/bin/git clone "$repo" "$dest"
     fi
   '';
 
   dryRunListSnippet = { url, dest }:
     "echo 'private-repos: (dry-run) ${url} を ${dest} へ clone する予定' >&2";
-in
-{
-  config = lib.mkIf enable {
-    home.activation.privateRepos = lib.hm.dag.entryAfter [ "sshKeys" ] ''
-      ssh_key=${lib.escapeShellArg sshKey}
 
-      if [ -n "''${DRY_RUN_CMD:-}" ]; then
-        ${lib.concatMapStringsSep "\n        " dryRunListSnippet repos}
-      else
-        # 各 repo を dest 未存在時のみ clone(既存 working tree は触らない・pull もしない)。
-        ${lib.concatMapStringsSep "\n\n        " (r: "(\n          ${cloneRepoSnippet r}\n        )") repos}
-      fi
+  # flake 自身も同じ GitHub 鍵で更新するので、clone 対象と一緒に並べる。
+  pullTargets = lib.unique ([ settings.flakeRoot ] ++ map (r: r.dest) repos);
+
+  # --ff-only なので、ローカルにコミットがあって分岐している repo は git が拒否して終わる。
+  # 1 つ失敗しても残りは回し、最後にまとめて非ゼロを返す。
+  pullRepos = pkgs.writeShellApplication {
+    name = "pull-repos";
+    runtimeInputs = [ pkgs.git pkgs.openssh ];
+    text = ''
+      export GIT_SSH_COMMAND=${lib.escapeShellArg gitSshCommand}
+
+      status=0
+      for dest in ${lib.escapeShellArgs pullTargets}; do
+        if [ ! -d "$dest/.git" ]; then
+          echo "pull-repos: $dest は clone されていない (switch すれば clone される)" >&2
+          status=1
+          continue
+        fi
+        echo "==> $dest"
+        git -C "$dest" pull --ff-only || status=1
+      done
+      exit "$status"
     '';
   };
+in
+{
+  config = lib.mkMerge [
+    { home.packages = [ pullRepos ]; }
+
+    (lib.mkIf enable {
+      home.activation.privateRepos = lib.hm.dag.entryAfter [ "sshKeys" ] ''
+        if [ -n "''${DRY_RUN_CMD:-}" ]; then
+          ${lib.concatMapStringsSep "\n          " dryRunListSnippet repos}
+        else
+          # 各 repo を dest 未存在時のみ clone(既存 working tree は触らない・pull もしない)。
+          ${lib.concatMapStringsSep "\n\n          " (r: "(\n            ${cloneRepoSnippet r}\n          )") repos}
+        fi
+      '';
+    })
+  ];
 }

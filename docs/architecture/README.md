@@ -22,7 +22,7 @@ Flake 設定の設計判断・実装構造のドキュメント。設定変更�
 | [minecraft-backup.md](./minecraft-backup.md) | 発火を定時タイマーではなく PrismLauncher の post-exit フックにした理由、ZIP から restic へ移した判断、Drive のリポジトリをホストごとに分けて 2 台からの往復を成立させる設計 |
 | [claude-config.md](./claude-config.md) | Claude Code ユーザー設定の git 管理（パス注入 + out-of-store symlink、flake input を退けた理由） |
 | [unstable-packages.md](./unstable-packages.md) | 更新の速いパッケージ（codex）だけを nixos-unstable から差し替える overlay と、全体を unstable に上げなかった理由 |
-| [private-repo-clone.md](./private-repo-clone.md) | SSH 鍵配布と private repo の宣言的 clone（home.activation で age 鍵 1 本から id_github / id_lan を復号し clone・NixOS/WSL/macOS 共通・復号と clone のモジュール分離） |
+| [private-repo-clone.md](./private-repo-clone.md) | SSH 鍵配布と private repo の宣言的 clone（home.activation で age 鍵 1 本から id_github / id_lan を復号し clone・NixOS/WSL/macOS 共通・復号と clone のモジュール分離・更新は switch から切り離して pull-repos に置く判断） |
 | [llm-wikis.md](./llm-wikis.md) | AI に読ませる知識ベース（LLM Wiki）を独立 private repo に置く判断。Claude 設定 repo / vault への相乗りを退けた理由、skill 化しない理由、flake の配線が clone 1 行で済む帰結 |
 | [new-machine.md](./new-machine.md) | **TODO**: nixos-anywhere + disko + age 鍵自動注入で新マシンを 1 コマンドプロビジョニングし、silent skip を根絶する設計メモ（未実装） |
 | [kernel-pin.md](./kernel-pin.md) | nixos-desktop のカーネルを 7.0 系にピン留め（7.1 系が X399 の ACPI S5 バグを踏み poweroff で電源が切れないのを回避）の設計判断 |

@@ -87,6 +87,22 @@ symlink と同じ思想）。
 失敗してもシェルが先に空の `$dest` を作ってしまい、以降の switch が clone-if-absent の
 判定で「もうある」と見なして二度と復号し直さない。壊れた鍵が固定される経路なので塞いだ。
 
+## 更新は switch から切り離して `pull-repos` に置く
+
+clone-if-absent の裏返しとして、一度 clone した repo は switch では新しくならない。
+その更新を `pull-repos` という別コマンドに出した（`private-repos.nix` が `home.packages`
+に載せる）。switch に pull を混ぜないのは、更新のタイミングをユーザーが選べるようにするため。
+switch が pull も担うと、システム世代を切り替えるつもりの操作が working tree も動かす。
+
+対象は clone 対象の全 repo に flake 自身（`settings.flakeRoot`）を加えたもの。同じ GitHub 鍵で
+更新でき、「手元の checkout を全部新しくする」意図では flake だけ別扱いする理由が無い。
+clone 対象が無い環境でも flake 1 つを対象にコマンドは生える。
+
+`git pull --ff-only` なので、ローカルにコミットがあって分岐した repo は git が拒否して止まる
+（merge commit を勝手に作らない）。1 つ失敗しても残りは回し、最後に非ゼロで終わる。
+未 clone の dest は「switch すれば clone される」と報告するだけで、ここでは clone しない
+（clone の経路を activation に一本化し、鍵の前提を二重に持たないため）。
+
 ## fail-fast（age 鍵が無ければ switch を失敗させる）
 
 以前は age 鍵が無いとき警告だけ出して続行していた。これをやめ、`exit 1` で activation を
