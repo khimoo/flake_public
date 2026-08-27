@@ -18,7 +18,7 @@
 
 let
   root = settings.claudeConfigRoot;
-  configDirs = [ "skills" "agents" "commands" "output-styles" ];
+  configDirs = [ "skills" "agents" "commands" "output-styles" "hooks" ];
   mkLink = path: config.lib.file.mkOutOfStoreSymlink "${root}/${path}";
 in
 {
