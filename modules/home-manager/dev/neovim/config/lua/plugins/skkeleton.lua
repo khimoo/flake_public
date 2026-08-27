@@ -17,8 +17,8 @@ return {
                 })
                 vim.fn['skkeleton#register_kanatable']('rom', {
                     ["z<Space>"] = { "\\u3000", '' },
-                    [","] = { ', ' },
-                    ["."] = { '. ' },
+                    [","] = { '，' },
+                    ["."] = { '．' },
                 })
             end
 

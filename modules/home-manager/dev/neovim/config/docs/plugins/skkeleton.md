@@ -50,4 +50,4 @@ Neovim 外の入力メソッド (fcitx5) との自動切り替え:
 - `eggLikeNewline = true`: 確定と改行を分離
 - `keepMode = true`: モードを維持
 - `keepState = true`: 状態を維持
-- カスタムかな変換: `z<Space>` → 全角スペース、`,` → `', '`、`.` → `'. '`
+- カスタムかな変換: `z<Space>` → 全角スペース、`,` → `'，'`、`.` → `'．'`
