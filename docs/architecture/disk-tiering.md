@@ -2,7 +2,7 @@
 
 設定ファイル:
 - `hosts/nixos-desktop/data-disk.nix`（SATA SSD の btrfs subvol マウント定義。fileSystems を map 生成）
-- `hosts/nixos-desktop/default.nix`（`boot.loader.timeout = 0`。data-disk.nix を import）
+- `hosts/nixos-desktop/default.nix`（data-disk.nix を import）
 
 使い方・セットアップ手順は [../howtouse/disk-tiering.md](../howtouse/disk-tiering.md) を参照。
 
@@ -111,14 +111,16 @@ root 所有の中間ディレクトリができる。すると
 subvol マウントを手書きすると device/fsType/オプションが重複する。`{subvol, path,
 opts}` のリストから `builtins.listToAttrs` で生成し、共通部分を一箇所に閉じる。
 
-### ブートメニュー無効化（timeout=0）は desktop 限定
+### 旧 Windows のブート設定は残骸を残していない
 
-起動時の「OS 選択画面」の正体は systemd-boot の世代メニュー。EFI を調べた結果
+SATA を転用するにあたり、旧 Windows のブート設定が残っていないかを EFI で確認した。
 **Windows Boot Manager エントリも `/boot/EFI/Microsoft` も存在せず**、SATA 上の旧 Windows は
-既に UEFI から起動不能な孤立状態だった（消すべきデュアルブートの仕組みは無い）。よって
-`boot.loader.timeout = 0` で世代メニューを出さず直起動にするだけでよい。共有
-`modules/nixos/boot.nix` に置くと laptop(spin713) のメニューも消えるため、desktop の
-`default.nix` に置いてスコープを絞っている。
+既に UEFI から起動不能な孤立状態だった。消すべきデュアルブートの仕組みは無い。
+
+起動時に見える「OS 選択画面」は Windows とは無関係で、systemd-boot の世代メニューそのもの。
+これは復旧手段なので残す。なお `boot.loader.timeout = 0` は「メニューを出さない」ではなく
+「隠すが、キー入力で復帰でき、復帰後はタイムアウトが効かない」の意味になるため、
+即起動の手段としては使わない。
 
 ### data 層マウントに nofail を付けない
 
