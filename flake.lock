@@ -7,11 +7,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1786469124,
-        "narHash": "sha256-6inOeIxoQH0ltlWx/qjyt2shrbJiGb9MfI/wKvY3KIg=",
+        "lastModified": 1787602519,
+        "narHash": "sha256-VawOaKRVIt/njtTqXaKMpzQ1pEMxPUcACVxrq+1XyvE=",
         "owner": "raine",
         "repo": "claude-history",
-        "rev": "4a188c67468d623bc4c7071b97af3af86449abd1",
+        "rev": "35228d92c0a96ae2685681121b3a1ab245074451",
         "type": "github"
       },
       "original": {
@@ -161,11 +161,11 @@
     },
     "nixpkgs-unstable": {
       "locked": {
-        "lastModified": 1786599213,
-        "narHash": "sha256-yNJd40f11EzXBjSByCB7IPpeFFAdeoSKKM67dGkfFoU=",
+        "lastModified": 1788179007,
+        "narHash": "sha256-hn1oU2rue2SYK8dAr8+WNZWtbsz1S2W5mnHlSEuh3bo=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "0e251e24a4f24e036a084b6b4b2d2491af4167f4",
+        "rev": "34ab99075ac4f7e40cf037eef32cb1c360bb85e9",
         "type": "github"
       },
       "original": {
@@ -272,11 +272,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1786296582,
-        "narHash": "sha256-Ey9MTeDf0/drmg23GVzlY6sAgW3i7i4FwO9GmbcLEV8=",
+        "lastModified": 1787564401,
+        "narHash": "sha256-AsH+jSqoIPf/HNOduKMVkgxuY00TIG7OfsTWN1JMjcs=",
         "owner": "winapps-org",
         "repo": "winapps",
-        "rev": "77f7177b623aa0ee4e8fd97cad30b260ae6b35b4",
+        "rev": "1b38cab1b8c1a513e4a313931759ac4942473678",
         "type": "github"
       },
       "original": {
