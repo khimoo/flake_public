@@ -22,6 +22,14 @@
       url = "github:raine/claude-history";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # Codex CLI。nixpkgs は unstable でも追従が数週間遅れ、その間 OpenAI 側が
+    # 新しいデフォルトモデルに切り替えると CLI が model 名を解決できず 400 になる。
+    # この flake は上流リリースの musl バイナリを hash 固定で取り、時間単位で追従する。
+    # nixpkgs が追いついたら overlays/unstable-packages.nix 経由に戻してここを消す。
+    codex-cli-nix = {
+      url = "github:sadjow/codex-cli-nix";
+      inputs.nixpkgs.follows = "nixpkgs-unstable";
+    };
     # Zettelkasten(Obsidian vault)同期の mechanism(添付/papis の Drive 同期 + secret 暗号文の
     # 実行時復号)。flake_public は modules/home-manager/zettelkasten.nix で clone 位置だけ注入する。
     # mechanism は public repo に切り出したので github:(https 取得)で引く。ノート本文は別の
@@ -207,9 +215,12 @@
           ] ++ (if homeFile != null then [ homeFile ] else []);
         };
 
-      # 一時的なパッチ等の overlay（overlays/default.nix）と、
-      # unstable から取るパッケージの overlay（overlays/unstable-packages.nix）
-      overlays = import ./overlays ++ [ (import ./overlays/unstable-packages.nix inputs) ];
+      # 一時的なパッチ等の overlay（overlays/default.nix）、unstable から取る
+      # パッケージの overlay（overlays/unstable-packages.nix）、専用 flake から
+      # 取るパッケージの overlay（codex-cli-nix が pkgs.codex を提供する）
+      overlays = import ./overlays
+        ++ [ (import ./overlays/unstable-packages.nix inputs) ]
+        ++ [ inputs.codex-cli-nix.overlays.default ];
 
     in {
       # Home Manager と同じ Happy を、システムの switch 前にも試せる。
