@@ -31,6 +31,7 @@ in
     claude-history-wrapped
     codex
     (pkgs.callPackage ../../../packages/happy { })
+    google-clasp
   ] ++ lib.optionals pkgs.stdenv.isLinux [
     kiro.packages.${pkgs.stdenv.hostPlatform.system}.default
   ];
