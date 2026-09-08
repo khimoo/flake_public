@@ -19,6 +19,7 @@ NVMe (Samsung 980, 466G) = ホット層          SATA (Samsung 860, 233G) = コ�
   ~/.cache 他                                    @music     → ~/音楽
                                                  @pictures  → ~/画像
                                                  @documents → ~/ドキュメント
+                                                 @games     → ~/Games (Steam ライブラリ)
                                                  @vm        → /var/lib/libvirt/images (NOCOW)
                                                  @backup    → /mnt/backup
 ```
@@ -52,6 +53,10 @@ store は boot / activation の極初期に必要で別デバイスへの分離�
 - **VM イメージ** … デスクトップ用途の VM は起動時にバースト IO、以後は大半が page cache。
   Samsung 860 なら実用上問題ない（VM 内で重い DB/ビルドを回すなら別）
 - **バックアップ** … 書き込み一度・読み出し稀。速度は要求されない
+- **Steam のゲーム** … 1 本で数十 GB になり NVMe の残量を最も削る一方、ロードは大きめの
+  アセットのシーケンシャル読みが中心で SATA の帯域に収まる。NVMe より遅くなるのは事実なので、
+  ロード時間が気になるタイトルが出たら、そのゲームだけ NVMe 側のライブラリへ移す
+  （Steam は複数ライブラリを持ち、ゲーム単位で移動できる）
 
 ### ファイルシステムは btrfs（データ層の定石）
 
@@ -87,6 +92,17 @@ workflow flake が `<vaultDir>/references` に規約で固定していて、マ�
 この配置は 2 つの要求を同時に満たすための折衷:
 - **papis を vault の中に置く**（Obsidian vault で完結。`references/` は vault の 1 フォルダ）
 - **papis を SATA に置く**（同期はネットワーク律速なので SATA で体感差ゼロ、NVMe を空ける）
+
+### Steam のライブラリ登録は Steam 自身に持たせる
+
+repo が持つのは `~/Games` が SATA を指すところまでで、それを Steam のライブラリとして
+登録するのは Steam の設定に任せる。登録先の一覧である `libraryfolders.vdf` は、各ライブラリの
+容量やアプリ ID を含み Steam が随時書き換える状態ファイルで、`home.file` で置くと store への
+読み取り専用 symlink になり Steam の書き込みが失敗する。
+
+マウントだけを宣言的に持つ形は他の subvol と同じで、Steam から見えるのは通常のディレクトリ、
+実体だけが SATA になる。ゲーム単位で NVMe と SATA を選び分けたくなったときも、Steam 側で
+ライブラリを増やすだけで済む。
 
 ### `@papis` だけ条件付き systemd.mounts にする
 

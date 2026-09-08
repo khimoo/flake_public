@@ -28,6 +28,9 @@ let
     { subvol = "@music";     path = "/home/pomu/音楽";          opts = dataOpts; }
     { subvol = "@pictures";  path = "/home/pomu/画像";          opts = dataOpts; }
     { subvol = "@documents"; path = "/home/pomu/ドキュメント";  opts = dataOpts; }
+    # Steam のライブラリ。ゲームは 1 本で数十 GB になり NVMe の残量を最も削るが、
+    # ロードはシーケンシャル読みが中心なので SATA で足りる。
+    { subvol = "@games";     path = "/home/pomu/Games";         opts = dataOpts; }
     { subvol = "@backup";    path = "/mnt/backup";              opts = dataOpts; }
     # VM は chattr +C で NOCOW 済み（CoW 断片化対策）。NOCOW ファイルには圧縮が効かないので付けない。
     { subvol = "@vm";        path = "/var/lib/libvirt/images";  opts = [ "noatime" ]; }

@@ -30,6 +30,11 @@
   # virt-manager (GUIでのVM管理用)
   programs.virt-manager.enable = true;
 
+  # steam パッケージ単体でも FHS ラッパなので起動はするが、コントローラ/VR の udev ルール
+  # (hardware.steam-hardware) と 32bit ドライバはこのモジュールが設定する。
+  # ゲームの置き場は data-disk.nix の @games (~/Games) を Steam 側でライブラリに追加する。
+  programs.steam.enable = true;
+
   # 音声設定（PipeWire）
   services.pulseaudio.enable = false;
   security.rtkit.enable = true;

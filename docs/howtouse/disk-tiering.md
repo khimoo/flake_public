@@ -17,6 +17,7 @@ SATA SSD（`/dev/sda`）は btrfs 単一パーティション。subvol を最終
 | `@music` | `~/音楽` | `noatime,compress=zstd` | 音楽 |
 | `@pictures` | `~/画像` | `noatime,compress=zstd` | 画像 |
 | `@documents` | `~/ドキュメント` | `noatime,compress=zstd` | ドキュメント |
+| `@games` | `~/Games` | `noatime,compress=zstd` | Steam のゲームライブラリ |
 | `@vm` | `/var/lib/libvirt/images` | `noatime`（NOCOW） | libvirt の VM イメージ |
 | `@backup` | `/mnt/backup` | `noatime,compress=zstd` | NVMe の退避先 |
 
@@ -36,6 +37,20 @@ sudo systemctl start home-pomu-sagyo-zettelkasten-references.mount
 
 （再起動でも同じ。以降の boot では条件が真なので自動でマウントされる。）
 なぜ vault の中かつ SATA なのかは [../architecture/disk-tiering.md](../architecture/disk-tiering.md) を参照。
+
+## Steam のゲーム置き場（@games）
+
+`~/Games` をマウントしても Steam は自動では使わない。既定のままだと NVMe 側の
+`~/.local/share/Steam/steamapps` にインストールされる。ライブラリの一覧は Steam が
+`~/.local/share/Steam/steamapps/libraryfolders.vdf` に自分で書く状態ファイルなので、
+repo では管理せず Steam の設定から登録する（理由は
+[../architecture/disk-tiering.md](../architecture/disk-tiering.md)）。
+
+1. Steam → 設定 → ストレージ → ドライブのプルダウン → 「ドライブを追加」で `~/Games` を選ぶ
+2. 追加したライブラリを選び「デフォルトに設定」。以後のインストール先が SATA になる
+
+既にインストール済みのゲームは、プロパティ → インストール済みファイル → 「移動」で
+ライブラリ間を移せる。
 
 ## 状態確認
 

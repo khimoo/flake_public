@@ -20,7 +20,6 @@ in {
   home.packages = with pkgs; [
     prismlauncher
     wine64
-    steam
     blender-hip
   ] ++ extraGnomeExtensionsList;
 
