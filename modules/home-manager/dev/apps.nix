@@ -30,6 +30,7 @@ in
     claude-code
     claude-history-wrapped
     codex
+    (pkgs.callPackage ../../../packages/happy { })
   ] ++ lib.optionals pkgs.stdenv.isLinux [
     kiro.packages.${pkgs.stdenv.hostPlatform.system}.default
   ];

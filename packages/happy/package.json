@@ -1,0 +1,8 @@
+{
+  "name": "happy-nix",
+  "version": "1.2.3",
+  "private": true,
+  "dependencies": {
+    "happy": "1.2.3"
+  }
+}

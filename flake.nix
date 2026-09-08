@@ -212,6 +212,14 @@
       overlays = import ./overlays ++ [ (import ./overlays/unstable-packages.nix inputs) ];
 
     in {
+      # Home Manager と同じ Happy を、システムの switch 前にも試せる。
+      # nix run .#happy -- codex
+      packages = nixpkgs.lib.genAttrs
+        [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" "x86_64-darwin" ]
+        (system: {
+          happy = nixpkgs.legacyPackages.${system}.callPackage ./packages/happy { };
+        });
+
       nixosConfigurations = {
         nixos-spin713 = mkSystem {
           hostname = "nixos-spin713";
