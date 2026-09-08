@@ -1,19 +1,7 @@
-{ settings, config, pkgs, lib, ... }:
+{ settings, terminalFont, config, pkgs, lib, ... }:
 
-let
-  terminalFont = {
-    package = pkgs.plemoljp-nf;
-    name = "PlemolJP Console NF";
-  };
-in
 lib.mkIf settings.features.gui {
-  home.packages = [
-    pkgs.wezterm
-    terminalFont.package
-  ];
-
-  # wezterm の背景透過と nvim の背景透過 autocmd を連携させる
-  home.sessionVariables.TERMINAL_TRANSPARENT = "1";
+  home.packages = [ pkgs.wezterm ];
 
   # wezterm.lua は mkOutOfStoreSymlink でリポジトリへの symlink にする。
   # ディレクトリではなくファイル単位の symlink なので、同じ ~/.config/wezterm/ 配下に

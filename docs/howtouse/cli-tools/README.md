@@ -8,6 +8,7 @@
 |----------|--------|------|-------------|
 | ファイルマネージャ | yazi | TUI ファイルマネージャ (プラグイン多数) | [yazi.md](./yazi.md) |
 | ターミナル | wezterm | GPU 加速ターミナル (Leader キー体系) | [wezterm.md](./wezterm.md) |
+| ターミナル | kitty | 移行先。`Ctrl+a > 階層 > 動詞` のキー体系、タブ内ウィンドウ／タブの移動、Neovim をページャにしたスクロールバック | [kitty.md](./kitty.md) |
 | Git UI | lazygit | Git TUI クライアント (delta 連携) | [lazygit.md](./lazygit.md) |
 | AI リモート操作 | Happy | スマホから Codex を操作 | [happy.md](./happy.md) |
 | シェルツール | fzf, eza, zoxide, fd, rg, bat, btm, direnv, jq, xh | モダン CLI ツール群 | [shell-tools.md](./shell-tools.md) |
