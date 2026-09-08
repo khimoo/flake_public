@@ -17,6 +17,7 @@
     ./audio.nix
     ./sns-block.nix
     ./permit-insecure.nix
+    ./codex.nix
   ];
 
   # システム状態バージョン

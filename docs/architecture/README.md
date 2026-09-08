@@ -26,3 +26,4 @@ Flake 設定の設計判断・実装構造のドキュメント。設定変更�
 | [llm-wikis.md](./llm-wikis.md) | AI に読ませる知識ベース（LLM Wiki）を独立 private repo に置く判断。Claude 設定 repo / vault への相乗りを退けた理由、skill 化しない理由、flake の配線が clone 1 行で済む帰結 |
 | [new-machine.md](./new-machine.md) | **TODO**: nixos-anywhere + disko + age 鍵自動注入で新マシンを 1 コマンドプロビジョニングし、silent skip を根絶する設計メモ（未実装） |
 | [kernel-pin.md](./kernel-pin.md) | nixos-desktop のカーネルを 7.0 系にピン留め（7.1 系が X399 の ACPI S5 バグを踏み poweroff で電源が切れないのを回避）の設計判断 |
+| [codex-subagents.md](./codex-subagents.md) | Codex のサブエージェント（既定で親の履歴を全部コピーする MultiAgentV2）を無効化する判断と、置き場に `~/.codex/config.toml` への symlink ではなく `/etc/codex/config.toml`（システム層）を選んだ理由 |
