@@ -96,7 +96,9 @@ lib.genAttrs systems (
       assert !(users.bob.home.activation ? privateRepos);
       assert !(users ? unmanaged);
       assert builtins.length users.alice.local.profile.sshKeys == 2;
-      assert (home.config.home.activation ? rustowl) == (system == "x86_64-linux");
+      assert !(home.config.home.activation ? rustowl);
+      assert (builtins.any (p: (p.pname or "") == "rustowl") home.config.home.packages) == (system == "x86_64-linux");
+      assert (mkTestHome system [{ local.rustowl.enable = false; }]).config.xdg.dataFile."nvim/nix/rustowl.lua".text == "return nil";
       assert !(builtins.any (p: (p.pname or "") == "vscode") home.config.home.packages);
       assert rejects { local.profile.claudeConfigRepo = "git@example.org:test/config.git"; };
       assert rejects { local.profile.claudeConfigRoot = "/home/another-user/config"; };
@@ -136,11 +138,9 @@ lib.genAttrs systems (
           ];
           cloneScript = snippet "privateRepos";
           keysScript = snippet "sshKeys";
-          rustowlScript = snippet "rustowl";
           passAsFile = [
             "cloneScript"
             "keysScript"
-            "rustowlScript"
           ];
         }
         ''

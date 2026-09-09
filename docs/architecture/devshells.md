@@ -73,11 +73,11 @@ input に再度追加し、`rust-nightly` shell を生やす。`rust-toybox/flak
 
 ## rustowl との関係
 
-`modules/home-manager/dev/rustowl.nix` が rustowl を impure に導入している
-が、これは devShell とは独立。
+`modules/home-manager/dev/rustowl.nix` が rustowl を導入しているが、これは
+devShell とは独立。
 
-- **rustowl**: 借用ライフタイム可視化ツール。専用 nightly sysroot を内部に
-  持ち、`~/.local/share/rustowl/sysroot/...` に閉じている。PATH には
+- **rustowl**: 借用ライフタイム可視化ツール。専用 nightly sysroot を
+  パッケージ内部（store path 配下の `bin/sysroot/...`）に持つ。PATH には
   rustowl 本体しか出ない
 - **devShell の rustc/cargo/rust-analyzer**: ユーザーが書く Rust コードの
   build/edit 用。PATH に出る

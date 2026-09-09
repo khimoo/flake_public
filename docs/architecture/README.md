@@ -9,7 +9,7 @@ Flake 設定の設計判断・実装構造のドキュメント。設定変更�
 | [configuration.md](./configuration.md) | ホスト・個人プロファイル・型付きオプションの境界と検証方針 |
 | [default-apps.md](./default-apps.md) | デフォルトアプリケーションの MIME 関連付け設定 |
 | [teams-dispatcher.md](./teams-dispatcher.md) | Teams マルチアカウント URL ディスパッチャ |
-| [rustowl.md](./rustowl.md) | RustOwl の impure インストール |
+| [rustowl.md](./rustowl.md) | RustOwl の導入（rustowl-flake 由来）と Neovim 連携 |
 | [users.md](./users.md) | ユーザー管理・sudo 設定・home-manager 連携 |
 | [machine-ssh.md](./machine-ssh.md) | flake 内マシンの相互 SSH（`machines.nix` 集約・LAN 共通鍵）の設計判断 |
 | [remote-build.md](./remote-build.md) | SSH 経由のリモートビルド（`--build-host`）の設計判断 |

@@ -45,7 +45,7 @@ if os.environ.get('FAIL_TOOL'): raise SystemExit(18)
                               capture_output=True, text=True)
 
     def test_dry_run_has_no_side_effects(self):
-        for name in ["clone", "keys", "rustowl"]:
+        for name in ["clone", "keys"]:
             with self.subTest(name=name):
                 result = self.run_activation(name, DRY_RUN_CMD="echo")
                 self.assertEqual(result.returncode, 0, result.stderr)

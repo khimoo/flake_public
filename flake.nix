@@ -8,6 +8,9 @@
       url = "github:nix-community/home-manager/release-25.11";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # RustOwl公式のインストール案内で紹介されているNix community flake。
+    # 上流のnixpkgs/toolchain固定をそのまま使い、専用sysrootをstoreに閉じる。
+    rustowl.url = "github:nix-community/rustowl-flake";
     skk-jisyo = {
       url = "https://skk-dev.github.io/dict/SKK-JISYO.L.gz";
       flake = false;
@@ -51,6 +54,8 @@
         nixpkgs.lib.genAttrs [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" "x86_64-darwin" ]
           (system: {
             happy = nixpkgs.legacyPackages.${system}.callPackage ./packages/happy { };
+          } // nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
+            rustowl = inputs.rustowl.packages.${system}.rustowl;
           });
 
       nixosConfigurations = {

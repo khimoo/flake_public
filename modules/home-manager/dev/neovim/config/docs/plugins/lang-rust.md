@@ -40,5 +40,5 @@ RustOwl が有効な状態でマウスをハイライト上に移動すると、
 
 ## プラットフォームとRustOwlの導入
 
-RustOwlの自動導入は `local.rustowl.enable` で選択する（x86_64 Linuxで既定true、Darwinではfalse）。`rustowl` がPATHに無い場合はプラグインと対応キーを読み込まない。詳細は [RustOwl設計](../../../../../../../docs/architecture/rustowl.md) を参照。
+RustOwlの導入は `local.rustowl.enable` で選択する（x86_64 Linuxで既定true、Darwinではfalse）。サーバ実体とプラグインはどちらもNixのstoreから絶対パスで渡すため、PATH上の別のrustowlは使わない。無効なときはプラグインと対応キーを読み込まない。詳細は [RustOwl設計](../../../../../../../docs/architecture/rustowl.md) を参照。
 Rust DAPのliblldbはLinuxで `.so`、macOSで `.dylib` を参照する。

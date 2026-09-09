@@ -32,7 +32,7 @@ spin713の音声回避策は `system.replaceDependencies` を使い、評価中�
 ## 変更に応じた追加確認
 
 - パッケージ: `nix build --no-link .#happy` などで変更したパッケージのinstallCheckまで実行。
-- activation: dry-runと失敗後の再実行を確認。実際の鍵復元・clone・RustOwlダウンロードはユーザーが対象環境で確認。
+- activation: dry-runと失敗後の再実行を確認。実際の鍵復元・cloneはユーザーが対象環境で確認。
 - Neovim: Luaの構文と対象機能を実機で確認。live checkoutの変更はrebuildを待たず反映されます。
 - 文書だけ: `python3 scripts/check-docs.py .` と `git diff --check`。
 

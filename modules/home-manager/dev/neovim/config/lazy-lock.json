@@ -37,7 +37,6 @@
   "render-markdown.nvim": { "branch": "main", "commit": "629eb9533ec989d9d5c6cab8f3ad5372422c24e0" },
   "ripgrep": { "branch": "master", "commit": "0a88cccd5188074de96f54a4b6b44a63971ac157" },
   "rustaceanvim": { "branch": "main", "commit": "e9c5aaba16fead831379d5f44617547a90b913c7" },
-  "rustowl": { "branch": "main", "commit": "5ccf37656069f4a9aeea122de8804ab570368239" },
   "skkeleton": { "branch": "main", "commit": "158ae753bc5099ab12537c23152926c42b1f7c3a" },
   "skkeleton_indicator.nvim": { "branch": "v2", "commit": "f08532787cf842b996c8a5065be7e85cd3376c1f" },
   "smart-splits.nvim": { "branch": "master", "commit": "9053ebd394c38fe55fd2f4710daec27411c34fb9" },

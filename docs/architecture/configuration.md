@@ -29,6 +29,6 @@ SSHクライアントのIdentityFileは `~/.ssh/` を使い、全ユーザーへ
 
 Nix評価はcheckoutの実在やage鍵を要求しない。clone・秘密鍵復元はactivationで実施する。既存の鍵は上書きせず、更新は手動のローテーション手順に委ねる。既存cloneもpullせず、更新は `pull-repos` に分ける。
 
-live symlinkの内容はNix世代のロールバックでは戻らない。Gitで内容を復元する。RustOwlはNix外のsysrootを使うため、成功markerを最後に書き、途中失敗と完了を区別する。
+live symlinkの内容はNix世代のロールバックでは戻らない。Gitで内容を復元する。
 
 検証は実際のfactoryで複数ユーザーを生成し、他人の鍵・private repo・Git identityが漏れないこと、OS制約と不正設定の拒否を確認する。NixOS本体・Home Manager全構成の評価と、実機でのactivationを区別して報告する。
