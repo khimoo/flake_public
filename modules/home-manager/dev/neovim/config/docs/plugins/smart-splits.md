@@ -26,7 +26,8 @@ wezterm 側に smart-splits のプラグインを読み込み、`apply_to_config
 | `Ctrl+k` | 上のウィンドウ/ペインに移動 |
 | `Ctrl+l` | 右のウィンドウ/ペインに移動 |
 
-端に到達すると反対側にラップする（`at_edge = "wrap"`）。
+端に到達したらそこで止まる（`at_edge = "stop"`）。理由は
+[kitty.md](../../../../../../../docs/architecture/kitty.md#smart-splits-の-kitty-backend) を参照。
 
 ### リサイズ
 

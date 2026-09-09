@@ -2,7 +2,7 @@ return {
   "mrjones2014/smart-splits.nvim",
   lazy = false,
   opts = {
-    at_edge = "wrap",
+    at_edge = "stop",
     default_amount = 3,
     disable_multiplexer_nav_when_zoomed = true,
   },

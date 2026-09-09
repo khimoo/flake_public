@@ -108,11 +108,11 @@ plugin 同梱の `install-kittens.bash` が `~/.config/kitty/` へ命令的に�
 nixpkgs の `vimPlugins.smart-splits-nvim` が同じファイルを同梱していて（lazy が入れる版と
 バイト一致を確認済み）、`xdg.configFile` で宣言的に置けるので、スクリプトは実行しない。
 
-**smart-splits の README にある「`at_edge = 'wrap'` は kitty backend で非対応」は、この設定値には
-当てはまらない。** `mux/init.lua` が `at_edge ~= 'wrap' and current_pane_at_edge(...)` という短絡に
-なっているため、`wrap` のときは kitty 側の未実装スタブが呼ばれない。wrap 自体は逆方向への移動として
-実装されていて、kitty backend と wezterm backend で同じコードを通る。README の但し書きが効くのは
-`split` や `stop` を選んだときだけ。この誤解は当初 tmux を推す根拠の一つになっていた。
+`at_edge` は `stop` にしている。`mux/init.lua` の `at_edge ~= 'wrap' and current_pane_at_edge(...)`
+という短絡のおかげで、`wrap` を選んでも kitty 側の未実装スタブは呼ばれず動作自体は壊れない。
+しかし 2025-11-21 版の `config.lua` は kitty を検出すると既定値を `stop` に置き、明示指定した `wrap` も
+`setup` 時に `stop` へ上書きしたうえで警告を通知する。`lazy = false` で読むので起動直後に hit-enter
+プロンプトが出る。上書きされる以上 kitty 下で wrap は選べないため、設定値を実際の挙動に合わせた。
 
 ## スクロールバック
 
