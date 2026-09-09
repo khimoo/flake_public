@@ -1,6 +1,6 @@
-{ lib, settings, ... }:
+{ config, lib, ... }:
 
-lib.mkIf settings.features.gui {
+lib.mkIf config.local.profile.features.gui {
   programs.firefox = {
     enable = true;
     profiles.default = {

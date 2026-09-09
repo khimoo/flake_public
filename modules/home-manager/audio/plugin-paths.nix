@@ -9,9 +9,9 @@
 # mkOutOfStoreSymlink を使うことで、後で楽器パッケージを追加した際も
 # 次回 rebuild の実体差し替えのみで反映され、再 symlink は不要。
 
-{ settings, config, lib, ... }:
+{ config, lib, ... }:
 
-lib.mkIf settings.features.audio {
+lib.mkIf config.local.profile.features.audio {
   home.file = let
     link = subdir: {
       source = config.lib.file.mkOutOfStoreSymlink

@@ -11,16 +11,16 @@
 #
 # vault フォルダ自体は private-repos.nix の clone が用意するので、モジュール側の
 # initializeVault は既定(false)のまま。有効にすると clone より先に空フォルダを作ってしまう。
-{ inputs, settings, lib, ... }:
+{ config, inputs, lib, ... }:
 
 let
-  attachmentsOn = settings.features.zettelkastenSync or false;
-  papisOn = settings.features.referenceSync or false;
+  attachmentsOn = config.local.profile.features.zettelkastenSync;
+  papisOn = config.local.profile.features.referenceSync;
   # obsidian は同期(rclone/gdrive)に依存しない独立の関心。Obsidian 本体を入れ、vault に
   # .obsidian 設定を非破壊で配置するだけで、Nix さえあれば同期なしでも成立する。
   # 骨格(分類フォルダ・運用ドキュメント)の seed はこの feature ではなく enable 側に載るので、
   # 同期だけ有効なホストでも骨格は配置される(既存ファイルは触らないので実質 no-op)。
-  obsidianOn = settings.features.obsidian or false;
+  obsidianOn = config.local.profile.features.obsidian;
   enabled = attachmentsOn || papisOn || obsidianOn;
 in
 {
@@ -29,13 +29,13 @@ in
   config = lib.mkIf enabled {
     services.zettelkasten = {
       enable = true;
-      vaultDir = settings.zettelkastenRoot;
+      vaultDir = config.local.profile.zettelkastenRoot;
       attachments.enable = attachmentsOn;
       papis.enable = papisOn;
       obsidian.enable = obsidianOn;
       # vault の骨格を workflow repo へミラーする mirror-vault の宛先(環境固有 checkout)を注入。
       # null なら PATH に載らない。
-      mirrorRepo = settings.vaultSkeletonRepo or null;
+      mirrorRepo = config.local.profile.vaultSkeletonRepo;
     };
   };
 }

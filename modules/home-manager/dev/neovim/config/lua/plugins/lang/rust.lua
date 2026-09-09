@@ -7,7 +7,8 @@ return {
     init = function()
       -- 生成元: modules/home-manager/dev/neovim/default.nix
       local codelldb_path = dofile(vim.fn.stdpath("data") .. "/nix/codelldb-path.lua")
-      local liblldb_path = vim.fn.fnamemodify(codelldb_path, ':h:h') .. '/lldb/lib/liblldb.so'
+      local suffix = vim.fn.has('macunix') == 1 and 'dylib' or 'so'
+      local liblldb_path = vim.fn.fnamemodify(codelldb_path, ':h:h') .. '/lldb/lib/liblldb.' .. suffix
 
       vim.g.rustaceanvim = {
         dap = {
@@ -18,6 +19,7 @@ return {
   },
   {
     'cordx56/rustowl',
+    cond = function() return vim.fn.executable('rustowl') == 1 end,
     version = '*',
     ft = 'rust',
     opts = {

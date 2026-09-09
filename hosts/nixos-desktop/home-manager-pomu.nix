@@ -1,4 +1,4 @@
-{ skk-dict, settings, config, pkgs, lib, ... }:
+{ config, pkgs, lib, ... }:
 
 let
   extraGnomeExtensionsList = with pkgs.gnomeExtensions; [
@@ -6,7 +6,7 @@ let
   ];
 
 in {
-  imports = [ ../../modules/home-manager/minecraft-backup.nix ];
+  imports = [ ../../profiles/home/pomu-workstation.nix ../../modules/home-manager/minecraft-backup.nix ];
 
   # リポジトリを NVMe(/) ではなく SATA の @backup subvol に置く。/ は残り 2 割を切っている。
   # ディレクトリの作成と所有者付けは data-disk.nix が行う。

@@ -23,17 +23,16 @@ Claude 設定・Obsidian workflow）も switch が clone する。NixOS でも �
 
 - `home.activation` が switch のたびに:
   1. `secrets.yaml` を age 鍵で復号し、まだ無い鍵ファイルだけ書き出す
-  2. `settings.privateRepos` の各 `{ url, dest }` について、`dest` が無ければ
+  2. `local.profile.privateRepos` の各 `{ url, dest }` について、`dest` が無ければ
      `id_github` で clone する
 
-  既にあるものは触らない（上書き・pull はしない＝非破壊）。
+  既存Git checkoutは触らない（上書き・pullしない）。Git checkoutでないdestが既にある場合は停止する。中身を確認し、手動で移すか正しいcheckoutを指定して再実行する。新規cloneの途中失敗は一時領域を掃除するため、そのまま再実行できる。
   **age 鍵が無い / 復号に失敗した場合は警告ではなく error で停止する**（switch が失敗する）。
   「switch は成功したのに鍵が無い」状態を作らないため。
 
-どの鍵を配るかは環境の種類で決まる。NixOS ホストは `id_lan` も要るので両方、
-standalone（WSL / macOS）は clone 対象がある場合に `id_github` だけ。
+鍵配布はユーザーごとに決まる。clone対象があれば `id_github`、`local.profile.lanSsh = true` なら `id_lan` を配る。既存2台のpomuは両方を選んでいる。新規ユーザーには既定でどちらも配らない。
 
-`settings.privateRepos` は `flake.nix` の `buildPrivateRepos` が高レベル設定
+`local.profile.privateRepos` は `modules/home-manager/profile.nix` が高レベル設定
 （`claudeConfigRepo` / `vaultSkeletonRepoUrl` など、URL 側の設定）から組み立てる。
 URL 側が `null` の項目は落とされるので、dest 側だけ指定すればその repo は手動 clone 運用に
 留まる。
@@ -100,7 +99,7 @@ grep -c 'BEGIN OPENSSH' secrets/secrets.yaml   # 0 なら OK
 
 ## clone 元 URL を指定して switch
 
-対象環境の `flake.nix` 呼び出しに、各 repo の clone 元 URL を足す（clone 先の絶対パス側は既存）。
+対象ユーザーのhomeモジュールの `local.profile` に各repoのURLとパスを足す。既存2台では `profiles/home/pomu-workstation.nix` に定義する。以下は `local.profile = { ... };` の内部に置く。
 現在自動 clone に対応しているのは以下 4 種類の repo:
 
 ```nix
@@ -138,7 +137,7 @@ pull-repos
 
 対象は自動 clone の対象 repo に flake 自身を加えたもの。この環境では
 `flake_public` / `zettelkasten` / `claude-private` / `zettelkasten-workflow` / `llm-wikis`。
-`settings.privateRepos` から組み立てるので、`flake.nix` に repo を足せば対象も増える。
+`local.profile.privateRepos` から組み立てるので、ユーザーの `local.profile.privateRepos` にrepoを足せば対象も増える。
 
 各 repo で `git pull --ff-only` を走らせる。ローカルにコミットがあって分岐している repo は
 git が拒否するので、そこだけ手で rebase / merge する。1 つ失敗しても残りは処理し、
@@ -193,14 +192,13 @@ LAN 鍵も同様に作り直す。
 
 ## 無効化する
 
-`flake.nix` の URL 側（`zettelkastenRepoUrl` / `claudeConfigRepo` / `vaultSkeletonRepoUrl`）を
+本人の `local.profile` の URL 側（`zettelkastenRepoUrl` / `claudeConfigRepo` / `vaultSkeletonRepoUrl`）を
 消す（既定 `null`）とその repo の自動 clone は止まる。dest 側（`zettelkastenRoot` /
 `claudeConfigRoot` / `vaultSkeletonRepo`）だけ残せば、同期や symlink、`mirror-vault` は
 効くので、clone を手動運用に戻せる。
 
-standalone 環境で全 URL を消せば SSH 鍵の書き出しごと生えなくなり、age 鍵も
-`secrets.yaml` も無しで switch できる。NixOS ホストは `id_lan` が要るので鍵の書き出しは残る
-——つまり **NixOS ホストは age 鍵が無いと switch できない**（[fail-fast の設計判断](../architecture/private-repo-clone.md#fail-fastage-鍵が無ければ-switch-を失敗させる)）。
+全clone URL・追加の `privateRepos` / `sshKeys` を外し、`lanSsh = false` にすれば、NixOSでもstandaloneでも鍵の書き出しは無くなりage鍵は不要になる。
+既存2台のpomuは `lanSsh = true` なので、自動cloneだけ外してもage鍵が必要。[fail-fastの設計判断](../architecture/private-repo-clone.md#fail-fastage-鍵が無ければ-switch-を失敗させる)も参照。
 
 ## 注意
 

@@ -16,7 +16,7 @@ papis 固有の使い方は [papis-gdrive-sync.md](./papis-gdrive-sync.md) を�
 | `referenceSync` | `<vault>/references` | `gdrive:papis-library` |
 
 NixOS ホスト（`nixos-desktop`, `nixos-spin713`）は両方有効。standalone home-manager は
-`mkHome` の `features` で個別に有効化する。偽の環境（WSL 等）では一切読み込まれない。
+本人のhomeモジュールで `local.profile.features` と `local.profile.zettelkastenRoot` を指定する。既定では同期サービスを有効にしない。現在のvaultプロファイルはLinux限定。
 
 ## 認証（rclone）
 

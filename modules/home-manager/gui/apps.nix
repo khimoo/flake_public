@@ -1,5 +1,4 @@
 {
-  settings,
   config,
   pkgs,
   kiro,
@@ -107,7 +106,7 @@ let
   # guiApps のリストには収まらないが、同じファイルで管理する
 
   kiroApp = {
-    pkg = kiro.packages.${settings.system}.default;
+    pkg = kiro.packages.${pkgs.stdenv.hostPlatform.system}.default;
     desktopName = "kiro.desktop";
     binName = "kiro";
     wayland = true;
@@ -249,7 +248,7 @@ in
     '';
   };
 
-  config = lib.mkIf settings.features.gui ({
+  config = lib.mkIf config.local.profile.features.gui (lib.mkMerge [{
     home.packages = map (a: a.pkg) guiApps ++ [ kiroApp.pkg ];
 
     home.file = waylandDesktopEntries // kiroDesktopEntry // cursorDesktopEntry;
@@ -291,10 +290,10 @@ in
 
     $DRY_RUN_CMD chmod +x "${cursorConfig.appImage}"
   '';
-  } // lib.optionalAttrs settings.standalone {
+  } (lib.mkIf config.local.profile.standalone {
     # standalone home-manager (mkHome 経由) の場合のみ、自分で nixpkgs.config を設定する。
     # NixOS 統合時 (useGlobalPkgs = true) は home-manager から nixpkgs.config を
     # 触れないため、modules/nixos/permit-insecure.nix が代わりに集約する。
     nixpkgs.config.permittedInsecurePackages = permittedInsecure;
-  });
+  })]);
 }

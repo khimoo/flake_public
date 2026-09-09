@@ -1,6 +1,5 @@
 {
   skk-dict,
-  settings,
   pkgs,
   ...
 }:
@@ -109,5 +108,4 @@
     };
   };
 
-  home.stateVersion = settings.stateVersion;
 }

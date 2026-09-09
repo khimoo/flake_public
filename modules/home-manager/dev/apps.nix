@@ -1,4 +1,4 @@
-{ inputs, kiro, pkgs, lib, ... }:
+{ config, inputs, kiro, pkgs, lib, ... }:
 
 let
   claude-history-pkg =
@@ -25,14 +25,15 @@ let
 in
 {
   home.packages = with pkgs; [
-    vscode
-    jetbrains.idea
     claude-code
     claude-history-wrapped
     codex
     (pkgs.callPackage ../../../packages/happy { })
     google-clasp
-  ] ++ lib.optionals pkgs.stdenv.isLinux [
+  ] ++ lib.optionals config.local.profile.features.gui [
+    vscode
+    jetbrains.idea
+  ] ++ lib.optionals (pkgs.stdenv.isLinux && config.local.profile.features.gui) [
     kiro.packages.${pkgs.stdenv.hostPlatform.system}.default
   ];
 }

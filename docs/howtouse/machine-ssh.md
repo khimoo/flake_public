@@ -80,3 +80,8 @@ switch 中に `id_lan` / `id_github` が書き出され、その時点で新マ�
 - `PasswordAuthentication = false` なので鍵認証必須。age 鍵を置かずに switch すると
   `id_lan` を書き出せないので activation が error で停止する（[private-repo-clone.md](./private-repo-clone.md) 参照）
 - 同一 LAN（mDNS が届く範囲）が前提。VLAN 分離・VPN 越しでは別途 `/etc/hosts` 等が要る
+
+## ユーザープロファイル
+
+既存2台のpomuは `profiles/home/pomu-workstation.nix` で `local.profile.lanSsh = true` を選択しています。新規ユーザーには既定でLAN秘密鍵は配布しません。共有鍵を持つユーザーは接続先のprimaryUserとして認証できるため、共有対象を明示的に選んでください。
+IdentityFileはログインユーザー自身の `~/.ssh/id_lan`（GitHubは `~/.ssh/id_github`）を参照します。rootでremote buildする場合はユーザーのSSH agentを使います。

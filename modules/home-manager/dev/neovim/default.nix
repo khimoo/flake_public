@@ -1,4 +1,4 @@
-{ settings, lspServers, config, pkgs, lib, ... }:
+{ lspServers, config, pkgs, lib, ... }:
 
 let
   # Neovim プラグインが必要とする外部ツール (Neovim 実行時の PATH のみに注入)
@@ -46,7 +46,7 @@ in
   # 書き戻されるため git で追跡できる。
   xdg.configFile."nvim".source =
     config.lib.file.mkOutOfStoreSymlink
-      "${settings.flakeRoot}/modules/home-manager/dev/neovim/config";
+      "${config.local.profile.flakeRoot}/modules/home-manager/dev/neovim/config";
 
   # Neovim が dofile で読む Nix 生成ファイル (環境変数と違い rebuild 即反映)。
   # ~/.config/nvim 全体が mkOutOfStoreSymlink でリポジトリへの symlink になっているため、

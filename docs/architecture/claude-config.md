@@ -12,14 +12,14 @@ flake_public は名目上誰でも使える公開リポジトリなので、priv
 
 ## 採った方式: パス注入 + out-of-store symlink
 
-- 設定 repo の clone 先を `claudeConfigRoot`（既定 `null`）として `mkSystem` / `mkHome` の
-  引数から `settings` 経由で注入する。`flakeRoot` / `zettelkastenRoot` と同じ慣習
-- モジュールは `null` なら no-op。非 null なら `~/.claude/CLAUDE.md` と既知カテゴリ
-  ディレクトリ（`skills` `agents` `commands` `output-styles`）を `mkOutOfStoreSymlink`
+- 設定repoのclone先は、そのユーザーの `local.profile.claudeConfigRoot`（既定null）から注入する。
+  `modules/home-manager/profile.nix` が型を定義し、別ユーザーのhome配下は拒否する。
+- モジュールは `null` なら no-op。非 null なら `~/.claude/CLAUDE.md`・共有 `settings.json` と既知カテゴリ
+  ディレクトリ（`skills` `agents` `commands` `output-styles` `hooks`）を `mkOutOfStoreSymlink`
   で clone へ張る
 
 flake_public 側が設定 repo について知るのはレイアウト規約
-（`CLAUDE.md` + `skills/`、`~/.claude` の構造をそのまま鏡写し）だけで、
+（`CLAUDE.md` + `settings.json` + `skills/`、`~/.claude` の構造をそのまま鏡写し）だけで、
 repo の固有名・URL・中身には依存しない。
 
 ## 検討して退けた案: 設定 repo を flake input にする（zettelkasten 方式）
@@ -42,7 +42,7 @@ claude 設定には合わない:
 ## `~/.claude` を丸ごと symlink しない理由
 
 `~/.claude` は Claude Code 自身が `settings.json`・履歴・キャッシュ等を書き込む
-live なディレクトリのため、git 管理したいエントリ（`CLAUDE.md` と各カテゴリ
+live なディレクトリのため、git 管理したいエントリ（`CLAUDE.md`・共有 `settings.json` と各カテゴリ
 ディレクトリ）だけを個別に symlink する。カテゴリはディレクトリ丸ごと symlink し、
 repo をそのカテゴリの唯一の所有者とする（個別 skill/agent ごとの列挙を Nix 側に
 持たない）。
@@ -51,7 +51,7 @@ repo をそのカテゴリの唯一の所有者とする（個別 skill/agent �
 
 `~/.claude` が live dir で丸ごと symlink できない以上、配線するエントリは個別列挙に
 なる。ここで Claude Code がユーザー設定を読むカテゴリ（`skills` `agents` `commands`
-`output-styles`）は**ツール側で決まった小さな固定集合**で、際限なく増えるものでは
+`output-styles` `hooks`）は**ツール側で決まった小さな固定集合**で、際限なく増えるものでは
 ない。そこで既知カテゴリを最初から全部ディレクトリ単位で張っておく。
 
 これにより、repo にまだ存在しないカテゴリは dangling symlink になるが（Claude Code
@@ -65,6 +65,6 @@ live になる。結果として「新しい skill/agent/command を足す」と
 - clone が無い環境で `claudeConfigRoot` を指定すると symlink が dangling になる
   （Claude Code からは「設定なし」に見えるだけで壊れはしない）。指定は clone がある
   ホストに限る運用
-- レイアウト規約（`CLAUDE.md` + 各カテゴリディレクトリ）は flake_public と設定 repo の
+- レイアウト規約（`CLAUDE.md` + `settings.json` + 各カテゴリディレクトリ）は flake_public と設定 repo の
   間の暗黙の契約。既知カテゴリは `configDirs` に列挙済みなので日常の追加では触らないが、
   Claude Code が未知の新カテゴリを導入した場合はモジュールに 1 行足す必要がある

@@ -1,8 +1,8 @@
 # DAW ホスト
 
-{ settings, pkgs, lib, ... }:
+{ config, pkgs, lib, ... }:
 
-lib.mkIf settings.features.audio {
+lib.mkIf config.local.profile.features.audio {
   home.packages = with pkgs; [
     zrythm
   ];

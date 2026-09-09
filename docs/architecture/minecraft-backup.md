@@ -145,7 +145,7 @@ SATA は単一ディスクで冗長性が無い。Drive 側の写しが冗長コ
 
 ## flake の共通モジュールに入れず、ホストから直接 import する
 
-`flake.nix` の `homeModules`（全ホスト共通）に足して `features` でトグルする形も取れるが、
+`lib/configurations.nix` の `homeModules`（全ホスト共通）に足して `features` でトグルする形も取れるが、
 1 ホストしか使わない機能のためにトグルを増やすと共通側の分岐が太る。prismlauncher 自体が
 `hosts/nixos-desktop/home-manager-pomu.nix` で宣言されているので、同じ場所から import する。
 

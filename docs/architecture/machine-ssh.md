@@ -70,12 +70,9 @@ N×N の直書きになり重複する。単一の情報源に集約し、`ssh.n
 生成する `Host` ブロックは `IdentityFile` を指定するが `IdentitiesOnly yes` は付けない。
 `/etc/ssh/ssh_config` は root にも効くので、root の認証手段を狭めないためである。
 
-`sudo nixos-rebuild --build-host` の root は 2 通りで認証できる:
-①`IdentityFile` が指す `/home/pomu/.ssh/id_lan` を直読みする（root は他ユーザーのファイルを
-読めるし、ssh が拒否するのは所有者以外にも読めるモードの場合だけで 600 なら通る）、
-②`users.nix` で `env_keep` した `SSH_AUTH_SOCK` 越しにユーザーの agent を使う。
-`IdentitiesOnly yes` を付けると②が消え、①も鍵ファイルが無い環境では成立しないため、
-リモートビルドが壊れうる。付けないことで得られる利便が失われる安全性を上回る。
+`IdentityFile` は `~/.ssh/id_lan`。一般ユーザーもrootも自分のhomeを参照し、他ユーザーの絶対パスを共有しない。
+`sudo nixos-rebuild --build-host` は `users.nix` で `env_keep` した `SSH_AUTH_SOCK` 越しにユーザーのagentを使う。root側に鍵ファイルがなくてもagent認証できるよう `IdentitiesOnly yes` は付けない。
+利用者は [remote buildの手順](../howtouse/remote-build.md) に従って鍵をagentへ追加する。
 
 ### ホスト鍵は accept-new（TOFU）
 
@@ -97,3 +94,7 @@ N×N の直書きになり重複する。単一の情報源に集約し、`ssh.n
 - 自分自身の公開鍵も `authorized_keys` に含むが、自機への self-login が増えるだけで無害
 - 対象は NixOS ホストのみ（`ssh.nix` は NixOS モジュール）。standalone home-manager
   （macOS 等）は LAN の一員とみなさず `id_lan` を配らない
+
+## ユーザーごとの鍵配布
+
+`local.profile.lanSsh = true` のユーザーだけが共有LAN鍵を復元する。OSがNixOSというだけでは秘密鍵を配布しない。既存2台ではpomuのworkstation profileが有効化している。

@@ -1,6 +1,6 @@
 # オーディオ制作環境（Home Manager）
 # DAW、楽器プラグイン、楽譜、ユーティリティをサブモジュールで分割管理
-# 各サブモジュールは settings.features.audio で個別にゲートされる
+# 各サブモジュールは config.local.profile.features.audio で個別にゲートされる
 
 { ... }:
 

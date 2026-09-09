@@ -1,4 +1,4 @@
-{ settings, config, pkgs, lib, ... }:
+{ config, pkgs, lib, ... }:
 
 let
   gnomeExtensionsList = with pkgs.gnomeExtensions; [
@@ -9,7 +9,7 @@ let
     paperwm
   ];
 
-in lib.mkIf settings.features.gnome {
+in lib.mkIf config.local.profile.features.gnome {
   home.packages = gnomeExtensionsList;
 
   dconf = {

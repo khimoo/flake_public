@@ -12,7 +12,6 @@ let
   # `nixos-` プレフィックスを剥がした短縮エイリアス（nixos-desktop → desktop）
   shortName = host: lib.removePrefix "nixos-" host;
 
-  home = "/home/${settings.primaryUser}";
 in {
   services.openssh = {
     enable = true;
@@ -41,12 +40,12 @@ in {
     Host ${shortName host} ${host} ${host}.local
       HostName ${host}.local
       User ${settings.primaryUser}
-      IdentityFile ${home}/.ssh/id_lan
+      IdentityFile ~/.ssh/id_lan
       StrictHostKeyChecking accept-new
   '') machines.hosts) + ''
     Host github.com
       User git
-      IdentityFile ${home}/.ssh/id_github
+      IdentityFile ~/.ssh/id_github
   '';
 
   # mDNS で自ホスト名を LAN に広告する

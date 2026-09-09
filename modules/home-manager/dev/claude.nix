@@ -14,10 +14,10 @@
 # repo にまだ存在しないカテゴリは dangling symlink になるが、Claude Code からは
 # 「設定なし」に見えるだけで壊れない。repo 側でそのディレクトリを作った時点で live に
 # なるため、Claude Code が全く新しいカテゴリを導入した時以外は switch が要らない。
-{ config, settings, lib, ... }:
+{ config, lib, ... }:
 
 let
-  root = settings.claudeConfigRoot;
+  root = config.local.profile.claudeConfigRoot;
   configDirs = [ "skills" "agents" "commands" "output-styles" "hooks" ];
   mkLink = path: config.lib.file.mkOutOfStoreSymlink "${root}/${path}";
 in

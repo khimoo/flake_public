@@ -9,7 +9,7 @@
 ## 配置
 
 clone は switch 時に [private-repos.nix](../../modules/home-manager/private-repos.nix) が行う
-（`flake.nix` の `llmWikisRoot` / `llmWikisRepoUrl`）。dest が既にあれば触らないので、
+（本人の `local.profile.llmWikisRoot` / `llmWikisRepoUrl`）。dest が既にあれば触らないので、
 手動 clone 済みの環境でも安全。仕組みは [private-repo-clone.md](./private-repo-clone.md) と共通。
 
 ```
@@ -71,5 +71,5 @@ flake 側は何も要らない。repo 全体が 1 つの clone 対象なので�
 
 ## 無効化する
 
-`flake.nix` の `llmWikisRepoUrl` を消す（既定 `null`）と自動 clone が止まる。
+本人の `local.profile.llmWikisRepoUrl` を消す（既定 `null`）と自動 clone が止まる。
 `llmWikisRoot` を残しても現状は何も起きない（読むモジュールが無い）ので、両方消してよい。

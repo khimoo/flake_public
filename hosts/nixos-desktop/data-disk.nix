@@ -13,8 +13,9 @@
 #
 # 設計判断: docs/architecture/disk-tiering.md
 # 使い方:   docs/howtouse/disk-tiering.md
-{ pkgs, lib, settings, ... }:
+{ config, pkgs, lib, settings, ... }:
 let
+  vaultRoot = config.home-manager.users.${settings.primaryUser}.local.profile.zettelkastenRoot;
   # btrfs は FS 全体で 1 UUID。各 subvol は subvol= オプションで選ぶので全マウントで共有する。
   device = "/dev/disk/by-uuid/57ba3e14-4099-4708-a643-edfc45d3eb18";
 
@@ -57,10 +58,10 @@ in
   # 新マシンでは初回 clone の後に一度 reboot(または systemctl start)して mount を有効にする。
   systemd.mounts = [{
     what = device;
-    where = "${settings.zettelkastenRoot}/references";
+    where = "${vaultRoot}/references";
     type = "btrfs";
     options = lib.concatStringsSep "," ([ "subvol=@papis" ] ++ dataOpts);
-    unitConfig.ConditionPathExists = "${settings.zettelkastenRoot}/.git";
+    unitConfig.ConditionPathExists = "${vaultRoot}/.git";
     wantedBy = [ "local-fs.target" ];
   }];
 

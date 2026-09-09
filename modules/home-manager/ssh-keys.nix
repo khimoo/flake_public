@@ -8,12 +8,12 @@
 # 復号の種は専用 age 鍵 1 本(~/.config/sops/age/keys.txt)。これを out-of-band で置くことだけが
 # 新マシンの手作業で、鍵の実体は switch が書き出す。
 #
-# どの鍵を配るかは settings.sshKeys = [{ secret, name }] で受ける。空リスト(既定)なら
+# どの鍵を配るかは config.local.profile.sshKeys = [{ secret, name }] で受ける。空リスト(既定)なら
 # activation 自体が生えない。
-{ config, lib, pkgs, settings, ... }:
+{ config, lib, pkgs, ... }:
 
 let
-  keys = settings.sshKeys or [];
+  keys = config.local.profile.sshKeys;
   enable = keys != [];
 
   home = config.home.homeDirectory;
@@ -50,8 +50,6 @@ in
       age_key=${lib.escapeShellArg ageKeyFile}
       secrets=${lib.escapeShellArg (toString secretsFile)}
 
-      mkdir -p ${lib.escapeShellArg "${home}/.ssh"}
-
       if [ -n "''${DRY_RUN_CMD:-}" ]; then
         # dry-run 時は鍵ファイルを絶対に触らない(リダイレクトは DRY_RUN_CMD で包めないため)。
         ${lib.concatMapStringsSep "\n        " dryRunSnippet keys}
@@ -63,6 +61,7 @@ in
         echo "  または Bitwarden から取り出して同じパスに 600 で置く。" >&2
         exit 1
       else
+        mkdir -p ${lib.escapeShellArg "${home}/.ssh"}
         ${lib.concatMapStringsSep "\n\n        " (k: "(\n          ${extractSnippet k}\n        )") keys}
       fi
     '';

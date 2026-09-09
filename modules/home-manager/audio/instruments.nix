@@ -2,9 +2,9 @@
 # プラグインパスは musnix が PIPE WIRE/JACK と合わせて自動設定するため、
 # ここでは home.packages に並べるだけで zrythm から認識される
 
-{ settings, pkgs, lib, ... }:
+{ config, pkgs, lib, ... }:
 
-lib.mkIf settings.features.audio {
+lib.mkIf config.local.profile.features.audio {
   home.packages = with pkgs; [
     # 減算/汎用シンセ
     surge-XT

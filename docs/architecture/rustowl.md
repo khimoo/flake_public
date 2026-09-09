@@ -27,3 +27,11 @@ Nix store 外に命令的にインストールする impure な要素。
 
 - プロジェクトごとの Rust ツールチェーンは各 devShell の `rust-overlay` が PATH で上書きするため、rustowl の sysroot とは干渉しない
 - `home.activation` で実行されるため、`home-manager switch` の度にバージョンチェックが走る（既にインストール済みなら何もしない）
+
+## 対応OS・失敗復旧
+
+使い方と検証: [検証ガイド](../howtouse/validation.md)。
+`local.rustowl.enable` はx86_64 Linuxだけで既定true。他のOSではactivation自体を作らず、明示的な有効化はassertionで拒否する。Neovimも実行ファイルが存在するときだけRustOwlプラグインを読み込む。
+
+dry-runではダウンロード・ディレクトリ作成・既存バイナリ実行をしない。通常実行は全工程の最後に `.complete` を書く。途中失敗時にはmarkerが無いので次回switchで再実行する。markerにはNix storeの動的リンカとライブラリパスも含め、世代更新後にrpathを更新する。
+既存のNix外インストールは世代ロールバックで戻らない。無効化してもファイルを削除しない。

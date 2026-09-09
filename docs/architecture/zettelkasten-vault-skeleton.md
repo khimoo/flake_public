@@ -84,7 +84,7 @@ mirror は中止する。
 
 `mirror-vault` は source（vault）と dest（config repo）を引数/環境変数で受け取る。自分の骨格を
 配りたい人は、自分の vault と dest を渡すだけでよい。私固有の既定 dest は flake_public の
-settings（`vaultSkeletonRepo`）だけに閉じ、`modules/home-manager/zettelkasten.nix` が
+ユーザーオプション（`local.profile.vaultSkeletonRepo`）だけに閉じ、`modules/home-manager/zettelkasten.nix` が
 `services.zettelkasten.mirrorRepo` に注入する。
 
 パラメータ化の理由は第三者の存在ではなく**結合度**にある。dest を焼き込むと mechanism 側が特定の環境の
@@ -96,7 +96,7 @@ flake_public 自身なので、その意味でも注入する形が正しい。
 
 ## feature は「同期に依存するか」で切る
 
-flake_public 側の `features.obsidian` が gate するのは Obsidian 本体の導入と `.obsidian` の seed だけで、
+flake_public 側の `local.profile.features.obsidian` が gate するのは Obsidian 本体の導入と `.obsidian` の seed だけで、
 骨格の seed は `services.zettelkasten.enable`（同期 feature でも立つ）側に載っている。骨格は Obsidian
 固有ではなく vault の中身なので、Obsidian を入れないマシンでも配られてよい、という切り方。
 

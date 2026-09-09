@@ -1,6 +1,6 @@
-{ settings, terminalFont, config, pkgs, lib, ... }:
+{ terminalFont, config, pkgs, lib, ... }:
 
-lib.mkIf settings.features.gui {
+lib.mkIf config.local.profile.features.gui {
   home.packages = [ pkgs.wezterm ];
 
   # wezterm.lua は mkOutOfStoreSymlink でリポジトリへの symlink にする。
@@ -8,7 +8,7 @@ lib.mkIf settings.features.gui {
   # 後段の font.lua (bridge file) を共存できる (nvim の bridge file 引っ越し問題は発生しない)。
   xdg.configFile."wezterm/wezterm.lua".source =
     config.lib.file.mkOutOfStoreSymlink
-      "${settings.flakeRoot}/modules/home-manager/gui/wezterm/wezterm.lua";
+      "${config.local.profile.flakeRoot}/modules/home-manager/gui/wezterm/wezterm.lua";
 
   # 参照元: modules/home-manager/gui/wezterm/wezterm.lua
   xdg.configFile."wezterm/font.lua".text = ''return "${terminalFont.name}"'';

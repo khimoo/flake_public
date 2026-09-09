@@ -37,3 +37,8 @@ RustOwl が有効な状態でマウスをハイライト上に移動すると、
 
 - `mousemoveevent = true` を設定して `<MouseMove>` イベントを捕捉
 - カーソル移動時にキャッシュをクリアして最新のデコレーションを取得
+
+## プラットフォームとRustOwlの導入
+
+RustOwlの自動導入は `local.rustowl.enable` で選択する（x86_64 Linuxで既定true、Darwinではfalse）。`rustowl` がPATHに無い場合はプラグインと対応キーを読み込まない。詳細は [RustOwl設計](../../../../../../../docs/architecture/rustowl.md) を参照。
+Rust DAPのliblldbはLinuxで `.so`、macOSで `.dylib` を参照する。

@@ -1,4 +1,4 @@
-{ settings, pkgs, ... }:
+{ config, pkgs, lib, ... }:
 
 {
   programs = {
@@ -35,8 +35,8 @@
 
       settings = {
         user = {
-          name = settings.gitUsername;
-          email = settings.gitUserEmail;
+          name = lib.mkIf (config.local.profile.gitUsername != null) config.local.profile.gitUsername;
+          email = lib.mkIf (config.local.profile.gitUserEmail != null) config.local.profile.gitUserEmail;
         };
 
         init.defaultBranch = "main";

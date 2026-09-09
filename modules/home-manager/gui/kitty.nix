@@ -1,4 +1,4 @@
-{ settings, terminalFont, config, pkgs, lib, ... }:
+{ terminalFont, config, pkgs, lib, ... }:
 
 let
   # smart-splits.nvim の kitty backend が kitty @ kitten で呼ぶスクリプト。plugin 同梱の
@@ -6,14 +6,14 @@ let
   # vimPlugins が同じファイルを持っているので宣言的に置ける。
   smartSplitsKittens = "${pkgs.vimPlugins.smart-splits-nvim}/kitty";
 in
-lib.mkIf settings.features.gui {
+lib.mkIf config.local.profile.features.gui {
   home.packages = [ pkgs.kitty ];
 
   # kitty.conf は mkOutOfStoreSymlink でリポジトリへの symlink にする。ディレクトリでは
   # なくファイル単位なので、同じ ~/.config/kitty/ 配下に font.conf と kitten を共存できる。
   xdg.configFile."kitty/kitty.conf".source =
     config.lib.file.mkOutOfStoreSymlink
-      "${settings.flakeRoot}/modules/home-manager/gui/kitty/kitty.conf";
+      "${config.local.profile.flakeRoot}/modules/home-manager/gui/kitty/kitty.conf";
 
   # 参照元: modules/home-manager/gui/kitty/kitty.conf の include
   xdg.configFile."kitty/font.conf".text = ''

@@ -30,10 +30,10 @@ vault は private notes repo の clone で用意しており、その clone が�
 
 ## 対応環境
 
-- NixOS ホスト（`nixos-desktop`, `nixos-spin713`）: `features.obsidian = true` を設定済み
-- standalone home-manager: `mkHome` の `features.obsidian = true` で有効化
+- NixOS ホスト（`nixos-desktop`, `nixos-spin713`）: `local.profile.features.obsidian = true` を設定済み
+- standalone home-manager: 本人のhomeモジュールの `local.profile.features.obsidian = true` と `local.profile.zettelkastenRoot` で有効化
 
-`features.obsidian` が gate するのは **Obsidian 本体の導入と `.obsidian` の seed** だけ。骨格
+`local.profile.features.obsidian` が gate するのは **Obsidian 本体の導入と `.obsidian` の seed** だけ。骨格
 （分類フォルダ・運用ドキュメント）の seed は同期 feature 側にも載っているので、
 `zettelkastenSync` か `referenceSync` だけ有効なホストでも骨格は配置される。
 
@@ -94,7 +94,7 @@ vault に無いと mirror は中止する（黙って落とすと、直後の `r
 
 ## ミラー先の設定（`vaultSkeletonRepo`）
 
-mirror の dest は環境固有の checkout 位置なので、`flake.nix` の各ホストで `settings` に注入する。
+mirror の dest は環境固有の checkout 位置なので、本人のhomeモジュールで `local.profile.vaultSkeletonRepo` に指定する。
 
 | 属性 | 効果 |
 |------|------|

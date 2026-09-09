@@ -15,6 +15,7 @@ NixOS ホストにユーザーを追加・設定する方法。
   username = "pomu";
   isAdmin = true;
   homeFile = ./hosts/nixos-desktop/home-manager-pomu.nix;
+  # 他のユーザーは本人用のhomeFileを使う。pomu用を共有しない。
 }
 ```
 
@@ -39,13 +40,36 @@ Nix で管理しない（自分でホーム環境を設定する）ユーザー�
 | `username` | string | (必須) | ユーザー名 |
 | `isAdmin` | bool | `false` | `true` で sudo 権限を付与 |
 | `manageHome` | bool | `true` | `false` で home-manager をスキップ |
-| `homeFile` | path | `hosts/<hostname>/home.nix` | home-manager 設定ファイル |
+| `homeFile` | path または null | `null` | 本人のHome Managerモジュール |
+| `homeModules` | list | `[]` | 本人だけに追加するモジュール |
 | `description` | string | `username` | ユーザーの説明 |
 | `shell` | package | `pkgs.bash` | ログインシェル |
 | `initialPassword` | string | `null` | 初期パスワード（平文） |
 | `initialHashedPassword` | string | `null` | 初期パスワード（ハッシュ済み） |
 | `hashedPassword` | string | `null` | 固定パスワード（ハッシュ済み） |
 | `extraGroups` | list | `[]` | 追加グループ |
+
+## ユーザープロファイル
+
+新しいユーザーのhomeはCLI構成から始まり、既存ユーザーのGit identity・private repo・SSH鍵を引き継ぎません。
+個人設定は `homeFile` の中で指定します:
+
+```nix
+{ config, ... }: {
+  local.profile = {
+    gitUsername = "Alice";
+    gitUserEmail = "alice@example.org";
+    flakeRoot = "${config.home.homeDirectory}/sagyo/flake_public";
+    features = { gui = true; gnome = true; ime = true; };
+    # 必要なユーザーだけが明示的に共有LAN鍵の配布を選ぶ。
+    lanSsh = false;
+  };
+}
+```
+
+全オプションの型・既定値は [profile.nix](../../modules/home-manager/profile.nix) が正本です。
+2台で共有するpomu個人設定は [pomu-workstation.nix](../../profiles/home/pomu-workstation.nix)、standaloneのidentityは [pomu.nix](../../profiles/home/pomu.nix) にあります。
+`mkHome` も同じ `homeFile` / `modules` から設定します。旧factoryの `features` / `flakeRoot` 等の引数は使いません。
 
 ### パスワードの設定方法
 

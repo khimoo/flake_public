@@ -2,7 +2,7 @@
 { pkgs, inputs, ... }: {
   # NixOS側の非フリーパッケージ許可
   # NOTE: home-managerスタンドアロンモードでは別途 nixpkgs.config.allowUnfree = true が必要
-  #       （modules/home-manager/core.nix で設定済み）
+  #       （lib/configurations.nix の mkHome で設定）
   #       NixOSモジュールとして使う場合はここの設定がシステム全体に適用される
   nixpkgs.config.allowUnfree = true;
 

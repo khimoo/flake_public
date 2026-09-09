@@ -1,6 +1,6 @@
-{ settings, config, pkgs, lib, ... }:
+{ config, pkgs, lib, ... }:
 
-lib.mkIf settings.features.ime {
+lib.mkIf config.local.profile.features.ime {
   i18n.inputMethod = {
     type = "fcitx5";
     enable = true;

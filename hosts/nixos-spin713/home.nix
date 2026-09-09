@@ -1,6 +1,7 @@
-{ skk-dict, settings, config, pkgs, lib, ... }:
+{ config, pkgs, lib, ... }:
 
 {
+  imports = [ ../../profiles/home/pomu-workstation.nix ];
   dconf = {
     enable = true;
     settings = {

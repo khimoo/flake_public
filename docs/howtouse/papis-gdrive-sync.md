@@ -8,7 +8,7 @@ papis のライブラリは vault 内の `~/sagyo/zettelkasten/references/` に�
 [zettelkasten-attachments-sync.md](./zettelkasten-attachments-sync.md) を参照。本書は papis
 固有の話だけを扱う。設計判断は [../architecture/papis-gdrive-sync.md](../architecture/papis-gdrive-sync.md)。
 
-有効化は `features.referenceSync = true`。これ 1 本で papis 本体・`~/.config/papis/config`・
+有効化は `local.profile.features.referenceSync = true`。これ 1 本で papis 本体・`~/.config/papis/config`・
 同期がまとめて入る。
 
 ## 文献を追加する

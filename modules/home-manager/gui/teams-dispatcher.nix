@@ -1,4 +1,4 @@
-{ pkgs, lib, settings, ... }:
+{ config, pkgs, lib, ... }:
 
 # Teams の URL だけ Junction (アプリ選択ダイアログ) を表示し、
 # それ以外は Firefox に直接渡すディスパッチャ。
@@ -74,7 +74,7 @@ let
   };
 
 in
-lib.mkIf settings.features.gui {
+lib.mkIf config.local.profile.features.gui {
   home.packages = [
     pkgs.junction
     pkgs.teams-for-linux

@@ -46,7 +46,7 @@ clone は sops も age 鍵も知らず、`~/.ssh/id_github` が既に置かれ�
 分けた理由は、`secrets.yaml` が配るものが GitHub 鍵だけではなくなったこと。
 LAN 共通鍵（`~/.ssh/id_lan`, [machine-ssh.md](./machine-ssh.md) 参照）は clone とは
 無関係だが復号経路は同じで、clone モジュールに同居させると偶発的凝集になる。
-`settings.sshKeys = [{ secret, name }]` で「何をどこへ書き出すか」だけを受ける形にした。
+`local.profile.sshKeys = [{ secret, name }]` で「何をどこへ書き出すか」だけを受ける形にした。
 
 ## 鍵は用途で名付ける
 
@@ -94,7 +94,7 @@ clone-if-absent の裏返しとして、一度 clone した repo は switch で�
 に載せる）。switch に pull を混ぜないのは、更新のタイミングをユーザーが選べるようにするため。
 switch が pull も担うと、システム世代を切り替えるつもりの操作が working tree も動かす。
 
-対象は clone 対象の全 repo に flake 自身（`settings.flakeRoot`）を加えたもの。同じ GitHub 鍵で
+対象は clone 対象の全 repo に flake 自身（`local.profile.flakeRoot`）を加えたもの。同じ GitHub 鍵で
 更新でき、「手元の checkout を全部新しくする」意図では flake だけ別扱いする理由が無い。
 clone 対象が無い環境でも flake 1 つを対象にコマンドは生える。
 
@@ -120,11 +120,10 @@ switch できないと回復もできないという循環は起きない——a
 
 ## 複数 repo へ汎用化
 
-`private-repos.nix` は `settings.privateRepos = [{ url; dest; }]` を回して clone する。
-リストは `flake.nix` が高レベル設定（`claudeConfigRepo` / `vaultSkeletonRepoUrl` などの
+`private-repos.nix` は `local.profile.privateRepos = [{ url; dest; }]` を回して clone する。
+リストは `modules/home-manager/profile.nix` がユーザーごとの高レベル設定（`claudeConfigRepo` / `vaultSkeletonRepoUrl` などの
 URL 側と、`claudeConfigRoot` / `vaultSkeletonRepo` などの dest 側）から自動で組み立てる。
-これで新しい private repo を足すときも `private-repos.nix` は触らず、`flake.nix` の
-`buildPrivateRepos` に 1 行追加するだけで済む。
+新しいprivate repoはユーザーの `local.profile.privateRepos` に `{ url; dest; }` を追加する。clone機構やfactoryの変更は不要。
 
 ## vault フォルダの所有者は clone
 
@@ -148,9 +147,8 @@ URL 側（`claudeConfigRepo` / `vaultSkeletonRepoUrl` 等）が `null`（既定�
 dest 側とは別軸で持つことで「symlink（あるいは mirror-vault）だけ欲しい（手動 clone）」と
 「clone も自動化したい」を repo ごとに独立に選べる。
 
-鍵の書き出し側は環境の種類で決まる。standalone（WSL / macOS）は LAN の一員ではないので
-`id_lan` を配らず、clone 対象も無ければ `sshKeys = []` となって activation ごと消える。
-NixOS ホストは `ssh.nix` が `id_lan` を前提にするため常に両方を配る。
+clone対象が無ければGitHub鍵は自動配布しない。LAN鍵も選択せず、追加の `local.profile.sshKeys` も無ければ鍵のactivationごと消える。
+OS種別ではなく本人の `local.profile.lanSsh` でLAN鍵の配布を選ぶ。既存2台のpomuはtrueだが、新規ユーザーはfalse。
 
 ## ゼロからの復元（eval 時の鍵依存は解消済み）
 
@@ -177,3 +175,9 @@ activation が `secrets.yaml` を age 鍵で復号して書き出すので、事
   `secrets.yaml` をコミットするまで eval が通らない
 - standalone（`homeConfigurations`）は URL 側を全て未指定にすれば `secrets.yaml` を
   参照しないので、age 鍵も暗号文も無しで switch できる
+
+## clone失敗後の再実行
+
+新規cloneは同じ親ディレクトリの一時領域で完了させてからdestへ移す。途中失敗では一時領域を掃除し、destを成功済みとして残さない。既存のdestがGit checkoutでなければ停止して利用者に確認を求める。既存ファイルは自動削除しない。
+Git checkoutの確認は `.git` エントリの存在を見る（通常cloneとworktreeに対応）。remote URLの同一性やcheckout内容までは検証しない。
+鍵配布を選択しないユーザーの `pull-repos` は、存在しない `id_github` を強制せず通常のGit/SSH設定を使う。

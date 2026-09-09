@@ -67,7 +67,7 @@ stdin から読み込み済みの行を端末へ転送しない。同じ入力�
   kitty.conf に説明の要る1行を残すより後から追える。基準を緩めた唯一の例として扱う。
 - overlay にしたのは利用側を無関係に保つため。`modules/home-manager/dev/apps.nix` は `codex` と書くだけで、
   どのチャンネル由来かを知らない。取得元を変えても利用側の記述は変わらない。
-- overlay は `mkSystem` と `mkHome` の双方に渡っている (`flake.nix` の `overlays`) ので、NixOS ホストと
+- overlay は `mkSystem` と `mkHome` の双方に渡っている (`lib/configurations.nix` の `overlays`) ので、NixOS ホストと
   standalone home-manager (WSL / macOS) で同じものが入る。
 - 既存の `overlays/default.nix` とはファイルを分けた。あちらは上流が直したら消す一時的なパッチの
   置き場で、こちらは安定チャンネルが追いついたら外す差し替えなので、削除の契機が違う。

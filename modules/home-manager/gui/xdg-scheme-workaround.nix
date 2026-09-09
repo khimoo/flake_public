@@ -1,4 +1,4 @@
-{ pkgs, lib, settings, ... }:
+{ config, pkgs, lib, ... }:
 
 # NixOS の XDG MIME がスキームハンドラを自動登録しない問題のワークアラウンド。
 # GNOME は mimeapps.list に明示的なデフォルトがないとスキームハンドラを解決できない。
@@ -8,7 +8,7 @@
 # Fix:   https://github.com/NixOS/nixpkgs/pull/494847
 # ↑ がマージされたらこのファイルは削除可能。
 
-lib.mkIf settings.features.gui {
+lib.mkIf config.local.profile.features.gui {
   xdg.mimeApps.defaultApplications = {
     "x-scheme-handler/slack" = "slack.desktop";
     "x-scheme-handler/discord" = "discord.desktop";

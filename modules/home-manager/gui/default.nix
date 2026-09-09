@@ -1,4 +1,4 @@
-{ settings, pkgs, lib, ... }:
+{ config, pkgs, lib, ... }:
 
 let
   # wezterm と kitty で同じフォントを使う。両モジュールへは _module.args で渡す。
@@ -18,7 +18,7 @@ in
     # この定義だけは mkIf の外に置く。
     { _module.args.terminalFont = terminalFont; }
 
-    (lib.mkIf settings.features.gui {
+    (lib.mkIf config.local.profile.features.gui {
       home.packages = [ terminalFont.package ] ++ (with pkgs; [
         ipafont
         ipaexfont

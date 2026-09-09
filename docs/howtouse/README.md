@@ -6,6 +6,7 @@
 
 | カテゴリ | 概要 | ドキュメント |
 |----------|------|-------------|
+| 検証 | 変更時の一括検証・CI・実機確認の範囲 | [validation.md](./validation.md) |
 | ユーザー管理 | ユーザーの追加・権限設定・home-manager 連携 | [users.md](./users.md) |
 | マシン間 SSH | flake 内のホストへ `ssh <短縮名>` で接続・マシン追加手順 | [machine-ssh.md](./machine-ssh.md) |
 | リモートビルド | 別ホストでビルドだけ走らせて成果物を持ってくる運用 | [remote-build.md](./remote-build.md) |
