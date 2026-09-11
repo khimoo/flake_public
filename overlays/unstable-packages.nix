@@ -33,8 +33,27 @@
 #              unstable は 0.26.11。上の neovim-unwrapped を 0.12 に上げた結果
 #              master ブランチが使えなくなったことに連動する項目で、
 #              neovim-unwrapped を 25.11 に戻すならこれも不要になる。
-inputs: final: prev: {
-  tinymist = inputs.nixpkgs-unstable.legacyPackages.${prev.stdenv.hostPlatform.system}.tinymist;
-  neovim-unwrapped = inputs.nixpkgs-unstable.legacyPackages.${prev.stdenv.hostPlatform.system}.neovim-unwrapped;
-  tree-sitter = inputs.nixpkgs-unstable.legacyPackages.${prev.stdenv.hostPlatform.system}.tree-sitter;
+#
+#   claude-code — 25.11 の 2.1.140 では Claude Fable 5.1 (claude-fable-5-1) を
+#              選べない。上流がこのモデルを既定の Fable として追加したのは
+#              2.1.257 (CHANGELOG)。/model の一覧も課金の同意もクライアント側の
+#              実装に依存するので、古い版のままでは新しいモデルに届かない。
+#              unstable は 2.1.263。
+inputs: final: prev:
+let
+  # legacyPackages は config を持たない素の nixpkgs なので、そのまま参照すると
+  # 差し替えた側だけ allowUnfree が効かず claude-code の評価が止まる。
+  # 安定チャンネル側の config を引き継いで読み直す。
+  unstable = import inputs.nixpkgs-unstable {
+    inherit (prev.stdenv.hostPlatform) system;
+    inherit (prev) config;
+  };
+in
+{
+  inherit (unstable)
+    tinymist
+    neovim-unwrapped
+    tree-sitter
+    claude-code
+    ;
 }
