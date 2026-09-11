@@ -31,6 +31,7 @@
 ## 設計方針 (architecture/)
 
 - [lazy.nvim spec マージ前提のディレクトリ設計](./architecture/spec-merge.md) — `lang/<name>/` から共通プラグインの opts を後付け差し込みする設計の根拠
+- [lazy.nvim 本体だけを nixpkgs から取る構成](./architecture/plugin-manager.md) — 本体は nixpkgs、プラグインは lazy-lock.json で固定する役割分担と、採用しなかった案
 
 ---
 
