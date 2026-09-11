@@ -25,7 +25,16 @@
 #              chansend で自分で流し込む回避行なら 0.11.7 でも読めるので、この項目は
 #              採用基準を厳密には満たさない。経緯は
 #              docs/architecture/unstable-packages.md を参照。
+#
+#   tree-sitter — nvim-treesitter の main ブランチが全パーサの導入で
+#              `tree-sitter build` を呼び、CLI 0.26.1 以上を要求する
+#              (main の lua/nvim-treesitter/health.lua の TREE_SITTER_MIN_VER)。
+#              25.11 は 0.25.10 で要件を満たさず、パーサを一つも導入できない。
+#              unstable は 0.26.11。上の neovim-unwrapped を 0.12 に上げた結果
+#              master ブランチが使えなくなったことに連動する項目で、
+#              neovim-unwrapped を 25.11 に戻すならこれも不要になる。
 inputs: final: prev: {
   tinymist = inputs.nixpkgs-unstable.legacyPackages.${prev.stdenv.hostPlatform.system}.tinymist;
   neovim-unwrapped = inputs.nixpkgs-unstable.legacyPackages.${prev.stdenv.hostPlatform.system}.neovim-unwrapped;
+  tree-sitter = inputs.nixpkgs-unstable.legacyPackages.${prev.stdenv.hostPlatform.system}.tree-sitter;
 }

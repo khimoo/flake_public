@@ -1,4 +1,4 @@
--- nvim-treesitter の ensure_installed に markdown 関連パーサを追加する。
+-- ベース spec が install() に渡す ensure_installed へ markdown 関連パーサを追加する。
 -- lazy.nvim の spec マージにより、ベース spec (plugins/treesitter.lua) と本 spec が
 -- 同じプラグインを指していると opts が deep-merge される。配列は merge ではなく
 -- 上書きされる仕様なので、function 形式で list_extend する必要がある。

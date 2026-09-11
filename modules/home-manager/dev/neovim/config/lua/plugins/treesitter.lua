@@ -1,14 +1,28 @@
 return {
     {
         "nvim-treesitter/nvim-treesitter",
+        branch = "main",
+        -- main ブランチは lazy-load を公式に非対応と明記している
+        lazy = false,
         build = ":TSUpdate",
-        main = 'nvim-treesitter.configs',
-        opts = {
-            highlight = { enable = true },
-            -- ensure_installed は各言語モジュール (lang/<x>/treesitter.lua) から
-            -- spec マージで追加される
-            ensure_installed = {},
-        },
+        -- ensure_installed は各言語モジュール (lang/<x>/treesitter.lua) から
+        -- spec マージで追加される。main ブランチに同名のオプションは無いので、
+        -- 本リポジトリ内の受け渡し用の名前として残し config で install() に渡す。
+        opts = { ensure_installed = {} },
+        config = function(_, opts)
+            require("nvim-treesitter").install(opts.ensure_installed)
+
+            -- master の highlight = { enable = true } 相当。
+            -- main はハイライトを有効化せず、Neovim 側の vim.treesitter.start を
+            -- 呼ぶのは利用者の責務になった。パーサ未導入の filetype では
+            -- start がエラーを投げるので pcall で握る。
+            vim.api.nvim_create_autocmd("FileType", {
+                group = vim.api.nvim_create_augroup("user_treesitter_start", { clear = true }),
+                callback = function(ev)
+                    pcall(vim.treesitter.start, ev.buf)
+                end,
+            })
+        end,
     },
     {
         'Wansmer/treesj',
@@ -17,66 +31,50 @@ return {
         config = function () vim.keymap.set("n", "<leader>m", require('treesj').toggle) end
     },
     {
-        "RRethy/nvim-treesitter-textsubjects",
-        dependencies = { "nvim-treesitter/nvim-treesitter" },
-        config = function ()
-            require('nvim-treesitter-textsubjects').configure({
-                prev_selection = ',',
-                keymaps = {
-                    ['.'] = 'textsubjects-smart',
-                    [';'] = 'textsubjects-container-outer',
-                    ['i;'] = 'textsubjects-container-inner',
-                },
-            })
-        end
-    },
-    {
         "nvim-treesitter/nvim-treesitter-textobjects",
+        branch = "main",
         dependencies = { "nvim-treesitter/nvim-treesitter" },
         config = function()
-            require('nvim-treesitter.configs').setup({
-                textobjects = {
-                    select = {
-                        enable = true,
-                        lookahead = true,
-                        keymaps = {
-                            ["af"] = { query = "@function.outer", desc = "Select outer function" },
-                            ["if"] = { query = "@function.inner", desc = "Select inner function" },
-                            ["ac"] = { query = "@class.outer", desc = "Select outer class" },
-                            ["ic"] = { query = "@class.inner", desc = "Select inner class" },
-                            ["aa"] = { query = "@parameter.outer", desc = "Select outer argument" },
-                            ["ia"] = { query = "@parameter.inner", desc = "Select inner argument" },
-                        },
-                    },
-                    move = {
-                        enable = true,
-                        set_jumps = true,
-                        goto_next_start = {
-                            ["]f"] = { query = "@function.outer", desc = "Next function start" },
-                            ["]a"] = { query = "@parameter.outer", desc = "Next argument start" },
-                        },
-                        goto_next_end = {
-                            ["]F"] = { query = "@function.outer", desc = "Next function end" },
-                        },
-                        goto_previous_start = {
-                            ["[f"] = { query = "@function.outer", desc = "Prev function start" },
-                            ["[a"] = { query = "@parameter.outer", desc = "Prev argument start" },
-                        },
-                        goto_previous_end = {
-                            ["[F"] = { query = "@function.outer", desc = "Prev function end" },
-                        },
-                    },
-                    swap = {
-                        enable = true,
-                        swap_next = {
-                            ["<leader>a"] = { query = "@parameter.inner", desc = "Swap with next argument" },
-                        },
-                        swap_previous = {
-                            ["<leader>A"] = { query = "@parameter.inner", desc = "Swap with prev argument" },
-                        },
-                    },
-                },
+            require("nvim-treesitter-textobjects").setup({
+                select = { lookahead = true },
+                move = { set_jumps = true },
             })
+
+            local select = require("nvim-treesitter-textobjects.select")
+            local move = require("nvim-treesitter-textobjects.move")
+            local swap = require("nvim-treesitter-textobjects.swap")
+            local map = vim.keymap.set
+
+            for key, query in pairs({
+                ["af"] = "@function.outer",
+                ["if"] = "@function.inner",
+                ["ac"] = "@class.outer",
+                ["ic"] = "@class.inner",
+                ["aa"] = "@parameter.outer",
+                ["ia"] = "@parameter.inner",
+            }) do
+                map({ "x", "o" }, key, function()
+                    select.select_textobject(query, "textobjects")
+                end, { desc = "Select " .. query })
+            end
+
+            for key, spec in pairs({
+                ["]f"] = { move.goto_next_start, "@function.outer" },
+                ["]F"] = { move.goto_next_end, "@function.outer" },
+                ["[f"] = { move.goto_previous_start, "@function.outer" },
+                ["[F"] = { move.goto_previous_end, "@function.outer" },
+                ["]a"] = { move.goto_next_start, "@parameter.outer" },
+                ["[a"] = { move.goto_previous_start, "@parameter.outer" },
+            }) do
+                map({ "n", "x", "o" }, key, function()
+                    spec[1](spec[2], "textobjects")
+                end, { desc = "Move to " .. spec[2] })
+            end
+
+            map("n", "<leader>a", function() swap.swap_next("@parameter.inner") end,
+                { desc = "Swap with next argument" })
+            map("n", "<leader>A", function() swap.swap_previous("@parameter.inner") end,
+                { desc = "Swap with prev argument" })
         end,
     },
     {

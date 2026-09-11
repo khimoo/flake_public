@@ -118,10 +118,11 @@ LSP がアタッチされたバッファでのみ有効。→ [lsp.md](./plugins
 
 | キー | 機能 | 出典 |
 |------|------|------|
-| `.` | スマート選択 (連打で拡大) | textsubjects |
-| `;` | コンテナ外側を選択 | textsubjects |
-| `i;` | コンテナ内側を選択 | textsubjects |
-| `,` | 前の選択に戻る | textsubjects |
+| `an` | 親ノードを選択 (連打で拡大) | Neovim 組み込み |
+| `in` | 子ノードを選択 (縮める) | Neovim 組み込み |
+| `]n` / `[n` | 次/前のノードを選択 | Neovim 組み込み |
+| `.` / `;` | `an` の別名 | keymaps.lua |
+| `i;` | `in` の別名 | keymaps.lua |
 | `ih` | Git hunk を選択 | gitsigns |
 
 ### テキストオブジェクト (y/d/c と組み合わせ)

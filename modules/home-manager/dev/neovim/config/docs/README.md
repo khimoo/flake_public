@@ -9,7 +9,7 @@
 | 検索 | telescope, project.nvim | [telescope.md](./plugins/telescope.md) |
 | ファイラー | oil.nvim | [telescope.md](./plugins/telescope.md) |
 | LSP | nvim-lspconfig | [lsp.md](./plugins/lsp.md) |
-| 構文解析 | treesitter, treesj, textsubjects, textobjects, aerial | [treesitter.md](./plugins/treesitter.md) |
+| 構文解析 | treesitter, treesj, textobjects, aerial | [treesitter.md](./plugins/treesitter.md) |
 | テスト | neotest, neotest-rust | [neotest.md](./plugins/neotest.md) |
 | Git | gitsigns, diffview | [git.md](./plugins/git.md) |
 | デバッグ | nvim-dap, dap-view, dap-go | [dap.md](./plugins/dap.md) |
@@ -114,8 +114,10 @@ ciw             単語を書き換え (削除+挿入モード)
 ci"             引用符の中身を書き換え
 da(             括弧ごと削除
 <C-a> / <C-x>  数値やboolのインクリ��ント/デクリメント (dial.nvim)
-v → .           textsubjects: スマート選択 (連打で範囲拡大)
-v → ;           textsubjects: コンテナ外側を選択
+v → an          親ノードを選択 (連打で範囲拡大, 組み込み)
+v → in          子ノードを選択 (縮める, 組み込み)
+v → . / ;       an の別名
+v → i;          in の別名
 <leader>m       treesj: 1行↔複数行のトグル
 ```
 

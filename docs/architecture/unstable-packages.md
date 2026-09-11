@@ -51,6 +51,21 @@ stdin から読み込み済みの行を端末へ転送しない。同じ入力�
 前者は画面が空になり、後者は色付きで全行が出る。
 [neovim#33720](https://github.com/neovim/neovim/pull/33720) が転送する側に変更した。
 
+4つ目の経路は、差し替えた版が別のパッケージの版を引き上げる場合で、tree-sitter がこれに当たる。
+
+| 取得元 | version |
+|--------|---------|
+| nixos-25.11 | 0.25.10 |
+| nixos-unstable | 0.26.11 |
+
+neovim を 0.12 に上げた結果、nvim-treesitter の master ブランチが使えなくなった。master は 0.11
+互換用として凍結されており、directive ハンドラに渡る `match` が 0.11 で
+`table<integer, TSNode>` から `table<integer, TSNode[]>` に変わったのに追随していない。
+markdown を開くと injection クエリの `set-lang-from-info-string!` が単一ノードを期待したまま
+リストを受け取り、`node:range` が nil で落ちる。後継の main ブランチは全パーサの導入を
+`tree-sitter build` に一本化したので、CLI が 0.26.1 以上でないとパーサを一つも入れられない
+(main の `lua/nvim-treesitter/health.lua` の `TREE_SITTER_MIN_VER`)。25.11 の 0.25.10 では足りない。
+
 ## 判断
 
 `nixpkgs-unstable` を input に追加し、overlay で対象パッケージだけを差し替える。全体を unstable に
@@ -65,6 +80,9 @@ stdin から読み込み済みの行を端末へ転送しない。同じ入力�
   選んだのは、回避行が kitty の標準的な設定行を非標準な書き方で支える形になり、0.12 が安定
   チャンネルに来たときに剥がす宿題として残るため。overlay に1行足して理由をここに書くほうが、
   kitty.conf に説明の要る1行を残すより後から追える。基準を緩めた唯一の例として扱う。
+- tree-sitter は基準を満たす。neovim 0.12 の下では 0.25.10 でパーサを一つも導入できず、
+  treesitter ベースのハイライトが全言語で失われる。ただし独立した判断ではなく neovim の
+  差し替えに従属する項目なので、neovim を 25.11 に戻すならこれも同時に外す。
 - overlay にしたのは利用側を無関係に保つため。`modules/home-manager/dev/apps.nix` は `codex` と書くだけで、
   どのチャンネル由来かを知らない。取得元を変えても利用側の記述は変わらない。
 - overlay は `mkSystem` と `mkHome` の双方に渡っている (`lib/configurations.nix` の `overlays`) ので、NixOS ホストと
@@ -84,6 +102,8 @@ nixpkgs の破壊的変更に追随できるか読めないこと、musnix が�
 
 - NixOS のリリースを上げたとき: 差が縮んでいれば対象から外して安定チャンネルに戻す。tinymist は
   修正を含む 0.15 以降が安定チャンネルに入った時点で外せる。neovim は 0.12 以降が入った時点。
+  tree-sitter は neovim と同時に判断する。安定チャンネルが 0.26.1 以降を持てば外せるが、
+  neovim を戻すなら nvim-treesitter も master に戻るので不要になる。
 - 全体を unstable に移行したとき: この overlay と input ごと不要になる。
 - 対象を増やすとき: 上の採用基準に照らす。「新しい方が嬉しい」だけでは足さない。
 

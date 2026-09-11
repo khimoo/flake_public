@@ -14,7 +14,7 @@ let
     { pkg = pkgs.imagemagick;      for = "image.nvim (画像リサイズ/変換, magick CLI backend)"; }
     { pkg = pkgs.python3Packages.pylatexenc;
                                    for = "render-markdown.nvim (latex2text による数式 → Unicode 近似変換)"; }
-    { pkg = pkgs.tree-sitter;      for = "nvim-treesitter (requires_generate_from_grammar=true な parser のビルドに必要。latex parser 等)"; }
+    { pkg = pkgs.tree-sitter;      for = "nvim-treesitter main ブランチ (全 parser の導入が `tree-sitter build` 経由。0.26.1 以上が要る)"; }
     { pkg = pkgs.websocat;         for = "typst-preview.nvim (プレビューサーバとの WebSocket 中継)"; }
   ] ++ lib.optionals pkgs.stdenv.isLinux [
     { pkg = pkgs.xclip;        for = "system clipboard 連携 (X11)"; }
