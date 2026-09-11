@@ -76,7 +76,7 @@ Bitwarden 保管 + 漏洩時の rotate（age 鍵を作り直し `sops updatekeys
 - live に編集する working tree・既存の鍵を Nix が破壊しない
 
 「初回だけ面倒を見て、以降の pull/push はユーザーに委ねる」割り切り。mutable な状態を
-immutable に管理しようとしない（[claude-config.md](./claude-config.md) の out-of-store
+immutable に管理しようとしない（[agent-config.md](./agent-config.md) の out-of-store
 symlink と同じ思想）。
 
 代償として、鍵を差し替えたときは各マシンで手動で消してから switch する必要がある。
@@ -121,8 +121,8 @@ switch できないと回復もできないという循環は起きない——a
 ## 複数 repo へ汎用化
 
 `private-repos.nix` は `local.profile.privateRepos = [{ url; dest; }]` を回して clone する。
-リストは `modules/home-manager/profile.nix` がユーザーごとの高レベル設定（`claudeConfigRepo` / `vaultSkeletonRepoUrl` などの
-URL 側と、`claudeConfigRoot` / `vaultSkeletonRepo` などの dest 側）から自動で組み立てる。
+リストは `modules/home-manager/profile.nix` がユーザーごとの高レベル設定（`agentConfigRepo` / `vaultSkeletonRepoUrl` などの
+URL 側と、`agentConfigRoot` / `vaultSkeletonRepo` などの dest 側）から自動で組み立てる。
 新しいprivate repoはユーザーの `local.profile.privateRepos` に `{ url; dest; }` を追加する。clone機構やfactoryの変更は不要。
 
 ## vault フォルダの所有者は clone
@@ -142,7 +142,7 @@ mount 先を作ってはいけない。これは `fileSystems` ではなく条�
 
 ## 抜き差し可能性
 
-URL 側（`claudeConfigRepo` / `vaultSkeletonRepoUrl` 等）が `null`（既定）ならその repo は
+URL 側（`agentConfigRepo` / `vaultSkeletonRepoUrl` 等）が `null`（既定）ならその repo は
 リストに入らず、全 URL が null なら clone の activation は生えない。
 dest 側とは別軸で持つことで「symlink（あるいは mirror-vault）だけ欲しい（手動 clone）」と
 「clone も自動化したい」を repo ごとに独立に選べる。

@@ -22,17 +22,18 @@ ingest / query / lint の三操作からなる。
 `khimoo/llm-wikis` を新設し、`/home/pomu/sagyo/llm-wikis` へ clone する。
 既存の repo に相乗りさせる案は 2 つとも退けた。
 
-### Claude 設定 repo（`khimoo/claude-private`）に混ぜない
+### エージェント設定 repo（`khimoo/agents-private`）に混ぜない
 
 - **履歴が濁る。** wiki は LLM が書く層で、1 回の ingest で 10〜15 ファイルが同時に
   書き換わる。CLAUDE.md や skills は意図的な低頻度の編集で、同居すると設定の履歴が
   自動生成コミットに埋もれる。[zettelkasten-vault-skeleton.md](./zettelkasten-vault-skeleton.md)
   で同居方式を退けたのと同じ理由
-- **レイアウト規約が壊れる。** [dev/claude.nix](../../modules/home-manager/dev/claude.nix) は
-  `<root>/CLAUDE.md` と `<root>/skills/` という `~/.claude` の鏡写しを前提にしている。
-  `wikis/` を足すと `configDirs` に無いディレクトリが repo に生まれ、規約が実態とずれる
-- **`CLAUDE.md` の役割が二重になる。** claude-private の root の CLAUDE.md はグローバル指示、
-  LLM Wiki の CLAUDE.md はドメインのスキーマで、同名だが別物
+- **レイアウト規約が壊れる。** [dev/claude.nix](../../modules/home-manager/dev/claude.nix) と
+  [dev/codex.nix](../../modules/home-manager/dev/codex.nix) は `<root>/shared/` `<root>/claude/`
+  `<root>/codex/` という配置を前提にしている（[agent-config.md](./agent-config.md)）。
+  `wikis/` を足すと、どのハーネスも読まないディレクトリが repo に生まれ、規約が実態とずれる
+- **指示ファイルの役割が二重になる。** agents-private の `shared/AGENTS.md` はグローバル指示、
+  LLM Wiki の CLAUDE.md はドメインのスキーマで、同居すると別物が並ぶ
 - **公開の自由度を失う。** wiki の内容に機密性は無い。特に Rust wiki は将来 public に
   したくなるかもしれず、private repo に入れると履歴の切り出しが要る
 

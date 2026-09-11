@@ -125,4 +125,4 @@ nixpkgs の破壊的変更に追随できるか読めないこと、musnix が�
 ## 関連
 
 - [devshells.md](./devshells.md) — devShell 側も同じ overlay を通る
-- [claude-config.md](./claude-config.md) — Claude Code のユーザー設定の管理
+- [agent-config.md](./agent-config.md) — Claude Code のユーザー設定の管理

@@ -33,7 +33,7 @@ Claude 設定・Obsidian workflow）も switch が clone する。NixOS でも �
 鍵配布はユーザーごとに決まる。clone対象があれば `id_github`、`local.profile.lanSsh = true` なら `id_lan` を配る。既存2台のpomuは両方を選んでいる。新規ユーザーには既定でどちらも配らない。
 
 `local.profile.privateRepos` は `modules/home-manager/profile.nix` が高レベル設定
-（`claudeConfigRepo` / `vaultSkeletonRepoUrl` など、URL 側の設定）から組み立てる。
+（`agentConfigRepo` / `vaultSkeletonRepoUrl` など、URL 側の設定）から組み立てる。
 URL 側が `null` の項目は落とされるので、dest 側だけ指定すればその repo は手動 clone 運用に
 留まる。
 
@@ -108,8 +108,8 @@ zettelkastenRoot    = "/home/pomu/sagyo/zettelkasten";
 zettelkastenRepoUrl = "git@github.com:khimoo/zettelkasten.git";
 
 # Claude Code のユーザー設定 (private)
-claudeConfigRoot = "/home/pomu/sagyo/claude-private";
-claudeConfigRepo = "git@github.com:khimoo/claude-private.git";
+agentConfigRoot = "/home/pomu/sagyo/agents-private";
+agentConfigRepo = "git@github.com:khimoo/agents-private.git";
 
 # Zettelkasten workflow repo (mirror-vault の宛先)
 vaultSkeletonRepo    = "/home/pomu/sagyo/zettelkasten-workflow";
@@ -136,7 +136,7 @@ pull-repos
 ```
 
 対象は自動 clone の対象 repo に flake 自身を加えたもの。この環境では
-`flake_public` / `zettelkasten` / `claude-private` / `zettelkasten-workflow` / `llm-wikis`。
+`flake_public` / `zettelkasten` / `agents-private` / `zettelkasten-workflow` / `llm-wikis`。
 `local.profile.privateRepos` から組み立てるので、ユーザーの `local.profile.privateRepos` にrepoを足せば対象も増える。
 
 各 repo で `git pull --ff-only` を走らせる。ローカルにコミットがあって分岐している repo は
@@ -192,9 +192,9 @@ LAN 鍵も同様に作り直す。
 
 ## 無効化する
 
-本人の `local.profile` の URL 側（`zettelkastenRepoUrl` / `claudeConfigRepo` / `vaultSkeletonRepoUrl`）を
+本人の `local.profile` の URL 側（`zettelkastenRepoUrl` / `agentConfigRepo` / `vaultSkeletonRepoUrl`）を
 消す（既定 `null`）とその repo の自動 clone は止まる。dest 側（`zettelkastenRoot` /
-`claudeConfigRoot` / `vaultSkeletonRepo`）だけ残せば、同期や symlink、`mirror-vault` は
+`agentConfigRoot` / `vaultSkeletonRepo`）だけ残せば、同期や symlink、`mirror-vault` は
 効くので、clone を手動運用に戻せる。
 
 全clone URL・追加の `privateRepos` / `sshKeys` を外し、`lanSsh = false` にすれば、NixOSでもstandaloneでも鍵の書き出しは無くなりage鍵は不要になる。

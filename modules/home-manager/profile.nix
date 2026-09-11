@@ -29,8 +29,8 @@ let
       repo = cfg.zettelkastenRepoUrl;
     }
     {
-      root = cfg.claudeConfigRoot;
-      repo = cfg.claudeConfigRepo;
+      root = cfg.agentConfigRoot;
+      repo = cfg.agentConfigRepo;
     }
     {
       root = cfg.vaultSkeletonRepo;
@@ -76,8 +76,8 @@ in
     ] (name: lib.mkEnableOption "${name} in this user's environment");
     zettelkastenRoot = optionalPath "User's vault checkout.";
     zettelkastenRepoUrl = optionalUrl "Vault clone URL; null means manual clone.";
-    claudeConfigRoot = optionalPath "User's Claude configuration checkout.";
-    claudeConfigRepo = optionalUrl "Claude configuration clone URL; null means manual clone.";
+    agentConfigRoot = optionalPath "User's agent (Claude Code / Codex) configuration checkout.";
+    agentConfigRepo = optionalUrl "Agent configuration clone URL; null means manual clone.";
     vaultSkeletonRepo = optionalPath "Workflow checkout used by mirror-vault.";
     vaultSkeletonRepoUrl = optionalUrl "Workflow clone URL; null means manual clone.";
     llmWikisRoot = optionalPath "User's LLM Wiki checkout.";
@@ -144,7 +144,7 @@ in
         assertion = builtins.all inHome (
           [
             cfg.zettelkastenRoot
-            cfg.claudeConfigRoot
+            cfg.agentConfigRoot
             cfg.vaultSkeletonRepo
             cfg.llmWikisRoot
           ]

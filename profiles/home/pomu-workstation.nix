@@ -17,8 +17,8 @@ in
     lanSsh = true;
     zettelkastenRoot = "${work}/zettelkasten";
     zettelkastenRepoUrl = "git@github.com:khimoo/zettelkasten.git";
-    claudeConfigRoot = "${work}/claude-private";
-    claudeConfigRepo = "git@github.com:khimoo/claude-private.git";
+    agentConfigRoot = "${work}/agents-private";
+    agentConfigRepo = "git@github.com:khimoo/agents-private.git";
     vaultSkeletonRepo = "${work}/zettelkasten-workflow";
     vaultSkeletonRepoUrl = "git@github.com:khimoo/zettelkasten-workflow.git";
     llmWikisRoot = "${work}/llm-wikis";

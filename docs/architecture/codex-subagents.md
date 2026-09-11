@@ -36,6 +36,7 @@ Codex の設定はレイヤ構造になっており、下から順に上書き�
 |----|------|-----------|
 | system | `/etc/codex/config.toml` | 管理者（= この flake） |
 | user | `~/.codex/config.toml` | Codex 自身と手動編集 |
+| profile | `~/.codex/<name>.config.toml`（`--profile <name>` 指定時のみ） | エージェント設定 repo（[agent-config.md](./agent-config.md)） |
 | project | `<repo>/.codex/config.toml` | リポジトリ（信頼済みのみ） |
 | runtime | `-c key=value` フラグ | 起動ごと |
 
@@ -51,7 +52,7 @@ system 層を NixOS の `environment.etc` で宣言する。nix store の読み�
 
 ### `~/.codex/config.toml` を設定 repo への out-of-store symlink にする
 
-[claude-config.md](./claude-config.md) と同じ方式。Codex は書き込み前に symlink 鎖を
+[agent-config.md](./agent-config.md) の `settings.json` と同じ方式。Codex は書き込み前に symlink 鎖を
 辿って実体に書く（`codex-rs/utils/path-utils/src/lib.rs` の
 `resolve_symlink_write_paths`）ので技術的には成立し、WSL や macOS でも効く。
 
@@ -73,8 +74,11 @@ Codex 側の書き込みが失敗するうえ、生成物なのでコメント�
 
 ### プロファイル層（`~/.codex/<name>.config.toml`）
 
-ローダのドキュメントには存在するが、0.153.4 では `-c profile=<name>` を渡しても
-層として読まれなかった。使えない。
+`codex --profile <name>` で `~/.codex/<name>.config.toml` がユーザー層の上に重なる
+（0.153.4 で確認。`-c profile=<name>` では読まれないので、以前「使えない」と書いていたのは
+渡し方の誤り）。ただし `--profile` は一回しか渡せず、起動ごとに指定が要る。
+サブエージェント無効化のような「常に効かせたい」設定の置き場には向かない。
+モデルごとに切り替える値の置き場としては使う（[agent-config.md](./agent-config.md)）。
 
 ## 戻す条件
 

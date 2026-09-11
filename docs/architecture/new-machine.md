@@ -13,7 +13,7 @@ steady state に持ってくる導線が silent skip の温床**になってい�
   どちらもドキュメントに書かれているが強制されない
 - age 鍵が置かれないまま `nixos-rebuild switch` が走ると activation は warning を
   出しつつ skip、**rebuild は成功して終わる**
-- 結果、`claude-private` や `zettelkasten-workflow` が clone されないまま週単位で
+- 結果、`agents-private` や `zettelkasten-workflow` が clone されないまま週単位で
   放置される（実際に発生した事象）
 
 原因は「install ワークフローと rebuild ワークフローが分離されず、bootstrap が rebuild に

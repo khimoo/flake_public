@@ -22,7 +22,7 @@
 | ディスク階層構成 | NVMe(ホット)/SATA(コールド)の 2 層・btrfs subvol のレイアウトとセットアップ | [disk-tiering.md](./disk-tiering.md) |
 | 写真の仕分け | Google Photos から引き上げた Takeout アーカイブを digiKam で選別する。原本の位置・展開手順・日付が当てにならない理由 | [photo-triage.md](./photo-triage.md) |
 | Minecraft バックアップ | インスタンス終了で restic に世代を積み Drive へ写す。フック設定・復元手順・別マシンとの往復 | [minecraft-backup.md](./minecraft-backup.md) |
-| Claude Code 設定 | グローバル CLAUDE.md・skills を private repo で git 管理し symlink で挿す運用 | [claude-config.md](./claude-config.md) |
+| エージェント設定（Claude Code / Codex） | 共通指示・skills・Claude の settings・Codex の実行ポリシーを private repo で git 管理し symlink で挿す運用 | [agent-config.md](./agent-config.md) |
 | LLM Wiki | AI に読ませる知識ベースをドメインごとに育てる運用。ingest / query / lint の回し方、新ドメインの足し方 | [llm-wikis.md](./llm-wikis.md) |
 | SSH 鍵配布と private repo 自動 clone | SSH 鍵（id_github / id_lan）を sops 暗号化し、age 鍵 1 本で新環境（NixOS/WSL/macOS）が switch 一発で鍵設置＋clone する運用。`pull-repos` での一括更新も | [private-repo-clone.md](./private-repo-clone.md) |
 | Codex のサブエージェント設定 | サブエージェントを無効化してある理由と確認・復帰手順。NixOS 以外（WSL/macOS）で同じ設定を入れる方法、`fork_turns` の値の意味 | [codex-subagents.md](./codex-subagents.md) |

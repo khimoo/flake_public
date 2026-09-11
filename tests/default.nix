@@ -19,8 +19,8 @@ let
             local.profile = {
               gitUsername = "Alice";
               gitUserEmail = "alice@example.org";
-              claudeConfigRoot = "/home/alice/claude-config";
-              claudeConfigRepo = "git@example.org:alice/config.git";
+              agentConfigRoot = "/home/alice/claude-config";
+              agentConfigRepo = "git@example.org:alice/config.git";
               lanSsh = true;
             };
           }
@@ -51,8 +51,8 @@ lib.genAttrs systems (
     activationHome = mkTestHome "x86_64-linux" [
       {
         local.profile = {
-          claudeConfigRoot = "/home/test/config";
-          claudeConfigRepo = "git@example.org:test/config.git";
+          agentConfigRoot = "/home/test/config";
+          agentConfigRepo = "git@example.org:test/config.git";
         };
       }
     ];
@@ -90,7 +90,7 @@ lib.genAttrs systems (
       assert users.bob.local.profile.gitUserEmail == null;
       assert users.bob.local.profile.privateRepos == [ ];
       assert users.bob.local.profile.sshKeys == [ ];
-      assert users.bob.local.profile.claudeConfigRoot == null;
+      assert users.bob.local.profile.agentConfigRoot == null;
       assert users.bob.local.profile.flakeRoot == "/home/bob/sagyo/flake_public";
       assert !(users.bob.home.activation ? sshKeys);
       assert !(users.bob.home.activation ? privateRepos);
@@ -100,8 +100,8 @@ lib.genAttrs systems (
       assert (builtins.any (p: (p.pname or "") == "rustowl") home.config.home.packages) == (system == "x86_64-linux");
       assert (mkTestHome system [{ local.rustowl.enable = false; }]).config.xdg.dataFile."nvim/nix/rustowl.lua".text == "return nil";
       assert !(builtins.any (p: (p.pname or "") == "vscode") home.config.home.packages);
-      assert rejects { local.profile.claudeConfigRepo = "git@example.org:test/config.git"; };
-      assert rejects { local.profile.claudeConfigRoot = "/home/another-user/config"; };
+      assert rejects { local.profile.agentConfigRepo = "git@example.org:test/config.git"; };
+      assert rejects { local.profile.agentConfigRoot = "/home/another-user/config"; };
       assert rejects { local.profile.features.zettelkastenSync = true; };
       assert rejects { local.profile.features.gnome = true; };
       assert rejects {
