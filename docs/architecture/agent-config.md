@@ -60,6 +60,23 @@ TUI で選んだモデル、NUX カウンタを書き込むアプリケーショ
 張り、`default.rules` は live のまま追跡しない。`base.rules` の `forbidden` / `prompt` を
 `default.rules` の `allow` が緩めることはない。
 
+## モデル別の差分をプロファイルに限る理由
+
+Claude Code は `--settings <file>` をコマンドライン層としてユーザー設定の上に重ね、Codex は
+`--profile <name>` で `~/.codex/<name>.config.toml` をユーザー層の上に重ねる（0.153.4 で
+`CODEX_HOME` を隔離して実測。`-c profile=<name>` では読まれない）。モデルごとに変えたい値は
+model と reasoning effort で、どちらも設定値なのでこの層に収まる。指示文はモデルで分けない。
+分ける必要がいまのところ無く、分けると同じ規約を二重に持つことになるため。
+
+起動は alias ではなく `writeShellScriptBin` で作る PATH 上の実行ファイルにする。alias と
+シェル関数は対話シェルの外（IDE や他ツールからの起動）で効かない。名前は
+`local.profile.agentProfiles` で宣言する。Codex のプロファイルは `CODEX_HOME` 直下の
+ファイルとして探されるため名前ごとに symlink が要り、その列挙から起動ファイルも機械的に
+出せる。宣言は空が既定で、名前の重複と shell のメタ文字は型と assertion で弾く。
+
+`--profile` は一回しか渡せない（`cannot be used multiple times`）ので、モデル非依存で
+private な Codex 設定を base プロファイルに置く案は成立しない。
+
 ## 検討して退けた案
 
 ### 設定 repo を flake input にする（zettelkasten 方式）
@@ -105,9 +122,19 @@ Claude Code がユーザー設定を読むカテゴリ（`skills` `agents` `comm
 
 ### Codex の共通設定を `base` プロファイルにして常に `--profile base`
 
-`--profile` は一回しか渡せない（0.153.4 で `cannot be used multiple times` を確認）ので、
-モデル別プロファイルと両立しない。全マシン共通で public に書ける設定は system 層、
-private でモデル非依存の設定が必要になったら各プロファイルに重複して書く。
+`--profile` が一回しか渡せないためモデル別プロファイルと両立しない。全マシン共通で
+public に書ける設定は system 層、private でモデル非依存の設定が必要になったら各プロファイルに
+重複して書く。
+
+### 起動を alias にする、または private repo 内のラッパースクリプトにする
+
+alias は対話シェルの外で効かない。private repo にラッパーを置くと起動の仕組みが repo 側に
+漏れ、flake_public が「レイアウト規約だけを知る」線を越える。
+
+### `CLAUDE_CONFIG_DIR` でモデルごとに `~/.claude` を分ける
+
+settings と一緒にセッション履歴と plugins の実体も分かれる。変えたい値が model と effort だけ
+なら過剰。
 
 ### skills を `<repo>/.agents/skills` に置いて Codex の project 層でも拾わせる
 
@@ -124,6 +151,9 @@ global の配線で全プロジェクトに効いているので不要。同じ 
   ツールが未知の新カテゴリを導入した場合はモジュールに 1 行足す必要がある
 - `~/.codex/rules/` に `base.rules` と `default.rules` が同居するため、どの行がどちらに
   あるかは人が見て移す。自動化はしない
+- プロファイルは既定を選ぶだけで、モデルを固定しない。`claude --resume` は transcript のモデルを
+  優先し、Codex は project 層と `-c` フラグがプロファイルより優先される
+- プロファイル名の追加・削除は switch を要する（中身の編集は要しない）
 
 ## 見直す条件
 

@@ -9,6 +9,9 @@ let
   inherit (lib) mkOption types;
   cfg = config.local.profile;
   absolutePath = types.strMatching "/.*";
+  # Launcher name suffix and file stem; keeps generated paths and executables free of shell metacharacters.
+  profileName = types.strMatching "[A-Za-z0-9_-]+";
+  unique = xs: lib.unique xs == xs;
   optionalPath =
     description:
     mkOption {
@@ -78,6 +81,24 @@ in
     zettelkastenRepoUrl = optionalUrl "Vault clone URL; null means manual clone.";
     agentConfigRoot = optionalPath "User's agent (Claude Code / Codex) configuration checkout.";
     agentConfigRepo = optionalUrl "Agent configuration clone URL; null means manual clone.";
+    agentProfiles = mkOption {
+      type = types.submodule {
+        options = {
+          claude = mkOption {
+            type = types.listOf profileName;
+            default = [ ];
+            description = "Claude Code profile names; each needs <agentConfigRoot>/claude/profiles/<name>.json and yields a `claude-<name>` launcher.";
+          };
+          codex = mkOption {
+            type = types.listOf profileName;
+            default = [ ];
+            description = "Codex profile names; each needs <agentConfigRoot>/codex/<name>.config.toml and yields a `codex-<name>` launcher.";
+          };
+        };
+      };
+      default = { };
+      description = "Per-model launcher profiles read from the agent configuration checkout.";
+    };
     vaultSkeletonRepo = optionalPath "Workflow checkout used by mirror-vault.";
     vaultSkeletonRepoUrl = optionalUrl "Workflow clone URL; null means manual clone.";
     llmWikisRoot = optionalPath "User's LLM Wiki checkout.";
@@ -139,6 +160,15 @@ in
       {
         assertion = builtins.all (p: p.repo == null || p.root != null) pairs;
         message = "local.profile: a clone URL requires its corresponding checkout path.";
+      }
+      {
+        assertion =
+          (cfg.agentProfiles.claude == [ ] && cfg.agentProfiles.codex == [ ]) || cfg.agentConfigRoot != null;
+        message = "local.profile: agentProfiles require agentConfigRoot.";
+      }
+      {
+        assertion = unique cfg.agentProfiles.claude && unique cfg.agentProfiles.codex;
+        message = "local.profile: agentProfiles names must be unique per harness.";
       }
       {
         assertion = builtins.all inHome (

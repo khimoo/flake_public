@@ -19,6 +19,13 @@ in
     zettelkastenRepoUrl = "git@github.com:khimoo/zettelkasten.git";
     agentConfigRoot = "${work}/agents-private";
     agentConfigRepo = "git@github.com:khimoo/agents-private.git";
+    agentProfiles = {
+      claude = [
+        "opus"
+        "fable"
+      ];
+      codex = [ "astra" ];
+    };
     vaultSkeletonRepo = "${work}/zettelkasten-workflow";
     vaultSkeletonRepoUrl = "git@github.com:khimoo/zettelkasten-workflow.git";
     llmWikisRoot = "${work}/llm-wikis";

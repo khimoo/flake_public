@@ -5,6 +5,7 @@
 # agentConfigRoot が null (既定) なら何もしないため、この flake だけを使う人には影響しない。
 # 期待するレイアウト:
 #   <root>/claude/CLAUDE.md, settings.json, hooks/, output-styles/, agents/, commands/   Claude Code だけが読む
+#   <root>/claude/profiles/<name>.json                                                  モデル別プロファイル (agentProfiles.claude)
 #   <root>/shared/skills/                                                              Codex と共有
 #
 # ~/.claude 自体は Claude Code が settings.json や履歴等を書き込む live なディレクトリ
@@ -19,12 +20,29 @@
 #
 # skills は Codex と同じ SKILL.md 形式なので実体を一つにし、~/.claude/skills と
 # ~/.agents/skills (codex.nix) の両方から <root>/shared/skills を指す。
-{ config, lib, ... }:
+#
+# モデル別プロファイルは `claude --settings <file>` でユーザー設定の上に重ねる。alias ではなく
+# PATH 上の実行ファイル (claude-<name>) にするのは、対話シェルの外 (IDE や他ツール) からの
+# 起動でも同じ経路を使えるようにするため。素の claude はそのまま残る。プロファイルの中身は
+# 起動時に読まれるので編集に switch は要らず、名前の追加・削除だけが switch を要する。
+# `--resume` は transcript のモデルを優先するため、再開時にモデルを変えるなら `--model` を足す。
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   root = config.local.profile.agentConfigRoot;
+  profiles = config.local.profile.agentProfiles.claude;
   claudeDirs = [ "agents" "commands" "output-styles" "hooks" ];
   mkLink = path: config.lib.file.mkOutOfStoreSymlink "${root}/${path}";
+  mkLauncher =
+    name:
+    pkgs.writeShellScriptBin "claude-${name}" ''
+      exec ${pkgs.claude-code}/bin/claude --settings ${lib.escapeShellArg "${root}/claude/profiles/${name}.json"} "$@"
+    '';
 in
 {
   config = lib.mkIf (root != null) {
@@ -37,5 +55,6 @@ in
       name = ".claude/${d}";
       value.source = mkLink "claude/${d}";
     }) claudeDirs);
+    home.packages = map mkLauncher profiles;
   };
 }

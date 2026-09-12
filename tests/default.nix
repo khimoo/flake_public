@@ -21,6 +21,10 @@ let
               gitUserEmail = "alice@example.org";
               agentConfigRoot = "/home/alice/claude-config";
               agentConfigRepo = "git@example.org:alice/config.git";
+              agentProfiles = {
+                claude = [ "opus" ];
+                codex = [ "astra" ];
+              };
               lanSsh = true;
             };
           }
@@ -42,6 +46,8 @@ let
       stateVersion = "25.11";
     };
   allAssertions = home: builtins.all (a: a.assertion) home.config.assertions;
+  # Launchers are writeShellScriptBin outputs whose name is the executable name.
+  hasLauncher = user: name: builtins.any (p: (p.name or "") == name) user.home.packages;
 in
 lib.genAttrs systems (
   system:
@@ -100,6 +106,27 @@ lib.genAttrs systems (
       assert (builtins.any (p: (p.pname or "") == "rustowl") home.config.home.packages) == (system == "x86_64-linux");
       assert (mkTestHome system [{ local.rustowl.enable = false; }]).config.xdg.dataFile."nvim/nix/rustowl.lua".text == "return nil";
       assert !(builtins.any (p: (p.pname or "") == "vscode") home.config.home.packages);
+      assert hasLauncher users.alice "claude-opus";
+      assert hasLauncher users.alice "codex-astra";
+      assert users.alice.home.file ? ".codex/astra.config.toml";
+      assert !(hasLauncher users.bob "claude-opus");
+      assert !(users.bob.home.file ? ".codex/astra.config.toml");
+      assert rejects { local.profile.agentProfiles.codex = [ "astra" ]; };
+      assert rejects {
+        local.profile = {
+          agentConfigRoot = "/home/test/config";
+          agentProfiles.claude = [
+            "opus"
+            "opus"
+          ];
+        };
+      };
+      assert rejects {
+        local.profile = {
+          agentConfigRoot = "/home/test/config";
+          agentProfiles.claude = [ "opus; rm -rf /" ];
+        };
+      };
       assert rejects { local.profile.agentConfigRepo = "git@example.org:test/config.git"; };
       assert rejects { local.profile.agentConfigRoot = "/home/another-user/config"; };
       assert rejects { local.profile.features.zettelkastenSync = true; };
