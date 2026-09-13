@@ -5,6 +5,7 @@
     ./lsp.nix
     ./neovim
     ./rustowl.nix
+    ./agent-compression.nix
     ./apps.nix
     ./claude.nix
     ./codex.nix

@@ -31,4 +31,10 @@ in
     llmWikisRoot = "${work}/llm-wikis";
     llmWikisRepoUrl = "git@github.com:khimoo/llm-wikis.git";
   };
+
+  # 日本語のセッションを既定にする。英語でコメントや文書を書くときだけ /caveman で切り替える。
+  local.agentCompression = {
+    caveman = "off";
+    genshijin = "normal";
+  };
 }
