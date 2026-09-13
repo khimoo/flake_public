@@ -4,7 +4,7 @@
 # 張るもの:
 #   ~/.codex/AGENTS.md            <- <root>/shared/AGENTS.md         全プロジェクト共通の指示。
 #                                                                   Claude Code は claude/CLAUDE.md の @import で同じファイルを読む
-#   ~/.agents/skills              <- <root>/shared/skills            Codex が読む skills。~/.claude/skills と同じ実体
+#   ~/.agents/skills              <- <root>/codex/skills             Codex 専用と共有スキルへのリンク
 #   ~/.codex/rules/base.rules     <- <root>/codex/rules/base.rules   人が書く実行ポリシー
 #   ~/.codex/<name>.config.toml   <- <root>/codex/<name>.config.toml モデル別プロファイル (agentProfiles.codex)。
 #                                                                   `codex --profile <name>` がユーザー層の上に重ねる
@@ -45,7 +45,7 @@ in
   config = lib.mkIf (root != null) {
     home.file = {
       ".codex/AGENTS.md".source = mkLink "shared/AGENTS.md";
-      ".agents/skills".source = mkLink "shared/skills";
+      ".agents/skills".source = mkLink "codex/skills";
       ".codex/rules/base.rules".source = mkLink "codex/rules/base.rules";
     } // builtins.listToAttrs (map (name: {
       name = ".codex/${name}.config.toml";

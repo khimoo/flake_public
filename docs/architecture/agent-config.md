@@ -37,7 +37,9 @@ flake_public 側が設定 repo について知るのはレイアウト規約（`
   置いて `claude -p` に答えさせた）
 - `shared/skills/`: Codex 0.153 は `~/.agents/skills/` から Claude Code と同じ `SKILL.md`
   （`name` と `description` の frontmatter）を読み、description に合えば暗黙に起動する。
-  実体を一つにし、`~/.claude/skills` と `~/.agents/skills` の両方から指す
+  Claude は `~/.claude/skills` から直接参照する。Codex は `~/.agents/skills` を
+  `codex/skills/` に向け、そこから共有スキルへ相対リンクを張る。Codex 専用スキルは
+  `codex/skills/` のみに置くため、Claude には公開されない
 - `claude/`: Claude Code だけが読むもの。`settings.json` と `hooks/` `output-styles/` `agents/` `commands/`
 - `codex/rules/base.rules`: Codex だけが読むもの
 
@@ -161,3 +163,16 @@ global の配線で全プロジェクトに効いているので不要。同じ 
 - Codex がユーザー層の `config.toml` に include や複数ファイルを導入したら、モデル非依存の
   private 設定を repo に置けるようになる
 - `--profile` を複数回渡せるようになったら `base` プロファイル案を再検討する
+
+## Claudeの設定更新に対応する直接リンク
+
+`settings.json`だけは`home.file`の世代リンクを使わず、
+activationで設定checkoutへ直接リンクする。2026-09-13にClaudeの
+プラグイン導入で、Nix store内に一時ファイルを作ろうとしてEROFSに
+なることを確認した。直接リンクなら原子更新の一時ファイルもcheckout内に置ける。
+
+Linux/Darwinともに同じ処理を使い、dry-runでは書き込まない。
+既存の通常ファイルは上書きせずエラーにする。中断でリンクが欠けても
+再activationで修復できる。Nix世代のrollbackで設定本文は戻らない。
+`agentConfigRoot`を無効化するときは、直接リンクした
+`~/.claude/settings.json`も手動で外す（他のリンクはHome Managerが管理する）。

@@ -100,6 +100,9 @@ lib.genAttrs systems (
       assert users.bob.local.profile.flakeRoot == "/home/bob/sagyo/flake_public";
       assert !(users.bob.home.activation ? sshKeys);
       assert !(users.bob.home.activation ? privateRepos);
+      assert !(users.bob.home.activation ? claudeSettings);
+      assert users.alice.home.activation ? claudeSettings;
+      assert !(users.alice.home.file ? ".claude/settings.json");
       assert !(users ? unmanaged);
       assert builtins.length users.alice.local.profile.sshKeys == 2;
       assert !(home.config.home.activation ? rustowl);
@@ -165,9 +168,11 @@ lib.genAttrs systems (
           ];
           cloneScript = snippet "privateRepos";
           keysScript = snippet "sshKeys";
+          settingsScript = snippet "claudeSettings";
           passAsFile = [
             "cloneScript"
             "keysScript"
+            "settingsScript"
           ];
         }
         ''

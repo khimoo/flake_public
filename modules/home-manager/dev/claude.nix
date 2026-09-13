@@ -18,8 +18,8 @@
 # 「設定なし」に見えるだけで壊れない。repo 側でそのディレクトリを作った時点で live に
 # なるため、Claude Code が全く新しいカテゴリを導入した時以外は switch が要らない。
 #
-# skills は Codex と同じ SKILL.md 形式なので実体を一つにし、~/.claude/skills と
-# ~/.agents/skills (codex.nix) の両方から <root>/shared/skills を指す。
+# skills は Codex と同じ SKILL.md 形式。~/.claude/skills は shared/skills を指し、
+# Codex は codex/skills の個別リンクから <root>/shared/skills の共有スキルを参照する。
 #
 # モデル別プロファイルは `claude --settings <file>` でユーザー設定の上に重ねる。alias ではなく
 # PATH 上の実行ファイル (claude-<name>) にするのは、対話シェルの外 (IDE や他ツール) からの
@@ -48,13 +48,29 @@ in
   config = lib.mkIf (root != null) {
     home.file = {
       ".claude/CLAUDE.md".source = mkLink "claude/CLAUDE.md";
-      # /config での変更が repo の差分として出るので、マシン固有の値は入れないこと。
-      ".claude/settings.json".source = mkLink "claude/settings.json";
       ".claude/skills".source = mkLink "shared/skills";
     } // builtins.listToAttrs (map (d: {
       name = ".claude/${d}";
       value.source = mkLink "claude/${d}";
     }) claudeDirs);
+    # Claude's atomic settings writer follows one symlink before creating its
+    # temporary file. A home.file link lands in the read-only generation store.
+    # Linux/Darwin: link directly to the mutable checkout after HM's link cleanup.
+    # Dry runs do not write; rerunning repairs an interrupted/missing link.
+    home.activation.claudeSettings = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
+      settings_source=${lib.escapeShellArg "${root}/claude/settings.json"}
+      settings_link=${lib.escapeShellArg "${config.home.homeDirectory}/.claude/settings.json"}
+      if [ -n "''${DRY_RUN_CMD:-}" ]; then
+        echo "Would link $settings_link directly to $settings_source"
+      else
+        if [ -e "$settings_link" ] && [ ! -L "$settings_link" ]; then
+          echo "Refusing to replace unmanaged Claude settings: $settings_link" >&2
+          exit 1
+        fi
+        mkdir -p "$(dirname "$settings_link")"
+        ln -sfn "$settings_source" "$settings_link"
+      fi
+    '';
     home.packages = map mkLauncher profiles;
   };
 }

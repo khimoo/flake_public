@@ -45,12 +45,39 @@ if os.environ.get('FAIL_TOOL'): raise SystemExit(18)
                               capture_output=True, text=True)
 
     def test_dry_run_has_no_side_effects(self):
-        for name in ["clone", "keys"]:
+        for name in ["clone", "keys", "settings"]:
             with self.subTest(name=name):
                 result = self.run_activation(name, DRY_RUN_CMD="echo")
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertFalse(self.home.exists())
                 self.assertFalse(self.log.exists())
+
+    def test_settings_direct_link_allows_atomic_writer_and_reactivation(self):
+        source = self.home / "config/claude/settings.json"
+        source.parent.mkdir(parents=True)
+        source.write_text('{}')
+        link = self.home / ".claude/settings.json"
+        link.parent.mkdir(parents=True)
+        # An obsolete generation link (including a dangling one) is repairable.
+        link.symlink_to(self.root / "old-generation/settings.json")
+        for _ in range(2):
+            result = self.run_activation("settings")
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(link.readlink(), source)
+        # Claude follows one link, writes next to its target, then renames.
+        target = link.readlink()
+        temporary = target.with_suffix('.json.tmp')
+        temporary.write_text('{"updated": true}')
+        temporary.replace(target)
+        self.assertEqual(source.read_text(), '{"updated": true}')
+        self.assertTrue(link.is_symlink())
+
+    def test_settings_preserves_unmanaged_file(self):
+        link = self.home / ".claude/settings.json"
+        link.parent.mkdir(parents=True)
+        link.write_text('keep')
+        self.assertNotEqual(self.run_activation("settings").returncode, 0)
+        self.assertEqual(link.read_text(), 'keep')
 
     def test_clone_failure_can_retry_and_existing_checkout_is_untouched(self):
         result = self.run_activation("clone", FAIL_TOOL="1")

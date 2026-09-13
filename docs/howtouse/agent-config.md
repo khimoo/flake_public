@@ -14,7 +14,7 @@ symlink して管理する。
 <agentConfigRoot>/
 ├── shared/
 │   ├── AGENTS.md          # 全プロジェクト共通の指示 (~/.codex/AGENTS.md になる。Claude は claude/CLAUDE.md の @import で読む)
-│   └── skills/            # skill 群 (~/.claude/skills と ~/.agents/skills の両方になる)
+│   └── skills/            # 共有 skill の実体 (~/.claude/skills になる)
 │       └── <skill-name>/SKILL.md
 ├── claude/
 │   ├── CLAUDE.md          # ~/.claude/CLAUDE.md になる。先頭で `@../shared/AGENTS.md` を import する
@@ -26,6 +26,7 @@ symlink して管理する。
 │   ├── agents/            # subagent 定義（任意）
 │   └── commands/          # カスタム slash command（任意）
 └── codex/
+    ├── skills/            # ~/.agents/skills になる。専用 skill と ../../shared/skills/<name> へのリンク
     ├── <name>.config.toml # モデル別プロファイル。~/.codex/<name>.config.toml になり `codex-<name>` が `--profile` で重ねる
     └── rules/
         └── base.rules     # ~/.codex/rules/base.rules になる。人が書く実行ポリシー
@@ -116,3 +117,16 @@ local.profile.agentProfiles = {
 
 Claude の[設定スコープ](https://code.claude.com/docs/en/settings)と
 Codex の[設定レイヤ](https://learn.chatgpt.com/docs/config-file/config-advanced)も参照。
+
+## Claudeの設定更新に対応する直接リンク
+
+`settings.json`だけは`home.file`の世代リンクを使わず、
+activationで設定checkoutへ直接リンクする。2026-09-13にClaudeの
+プラグイン導入で、Nix store内に一時ファイルを作ろうとしてEROFSに
+なることを確認した。直接リンクなら原子更新の一時ファイルもcheckout内に置ける。
+
+Linux/Darwinともに同じ処理を使い、dry-runでは書き込まない。
+既存の通常ファイルは上書きせずエラーにする。中断でリンクが欠けても
+再activationで修復できる。Nix世代のrollbackで設定本文は戻らない。
+`agentConfigRoot`を無効化するときは、直接リンクした
+`~/.claude/settings.json`も手動で外す（他のリンクはHome Managerが管理する）。
