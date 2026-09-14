@@ -75,6 +75,14 @@ avahi のキャッシュが温まっていないだけ。数秒待ってから�
 
 `sudo` 経由の SSH で `SSH_AUTH_SOCK` が引き継がれていない可能性。ラップトップで `sudo env | grep SSH_AUTH_SOCK` を確認。`users.nix` の `Defaults env_keep += "SSH_AUTH_SOCK"` が効いていれば値が表示される。
 
+表示されない場合の即席回避：
+
+```sh
+sudo SSH_AUTH_SOCK=$SSH_AUTH_SOCK nixos-rebuild switch \
+  --flake .#nixos-spin713 \
+  --build-host pomu@nixos-desktop.local
+```
+
 ## 新しいビルダー／クライアントを追加するとき
 
 ### クライアントを増やす（新しいホストからデスクトップでビルド）
