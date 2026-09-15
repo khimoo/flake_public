@@ -11,6 +11,7 @@ in
   imports = [
     ./wezterm.nix
     ./kitty.nix
+    ./inkscape.nix
   ];
 
   config = lib.mkMerge [

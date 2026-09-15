@@ -52,7 +52,8 @@ nix run .#dpt-rp1-py -- --addr <IP> register
 quaderno-pull
 ```
 
-取り込み先は `~/sagyo/zettelkasten/Resources/quaderno`（= `archiveDir`）。ここは手動で
+取り込み先は `/mnt/backup/quaderno`（= `archiveDir`）。SATA 側の `@backup` subvol で、
+ディレクトリは `data-disk.nix` が用意する。ここは手動で
 Google Drive へ上げる運用にしている（自動同期は作っていない）。デバイス上のパスは
 `archiveDir` の下にそのまま再現する。`remoteRoot`（既定 `Document`）配下の文書なら、
 `<archiveDir>/Document/...` の 1 段を挟んだ階層になる。

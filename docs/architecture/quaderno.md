@@ -148,32 +148,33 @@ Quaderno はスリープすると Wi-Fi ごと消える。定期実行のほと�
 `local.quaderno.enable` で切る。Wi-Fi 越しなので、どのホストからでも有効にできる。
 
 ただしこの環境では nixos-desktop だけで有効にする（[`hosts/nixos-desktop/home-manager-pomu.nix`](../../hosts/nixos-desktop/home-manager-pomu.nix)）。
-`profiles/home/pomu-workstation.nix` に置くと nixos-spin713 にも入るが、取り込み先は
-vault の中にあり、vault は obsidian-git が 2 台の間で同期している。状態ファイルは
+`profiles/home/pomu-workstation.nix` に置くと nixos-spin713 にも入る。状態ファイルは
 `$XDG_STATE_HOME` にあってマシンごとに分かれるので、2 台で有効にすると両方が全件を
-落とし、同じ PDF が両側から vault に入る。取り込みは 1 台に限る。
+落とす。取り込みは 1 台に限る。
 
 このモジュールは `local.quaderno` と `config.home.homeDirectory` 以外の、この
-リポジトリに固有の値を読まない。`archiveDir` に既定値を置かず、
-`profiles/home/` から注入する。
+リポジトリに固有の値を読まない。`archiveDir` に既定値を置かず、ホストの側から注入する。
 
 将来 [zettelkasten-workflow](https://github.com/khimoo/zettelkasten-workflow) へ
 移すときは、このファイルを `nix/` へ動かし、名前空間を `services.zettelkasten.quaderno`
 へ変え、`packages/dpt-rp1-py/` を持っていけば済む。
 
-### 取り込み先が vault の Git 作業ツリー内にあること
+### 取り込み先を SATA の @backup subvol に置く
 
 この環境では `archiveDir`（[`hosts/nixos-desktop/home-manager-pomu.nix`](../../hosts/nixos-desktop/home-manager-pomu.nix)）を
-`~/sagyo/zettelkasten/Resources/quaderno` に置いている。ここは `khimoo/zettelkasten` を
-clone した Git の作業ツリーの中である。
+`/mnt/backup/quaderno` に置いている。ディレクトリの作成と所有者付けは
+[`hosts/nixos-desktop/data-disk.nix`](../../hosts/nixos-desktop/data-disk.nix) の
+`systemd.tmpfiles` が行う。`minecraft-backup` と同じ役割分担で、置き場所と書き込み権限は
+ホストが用意し、モジュールは受け取るだけにする。
 
-そのため最初の取り込みで、数十 MiB になりうる PDF が未追跡ファイルとしてこの
-作業ツリーに現れる。これを vault の `.gitignore` に足して追跡から外すか、そのまま
-commit して vault の履歴に含めるかは利用者が決める必要があり、**この判断はまだ済んで
-いない。**
+NVMe ではなく SATA を選ぶのは、取り込んだ PDF が増え続ける一方で読むのは時々だから。
+最初の 62 件で 428 MiB になった。NVMe 側の `/` は残量が厳しい。詳しくは
+[disk-tiering.md](./disk-tiering.md) を見る。
 
-`archiveDir` に既定値を置かないのは置き場所を利用者が決める設計であるためで、この
-場所自体は変えない。
+`~/sagyo/zettelkasten` の中には置かない。あそこは vault（Obsidian の保管庫）の clone で、
+obsidian-git が 2 台の間で同期している。数百 MiB の PDF を持ち込むと、追跡するかどうかの
+判断を vault 側に強いることになり、同期の対象も膨らむ。取り込んだ PDF は vault の
+ノートではないので、最初から分けておく。
 
 ## 退けた案
 

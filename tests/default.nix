@@ -175,6 +175,17 @@ lib.genAttrs systems (
           archiveDir = "/home/another-user/quaderno";
         };
       };
+      # home の外は許す。別ディスクへ置く構成を弾かないこと。
+      assert
+        system != "x86_64-linux"
+        || allAssertions (mkTestHome system [
+          {
+            local.quaderno = {
+              enable = true;
+              archiveDir = "/mnt/backup/quaderno";
+            };
+          }
+        ]);
       assert rejects { local.quaderno.enable = true; };
       assert
         system == "x86_64-linux"

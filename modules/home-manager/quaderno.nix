@@ -71,6 +71,8 @@ in
       description = ''
         取り込み先。デバイス上の相対パスをこの下に再現する。
         置き場所は環境ごとに違うので既定値は置かず、呼び出し側で指定する。
+        ディレクトリの用意と書き込み権限も呼び出し側の責任。存在しない間は
+        タイマーが何もせず skip する。
         ここが手動で Google Drive へ上げる単位になる。
       '';
     };
@@ -107,9 +109,13 @@ in
         '';
       }
       {
-        assertion = lib.hasPrefix "${config.home.homeDirectory}/" cfg.archiveDir;
+        # home の外（/mnt の別ディスクなど）に置くのは許す。禁じたいのは他のユーザーの
+        # home を指すことだけ。
+        assertion =
+          !(lib.hasPrefix "/home/" cfg.archiveDir)
+          || lib.hasPrefix "${config.home.homeDirectory}/" cfg.archiveDir;
         message = ''
-          local.quaderno.archiveDir はこのユーザーの home 配下でなければならない: ${cfg.archiveDir}
+          local.quaderno.archiveDir が他のユーザーの home を指している: ${cfg.archiveDir}
         '';
       }
     ];
@@ -124,12 +130,12 @@ in
     systemd.user.services.quaderno-pull = {
       Unit = {
         Description = "Quaderno から未取得の文書を取り込む";
+        # 取り込み先がまだ無い間は失敗にせず skip する。用意するのは呼び出し側の責任で、
+        # このホストでは data-disk.nix の systemd.tmpfiles が作る。
+        ConditionPathIsDirectory = cfg.archiveDir;
       };
       Service = {
         Type = "oneshot";
-        # 取り込み先はまだ存在しないことがある（初回起動時など）ので、実行のたびに
-        # 作っておく。ExecStartPre は PATH を当てにできないので絶対パスで呼ぶ。
-        ExecStartPre = "${lib.getExe' pkgs.coreutils "mkdir"} -p ${cfg.archiveDir}";
         ExecStart = lib.getExe quaderno-pull;
       };
     };

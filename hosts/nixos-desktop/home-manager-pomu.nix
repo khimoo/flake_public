@@ -17,13 +17,15 @@ in {
     remote = "gdrive:minecraft-backups";
   };
 
-  # 手書き PDF の取り込み。デバイスがスリープしている間は何もせず終わる。
-  # このホストだけで有効にする。取り込み先は vault の中にあり、vault は obsidian-git が
-  # spin713 との間で同期している。2 台が同じフォルダへ別々に取り込むと、状態ファイルが
-  # マシンごとに分かれているせいで両方が全件を落とし、同じ PDF が両側から入る。
+  # 手書き PDF の取り込み。デバイスが見つからない間は何もせず終わる。
+  # minecraft と同じく NVMe(/) ではなく SATA の @backup subvol に置く。取り込んだ PDF は
+  # 増え続けるが、読むのは時々なので SATA で足りる。ディレクトリの作成と所有者付けは
+  # data-disk.nix が行う。
+  # このホストだけで有効にする。取り込みを 2 台で走らせると、状態ファイルがマシンごとに
+  # 分かれているせいで両方が全件を落とす。
   local.quaderno = {
     enable = true;
-    archiveDir = "${config.home.homeDirectory}/sagyo/zettelkasten/Resources/quaderno";
+    archiveDir = "/mnt/backup/quaderno";
   };
 
   home.packages = with pkgs; [

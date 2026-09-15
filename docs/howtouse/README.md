@@ -20,6 +20,7 @@
 | Zettelkasten の Drive 同期 | 添付と papis ライブラリの Google Drive 同期。新マシンのセットアップ（rclone 認証・初回同期）と日常運用 | [zettelkasten-attachments-sync.md](./zettelkasten-attachments-sync.md) |
 | vault 骨格の配布・ミラー | 分類フォルダ・運用ドキュメント・`.obsidian` を public repo へ写す（mirror）手順、何が公開され何が落ちるか、seed が自分のマシンでは動かない理由 | [zettelkasten-vault-skeleton.md](./zettelkasten-vault-skeleton.md) |
 | ディスク階層構成 | NVMe(ホット)/SATA(コールド)の 2 層・btrfs subvol のレイアウトとセットアップ | [disk-tiering.md](./disk-tiering.md) |
+| Inkscape | 新規文書の既定の色（ページとデスク）をリポジトリで持つ。色の変え方、GUI から保存したときの差分の扱い、既存ファイルに効かないこと | [inkscape.md](./inkscape.md) |
 | 写真の仕分け | Google Photos から引き上げた Takeout アーカイブを digiKam で選別する。原本の位置・展開手順・日付が当てにならない理由 | [photo-triage.md](./photo-triage.md) |
 | Minecraft バックアップ | インスタンス終了で restic に世代を積み Drive へ写す。フック設定・復元手順・別マシンとの往復 | [minecraft-backup.md](./minecraft-backup.md) |
 | エージェント設定（Claude Code / Codex） | 共通指示・skills・Claude の settings・Codex の実行ポリシーを private repo で git 管理し symlink で挿す運用 | [agent-config.md](./agent-config.md) |

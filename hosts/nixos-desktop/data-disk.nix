@@ -71,6 +71,8 @@ in
   # マウント前の root ファイルシステム側に作られてマウントに隠される事故は起きない。
   systemd.tmpfiles.rules = [
     "d /mnt/backup/minecraft 0755 ${settings.primaryUser} users -"
+    # Quaderno から取り込んだ PDF。増え続けるうえ、読むのは時々なので SATA に置く。
+    "d /mnt/backup/quaderno 0755 ${settings.primaryUser} users -"
   ];
 
   # btrfs をカーネル/システムで扱えるように（root は ext4 なので既定では無効）+ メンテ用 CLI。
