@@ -54,6 +54,7 @@
         nixpkgs.lib.genAttrs [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" "x86_64-darwin" ]
           (system: {
             happy = nixpkgs.legacyPackages.${system}.callPackage ./packages/happy { };
+            dpt-rp1-py = nixpkgs.legacyPackages.${system}.callPackage ./packages/dpt-rp1-py { };
           } // nixpkgs.lib.optionalAttrs (system != "x86_64-darwin") {
             graphify = inputs.nixpkgs-unstable.legacyPackages.${system}.graphify;
           } // nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
