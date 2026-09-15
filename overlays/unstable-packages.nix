@@ -11,6 +11,8 @@
 # 上流リリースへの追従が数週間遅れ、その遅れ自体が動作不能を招くため。flake.nix の
 # inputs.codex-cli-nix を参照。
 #
+# graphify は 25.11 に存在しないため、lock 済み unstable の package を使う。
+# 独自の Python package や実行時 pip install は持たない。
 # 現在の対象:
 #   tinymist — Typst の LSP 兼プレビュー。25.11 の 0.14.2 は preview の
 #              ビューポート計算を誤り、partial rendering 時に表示外のページが
@@ -55,5 +57,6 @@ in
     neovim-unwrapped
     tree-sitter
     claude-code
+    graphify
     ;
 }

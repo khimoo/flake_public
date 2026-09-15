@@ -30,3 +30,5 @@
 ## 関連
 
 - 設計判断・実装方針は [docs/architecture/](../architecture/README.md) を参照
+
+- [Graphify](graphify.md) — コード・文書の任意の探索環境。

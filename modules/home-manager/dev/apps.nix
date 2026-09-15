@@ -28,6 +28,7 @@ in
     claude-code
     claude-history-wrapped
     codex
+    graphify
     (pkgs.callPackage ../../../packages/happy { })
     google-clasp
   ] ++ lib.optionals config.local.profile.features.gui [

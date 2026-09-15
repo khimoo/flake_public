@@ -54,6 +54,8 @@
         nixpkgs.lib.genAttrs [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" "x86_64-darwin" ]
           (system: {
             happy = nixpkgs.legacyPackages.${system}.callPackage ./packages/happy { };
+          } // nixpkgs.lib.optionalAttrs (system != "x86_64-darwin") {
+            graphify = inputs.nixpkgs-unstable.legacyPackages.${system}.graphify;
           } // nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
             rustowl = inputs.rustowl.packages.${system}.rustowl;
           });

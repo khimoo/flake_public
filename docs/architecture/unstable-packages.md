@@ -126,3 +126,7 @@ nixpkgs の破壊的変更に追随できるか読めないこと、musnix が�
 
 - [devshells.md](./devshells.md) — devShell 側も同じ overlay を通る
 - [agent-config.md](./agent-config.md) — Claude Code のユーザー設定の管理
+
+## Graphify
+
+安定チャンネルに存在しないため、既存 unstable の package を使う。[採用理由](graphify.md)を参照。

@@ -155,6 +155,13 @@ lib.genAttrs systems (
     module-contracts = pkgs.runCommand "module-contracts" { } ''
       echo ${lib.escapeShellArg contracts} > "$out"
     '';
+    graphify-smoke = pkgs.runCommand "graphify-smoke" {
+      nativeBuildInputs = [ pkgs.python3 inputs.nixpkgs-unstable.legacyPackages.${system}.graphify ];
+    } ''
+      export HOME="$TMPDIR"
+      python ${./graphify-smoke.py}
+      touch "$out"
+    '';
     docs = pkgs.runCommand "documentation-links" { nativeBuildInputs = [ pkgs.python3 ]; } ''
       python ${../scripts/check-docs.py} ${../.}
       touch "$out"
