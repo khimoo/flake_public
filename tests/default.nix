@@ -147,6 +147,43 @@ lib.genAttrs systems (
         ];
       };
       assert system == "x86_64-linux" || rejects { local.rustowl.enable = true; };
+      assert !(home.config.systemd.user.timers ? quaderno-pull);
+      assert
+        system != "x86_64-linux"
+        || ((mkTestHome system [
+          {
+            local.quaderno = {
+              enable = true;
+              archiveDir = "/home/test/quaderno";
+            };
+          }
+        ]).config.systemd.user.timers ? quaderno-pull);
+      assert
+        system != "x86_64-linux"
+        || (mkTestHome system [
+          {
+            local.quaderno = {
+              enable = true;
+              archiveDir = "/home/test/quaderno";
+            };
+          }
+        ]).config.local.quaderno.serial
+        == null;
+      assert rejects {
+        local.quaderno = {
+          enable = true;
+          archiveDir = "/home/another-user/quaderno";
+        };
+      };
+      assert rejects { local.quaderno.enable = true; };
+      assert
+        system == "x86_64-linux"
+        || rejects {
+          local.quaderno = {
+            enable = true;
+            archiveDir = "/home/test/quaderno";
+          };
+        };
       assert !badType.success;
       assert !unknownFeature.success;
       "module contracts passed";
@@ -186,5 +223,11 @@ lib.genAttrs systems (
           python ${./activation.py}
           touch "$out"
         '';
+    quaderno-plan = pkgs.runCommand "quaderno-plan" { nativeBuildInputs = [ pkgs.python3 ]; } ''
+      cp ${../modules/home-manager/quaderno_plan.py} quaderno_plan.py
+      cp ${./quaderno-plan.py} test_quaderno_plan.py
+      python test_quaderno_plan.py
+      touch "$out"
+    '';
   }
 )

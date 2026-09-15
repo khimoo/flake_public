@@ -17,6 +17,15 @@ in {
     remote = "gdrive:minecraft-backups";
   };
 
+  # 手書き PDF の取り込み。デバイスがスリープしている間は何もせず終わる。
+  # このホストだけで有効にする。取り込み先は vault の中にあり、vault は obsidian-git が
+  # spin713 との間で同期している。2 台が同じフォルダへ別々に取り込むと、状態ファイルが
+  # マシンごとに分かれているせいで両方が全件を落とし、同じ PDF が両側から入る。
+  local.quaderno = {
+    enable = true;
+    archiveDir = "${config.home.homeDirectory}/sagyo/zettelkasten/Resources/quaderno";
+  };
+
   home.packages = with pkgs; [
     prismlauncher
     wine64

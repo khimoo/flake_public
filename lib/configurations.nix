@@ -15,6 +15,7 @@ let
     ../modules/home-manager/rclone.nix
     ../modules/home-manager/zettelkasten.nix
     ../modules/home-manager/yazi.nix
+    ../modules/home-manager/quaderno.nix
     ../modules/home-manager/dev
     ../modules/home-manager/gui
     ../modules/home-manager/gui/gnome.nix
