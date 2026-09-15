@@ -26,6 +26,7 @@
 | LLM Wiki | AI に読ませる知識ベースをドメインごとに育てる運用。ingest / query / lint の回し方、新ドメインの足し方 | [llm-wikis.md](./llm-wikis.md) |
 | SSH 鍵配布と private repo 自動 clone | SSH 鍵（id_github / id_lan）を sops 暗号化し、age 鍵 1 本で新環境（NixOS/WSL/macOS）が switch 一発で鍵設置＋clone する運用。`pull-repos` での一括更新も | [private-repo-clone.md](./private-repo-clone.md) |
 | Codex のサブエージェント設定 | サブエージェントを無効化してある理由と確認・復帰手順。NixOS 以外（WSL/macOS）で同じ設定を入れる方法、`fork_turns` の値の意味 | [codex-subagents.md](./codex-subagents.md) |
+| Quaderno の取り込み | 同じ LAN にいるときに手書き PDF をアーカイブへ落とす。初回のペアリング、取り込み先、デバイスで消した文書が手元に残ること | [quaderno.md](./quaderno.md) |
 
 ## 関連
 
