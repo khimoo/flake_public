@@ -1,13 +1,14 @@
-# 安定チャンネル(nixos-25.11)の版が古すぎて実害が出るパッケージだけを
-# nixos-unstable から差し替える overlay。
+# 安定（stable）チャンネル（nixos-25.11）のバージョンが古すぎることで、実際の運用に支障が出る
+# パッケージのみを nixos-unstable のものに差し替えるための overlay です。
 #
-# 採用基準: 安定チャンネルの版のままだと機能が動作不能になり、かつ unstable 側で
-# 解決済みであること。単に新しい方が嬉しいだけのものは入れない。
+# 採用基準：安定チャンネルのバージョンのままだと機能が正常に動作せず、かつ unstable 側でその問題が
+# 解決されていること。単に新しいバージョンの方が好ましいという理由だけでは追加しません。
 #
-# 対象ごとの根拠と外す条件は docs/architecture/unstable-packages.md にある。
+# 各パッケージの採用根拠や差し替えを除外する条件については、
+# docs/architecture/unstable-packages.md に記載されています。
 #
-# 利用側 (modules/home-manager/dev/apps.nix 等) は `pkgs.tinymist` と書くだけでよく、
-# どのチャンネル由来かを知る必要がない。
+# 利用側（modules/home-manager/dev/apps.nix など）は `pkgs.tinymist` のように指定するだけでよく、
+# そのパッケージがどのチャンネルから取得されたかを意識する必要はありません。
 inputs: final: prev:
 let
   # legacyPackages は config を持たない素の nixpkgs なので、そのまま参照すると
