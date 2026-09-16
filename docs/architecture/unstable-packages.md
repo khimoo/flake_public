@@ -93,6 +93,8 @@ markdown を開くと injection クエリの `set-lang-from-info-string!` が単
 - tree-sitter は基準を満たす。neovim 0.12 の下では 0.25.10 でパーサを一つも導入できず、
   treesitter ベースのハイライトが全言語で失われる。ただし独立した判断ではなく neovim の
   差し替えに従属する項目なので、neovim を 25.11 に戻すならこれも同時に外す。
+- codex はこの overlay から外し、専用 flake `codex-cli-nix` (`flake.nix` の inputs) から取っている。
+  unstable でも上流リリースへの追従が数週間遅れ、その遅れ自体が動作不能を招くため。
 - claude-code は codex と同じ経路に当たるが、codex のように専用 flake へは出していない。unstable と
   上流の差が数日で、必要な版 (2.1.257) に対して余裕があるからで、codex で問題になった数週間の遅れが
   ここでは観測されていない。unstable が必要な版に届かない状態が続くなら、そのとき専用 flake を
