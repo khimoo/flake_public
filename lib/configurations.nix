@@ -10,7 +10,7 @@ let
     ../modules/home-manager/profile.nix
     ../modules/home-manager/core.nix
     ../modules/home-manager/git.nix
-    ../modules/home-manager/ssh-keys.nix
+    ../modules/home-manager/secrets.nix
     ../modules/home-manager/private-repos.nix
     ../modules/home-manager/rclone.nix
     ../modules/home-manager/zettelkasten.nix

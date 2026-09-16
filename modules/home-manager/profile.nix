@@ -140,6 +140,29 @@ in
       default = [ ];
       description = "SSH keys to restore; GitHub and LAN requirements are added automatically.";
     };
+    secrets = mkOption {
+      type = types.listOf (
+        types.submodule {
+          options = {
+            secret = mkOption {
+              type = types.strMatching "[A-Za-z0-9_-]+";
+              description = "Sops secret key.";
+            };
+            path = mkOption {
+              type = absolutePath;
+              description = "Destination path below the user's home.";
+            };
+            mode = mkOption {
+              type = types.strMatching "[0-7]{3,4}";
+              default = "600";
+              description = "Permission bits for the written file.";
+            };
+          };
+        }
+      );
+      default = [ ];
+      description = "Secrets to restore from secrets.yaml into arbitrary paths.";
+    };
   };
 
   config = {
@@ -213,6 +236,15 @@ in
         assertion =
           builtins.length (lib.unique (map (k: k.name) cfg.sshKeys)) == builtins.length cfg.sshKeys;
         message = "local.profile: duplicate SSH key filename.";
+      }
+      {
+        assertion =
+          builtins.length (lib.unique (map (s: s.path) cfg.secrets)) == builtins.length cfg.secrets;
+        message = "local.profile: duplicate secret destination.";
+      }
+      {
+        assertion = builtins.all (s: inHome s.path) cfg.secrets;
+        message = "local.profile: secret destinations must live below the user's home.";
       }
     ];
   };

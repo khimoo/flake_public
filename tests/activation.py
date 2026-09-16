@@ -45,7 +45,7 @@ if os.environ.get('FAIL_TOOL'): raise SystemExit(18)
                               capture_output=True, text=True)
 
     def test_dry_run_has_no_side_effects(self):
-        for name in ["clone", "keys", "settings"]:
+        for name in ["clone", "secrets", "settings"]:
             with self.subTest(name=name):
                 result = self.run_activation(name, DRY_RUN_CMD="echo")
                 self.assertEqual(result.returncode, 0, result.stderr)
@@ -103,15 +103,15 @@ if os.environ.get('FAIL_TOOL'): raise SystemExit(18)
         age = self.home / ".config/sops/age/keys.txt"
         age.parent.mkdir(parents=True)
         age.write_text("fake-age-key")
-        self.assertNotEqual(self.run_activation("keys", FAIL_TOOL="1").returncode, 0)
+        self.assertNotEqual(self.run_activation("secrets", FAIL_TOOL="1").returncode, 0)
         self.assertFalse((self.home / ".ssh/id_github").exists())
         self.assertEqual(list((self.home / ".ssh").glob("*.tmp.*")), [])
-        result = self.run_activation("keys")
+        result = self.run_activation("secrets")
         self.assertEqual(result.returncode, 0, result.stderr)
         key = self.home / ".ssh/id_github"
         self.assertEqual(key.stat().st_mode & 0o777, 0o600)
         calls = self.log.read_text()
-        self.assertEqual(self.run_activation("keys").returncode, 0)
+        self.assertEqual(self.run_activation("secrets").returncode, 0)
         self.assertEqual(self.log.read_text(), calls)
 
 

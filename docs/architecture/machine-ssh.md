@@ -7,7 +7,7 @@ flake 内の全 NixOS ホストが相互に SSH でき、`ssh <短縮名>`（例
 設定ファイル:
 - `hosts/machines.nix` — ホスト名一覧と LAN 共通鍵の公開鍵（単一の情報源）
 - `modules/nixos/ssh.nix` — そこから authorized_keys とクライアント設定を生成
-- `modules/home-manager/ssh-keys.nix` — 秘密鍵側を `secrets/secrets.yaml` から書き出す
+- `modules/home-manager/secrets.nix` — 秘密鍵側を `secrets/secrets.yaml` から書き出す
   （[private-repo-clone.md](./private-repo-clone.md) 参照）
 
 使い方は [../howtouse/machine-ssh.md](../howtouse/machine-ssh.md) を参照。
@@ -20,7 +20,7 @@ flake 内の全 NixOS ホストが相互に SSH でき、`ssh <短縮名>`（例
 - **クライアント側**: `hosts` の各要素ぶんの `Host` ブロック（短縮エイリアス＋`IdentityFile`
   ＋`accept-new`）を生成 → `ssh desktop` 等で接続可
 
-秘密鍵の実体はここには無い。`ssh-keys.nix` が switch のたびに `secrets/secrets.yaml`
+秘密鍵の実体はここには無い。`secrets.nix` が switch のたびに `secrets/secrets.yaml`
 から `~/.ssh/id_lan` を書き出す。つまり**新マシンで手作業が要るのは age 鍵 1 本の設置だけ**で、
 SSH 鍵の生成も登録も無い。
 

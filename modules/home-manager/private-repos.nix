@@ -2,9 +2,9 @@
 # 同じ経路で動くよう systemd ではなく home.activation を使う(nixos-rebuild switch でも
 # home-manager switch でも走り、Darwin でも動く)。
 #
-# 認証に使う ~/.ssh/id_github は ssh-keys.nix が secrets.yaml から書き出す。このモジュールは
+# 認証に使う ~/.ssh/id_github は secrets.nix が secrets.yaml から書き出す。このモジュールは
 # 復号を知らず、鍵が既に置かれている前提で clone だけを担う。
-# privateRepos が非空なら profile.nix は必ずGitHub鍵も配り、ssh-keys.nix は書き出せなければ
+# privateRepos が非空なら profile.nix は必ずGitHub鍵も配り、secrets.nix は書き出せなければ
 # activation を止める。よって鍵の存在確認はここでは行わない(到達しない分岐を作らない)。
 #
 # 対象 repo は config.local.profile.privateRepos = [{ url, dest }] で受ける。空リスト(既定)なら activation

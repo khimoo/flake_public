@@ -98,13 +98,35 @@ lib.genAttrs systems (
       assert users.bob.local.profile.sshKeys == [ ];
       assert users.bob.local.profile.agentConfigRoot == null;
       assert users.bob.local.profile.flakeRoot == "/home/bob/sagyo/flake_public";
-      assert !(users.bob.home.activation ? sshKeys);
       assert !(users.bob.home.activation ? privateRepos);
       assert !(users.bob.home.activation ? claudeSettings);
       assert users.alice.home.activation ? claudeSettings;
       assert !(users.alice.home.file ? ".claude/settings.json");
       assert !(users ? unmanaged);
       assert builtins.length users.alice.local.profile.sshKeys == 2;
+      assert users.bob.local.profile.secrets == [ ];
+      assert !(users.bob.home.activation ? secrets);
+      assert users.alice.home.activation ? secrets;
+      assert rejects {
+        local.profile.secrets = [
+          {
+            secret = "a";
+            path = "/home/test/.config/x";
+          }
+          {
+            secret = "b";
+            path = "/home/test/.config/x";
+          }
+        ];
+      };
+      assert rejects {
+        local.profile.secrets = [
+          {
+            secret = "a";
+            path = "/home/another-user/x";
+          }
+        ];
+      };
       assert !(home.config.home.activation ? rustowl);
       assert (builtins.any (p: (p.pname or "") == "rustowl") home.config.home.packages) == (system == "x86_64-linux");
       assert (mkTestHome system [{ local.rustowl.enable = false; }]).config.xdg.dataFile."nvim/nix/rustowl.lua".text == "return nil";
@@ -222,11 +244,11 @@ lib.genAttrs systems (
             pkgs.bash
           ];
           cloneScript = snippet "privateRepos";
-          keysScript = snippet "sshKeys";
+          secretsScript = snippet "secrets";
           settingsScript = snippet "claudeSettings";
           passAsFile = [
             "cloneScript"
-            "keysScript"
+            "secretsScript"
             "settingsScript"
           ];
         }

@@ -1,7 +1,7 @@
 # private repo の宣言的 clone（設計判断）
 
 使い方は [docs/howtouse/private-repo-clone.md](../howtouse/private-repo-clone.md) を参照。
-実装: [modules/home-manager/ssh-keys.nix](../../modules/home-manager/ssh-keys.nix)（鍵の書き出し）と
+実装: [modules/home-manager/secrets.nix](../../modules/home-manager/secrets.nix)（鍵の書き出し）と
 [modules/home-manager/private-repos.nix](../../modules/home-manager/private-repos.nix)（clone）。
 
 > **今後の方向性**: age 鍵の bootstrap 経路（現在「SSH 送信 or Bitwarden から取得」の
@@ -34,12 +34,12 @@ Darwin でも動く。これで全環境を 1 実装に統一した。
 1. **復号の種 = 専用 age 鍵 1 本**。`~/.config/sops/age/keys.txt` に out-of-band で置く
    （既存マシンから SSH 送信、または Bitwarden から取得）
 2. **暗号文 = SSH 秘密鍵**を sops で暗号化し `secrets/secrets.yaml` にコミット。
-   `ssh-keys.nix` の activation が age 鍵で復号し、まだ無いファイルだけ書き出す
+   `secrets.nix` の activation が age 鍵で復号し、まだ無いファイルだけ書き出す
 3. `private-repos.nix` が書き出された `~/.ssh/id_github` で clone する
 
 ## 復号と clone は別モジュールに分ける
 
-鍵の書き出し（`ssh-keys.nix`）と clone（`private-repos.nix`）を分離した。
+鍵の書き出し（`secrets.nix`）と clone（`private-repos.nix`）を分離した。
 clone は sops も age 鍵も知らず、`~/.ssh/id_github` が既に置かれている前提で動く。
 順序は `home.activation` の DAG（`entryAfter [ "sshKeys" ]`）が保証する。
 

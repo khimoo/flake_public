@@ -1,7 +1,7 @@
 # マシン間 SSH の単一の情報源。
 #
 # LAN 内の machine-to-machine 認証は **全マシン共通の 1 本の鍵** (~/.ssh/id_lan) で行う。
-# 実体は secrets/secrets.yaml の lan_ssh_key で、modules/home-manager/ssh-keys.nix が
+# 実体は secrets/secrets.yaml の lan_ssh_key で、modules/home-manager/secrets.nix が
 # switch のたびに書き出す。したがってマシンを増やしても鍵の登録作業は無い——
 # age 鍵さえ置けば新マシンは既存全ホストと相互に SSH できる。
 #

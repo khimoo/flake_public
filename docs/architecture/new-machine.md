@@ -149,7 +149,7 @@ Bitwarden 自体もアクセス不能なら？ → 物理バックアップ（US
 
 | 部品 | 変更 |
 |------|------|
-| `modules/home-manager/ssh-keys.nix` | activation を **strict** 化: age 鍵不在なら error で停止（**実装済み**。残りはエラー文言に `sagyo-install` 経路を足すだけ） |
+| `modules/home-manager/secrets.nix` | activation を **strict** 化: age 鍵不在なら error で停止（**実装済み**。残りはエラー文言に `sagyo-install` 経路を足すだけ） |
 | `docs/howtouse/private-repo-clone.md` | 「SSH 送信 or Bitwarden から取得」の 2 経路併記を削除、`new-machine.md` にリダイレクト |
 
 ### 温存
@@ -232,11 +232,11 @@ Phase 4 は Phase 3 完了直後にやるのが理想（頭の中に文脈があ
 
 ### Phase 4: activation の strict 化 — **実装済み**
 
-`modules/home-manager/ssh-keys.nix` が age 鍵不在で `exit 1` する。誘導先は
+`modules/home-manager/secrets.nix` が age 鍵不在で `exit 1` する。誘導先は
 「既存マシンから SSH で送る」「Bitwarden から取り出す」の 2 経路
 （`sagyo-install` は未実装なのでまだ挙げていない。Phase 1 完了時に追記する）。
 
-Phase 1〜3 を待たずに前倒しした。SSH 鍵配布を `ssh-keys.nix` に切り出した際、
+Phase 1〜3 を待たずに前倒しした。SSH 鍵配布を `secrets.nix` に切り出した際、
 実際に silent skip を踏んで「switch は成功したのに鍵が無い」状態を作ってしまい、
 原因が journal に埋もれて分かりにくかったため。
 
