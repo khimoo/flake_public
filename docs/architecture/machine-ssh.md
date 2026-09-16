@@ -65,14 +65,14 @@ N×N の直書きになり重複する。単一の情報源に集約し、`ssh.n
 （[remote-build.md](./remote-build.md) 参照）、①③と短縮エイリアスを `machines.nix` から
 生成する。`nixos-` プレフィックスを剥がして `desktop` / `spin713` を短縮名にする。
 
-### IdentitiesOnly は付けない
+### 鍵ファイルは実行ユーザーの home から読む
 
-生成する `Host` ブロックは `IdentityFile` を指定するが `IdentitiesOnly yes` は付けない。
-`/etc/ssh/ssh_config` は root にも効くので、root の認証手段を狭めないためである。
+生成する `Host` ブロックの `IdentityFile` は `~/.ssh/id_lan`。一般ユーザーもrootも自分のhomeを参照し、他ユーザーの絶対パスを共有しない。
+鍵ファイルを持たないユーザーでは、この指定は読み飛ばされる。
 
-`IdentityFile` は `~/.ssh/id_lan`。一般ユーザーもrootも自分のhomeを参照し、他ユーザーの絶対パスを共有しない。
-`sudo nixos-rebuild --build-host` は `users.nix` で `env_keep` した `SSH_AUTH_SOCK` 越しにユーザーのagentを使う。root側に鍵ファイルがなくてもagent認証できるよう `IdentitiesOnly yes` は付けない。
-利用者は [remote buildの手順](../howtouse/remote-build.md) に従って鍵をagentへ追加する。
+rootは `id_lan` を持たないので、`sudo nixos-rebuild --build-host` のようにrootとしてSSHすると `Permission denied (publickey)` で失敗する。
+リモートビルドは `sudo` を付けずに `--sudo` で実行し、SSHを一般ユーザーのまま動かす（判断の根拠は [remote-build.md](./remote-build.md)、手順は [remote buildの手順](../howtouse/remote-build.md)）。
+この手順はagentに依存しないので、`IdentitiesOnly yes` の有無に影響されない（`ssh -o IdentitiesOnly=yes pomu@nixos-desktop.local` で認証が通ることを 2026-09-16 に nixos-spin713 から確認）。
 
 ### ホスト鍵は accept-new（TOFU）
 
@@ -81,8 +81,8 @@ N×N の直書きになり重複する。単一の情報源に集約し、`ssh.n
 `programs.ssh.knownHosts` に host key を直書きする手もあるが、再インストールのたびに
 更新が要るため不採用。
 
-`/etc/ssh/ssh_config`（`programs.ssh.extraConfig`）は root にも効くため、
-`sudo nixos-rebuild --build-host` の root known_hosts 追加もこの生成設定が兼ねる。
+`nixos-rebuild --build-host` の SSH が実行ユーザーの known_hosts に host key を追加する動作も、
+この生成設定（`/etc/ssh/ssh_config`）が兼ねる。
 
 ## セキュリティモデル
 

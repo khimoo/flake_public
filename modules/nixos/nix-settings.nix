@@ -9,9 +9,9 @@
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
   # wheel グループのユーザを nix-daemon の trusted-users にする。
-  # リモートビルダとして使われる側で必要（`nixos-rebuild --build-host` で
-  # 接続してくるユーザが trusted でないと、署名なしの派生物の構築や
-  # ストアパス転送が制限される）
+  # `nixos-rebuild --build-host --sudo` はビルダ側でも呼び出し側でも一般ユーザとして
+  # ストアに書き込む。trusted でないと、ビルダ側は署名なしの派生物の構築を、
+  # 呼び出し側は転送されてきた成果物の取り込みを拒否する。
   nix.settings.trusted-users = [ "@wheel" ];
 
   # ガベージコレクション設定

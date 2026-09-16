@@ -5,7 +5,7 @@
 
 ## 何を解決するか
 
-現在 `sudo nixos-rebuild switch --flake .#nixos-spin713 --build-host pomu@nixos-desktop.local`
+現在 `nixos-rebuild switch --flake .#nixos-spin713 --build-host pomu@nixos-desktop.local --sudo`
 は **自宅 LAN 内でしか通らない**。`nixos-desktop.local` は mDNS 名で、別ネットワーク（大学・
 オフィス・カフェ等）にいると `Could not resolve hostname` で SSH 接続に到達しない。
 
@@ -73,12 +73,13 @@ tailnet を優先したい場合は tailnet 名を書く選択肢もある。両
 Host nixos-desktop-ts
   HostName nixos-desktop        # MagicDNS 短縮名
   User pomu
+  IdentityFile ~/.ssh/id_lan    # ssh.nix の生成ブロックはこの別名に一致しない
 ```
 
-その上で:
+その上で（`--sudo` なので SSH はユーザとして動き、この `~/.ssh/config` が読まれる）:
 
 ```sh
-sudo nixos-rebuild switch --flake .#nixos-spin713 --build-host pomu@nixos-desktop-ts
+nixos-rebuild switch --flake .#nixos-spin713 --build-host pomu@nixos-desktop-ts --sudo
 ```
 
 ssh.nix の生成を触ると mDNS 依存を捨てることになるので、まずは併用（既存 `.local` は

@@ -84,4 +84,4 @@ switch 中に `id_lan` / `id_github` が書き出され、その時点で新マ�
 ## ユーザープロファイル
 
 既存2台のpomuは `profiles/home/pomu-workstation.nix` で `local.profile.lanSsh = true` を選択しています。新規ユーザーには既定でLAN秘密鍵は配布しません。共有鍵を持つユーザーは接続先のprimaryUserとして認証できるため、共有対象を明示的に選んでください。
-IdentityFileはログインユーザー自身の `~/.ssh/id_lan`（GitHubは `~/.ssh/id_github`）を参照します。rootでremote buildする場合はユーザーのSSH agentを使います。
+IdentityFileはログインユーザー自身の `~/.ssh/id_lan`（GitHubは `~/.ssh/id_github`）を参照します。rootは `id_lan` を持たないので、remote buildは `sudo` を付けずに `--sudo` で実行します（[remote-build.md](./remote-build.md)）。

@@ -30,12 +30,10 @@ in {
 
   # 各マシンへ短縮名で SSH できるクライアント設定を machines.nix から生成する。
   # 初回接続のホスト鍵は accept-new で自動信頼（未登録の新規のみ受理し、変更は拒否）。
-  # /etc/ssh/ssh_config は root にも効くため、リモートビルドの known_hosts 追加も担う。
   #
-  # IdentitiesOnly は付けない。root には ~/.ssh/id_lan が無く、
-  # `sudo nixos-rebuild --build-host` は env_keep した SSH_AUTH_SOCK 越しの agent で認証する。
-  # IdentitiesOnly yes を付けると agent の鍵が無視されリモートビルドが壊れる
-  # （存在しない IdentityFile は単に読み飛ばされるので、指定するだけなら無害）。
+  # ~/.ssh/id_lan は ssh を実行したユーザーの home で解決される。root はこの鍵を持たないので、
+  # `sudo nixos-rebuild --build-host` は認証に失敗する。`sudo` を付けずに `--sudo` で実行する
+  # （docs/architecture/remote-build.md）。
   programs.ssh.extraConfig = lib.concatStrings (map (host: ''
     Host ${shortName host} ${host} ${host}.local
       HostName ${host}.local

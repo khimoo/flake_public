@@ -25,7 +25,7 @@ NixOS でビルドを別ホストにオフロードする方法は大別して 2
 
 ### `--build-host` を選んだ理由
 
-- **root の SSH 鍵管理が不要**：`buildMachines` は nix-daemon（root 権限）が SSH 接続するため、`/root/.ssh/` に鍵を配置し、`known_hosts` も管理する必要がある。`--build-host` は呼び出し時の `SSH_AUTH_SOCK` 経由でユーザの鍵を使えるため、鍵管理がユーザ側で完結する。
+- **root の SSH 鍵管理が不要**：`buildMachines` は nix-daemon（root 権限）が SSH 接続するため、`/root/.ssh/` に鍵を配置し、`known_hosts` も管理する必要がある。`--build-host` の SSH は `nixos-rebuild` を実行したユーザとして接続するので、ユーザの `~/.ssh/id_lan` と `known_hosts` がそのまま使われ、鍵管理がユーザ側で完結する（`sudo` を付けずに実行する前提。後述）。
 - **明示性**：オフロードしたいときだけ明示的にフラグを付ける運用なので、デスクトップが落ちているときの挙動がはっきりする（コマンドが失敗するだけ）。`buildMachines` は透過的なフォールバック挙動を理解する必要がある。
 - **個人利用の頻度**：ラップトップで rebuild するのは出張中や別室作業時など断続的。常設ビルダーを宣言するメリットが薄い。
 
@@ -75,6 +75,8 @@ nix.settings.trusted-users = [ "@wheel" ];
 
 `--build-host` でビルドする際、ラップトップが生成した derivation をデスクトップに送って構築させるため、デスクトップ側で trusted でないと「`cannot add path '/nix/store/...' because it lacks a signature`」エラーになる。
 
+呼び出し側のラップトップにも同じ設定が要る。`--sudo` で実行すると、デスクトップから戻る成果物を `pomu` のまま手元のストアに取り込むので、ラップトップ側で trusted でなければ同じ署名エラーになる。`nix-settings.nix` は全ホストが読み込むので、両側とも `@wheel` が trusted になる。
+
 ### `@wheel` を使う理由
 
 - ホスト固有のユーザ名（`pomu`）をハードコードしたくない
@@ -95,28 +97,35 @@ nix.settings.trusted-users = [ "@wheel" ];
 
 - 誰の鍵を受け入れるか（`authorizedKeys`）と、`.local` への `accept-new` 接続設定は、
   `ssh.nix` が `machines.nix` から全ホストぶん生成する
-- リモートビルドが必要とする「root の `known_hosts` に `nixos-desktop.local` を
-  accept-new で入れる」動作も、この生成される `/etc/ssh/ssh_config`（root にも効く）が兼ねる
+- リモートビルドの SSH が `nixos-desktop.local` の host key を実行ユーザの `known_hosts` に
+  accept-new で入れる動作も、この生成される `/etc/ssh/ssh_config` が兼ねる
 
 設計判断（LAN 共通鍵、集約、accept-new の TOFU トレードオフ、CA 不採用など）は
 [machine-ssh.md](./machine-ssh.md) を参照。
 
-> デスクトップ `hosts/nixos-desktop/default.nix` に残る RSA 鍵は、ed25519 集約前からの
-> ラップトップ用リモートビルド鍵。ed25519 でのリモートビルドを確認後に削除してよい暫定物。
+## `sudo` を付けず `--sudo` で実行する
 
-## `sudo` 経由でも SSH 鍵が使われる仕組み
+`nixos-rebuild` 全体を `sudo` で実行せず、一般ユーザのまま `--sudo` を付ける。
 
-`modules/nixos/users.nix`：
-
-```nix
-security.sudo.extraConfig = ''
-  Defaults env_keep += "SSH_AUTH_SOCK"
-'';
+```sh
+nixos-rebuild switch --flake .#nixos-spin713 --build-host pomu@nixos-desktop.local --sudo
 ```
 
-`sudo nixos-rebuild ...` で root として実行されるが、ssh が `SSH_AUTH_SOCK` を経由してユーザの SSH エージェントを参照するため、ユーザの秘密鍵（パスフレーズ入力済み）でリモートに認証できる。これが無いと root のホームに別途鍵を置く必要があり、`--build-host` の利点が失われる。
+nixos-rebuild-ng 25.11 のソース（`nixos_rebuild/process.py` の `run_wrapper` と `nixos_rebuild/nix.py`）を読むと、`--sudo` がローカルで `sudo` を付けるのはアクティベートのコマンド（`nix-env -p <profile> --set` と `switch-to-configuration` の呼び出し）だけである。flake の評価、ビルドホストへの SSH、`nix-copy-closure` による転送は、呼び出したユーザのまま動く。
 
-この設定は元々 `nixos-rebuild` を sudo で実行するワークフロー全般のために入れたものだが、リモートビルドにも必須の前提条件になっている。
+### 不採用：`sudo` と `SSH_AUTH_SOCK` の引き継ぎ
+
+`sudo nixos-rebuild --build-host ...` では SSH が root として動く。`/etc/ssh/ssh_config` の `IdentityFile ~/.ssh/id_lan` は root の home で解決され、root は `id_lan` を持たない。`users.nix` の `Defaults env_keep += "SSH_AUTH_SOCK"` でユーザの agent を渡しても、agent に `id_lan` が入っていなければ認証できない。`id_lan` は home-manager がファイルとして書き出すだけで、agent には登録しない。この方式を使うには、ログインのたびに `ssh-add ~/.ssh/id_lan` が要る。
+
+観測（2026-09-16、nixos-spin713）：agent には `id_lan` 以外の RSA 鍵が 1 本だけ入っており、`sudo SSH_AUTH_SOCK=$SSH_AUTH_SOCK nixos-rebuild switch --flake .#nixos-spin713 --build-host pomu@nixos-desktop.local` は `pomu@nixos-desktop.local: Permission denied (publickey).` で失敗した。同じ接続を `pomu` から `ssh -v` すると `Server accepts key: /home/pomu/.ssh/id_lan` で認証が通った。
+
+`env_keep` の設定は `nixos-rebuild` を sudo で実行するワークフロー全般のために入れたもので、リモートビルドの前提ではない。
+
+### トレードオフと再検討の条件
+
+`users.nix` で NOPASSWD にしているのは `nixos-rebuild` 本体だけなので、`--sudo` が `sudo` 付きで呼ぶアクティベートのコマンドではパスワードを聞かれる。プロンプトはビルドと転送が終わった後に出る。
+
+このパスワード入力が負担になったら見直す。候補は二つある。一つは `id_lan` を agent に載せて `sudo` と `SSH_AUTH_SOCK` の方式に戻す案で、root から gcr の agent ソケットを使えるかは確認していない。もう一つはアクティベートのコマンドを NOPASSWD にする案で、パスワードなしで root として動かせるコマンドが増える。
 
 ## モジュール責務の分離
 
@@ -124,7 +133,7 @@ security.sudo.extraConfig = ''
 |-----------|------|
 | `modules/nixos/ssh.nix` | openssh の有効化、mDNS publish、`machines.nix` から authorized_keys とクライアント設定を生成 |
 | `modules/nixos/nix-settings.nix` | trusted-users（nix-daemon の信頼境界） |
-| `modules/nixos/users.nix` | sudo の `SSH_AUTH_SOCK` 引き継ぎ |
+| `modules/nixos/users.nix` | `nixos-rebuild` 本体の NOPASSWD（`--sudo` のアクティベートは対象外） |
 | `hosts/machines.nix` | ホスト一覧と LAN 共通鍵の公開鍵（マシン間 SSH の単一の情報源） |
 
 「共通インフラ」と「マシン登録簿」を分離し、新ホストを追加するときに触る場所を
