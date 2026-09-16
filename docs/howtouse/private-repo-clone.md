@@ -143,6 +143,31 @@ pull-repos
 git が拒否するので、そこだけ手で rebase / merge する。1 つ失敗しても残りは処理し、
 最後に非ゼロで終わる。まだ clone されていない dest は報告のみで、clone は switch に任せる。
 
+## SSH 鍵以外の秘密を配る
+
+同じ `secrets/secrets.yaml` から、任意のパスへ秘密を書き出せる。
+
+```bash
+SOPS_AGE_KEY_FILE=~/.config/sops/age/keys.txt sops secrets/secrets.yaml
+```
+
+エディタで項目を足したら、配布先を宣言する。
+
+```nix
+local.profile.secrets = [
+  {
+    secret = "gemini_api_key";
+    path = "${config.home.homeDirectory}/.config/gemini/api-key";
+  }
+];
+```
+
+`mode` は省略すると `600`。書き出し先が home の外だと評価時に弾かれる。
+既存ファイルは上書きしないので、差し替えるときは先に消してから switch する。
+
+SSH 鍵は `local.profile.sshKeys = [{ secret, name }]` のままでよい。
+`~/.ssh` へ `600` で置く場合は、そちらのほうが短く書ける。
+
 ## 新しい環境を足す
 
 1. 専用 age 鍵を新環境の `~/.config/sops/age/keys.txt` に置く

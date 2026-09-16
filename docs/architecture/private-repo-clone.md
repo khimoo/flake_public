@@ -125,6 +125,22 @@ switch できないと回復もできないという循環は起きない——a
 URL 側と、`agentConfigRoot` / `vaultSkeletonRepo` などの dest 側）から自動で組み立てる。
 新しいprivate repoはユーザーの `local.profile.privateRepos` に `{ url; dest; }` を追加する。clone機構やfactoryの変更は不要。
 
+## SSH 鍵以外の秘密へ広げる
+
+復号の実装は `modules/home-manager/secrets.nix` に 1 つだけ置き、入口を 2 つ持つ。
+`sshKeys` は `~/.ssh` へ `600` で置く用途に限った短い入口、`secrets` は書き出し先と
+モードを明示する一般の入口。`secrets.nix` の中で前者を後者へ変換する。
+
+入口を分けたのは、SSH 鍵には置き場所とモードの選択肢が実質無く、毎回 `path` と `mode` を
+書かせると呼び出し側が冗長になるため。復号の手順（一時ファイル経由、失敗時に空ファイルを
+残さない、既存ファイルを上書きしない）を二重に持たないことのほうが、入口の数を 1 つに
+絞ることより優先度が高い。
+
+最初の利用者は Gemini の API キー（`~/.config/gemini/api-key`）。無料枠のキーで課金
+プロジェクトを紐づけていないので、漏れたときの被害は無料枠の消費に留まる。SSH 秘密鍵と
+同じ暗号文に同居させているが、秘密の格は同じではない。格の高い秘密を足すときは受信者の
+分離を検討する。
+
 ## vault フォルダの所有者は clone
 
 Obsidian vault（ノート本文の private repo）もこのリストに載せている。vault を用意する経路は
