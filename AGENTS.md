@@ -19,7 +19,7 @@ Read [README](README.md) and the relevant [architecture](docs/architecture/READM
 - Personal Git identity, mutable checkout paths, secrets and optional workflows belong in that user's home module or `profiles/home/`. Never pass one user's profile to all Home Manager users.
 - Use typed options, `mkEnableOption`, `mkIf`, `mkDefault` and assertions for settings that users may change. Feature toggles are normal Nix composition; do not replace them merely to follow generic coupling rankings.
 - Keep imports static. Conditions depending on `config` belong in `mkIf`; avoid `optionalAttrs config...` when it determines module structure.
-- Keep package provenance and compatibility patches in `overlays/` or `packages/`; document evidence and removal conditions.
+- Keep package provenance and compatibility patches in `overlays/` or `packages/`, and document their removal conditions.
 - Activation code must specify supported platforms, dry-run behavior, idempotence and recovery after interruption. Failure must not leave a partial result that is mistaken for completion.
 - Live symlinks for Neovim, terminals and Claude settings intentionally bypass generation rollback. Changes to their source files may affect running user workflows immediately.
 
@@ -41,6 +41,7 @@ The repository owns its documentation rules; do not depend on a private agent me
 - Neovim-specific keys/plugins: `modules/home-manager/dev/neovim/config/docs/`.
 - Update the affected usage and architecture documents with an implementation change, plus index entries when files are added or removed. Add reciprocal links when a pair exists.
 - Configuration is the source of truth for behavior. Detailed feature docs describe it; indexes link to details rather than copying full tables.
+- `docs/architecture/` holds the evidence, measurements and alternatives behind a decision; the commit message holds how the change came about. A source comment states the reason a reader needs at that line and links to the document for the rest.
 - Use local file links for implementation references. Keep commands and examples aligned with the current typed interface.
 - Mark proposals as unimplemented. Record evidence, uncertainty, and conditions for revisiting a decision.
 
