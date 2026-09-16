@@ -41,7 +41,8 @@ Codex の設定はレイヤ構造になっており、下から順に上書き�
 | runtime | `-c key=value` フラグ | 起動ごと |
 
 system 層を NixOS の `environment.etc` で宣言する。nix store の読み取り専用ファイルに
-なるため Codex が書き換えることはなく、判断の根拠と戻し方をコメントとして安全に置ける。
+なるため Codex が書き換えることはない。判断の根拠と戻し方はこのドキュメントが持ち、
+[modules/nixos/codex.nix](../../modules/nixos/codex.nix) はここへの参照だけを置く。
 
 `agents.enabled = false` と `features.multi_agent_v2 = false` の両方を書く必要がある。
 `multi_agent_version_override`（`codex-rs/core/src/config/mod.rs`）は
