@@ -33,6 +33,14 @@
       url = "github:sadjow/codex-cli-nix";
       inputs.nixpkgs.follows = "nixpkgs-unstable";
     };
+    # Claude Code。新しいモデルはクライアントのリリースと同時に選べるようになるので、
+    # nixos-unstable チャンネルが進むまでの数日はそのモデルを指定できない。この flake は
+    # 上流リリースのネイティブバイナリを hash 固定で取り、時間単位で追従する。
+    # 経緯と除外条件は docs/architecture/unstable-packages.md に置いた。
+    claude-code-nix = {
+      url = "github:sadjow/claude-code-nix";
+      inputs.nixpkgs.follows = "nixpkgs-unstable";
+    };
     # Zettelkasten(Obsidian vault)同期の mechanism(添付/papis の Drive 同期 + secret 暗号文の
     # 実行時復号)。flake_public は modules/home-manager/zettelkasten.nix で clone 位置だけ注入する。
     # mechanism は public repo に切り出したので github:(https 取得)で引く。ノート本文は別の

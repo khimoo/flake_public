@@ -12,7 +12,7 @@
 inputs: final: prev:
 let
   # legacyPackages は config を持たない素の nixpkgs なので、そのまま参照すると
-  # 差し替えた側だけ allowUnfree が効かず claude-code の評価が止まる。
+  # この flake の nixpkgs.config (allowUnfree など) が差し替えた側に効かない。
   # 安定チャンネル側の config を引き継いで読み直す。
   unstable = import inputs.nixpkgs-unstable {
     inherit (prev.stdenv.hostPlatform) system;
@@ -24,7 +24,6 @@ in
     tinymist
     neovim-unwrapped
     tree-sitter
-    claude-code
     graphify
     ;
 }

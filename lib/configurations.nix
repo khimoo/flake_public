@@ -5,7 +5,8 @@ let
   overlays =
     import ../overlays
     ++ [ (import ../overlays/unstable-packages.nix inputs) ]
-    ++ [ inputs.codex-cli-nix.overlays.default ];
+    ++ [ inputs.codex-cli-nix.overlays.default ]
+    ++ [ inputs.claude-code-nix.overlays.default ];
   homeModules = [
     ../modules/home-manager/profile.nix
     ../modules/home-manager/core.nix
