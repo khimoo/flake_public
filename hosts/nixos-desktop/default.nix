@@ -24,6 +24,10 @@
   networking.firewall.interfaces.${config.services.tailscale.interfaceName}.allowedTCPPortRanges = [
     { from = 3389; to = 3399; }
   ];
+  # GNOME の設定は、システム側の gnome-remote-desktop.service が enabled か disabled のときだけ
+  # リモートデスクトップの項目を出す。nixpkgs のモジュールはユニットを置くだけなので状態が linked になり、項目が隠れる。
+  # ユニットの [Install] と同じ graphical.target に繋いで enabled にする。nixpkgs のモジュールが同じことをするようになったら消す。
+  systemd.services.gnome-remote-desktop.wantedBy = [ "graphical.target" ];
 
   virtualisation.spiceUSBRedirection.enable = true;
   virtualisation.libvirtd = {

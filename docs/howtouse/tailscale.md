@@ -70,9 +70,10 @@ LAN 内では従来どおり `ssh desktop`（mDNS）を使える。tailnet に�
    表示された URL を、どの端末のブラウザでもよいので開き、Tailscale アカウントでログインする。
 3. 参加を確かめる:
    ```sh
-   tailscale status
-   getent hosts nixos-desktop    # 100. で始まるアドレスが返る
+   tailscale status                 # 自分と相手の両方が出る
+   getent ahostsv4 nixos-desktop    # 相手のホスト名を引く。100. で始まるアドレスが返る
    ```
+   自分のホスト名はローカルのアドレスで答えが返るので、確認には相手のホスト名を使う。
 4. 常時稼働させるホスト（デスクトップ）は、admin console の Machines ページで行末のメニューから Disable Key Expiry を選ぶ。期限は既定で 180 日で、切れると再認証するまで tailnet から外れる
 
 外出先からデスクトップに入る経路は tailnet しかないので、デスクトップの `tailscale up` は出かける前に LAN 内で済ませる。
@@ -104,6 +105,16 @@ admin console の DNS ページで MagicDNS が無効になっている場合も
 
 同じ名前の古い端末が tailnet に残っていて、新しい端末に連番が付いた。
 admin console の Machines ページで古い端末を削除し、新しい端末の名前を `nixos-desktop` に直す。接続名 `desktop-ts` はホスト名 `nixos-desktop` を引くので、名前がずれると繋がらない。
+
+### 設定 → システムに「リモートデスクトップ」が出ない
+
+システム側の `gnome-remote-desktop.service` が `enabled` になっていない。GNOME の設定は、それ以外の状態だと項目を隠す。
+
+```sh
+systemctl show gnome-remote-desktop.service -p UnitFileState   # enabled になっているか
+```
+
+`linked` なら、デスクトップが `hosts/nixos-desktop/default.nix` の `wantedBy` を含む世代に switch されていない。switch してから GNOME の設定を開き直す（理由は [../architecture/tailscale.md](../architecture/tailscale.md#gui-の確認は-rdp-でデスクトップの画面ごと使う)）。
 
 ### RDP で繋がらない
 
