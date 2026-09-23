@@ -62,7 +62,7 @@ N×N の直書きになり重複する。単一の情報源に集約し、`ssh.n
 ### クライアント設定も同じ情報源から生成
 
 `ssh <短縮名>` で繋がるには ①認証 ②名前解決 ③ホスト鍵受理 が要る。②は avahi の mDNS
-（[remote-build.md](./remote-build.md) 参照）、①③と短縮エイリアスを `machines.nix` から
+（[remote-build.md](./remote-build.md) 参照。LAN の外では tailnet の MagicDNS を引く `<短縮名>-ts`、[tailscale.md](./tailscale.md) 参照）、①③と短縮エイリアスを `machines.nix` から
 生成する。`nixos-` プレフィックスを剥がして `desktop` / `spin713` を短縮名にする。
 
 ### 鍵ファイルは実行ユーザーの home から読む

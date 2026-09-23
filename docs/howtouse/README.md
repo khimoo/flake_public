@@ -10,6 +10,7 @@
 | ユーザー管理 | ユーザーの追加・権限設定・home-manager 連携 | [users.md](./users.md) |
 | マシン間 SSH | flake 内のホストへ `ssh <短縮名>` で接続・マシン追加手順 | [machine-ssh.md](./machine-ssh.md) |
 | リモートビルド | 別ホストでビルドだけ走らせて成果物を持ってくる運用 | [remote-build.md](./remote-build.md) |
+| Tailscale | LAN の外からデスクトップに `ssh desktop-ts` で入る。GUI の確認は RDP で画面ごと使う。出かける前の確認、ホストを tailnet に参加させる手順 | [tailscale.md](./tailscale.md) |
 | CLI ツール | シェル環境・ターミナル・ファイルマネージャ等 | [cli-tools/README.md](./cli-tools/README.md) |
 | Neovim | プラグイン・キーバインド・ワークフロー | [modules/home-manager/dev/neovim/config/docs/README.md](../../modules/home-manager/dev/neovim/config/docs/README.md) |
 | wezterm | ターミナルのキーバインド・ペイン・ワークスペース | [cli-tools/wezterm.md](./cli-tools/wezterm.md) |

@@ -3,14 +3,23 @@
 #       および flake 内の全マシンへ短縮名で SSH できるクライアント設定の生成。
 # 例: どのホストからでも `ssh desktop` / `ssh spin713` で接続でき、ラップトップからの
 #     `nixos-rebuild --build-host pomu@nixos-desktop.local` の known_hosts 追加も兼ねる。
+#     LAN の外からは tailnet 経由の `ssh desktop-ts` を使う（tailscale.nix）。
 #
 # マシンの追加/廃棄は hosts/machines.nix の 1 エントリ増減だけで完結する。
-{ lib, settings, ... }:
+{ config, lib, settings, ... }:
 let
   # LAN 共通鍵の公開鍵とホスト一覧（単一の情報源）
   machines = import ../../hosts/machines.nix;
   # `nixos-` プレフィックスを剥がした短縮エイリアス（nixos-desktop → desktop）
   shortName = host: lib.removePrefix "nixos-" host;
+
+  hostBlock = patterns: hostName: ''
+    Host ${patterns}
+      HostName ${hostName}
+      User ${settings.primaryUser}
+      IdentityFile ~/.ssh/id_lan
+      StrictHostKeyChecking accept-new
+  '';
 
 in {
   services.openssh = {
@@ -34,13 +43,14 @@ in {
   # ~/.ssh/id_lan は ssh を実行したユーザーの home で解決される。root はこの鍵を持たないので、
   # `sudo nixos-rebuild --build-host` は認証に失敗する。`sudo` を付けずに `--sudo` で実行する
   # （docs/architecture/remote-build.md）。
-  programs.ssh.extraConfig = lib.concatStrings (map (host: ''
-    Host ${shortName host} ${host} ${host}.local
-      HostName ${host}.local
-      User ${settings.primaryUser}
-      IdentityFile ~/.ssh/id_lan
-      StrictHostKeyChecking accept-new
-  '') machines.hosts) + ''
+  #
+  # `-ts` の接続名は MagicDNS の短縮名で引く。`.local` の接続名は mDNS だけに依存させ、
+  # tailnet に入っていないときも LAN 内で繋がるように残す。
+  programs.ssh.extraConfig = lib.concatStrings (map (host:
+    hostBlock "${shortName host} ${host} ${host}.local" "${host}.local"
+    + lib.optionalString config.services.tailscale.enable
+      (hostBlock "${shortName host}-ts" host)
+  ) machines.hosts) + ''
     Host github.com
       User git
       IdentityFile ~/.ssh/id_github

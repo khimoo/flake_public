@@ -7,6 +7,24 @@
   ];
   boot.kernelParams = [ "btusb.enable_autosuspend=n" ];
 
+  # 外出先から tailnet 経由で SSH とリモートビルドに使うので、無操作でサスペンドさせない。
+  # サスペンドすると外から起こす手段がない（docs/architecture/tailscale.md）。
+  # autoSuspend はログイン画面だけに適用される。再起動後にログイン画面のまま放置されても、これで起きたままになる。
+  # ログイン中のセッションは gsettings の既定値で止める。ユーザーが GNOME の設定で変えた値はこれより優先される。
+  services.displayManager.gdm.autoSuspend = false;
+  services.desktopManager.gnome.extraGSettingsOverrides = ''
+    [org.gnome.settings-daemon.plugins.power]
+    sleep-inactive-ac-type='nothing'
+  '';
+
+  # GNOME のリモートデスクトップ（RDP）を tailnet からだけ受ける。LAN とインターネットには開けない。
+  # 有効化とパスワードは GNOME の設定で行い、repo には置かない（docs/howtouse/tailscale.md）。
+  # 既定のポートは 3389 で、使用中なら negotiate-port により後続の 10 ポートから空きを探す。
+  # Remote Login と Desktop Sharing を両方有効にすると後から起動した側が 3390 以降にずれるので、その範囲まで開ける。
+  networking.firewall.interfaces.${config.services.tailscale.interfaceName}.allowedTCPPortRanges = [
+    { from = 3389; to = 3399; }
+  ];
+
   virtualisation.spiceUSBRedirection.enable = true;
   virtualisation.libvirtd = {
     enable = true;

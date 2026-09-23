@@ -14,6 +14,8 @@ ssh spin713     # = pomu@nixos-spin713.local
 
 フルネーム（`ssh nixos-desktop.local`）でも可。初回のホスト鍵は自動受理される（accept-new）。
 
+LAN の外からは、末尾に `-ts` を付けた接続名（`ssh desktop-ts`）で tailnet 経由で繋ぐ（[tailscale.md](./tailscale.md)）。
+
 ## 鍵の構成
 
 用途ごとにファイルを分けてある。どちらも `secrets/secrets.yaml` から
@@ -79,7 +81,7 @@ switch 中に `id_lan` / `id_github` が書き出され、その時点で新マ�
   （macOS / WSL）は LAN の一員とみなさず `id_lan` を配らない
 - `PasswordAuthentication = false` なので鍵認証必須。age 鍵を置かずに switch すると
   `id_lan` を書き出せないので activation が error で停止する（[private-repo-clone.md](./private-repo-clone.md) 参照）
-- 同一 LAN（mDNS が届く範囲）が前提。VLAN 分離・VPN 越しでは別途 `/etc/hosts` 等が要る
+- 短縮名（`ssh desktop`）は同一 LAN（mDNS が届く範囲）が前提。LAN の外では `-ts` の接続名を使う（[tailscale.md](./tailscale.md)）
 
 ## ユーザープロファイル
 

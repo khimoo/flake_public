@@ -12,6 +12,7 @@
     ./users.nix
     ./nix-settings.nix
     ./ssh.nix
+    ./tailscale.nix
     ./bluetooth.nix
     ./libvirt.nix
     ./audio.nix

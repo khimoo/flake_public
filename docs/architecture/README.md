@@ -13,7 +13,7 @@ Flake 設定の設計判断・実装構造のドキュメント。設定変更�
 | [users.md](./users.md) | ユーザー管理・sudo 設定・home-manager 連携 |
 | [machine-ssh.md](./machine-ssh.md) | flake 内マシンの相互 SSH（`machines.nix` 集約・LAN 共通鍵）の設計判断 |
 | [remote-build.md](./remote-build.md) | SSH 経由のリモートビルド（`--build-host`）の設計判断 |
-| [remote-build-tailscale.md](./remote-build-tailscale.md) | **TODO**: 外出先から Tailscale 経由で `--build-host` を効かせる（設計メモ・未実装） |
+| [tailscale.md](./tailscale.md) | LAN の外からのマシン間 SSH とリモートビルドを Tailscale で通す判断。`.local` と `-ts` の接続名を分ける理由、MagicDNS が openresolv 経由で引ける根拠、デスクトップを自動サスペンドさせない理由、GUI の確認に waypipe ではなく RDP を使い tailnet 側だけに開ける理由 |
 | [xdg-scheme-workaround.md](./xdg-scheme-workaround.md) | XDG スキームハンドラの手動登録（一時的） |
 | [devshells.md](./devshells.md) | コードリーディング用共通 devShell の設計判断 |
 | [papis-gdrive-sync.md](./papis-gdrive-sync.md) | 参照文献マネージャに papis を選んだ理由と、ライブラリを vault 内 `references/` に置く判断 |

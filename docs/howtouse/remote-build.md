@@ -8,7 +8,7 @@
 
 | 項目 | 要件 |
 |------|------|
-| ネットワーク | ラップトップとデスクトップが同一 LAN（mDNS が届く範囲）※出先で使えるようにする計画: [remote-build-tailscale.md](../architecture/remote-build-tailscale.md) |
+| ネットワーク | ラップトップとデスクトップが同一 LAN（mDNS が届く範囲）。LAN の外からは tailnet 経由（[LAN の外からビルドする](#lan-の外からビルドする)） |
 | アーキテクチャ | 両ホストとも `x86_64-linux`（クロスビルドはしない） |
 | SSH 鍵 | ラップトップの `pomu` に `~/.ssh/id_lan` がある（`local.profile.lanSsh = true` で switch すると書き出される） |
 
@@ -39,6 +39,21 @@ nixos-rebuild switch \
 
 アクティベートの直前に `sudo` のパスワードを聞かれる（同じ端末で直前に `sudo` を通していれば省略される）。
 `users.nix` で NOPASSWD にしているのは `nixos-rebuild` 本体だけで、`--sudo` が `sudo` 付きで呼ぶ `nix-env` と `switch-to-configuration` は対象外だから。
+
+## LAN の外からビルドする
+
+ビルドホストを tailnet 経由の接続名 `desktop-ts` にし、`--use-substitutes` を付ける:
+
+```sh
+nixos-rebuild switch \
+  --flake .#nixos-spin713 \
+  --build-host desktop-ts \
+  --use-substitutes \
+  --sudo
+```
+
+両ホストが tailnet に参加している必要がある（[tailscale.md](./tailscale.md)）。
+`--use-substitutes` を付けると、binary cache にあるパスはラップトップが cache.nixos.org から直接取り、デスクトップから tailnet 越しに運ぶのはデスクトップで作ったパスだけになる（[判断の根拠](../architecture/tailscale.md#出先のリモートビルドでは---use-substitutes-を付ける)）。
 
 ## 動作確認
 
