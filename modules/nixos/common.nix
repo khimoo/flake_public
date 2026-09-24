@@ -13,12 +13,14 @@
     ./nix-settings.nix
     ./ssh.nix
     ./tailscale.nix
+    ./remote-builders.nix
     ./bluetooth.nix
     ./libvirt.nix
     ./audio.nix
     ./sns-block.nix
     ./permit-insecure.nix
     ./codex.nix
+    ./agent-instructions.nix
   ];
 
   # システム状態バージョン

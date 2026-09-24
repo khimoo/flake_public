@@ -15,4 +15,13 @@
     requires = [ "nix.mount" ];
   };
   programs.niri.enable = true;
+
+  # ビルドはデスクトップに回す。このマシンは 4 スレッドで、/nix も SD カード上にある。
+  # デスクトップに繋がらないときに黙って手元でビルドさせず、失敗させて人が判断する。
+  local.remoteBuilders = {
+    enable = true;
+    localBuilds = false;
+  };
+
+  local.agentInstructions = builtins.readFile ./agent-instructions.md;
 }

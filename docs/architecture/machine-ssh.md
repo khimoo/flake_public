@@ -74,6 +74,8 @@ rootは `id_lan` を持たないので、`sudo nixos-rebuild --build-host` の�
 リモートビルドは `sudo` を付けずに `--sudo` で実行し、SSHを一般ユーザーのまま動かす（判断の根拠は [remote-build.md](./remote-build.md)、手順は [remote buildの手順](../howtouse/remote-build.md)）。
 この手順はagentに依存しないので、`IdentitiesOnly yes` の有無に影響されない（`ssh -o IdentitiesOnly=yes pomu@nixos-desktop.local` で認証が通ることを 2026-09-16 に nixos-spin713 から確認）。
 
+例外は常設のリモートビルド（`local.remoteBuilders`）で、nix-daemon（root）が `/etc/nix/machines` の `sshKey` でprimaryUserの `id_lan` を絶対パスで読む。一般ユーザーのssh設定には入らない（判断は [remote-build.md](./remote-build.md#鍵は-primaryuser-の-id_lan-を絶対パスで読む)）。
+
 ### ホスト鍵は accept-new（TOFU）
 
 生成する各 `Host` ブロックに `StrictHostKeyChecking accept-new` を付ける。初回接続の鍵は
@@ -82,7 +84,7 @@ rootは `id_lan` を持たないので、`sudo nixos-rebuild --build-host` の�
 更新が要るため不採用。
 
 `nixos-rebuild --build-host` の SSH が実行ユーザーの known_hosts に host key を追加する動作も、
-この生成設定（`/etc/ssh/ssh_config`）が兼ねる。
+この生成設定（`/etc/ssh/ssh_config`）が兼ねる。常設のリモートビルドでは、nix-daemon の SSH が root の known_hosts に同じく accept-new で追加する。
 
 ## セキュリティモデル
 

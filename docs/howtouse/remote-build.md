@@ -1,6 +1,9 @@
 # リモートビルドガイド
 
-ラップトップ（`nixos-spin713`）で `nixos-rebuild` を実行する際に、ビルドだけをデスクトップ（`nixos-desktop`）にオフロードする運用方法。成果物のみがラップトップに転送され、アクティベートは手元で行われる。
+ラップトップ（`nixos-spin713`）のビルドを、デスクトップ（`nixos-desktop`）に回す運用方法。
+ラップトップの nix-daemon は、ビルドが必要になるたびにデスクトップへ SSH で接続し、ビルドを任せて成果物を持ち帰る。`nix build`、`nix develop`、direnv の `use flake`、`nixos-rebuild` のどれでも、コマンドに何も足さずにこうなる。
+
+`nixos-rebuild` のビルドだけを明示的に回す `--build-host` も使える（[`--build-host` で明示的に回す](#--build-host-で明示的に回す)）。
 
 > 設計判断・実装の詳細は [docs/architecture/remote-build.md](../architecture/remote-build.md) を参照
 
@@ -8,20 +11,72 @@
 
 | 項目 | 要件 |
 |------|------|
-| ネットワーク | ラップトップとデスクトップが同一 LAN（mDNS が届く範囲）。LAN の外からは tailnet 経由（[LAN の外からビルドする](#lan-の外からビルドする)） |
+| ネットワーク | 両ホストが tailnet に参加している（[tailscale.md](./tailscale.md)）。自宅 LAN の中でも tailnet 経由で繋ぐ |
 | アーキテクチャ | 両ホストとも `x86_64-linux`（クロスビルドはしない） |
 | SSH 鍵 | ラップトップの `pomu` に `~/.ssh/id_lan` がある（`local.profile.lanSsh = true` で switch すると書き出される） |
+| デスクトップ | 起動していて、サスペンドしていない |
 
-設定ファイル側は既に構成済み：
+設定ファイル側は構成済み:
 
-- 鍵登録と `.local` への `accept-new` 接続は `hosts/machines.nix` を元に `ssh.nix` が
-  全ホストぶん生成する（マシン間 SSH の共通基盤。[machine-ssh.md](./machine-ssh.md) を参照）
-- 両ホスト：`nix.settings.trusted-users = [ "@wheel" ]`（デスクトップはビルドの受け入れ、ラップトップは成果物の取り込みに使う）
-- 両ホスト：`services.avahi.publish` で `<hostname>.local` を LAN に広告
+- `hosts/nixos-spin713/default.nix` の `local.remoteBuilders.enable = true` で、ラップトップの nix-daemon がデスクトップをビルダーとして使う
+- 同じ場所の `localBuilds = false` で、ラップトップ自身はビルドしない（`max-jobs = 0`）。binary cache からの取得は続く
+- ビルダーの一覧と能力（同時に受けるビルドの数、system features）は `hosts/machines.nix` の `builders` にある
+- 両ホスト: `nix.settings.trusted-users = [ "@wheel" ]`。デスクトップは、SSH で入ってくる `pomu` からビルドを受け入れるのに使う
 
-## 基本コマンド
+## 普段の使い方
 
-ラップトップ側で、`sudo` を付けずに実行する：
+何も足さずに実行する。ビルドが要る derivation は自動でデスクトップに回る。
+
+```sh
+nix develop
+nixos-rebuild switch --flake .#nixos-spin713 --sudo
+```
+
+binary cache にあるパッケージは、これまでどおりラップトップが cache.nixos.org から直接取る。
+デスクトップに回るのは、cache になく手元でビルドするはずだった derivation だけ。
+
+どこでビルドしたかは `-v` を付けると分かる。
+
+```sh
+nix build -v .#<出力> 2>&1 | grep '^building'
+# building '/nix/store/...drv' on 'ssh-ng://desktop-ts'...
+```
+
+`on 'ssh-ng://desktop-ts'` が付いていればデスクトップでビルドしている。
+ラップトップは `localBuilds = false` なので、`preferLocalBuild` の付いた小さな derivation（`writeText` など）もデスクトップに回る。
+
+### デスクトップに届かないとき
+
+デスクトップが落ちているときや、ラップトップが tailnet に入っていないときは、ビルドが要るコマンドは失敗する。
+手元でビルドには切り替わらない。
+
+```
+cannot build on 'ssh-ng://desktop-ts': error: failed to start SSH connection to 'desktop-ts'
+Failed to find a machine for remote build!
+...
+error: Unable to start any build; remote machines may not have all required system features.
+```
+
+接続の待ちは最大 10 秒（`ssh.nix` の `ConnectTimeout`）。
+ビルドが要らないコマンド（binary cache とストアにあるものだけで済むコマンド）は接続しないので、このエラーも出ない。
+
+原因はトラブルシューティングの「[`cannot build on 'ssh-ng://desktop-ts'` が出る](#cannot-build-on-ssh-ngdesktop-ts-が出る)」を見る。
+直せないときに手元でビルドするなら、そのコマンドにだけ手元のジョブ数を渡す。
+
+```sh
+nix develop --max-jobs 4
+```
+
+ビルダーを試さずに最初から手元でビルドするなら、`--builders ''` も付ける。
+
+デスクトップが 32 個のビルドを同時に抱えているときは、あふれた分は失敗せず、空きが出るまで待つ。
+
+## `--build-host` で明示的に回す
+
+`local.remoteBuilders` を有効にしていないホストからは、`nixos-rebuild` に `--build-host` を付けてビルドを回す。
+デスクトップでビルドし、成果物だけを手元に転送して、アクティベートは手元で行う。
+
+ラップトップ側で、`sudo` を付けずに実行する:
 
 ```sh
 nixos-rebuild switch \
@@ -36,11 +91,12 @@ nixos-rebuild switch \
 
 評価、ビルド、転送は `pomu` として動くので、SSH は `pomu` の `~/.ssh/id_lan` で認証する。
 コマンド全体を `sudo nixos-rebuild ...` で実行すると SSH が root として動き、`/root/.ssh/id_lan` を探して `Permission denied (publickey)` で失敗する。
+常設のビルダーは nix-daemon が鍵のパスを直接指定して繋ぐので、この制約を受けない。
 
 アクティベートの直前に `sudo` のパスワードを聞かれる（同じ端末で直前に `sudo` を通していれば省略される）。
 `users.nix` で NOPASSWD にしているのは `nixos-rebuild` 本体だけで、`--sudo` が `sudo` 付きで呼ぶ `nix-env` と `switch-to-configuration` は対象外だから。
 
-## LAN の外からビルドする
+### LAN の外からビルドする
 
 ビルドホストを tailnet 経由の接続名 `desktop-ts` にし、`--use-substitutes` を付ける:
 
@@ -57,7 +113,29 @@ nixos-rebuild switch \
 
 ## 動作確認
 
-セットアップ直後に確認すべき項目：
+### 常設のビルダー
+
+switch した後に確認する:
+
+```sh
+# 1. 生成されたビルダーの設定
+cat /etc/nix/machines
+# ssh-ng://desktop-ts x86_64-linux /home/pomu/.ssh/id_lan 32 1 benchmark,big-parallel,kvm,nixos-test - -
+
+# 2. デスクトップの Nix が pomu を trusted として扱うか（Trusted: 1）
+nix store info --store ssh-ng://desktop-ts
+
+# 3. nix-daemon（root）からの接続でビルドが回るか
+nix build -v --no-link --impure --expr \
+  "derivation { name = \"rb-test-$(date +%s)\"; system = \"x86_64-linux\"; builder = \"/bin/sh\"; args = [ \"-c\" \"echo ok > \$out\" ]; }" \
+  2>&1 | grep -E '^building|cannot build'
+```
+
+2 は `pomu` として繋ぐので、root からの接続は確かめられない。
+3 で `building '...' on 'ssh-ng://desktop-ts'` が出れば、nix-daemon の SSH も通っている。
+名前に時刻を入れるのは、同じ derivation の成果物がストアに残っているとビルドが走らないため。
+
+### `--build-host`
 
 ```sh
 # 1. mDNS 名前解決
@@ -77,6 +155,19 @@ nix store info --store daemon
 
 ## トラブルシューティング
 
+### `cannot build on 'ssh-ng://desktop-ts'` が出る
+
+ssh が失敗した理由は nix-daemon のログに出る。
+
+```sh
+journalctl -u nix-daemon --since -10min | grep ssh
+```
+
+- `Could not resolve hostname nixos-desktop`: ラップトップが tailnet に入っていない。`tailscale status` を見る
+- 接続がタイムアウトする: デスクトップが落ちているか、サスペンドしている（[tailscale.md](./tailscale.md)）
+- `Permission denied (publickey)`: `/home/pomu/.ssh/id_lan` が無い。`local.profile.lanSsh = true` で switch する
+- `Host key verification failed`: デスクトップを入れ直すなどしてホスト鍵が変わった。root の known_hosts から古い行を消す（`sudo ssh-keygen -R nixos-desktop -f /root/.ssh/known_hosts`）。次の接続で `accept-new` が新しい鍵を入れる
+
 ### `ping: nixos-desktop.local: System error`（初回のみ）
 
 avahi のキャッシュが温まっていないだけ。数秒待ってから再実行すると応答する。常時再発する場合は次項を疑う。
@@ -87,13 +178,13 @@ avahi のキャッシュが温まっていないだけ。数秒待ってから�
 
 ### `error: cannot add path '/nix/store/...' because it lacks a signature`
 
-デスクトップかラップトップの `nix.settings.trusted-users` に `pomu` が入っていない。デスクトップはビルドを受け入れるとき、ラップトップは成果物を取り込むときに署名を要求する。動作確認の 3 と 4 で `Trusted: 1` になるか確認する（`@wheel` グループに `pomu` が入っていれば通る）。
+デスクトップかラップトップの `nix.settings.trusted-users` に `pomu` が入っていない。デスクトップはビルドを受け入れるとき、ラップトップは `--build-host` の成果物を取り込むときに署名を要求する。`--build-host` の動作確認の 3 と 4 で `Trusted: 1` になるか確認する（`@wheel` グループに `pomu` が入っていれば通る）。
 
-### `Host key verification failed`
+### `Host key verification failed`（`--build-host`）
 
 `~/.ssh/known_hosts` に `nixos-desktop.local` のエントリが無く、かつ `accept-new` が適用されていない。`ssh.nix` が `machines.nix` から生成する `/etc/ssh/ssh_config` に `Host ... nixos-desktop.local` の `StrictHostKeyChecking accept-new` が含まれるはず。デスクトップが `machines.nix` に登録済みか確認。手動回避は `ssh-keyscan -H nixos-desktop.local >> ~/.ssh/known_hosts`。
 
-### `Permission denied (publickey)`
+### `Permission denied (publickey)`（`--build-host`）
 
 コマンド全体を `sudo` で実行すると、SSH が root として動いて `id_lan` を読めない。`sudo` を外し、基本コマンドのとおり `--sudo` を付けて実行する。
 
@@ -108,29 +199,37 @@ LAN 認証は全マシン共通の鍵 1 本なので、鍵の生成も登録も�
 
 1. 新規ホストの `~/.config/sops/age/keys.txt` に age 鍵を置く
 2. `hosts/machines.nix` の `hosts` に1行足す
-3. 新規ホストを rebuild（switch 中に `~/.ssh/id_lan` が書き出される）
+3. 新規ホストの `default.nix` に `local.remoteBuilders.enable = true;` を足す
+4. 新規ホストを rebuild（switch 中に `~/.ssh/id_lan` が書き出される）
+
+3 を省けば、`--build-host` だけで回すホストになる。
+デスクトップに繋がらないときに手元でビルドさせたくなければ、`localBuilds = false;` も足す（`hosts/nixos-spin713/default.nix` と同じ形）。
+`local.remoteBuilders` は tailnet の接続名で繋ぐので、そのホストも tailnet に参加させる（[tailscale.md](./tailscale.md)）。
 
 ### ビルダーを増やす（別のホストもビルドサーバ化）
 
-新しいビルダーホストの `default.nix` に：
+`hosts/machines.nix` の `builders` に 1 エントリ足す。
+`maxJobs` と `supportedFeatures` は、そのホストで `nix config show max-jobs` と `nix config show system-features` を見て決める。
 
 ```nix
-services.openssh.enable = true;   # ssh.nix で共通設定済みだが念のため
-users.users.<user>.openssh.authorizedKeys.keys = [ "ssh-... ..." ];
+builders = {
+  nixos-desktop = { ... };
+  <new-builder> = {
+    system = "x86_64-linux";
+    maxJobs = <max-jobs の値>;
+    supportedFeatures = [ <system-features の値> ];
+  };
+};
 ```
 
-`nix.settings.trusted-users = [ "@wheel" ]` は `nix-settings.nix` で全ホスト共通設定済みなので追加不要。
-
-クライアント側から：
-
-```sh
-nixos-rebuild switch --flake .#<client-host> --build-host <user>@<new-builder>.local --sudo
-```
+`local.remoteBuilders.enable` を立てたホストは、次の switch から自分以外の全ビルダーを使う。
+ビルダー側で要るのは、`hosts/machines.nix` の `hosts` に載っていることだけ。sshd と `authorized_keys` は `ssh.nix` が、`trusted-users` は `nix-settings.nix` が全ホストに設定する。
 
 ## 関連ファイル
 
-- [modules/nixos/ssh.nix](../../modules/nixos/ssh.nix) — openssh + avahi publish + マシン間 SSH 生成
-- [hosts/machines.nix](../../hosts/machines.nix) — ホスト一覧と LAN 共通鍵の公開鍵（authorized_keys / accept-new の元）
+- [modules/nixos/remote-builders.nix](../../modules/nixos/remote-builders.nix) — `local.remoteBuilders` と `nix.buildMachines` の生成
+- [modules/nixos/ssh.nix](../../modules/nixos/ssh.nix) — openssh + avahi publish + マシン間 SSH 生成（`ConnectTimeout` を含む）
+- [hosts/machines.nix](../../hosts/machines.nix) — ホスト一覧、LAN 共通鍵の公開鍵、ビルダーの能力
 - [modules/nixos/nix-settings.nix](../../modules/nixos/nix-settings.nix) — trusted-users
 - [modules/nixos/users.nix](../../modules/nixos/users.nix) — `nixos-rebuild` 本体だけを NOPASSWD にする sudo 規則
 - マシン間 SSH の使い方・設計: [machine-ssh.md](./machine-ssh.md) / [../architecture/machine-ssh.md](../architecture/machine-ssh.md)

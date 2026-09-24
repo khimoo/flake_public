@@ -17,7 +17,7 @@ LAN 内では従来どおり `ssh desktop`（mDNS）を使える。tailnet に�
 
 重い作業は、デスクトップに入ってからそこで Neovim や cargo を動かす。
 
-出先からのリモートビルドは [remote-build.md の「LAN の外からビルドする」](./remote-build.md#lan-の外からビルドする) を参照。
+ラップトップのビルドは、出先でも tailnet 経由で自動的にデスクトップへ回る（[remote-build.md](./remote-build.md)）。`--build-host` で回すときは [remote-build.md の「LAN の外からビルドする」](./remote-build.md#lan-の外からビルドする) を参照。
 
 ## 出先からデスクトップの画面を使う（RDP）
 

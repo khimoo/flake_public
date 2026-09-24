@@ -1,6 +1,6 @@
 # Tailscale で LAN の外からマシン間 SSH とリモートビルドを通す
 
-自宅 LAN の外にいるラップトップから、デスクトップへの SSH 作業と `--build-host` によるリモートビルドを通すための構成。
+自宅 LAN の外にいるラップトップから、デスクトップへの SSH 作業とリモートビルド（常設ビルダーと `--build-host`）を通すための構成。
 使い方は [../howtouse/tailscale.md](../howtouse/tailscale.md) を参照。
 
 設定ファイル:
@@ -38,6 +38,7 @@ Tailscale を使う代償は、アカウントと端末のメタデータ（ホ�
 
 `.local` の接続名を tailnet の名前に置き換えなかったのは、LAN 内の接続を Tailscale に依存させないためだ。
 置き換えると、tailscaled が止まっているときや tailnet から抜けているときに、同じ部屋のデスクトップにも繋がらなくなる。
+常設のリモートビルダーだけは LAN 内でも `-ts` を使う。自宅と出先で同じエントリを使え、同じデスクトップを二重に数えずに済むからだ（[remote-build.md](./remote-build.md#接続先は-tailnet-の接続名desktop-tsにする)）。
 
 名前解決を試して自動で切り替える案（`Match exec` で `.local` を引いてから tailnet に落とす）も退けた。
 接続のたびに名前解決の待ちが入り、失敗したときにどちらの経路で落ちたかが分かりにくくなる。
@@ -131,7 +132,6 @@ tailnet に参加したホストの sshd は、tailnet 内の全ノードから�
 
 ## 見直す条件
 
-- デスクトップ以外のビルダーを足す、またはラップトップで日常的にビルドするようになったら、`nix.buildMachines` への移行を検討する（[remote-build.md](./remote-build.md)）
 - resolv.conf の書き換えが問題になったら、前述の `--accept-dns=false` と FQDN の組み合わせに移る
 - DNS を systemd-resolved に移したら、tailscaled は resolved 方式を選ぶ。`getent hosts nixos-desktop` で短縮名が引けるかを確かめ直す
 - tailnet に自分以外の端末を入れるなら、ACL を先に設計する。RDP はパスワード認証なので、tailnet 内の端末すべてから届く状態のままにしない
@@ -140,5 +140,5 @@ tailnet に参加したホストの sshd は、tailnet 内の全ノードから�
 
 - nixpkgs の tailscale モジュール: `nixos/modules/services/networking/tailscale.nix`（nixpkgs `b6018f8`）
 - tailscale の DNS 方式の判定: [net/dns/manager_linux.go（v1.90.9）](https://github.com/tailscale/tailscale/blob/v1.90.9/net/dns/manager_linux.go)
-- 既存のリモートビルドの設計: [remote-build.md](./remote-build.md)
+- リモートビルドの設計（常設ビルダーが tailnet の接続名を使う理由を含む）: [remote-build.md](./remote-build.md)
 - マシン間 SSH の設計: [machine-ssh.md](./machine-ssh.md)

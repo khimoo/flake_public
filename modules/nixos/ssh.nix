@@ -4,6 +4,7 @@
 # 例: どのホストからでも `ssh desktop` / `ssh spin713` で接続でき、ラップトップからの
 #     `nixos-rebuild --build-host pomu@nixos-desktop.local` の known_hosts 追加も兼ねる。
 #     LAN の外からは tailnet 経由の `ssh desktop-ts` を使う（tailscale.nix）。
+#     remote-builders.nix の nix-daemon も `desktop-ts` の設定で接続する。
 #
 # マシンの追加/廃棄は hosts/machines.nix の 1 エントリ増減だけで完結する。
 { config, lib, settings, ... }:
@@ -13,12 +14,16 @@ let
   # `nixos-` プレフィックスを剥がした短縮エイリアス（nixos-desktop → desktop）
   shortName = host: lib.removePrefix "nixos-" host;
 
+  # ConnectTimeout が無いと、応答しないホストへの接続は TCP の既定のタイムアウトまで待つ。
+  # nix-daemon は ssh にタイムアウトを渡さないので、落ちたビルダーの待ちはこの値で決まる
+  # （docs/architecture/remote-build.md）。
   hostBlock = patterns: hostName: ''
     Host ${patterns}
       HostName ${hostName}
       User ${settings.primaryUser}
       IdentityFile ~/.ssh/id_lan
       StrictHostKeyChecking accept-new
+      ConnectTimeout 10
   '';
 
 in {

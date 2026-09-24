@@ -38,6 +38,46 @@ let
     ];
   };
   users = fixture.config.home-manager.users;
+  nixosHost =
+    hostname: module:
+    (configurations.mkSystem {
+      inherit hostname;
+      system = "x86_64-linux";
+      timezone = "Asia/Tokyo";
+      stateVersion = "25.11";
+      hostModule.imports = [
+        ../examples/new-host.nix
+        module
+      ];
+      users = [
+        {
+          username = "alice";
+          manageHome = false;
+        }
+      ];
+    }).config;
+  remoteBuildHost =
+    hostname:
+    nixosHost hostname {
+      imports = [
+        ../modules/nixos/ssh.nix
+        ../modules/nixos/tailscale.nix
+        ../modules/nixos/remote-builders.nix
+      ];
+      local.remoteBuilders.enable = true;
+    };
+  laptop = remoteBuildHost "nixos-spin713";
+  agentHost =
+    instructions:
+    nixosHost "example" {
+      imports = [
+        ../modules/nixos/codex.nix
+        ../modules/nixos/agent-instructions.nix
+      ];
+      local.agentInstructions = instructions;
+    };
+  codexConfig = host: builtins.fromTOML host.environment.etc."codex/config.toml".text;
+  systemAssertionsHold = config: builtins.all (a: a.assertion) config.assertions;
   mkTestHome =
     system: modules:
     configurations.mkHome {
@@ -219,6 +259,26 @@ lib.genAttrs systems (
         };
       assert !badType.success;
       assert !unknownFeature.success;
+      assert systemAssertionsHold laptop;
+      assert laptop.nix.buildMachines != [ ];
+      # nix-daemon の ssh は、ssh.nix が生成する Host ブロックで接続先と accept-new を得る。
+      assert builtins.all (
+        m: lib.hasInfix "Host ${m.hostName}\n" laptop.programs.ssh.extraConfig
+      ) laptop.nix.buildMachines;
+      assert builtins.all (m: m.sshKey == "/home/alice/.ssh/id_lan") laptop.nix.buildMachines;
+      # builders に自分しかいないホストでは回す先がない。黙って何もしない設定にしない。
+      assert !systemAssertionsHold (remoteBuildHost "nixos-desktop");
+      # developer_instructions が codex.nix のテーブルに入らず、エスケープも崩れないこと。
+      assert
+        let
+          instructions = "一行目 \"quoted\" back\\slash\n二行目\n";
+          host = agentHost instructions;
+        in
+        (codexConfig host).developer_instructions == instructions
+        && (codexConfig host).agents.enabled == false
+        && host.environment.etc."claude-code/CLAUDE.md".text == instructions;
+      assert !((agentHost "").environment.etc ? "claude-code/CLAUDE.md");
+      assert !(codexConfig (agentHost "") ? developer_instructions);
       "module contracts passed";
   in
   {

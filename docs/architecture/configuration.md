@@ -23,7 +23,7 @@ Home Managerはユーザーごとに `config.local.profile` を評価する。�
 
 デスクトップのpapis用mountは、primaryUserの `local.profile.zettelkastenRoot` を参照する。アプリのinsecure許可は従来どおりHome ManagerからOSへ集約する。これらの境界をホスト固有モジュールと専用adapterに限定する。
 
-SSHクライアントのIdentityFileは `~/.ssh/` を使い、全ユーザーへprimaryUserの絶対パスを配らない。LAN接続先のユーザー名はprimaryUserで、鍵配布は `local.profile.lanSsh` を選んだユーザーだけ。rootでのremote buildはSSH agent forwardingを利用する。
+SSHクライアントのIdentityFileは `~/.ssh/` を使い、全ユーザーへprimaryUserの絶対パスを配らない。LAN接続先のユーザー名はprimaryUserで、鍵配布は `local.profile.lanSsh` を選んだユーザーだけ。例外は常設のリモートビルドで、nix-daemon（root）だけがprimaryUserの `id_lan` を絶対パスで読む（[remote-build.md](./remote-build.md)）。`--build-host` はrootを使わず、実行ユーザーのままSSHする。
 
 ## 外部状態と検証
 

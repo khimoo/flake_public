@@ -2,7 +2,8 @@
 
 使い方は [docs/howtouse/agent-config.md](../howtouse/agent-config.md) を参照。
 実装: [modules/home-manager/dev/claude.nix](../../modules/home-manager/dev/claude.nix)、
-[modules/home-manager/dev/codex.nix](../../modules/home-manager/dev/codex.nix)
+[modules/home-manager/dev/codex.nix](../../modules/home-manager/dev/codex.nix)、
+マシン固有の指示は [modules/nixos/agent-instructions.nix](../../modules/nixos/agent-instructions.nix)
 
 ## 何を解決するか
 
@@ -78,6 +79,35 @@ model と reasoning effort で、どちらも設定値なのでこの層に収�
 
 `--profile` は一回しか渡せない（`cannot be used multiple times`）ので、モデル非依存で
 private な Codex 設定を base プロファイルに置く案は成立しない。
+
+## マシン固有の指示はシステム層に置く
+
+設定 repo の指示（`shared/AGENTS.md` と `claude/CLAUDE.md`）は、全マシンで同じファイルへの symlink になる。
+マシンによって変わる指示を書く場所がない。
+例として spin713 には「メモリや GPU を多く使う処理はまずデスクトップで実行できるか確かめ、できなければフリーズしないか概算してから手元で実行する」という指示が要る（[remote-build.md](./remote-build.md#spin713-では手元でビルドしないmax-jobs--0)）。
+
+そこで、NixOS のホスト設定 `local.agentInstructions`（[modules/nixos/agent-instructions.nix](../../modules/nixos/agent-instructions.nix)）から、両ハーネスのシステム層に同じ本文を書き出す。
+本文は `hosts/<host>/agent-instructions.md` に一つだけ置き、ハーネスごとに違うのは書き出し先だけにした。
+
+- **Claude Code**: `/etc/claude-code/CLAUDE.md`。公式ドキュメント（[How Claude remembers your project](https://code.claude.com/docs/en/memory)、2026-09-24 に参照）が Linux の managed policy の指示ファイルとして挙げるパスで、「Managed policy CLAUDE.md files cannot be excluded」とある。ユーザーと project の CLAUDE.md より先に読まれる
+- **Codex**: `/etc/codex/config.toml`（system 層、[codex-subagents.md](./codex-subagents.md)）の `developer_instructions`。0.154.0 のバイナリにこのキーがある。ユーザー層の `~/.codex/config.toml` とプロファイルはこのキーを設定していないので、system 層の値が使われる
+
+TOML では、テーブル見出しの後に書いたキーはそのテーブルに入る。
+そこで `developer_instructions` は `lib.mkBefore` で `codex.nix` の `[agents]` より前に置き、値は `builtins.toJSON` で TOML の basic string にする。
+引用符、バックスラッシュ、改行、日本語を含む本文が `builtins.fromTOML` で元に戻ることを、`tests/default.nix` の module contracts で確かめている。
+
+両ハーネスが実際にこの本文を読むかは、実機で switch してから確かめる（手順は [../howtouse/agent-config.md](../howtouse/agent-config.md#マシン固有の指示)）。2026-09-24 時点では未確認。
+
+退けた案と理由:
+
+- **共通の `shared/AGENTS.md` に「ホスト名が nixos-spin713 なら」と条件付きで書く**: 配線は要らない。代わりに、マシンの事実（性能、ビルダーの接続名）が flake の外に散らばり、全マシンのエージェントが毎回その条件を読む
+- **home-manager が書き出したファイルを `claude/CLAUDE.md` から `@import` する**: Claude Code には効く。Codex には import の仕組みがないので、`~/.codex/AGENTS.md` を設定 repo の本文と連結して生成することになる。そうすると設定 repo の指示を編集しても switch するまで反映されず、「即反映」の性質を失う
+
+トレードオフ:
+
+- 本文は Nix store を経由するので、編集のたびに switch が要る
+- Claude Code の managed 層はユーザー側で除外できない。自分のマシンにだけ置く指示なので問題にしない
+- 対象は NixOS ホストだけ。standalone home-manager の環境には入らない
 
 ## 検討して退けた案
 
@@ -159,6 +189,7 @@ global の配線で全プロジェクトに効いているので不要。同じ 
 
 ## 見直す条件
 
+- Codex がユーザー層の指示ファイルに include やホスト別のファイルを導入したら、マシン固有の指示を `developer_instructions` から指示ファイルに移す
 - Claude Code が `AGENTS.md` を直接読むようになったら `claude/CLAUDE.md` の import は不要になる
 - Codex がユーザー層の `config.toml` に include や複数ファイルを導入したら、モデル非依存の
   private 設定を repo に置けるようになる

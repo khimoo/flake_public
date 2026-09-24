@@ -12,6 +12,8 @@
   # `nixos-rebuild --build-host --sudo` はビルダ側でも呼び出し側でも一般ユーザとして
   # ストアに書き込む。trusted でないと、ビルダ側は署名なしの派生物の構築を、
   # 呼び出し側は転送されてきた成果物の取り込みを拒否する。
+  # remote-builders.nix の常設ビルダーでも、ビルダ側は SSH で入ってくる一般ユーザから
+  # 派生物を受け取るので、同じ理由で要る。
   nix.settings.trusted-users = [ "@wheel" ];
 
   # ガベージコレクション設定

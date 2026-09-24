@@ -12,7 +12,7 @@ Flake 設定の設計判断・実装構造のドキュメント。設定変更�
 | [rustowl.md](./rustowl.md) | RustOwl の導入（rustowl-flake 由来）と Neovim 連携 |
 | [users.md](./users.md) | ユーザー管理・sudo 設定・home-manager 連携 |
 | [machine-ssh.md](./machine-ssh.md) | flake 内マシンの相互 SSH（`machines.nix` 集約・LAN 共通鍵）の設計判断 |
-| [remote-build.md](./remote-build.md) | SSH 経由のリモートビルド（`--build-host`）の設計判断 |
+| [remote-build.md](./remote-build.md) | SSH 経由のリモートビルドの設計判断。常設ビルダー（`nix.buildMachines`）を主にした理由、tailnet の接続名を使う理由、到達できないときの挙動、spin713 で手元のビルドを止める（`max-jobs = 0`）理由、`--build-host` の併用 |
 | [tailscale.md](./tailscale.md) | LAN の外からのマシン間 SSH とリモートビルドを Tailscale で通す判断。`.local` と `-ts` の接続名を分ける理由、MagicDNS が openresolv 経由で引ける根拠、デスクトップを自動サスペンドさせない理由、GUI の確認に waypipe ではなく RDP を使い tailnet 側だけに開ける理由 |
 | [xdg-scheme-workaround.md](./xdg-scheme-workaround.md) | XDG スキームハンドラの手動登録（一時的） |
 | [devshells.md](./devshells.md) | コードリーディング用共通 devShell の設計判断 |
@@ -21,7 +21,7 @@ Flake 設定の設計判断・実装構造のドキュメント。設定変更�
 | [zettelkasten-vault-skeleton.md](./zettelkasten-vault-skeleton.md) | vault 骨格（分類フォルダ・運用ドキュメント・`.obsidian`）の配布（seed = public→vault）とミラー（mirror = vault→public の派生更新）。live source-of-truth は vault（obsidian-git）、public は派生スナップショット。`.obsidian` は denylist・骨格は allowlist と選び方を逆にする理由と、seed の受益者が `initializeVault` 環境に限られる非対称 |
 | [disk-tiering.md](./disk-tiering.md) | NVMe/SATA の 2 層ディスク構成（btrfs subvol・NOCOW・ブートメニュー）の設計判断 |
 | [minecraft-backup.md](./minecraft-backup.md) | 発火を定時タイマーではなく PrismLauncher の post-exit フックにした理由、ZIP から restic へ移した判断、Drive のリポジトリをホストごとに分けて 2 台からの往復を成立させる設計 |
-| [agent-config.md](./agent-config.md) | Claude Code と Codex のユーザー設定の git 管理（`shared/` `claude/` `codex/` の三分割、パス注入 + out-of-store symlink、Codex の live ファイルを張らない理由、flake input を退けた理由） |
+| [agent-config.md](./agent-config.md) | Claude Code と Codex のユーザー設定の git 管理（`shared/` `claude/` `codex/` の三分割、パス注入 + out-of-store symlink、Codex の live ファイルを張らない理由、flake input を退けた理由）。マシン固有の指示をシステム層（`/etc/claude-code/CLAUDE.md` と Codex の `developer_instructions`）に置く理由 |
 | [kitty.md](./kitty.md) | 端末を wezterm から kitty へ移す判断。tmux を挟む案を退けた理由、`Ctrl+a > 階層 > 動詞` のキー体系と 3 マスを空けたままにする理由、`socket-only` を選んだ理由、smart-splits の `at_edge` を `stop` にした理由 |
 | [inkscape.md](./inkscape.md) | Inkscape の新規文書テンプレート（ページ・デスクの色）を live symlink で持つ判断。store に置くと GUI からの保存が失敗する理由と、保存時に表示状態が混ざる代償 |
 | [unstable-packages.md](./unstable-packages.md) | 安定チャンネルの版では動作不能になるパッケージ（codex・tinymist・neovim）だけを nixos-unstable から差し替える overlay と、全体を unstable に上げなかった理由 |

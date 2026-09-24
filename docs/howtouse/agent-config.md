@@ -111,12 +111,37 @@ local.profile.agentProfiles = {
   `claude/CLAUDE.md` の import の下に書く
 - skills は Claude Code と Codex で同じ `SKILL.md` 形式。片方だけが解釈する frontmatter の
   キーは、もう片方には無視される
-- マシン固有値は `settings.json` と `base.rules` に入れない。プロジェクト固有のローカル値は
+- マシン固有値は `settings.json` と `base.rules` に入れない。マシン固有の指示は[下記](#マシン固有の指示)のホスト設定に書く。プロジェクト固有のローカル値は
   各プロジェクトの `.claude/settings.local.json` や `.codex/`、一時的な変更は起動引数を使う
 - live な設定は Nix 世代のロールバックでは戻らない。設定 repo の Git 履歴で復元する
 
 Claude の[設定スコープ](https://code.claude.com/docs/en/settings)と
 Codex の[設定レイヤ](https://learn.chatgpt.com/docs/config-file/config-advanced)も参照。
+
+## マシン固有の指示
+
+設定 repo の指示は全マシン共通なので、特定のマシンだけで守らせたい指示は flake_public のホスト設定に書く。
+例: spin713 の「メモリや GPU を多く使う処理はまずデスクトップで実行できるか確かめ、できなければフリーズしないか概算してから手元で実行する」（[hosts/nixos-spin713/agent-instructions.md](../../hosts/nixos-spin713/agent-instructions.md)）。
+
+1. `hosts/<host>/agent-instructions.md` に指示を書く
+2. そのホストの `default.nix` で読み込む:
+
+   ```nix
+   local.agentInstructions = builtins.readFile ./agent-instructions.md;
+   ```
+
+3. switch する
+
+同じ本文が、Claude Code には `/etc/claude-code/CLAUDE.md`（管理者用の指示）として、Codex には `/etc/codex/config.toml` の `developer_instructions` として入る。
+本文は Nix store を経由するので、編集したら switch が要る。設定 repo の指示と違い、即反映はされない。
+対象は NixOS ホストだけで、standalone home-manager（WSL、macOS）には入らない。
+
+switch 後の確認:
+
+- Claude Code: セッションで `/context` を開き、**Memory files** に `/etc/claude-code/CLAUDE.md` があるか見る
+- Codex: `grep developer_instructions /etc/codex/config.toml` で書き出されたことを確かめ、セッションで「このマシン固有の指示を要約して」と聞く
+
+設計判断は [../architecture/agent-config.md](../architecture/agent-config.md#マシン固有の指示はシステム層に置く) を参照。
 
 ## Claudeの設定更新に対応する直接リンク
 
