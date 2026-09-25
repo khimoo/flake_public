@@ -76,6 +76,12 @@ let
       ];
       local.agentInstructions = instructions;
     };
+  managedHost =
+    path:
+    nixosHost "example" {
+      imports = [ ../modules/nixos/claude-managed-settings.nix ];
+      local.claudeManagedSettings = path;
+    };
   codexConfig = host: builtins.fromTOML host.environment.etc."codex/config.toml".text;
   systemAssertionsHold = config: builtins.all (a: a.assertion) config.assertions;
   mkTestHome =
@@ -278,6 +284,12 @@ lib.genAttrs systems (
         && (codexConfig host).agents.enabled == false
         && host.environment.etc."claude-code/CLAUDE.md".text == instructions;
       assert !((agentHost "").environment.etc ? "claude-code/CLAUDE.md");
+      # managed settings は checkout のファイルへ直接リンクし、Nix store に写さない。
+      assert
+        toString (managedHost "/home/alice/config/claude/managed-settings.json")
+          .environment.etc."claude-code/managed-settings.json".source
+        == "/home/alice/config/claude/managed-settings.json";
+      assert !((managedHost null).environment.etc ? "claude-code/managed-settings.json");
       assert !(codexConfig (agentHost "") ? developer_instructions);
       "module contracts passed";
   in

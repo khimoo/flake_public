@@ -67,4 +67,6 @@
     pulse.enable = true;
     wireplumber.enable = true;
   };
+
+  local.claudeManagedSettings = "/home/pomu/sagyo/agents-private/claude/managed-settings.json";
 }

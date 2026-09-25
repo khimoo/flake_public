@@ -21,6 +21,7 @@
     ./permit-insecure.nix
     ./codex.nix
     ./agent-instructions.nix
+    ./claude-managed-settings.nix
   ];
 
   # システム状態バージョン

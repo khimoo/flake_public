@@ -24,4 +24,5 @@
   };
 
   local.agentInstructions = builtins.readFile ./agent-instructions.md;
+  local.claudeManagedSettings = "/home/pomu/sagyo/agents-private/claude/managed-settings.json";
 }
