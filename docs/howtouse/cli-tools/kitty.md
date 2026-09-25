@@ -5,8 +5,8 @@
 設計判断は [docs/architecture/kitty.md](../../architecture/kitty.md) を参照。
 
 `kitty.conf` は out-of-store symlink なので、編集はリポジトリのファイルを直接直せばよく rebuild は要らない。
-反映は kitty 側で `Ctrl+Shift+F5`（設定の再読込）。ただし `listen_on` の変更だけは再読込では効かず、
-kitty の起動し直しが要る。
+反映は kitty 側で `Ctrl+Shift+F5`（設定の再読込）。ただし `listen_on` と `dynamic_background_opacity` の変更は
+再読込では反映されず、kitty の起動し直しが要る。
 
 ## 呼び名
 
