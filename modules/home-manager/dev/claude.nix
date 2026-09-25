@@ -4,7 +4,8 @@
 # flake_public は公開リポジトリなので、private な設定 repo の固有名や中身には依存しない。
 # agentConfigRoot が null (既定) なら何もしないため、この flake だけを使う人には影響しない。
 # 期待するレイアウト:
-#   <root>/claude/CLAUDE.md, settings.json, hooks/, output-styles/, agents/, commands/   Claude Code だけが読む
+#   <root>/claude/CLAUDE.md, hooks/, output-styles/, agents/, commands/   Claude Code だけが読む
+#   <root>/claude/managed-settings.json   NixOS の local.claudeManagedSettings が /etc から指す
 #   <root>/claude/profiles/<name>.json                                                  モデル別プロファイル (agentProfiles.claude)
 #   <root>/shared/skills/                                                              Codex と共有
 #
@@ -53,22 +54,30 @@ in
       name = ".claude/${d}";
       value.source = mkLink "claude/${d}";
     }) claudeDirs);
-    # Claude's atomic settings writer follows one symlink before creating its
-    # temporary file. A home.file link lands in the read-only generation store.
-    # Linux/Darwin: link directly to the mutable checkout after HM's link cleanup.
-    # Dry runs do not write; rerunning repairs an interrupted/missing link.
+    # ~/.claude/settings.json は Claude Code が書く live ファイルで、repo では追跡しない。
+    # 方針（フック、プラグイン、output style、language）は managed settings にある
+    # （docs/architecture/agent-config.md）。以前は repo の claude/settings.json へ直接
+    # リンクしていたので、そのリンクが残っていれば一度だけ普通のファイルに移し替える。
+    # 方針の項目は除く。残すと managed settings のフックと合わさって2回ずつ動く。
+    # リンク先が無ければ {} から始める。それ以外のファイルやリンクには触らない。
     home.activation.claudeSettings = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
       settings_source=${lib.escapeShellArg "${root}/claude/settings.json"}
-      settings_link=${lib.escapeShellArg "${config.home.homeDirectory}/.claude/settings.json"}
-      if [ -n "''${DRY_RUN_CMD:-}" ]; then
-        echo "Would link $settings_link directly to $settings_source"
-      else
-        if [ -e "$settings_link" ] && [ ! -L "$settings_link" ]; then
-          echo "Refusing to replace unmanaged Claude settings: $settings_link" >&2
-          exit 1
+      settings_file=${lib.escapeShellArg "${config.home.homeDirectory}/.claude/settings.json"}
+      if [ -L "$settings_file" ] && [ "$(readlink "$settings_file")" = "$settings_source" ]; then
+        if [ -n "''${DRY_RUN_CMD:-}" ]; then
+          echo "Would replace $settings_file with a copy of $settings_source without the managed keys"
+        else
+          settings_tmp=$(mktemp "$settings_file.XXXXXX")
+          if [ ! -e "$settings_source" ]; then
+            echo '{}' > "$settings_tmp"
+          elif ! ${pkgs.jq}/bin/jq 'del(.hooks, .enabledPlugins, .extraKnownMarketplaces, .outputStyle, .language)' \
+              "$settings_source" > "$settings_tmp"; then
+            rm -f "$settings_tmp"
+            echo "Could not read $settings_source as JSON; left the link in place" >&2
+            exit 1
+          fi
+          mv -f "$settings_tmp" "$settings_file"
         fi
-        mkdir -p "$(dirname "$settings_link")"
-        ln -sfn "$settings_source" "$settings_link"
       fi
     '';
     home.packages = map mkLauncher profiles;

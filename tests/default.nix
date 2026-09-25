@@ -118,8 +118,9 @@ lib.genAttrs systems (
             "/home/test"
             (toString inputs.nixpkgs.legacyPackages.x86_64-linux.git)
             (toString inputs.nixpkgs.legacyPackages.x86_64-linux.sops)
+            (toString activationHome.pkgs.jq)
           ]
-          [ "@test-home@" "@tools@" "@tools@" ]
+          [ "@test-home@" "@tools@" "@tools@" "@jq@" ]
           activationHome.config.home.activation.${name}.data
       );
     rejects =
@@ -314,6 +315,7 @@ lib.genAttrs systems (
           nativeBuildInputs = [
             pkgs.python3
             pkgs.bash
+            pkgs.jq
           ];
           cloneScript = snippet "privateRepos";
           secretsScript = snippet "secrets";
