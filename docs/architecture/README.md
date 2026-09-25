@@ -31,5 +31,6 @@ Flake 設定の設計判断・実装構造のドキュメント。設定変更�
 | [kernel-pin.md](./kernel-pin.md) | nixos-desktop のカーネルを 7.0 系にピン留め（7.1 系が X399 の ACPI S5 バグを踏み poweroff で電源が切れないのを回避）の設計判断 |
 | [codex-subagents.md](./codex-subagents.md) | Codex のサブエージェント（既定で親の履歴を全部コピーする MultiAgentV2）を無効化する判断と、置き場に `~/.codex/config.toml` への symlink ではなく `/etc/codex/config.toml`（システム層）を選んだ理由 |
 | [quaderno.md](./quaderno.md) | Quaderno A4 Gen2 から同一 LAN 経由で手書き PDF を取り込む設計（取り込み専用・手元はアーカイブ・mDNS で機器を見つける・`dpt-rp1-py` を master 固定で持つ理由。実機確認は未了） |
+| [antigravity-cli.md](./antigravity-cli.md) | Antigravity CLI（agy）を版固定と autoPatchelf で入れる判断。nix-ld と公式インストーラを退けた理由、自己更新が働かないこと |
 
 - [Graphify](graphify.md) — コード・文書の任意の探索環境。

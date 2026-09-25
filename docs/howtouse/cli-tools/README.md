@@ -11,6 +11,7 @@
 | ターミナル | kitty | 移行先。`Ctrl+a > 階層 > 動詞` のキー体系、タブ内ウィンドウ／タブの移動、Neovim をページャにしたスクロールバック | [kitty.md](./kitty.md) |
 | Git UI | lazygit | Git TUI クライアント (delta 連携) | [lazygit.md](./lazygit.md) |
 | AI リモート操作 | Happy | スマホから Codex を操作 | [happy.md](./happy.md) |
+| AI エージェント | Antigravity CLI (agy) | Gemini 3.8 Flash を使うエージェント CLI。日本語の校正の予備の経路 | [antigravity-cli.md](./antigravity-cli.md) |
 | シェルツール | fzf, eza, zoxide, fd, rg, bat, btm, direnv, jq, xh | モダン CLI ツール群 | [shell-tools.md](./shell-tools.md) |
 | PDF ビューア | tdf | 端末内で PDF を表示 (kitty graphics protocol) | [shell-tools.md#tdf](./shell-tools.md#tdf) |
 

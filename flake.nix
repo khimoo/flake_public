@@ -67,6 +67,11 @@
             graphify = inputs.nixpkgs-unstable.legacyPackages.${system}.graphify;
           } // nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
             rustowl = inputs.rustowl.packages.${system}.rustowl;
+            # legacyPackages は allowUnfree を持たないので、unfree の agy だけ設定付きで評価する。
+            antigravity-cli =
+              (import nixpkgs { inherit system; config.allowUnfree = true; }).callPackage
+                ./packages/antigravity-cli
+                { };
           });
 
       nixosConfigurations = {

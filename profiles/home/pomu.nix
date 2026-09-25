@@ -1,4 +1,4 @@
-{ config, ... }:
+{ config, lib, pkgs, ... }:
 {
   local.profile = {
     gitUsername = "khimoo";
@@ -13,4 +13,10 @@
       }
     ];
   };
+
+  # gemini-proofread が Gemini の API で校正できないときの予備の経路。
+  # 版を固定しているのは x86_64-linux の配布物だけなので、macOS には入れない。
+  home.packages = lib.optionals (pkgs.stdenv.hostPlatform.system == "x86_64-linux") [
+    (pkgs.callPackage ../../packages/antigravity-cli { })
+  ];
 }
