@@ -18,7 +18,7 @@ symlink して管理する。
 │       └── <skill-name>/SKILL.md
 ├── claude/
 │   ├── CLAUDE.md          # ~/.claude/CLAUDE.md になる。先頭で `@../shared/AGENTS.md` を import する
-│   ├── settings.json      # ~/.claude/settings.json になる（マシン固有値を入れない）
+│   ├── managed-settings.json # 方針。NixOS で /etc/claude-code/managed-settings.json になる（全ユーザーに掛かる）
 │   ├── profiles/
 │   │   └── <name>.json    # モデル別プロファイル。`claude-<name>` が `--settings` で重ねる
 │   ├── hooks/             # hook スクリプト（任意）
@@ -54,11 +54,11 @@ local.profile.agentProfiles = {
 
 宣言した名前ごとに PATH 上の実行ファイル `claude-<name>`（`claude --settings <root>/claude/profiles/<name>.json "$@"`）と
 `codex-<name>`（`codex --profile <name> "$@"`）ができる。素の `claude` `codex` はそのまま残り、
-プロファイル無しの起動では `claude/settings.json` の `model` と Codex の live 設定が使われる。
+プロファイル無しの起動では `~/.claude/settings.json`（アプリが書く live ファイル）の `model` と Codex の live 設定が使われる。
 
 - プロファイルの中身は起動時に読まれるので、編集に switch は要らない。**名前の追加・削除は switch が要る**
 - `claude-<name> --resume` は transcript のモデルを優先する。再開時にモデルを変えるなら `--model` を足す
-- セッション内の `/model` は `~/.claude/settings.json`（= repo の `claude/settings.json`）に書き戻す。プロファイルで起動している間はコマンドライン層が勝つので、保存した値は次回のプロファイル無し起動で効く
+- セッション内の `/model` は `~/.claude/settings.json` に書き戻す。このファイルは repo で追跡しない。プロファイルで起動している間はコマンドライン層が勝つので、保存した値は次回のプロファイル無し起動で効く
 - Codex の `--profile` は一回しか渡せず、`codex features` などの管理系サブコマンドには効かない。プロファイルは既定の `~/.codex` にだけ張るので `CODEX_HOME` を変えた起動には効かない。**存在しないプロファイル名を渡しても Codex は黙って無視する**（0.153.4 で exit 0、警告なし）ので、効いているかは TUI の表示モデルか `codex-<name> exec --json` の出力で確かめる
 - happy は `codex app-server` を直接起動して `--profile` を渡さないので、この仕組みの対象外
 - Claude のプロファイルは `settings.json` の上に重なる差分なので、`model` と `effortLevel` のように変えたい値だけを書く。hooks や plugins を写さない
@@ -105,13 +105,18 @@ local.profile.agentProfiles = {
 - switch が要るのは、プロファイル名を足す・消すときと、Claude Code か Codex が**全く新しい
   カテゴリ**を導入してそれを使い始めるとき（`claude.nix` の `claudeDirs` か `codex.nix` の
   `home.file` に 1 行足す）
-- `claude/settings.json` は管理対象。`~/.claude/settings.json` は checkout への symlink で、
-  `/model` や `/config` によるアプリからの編集も repo の差分になる。commit 前に残す行を選別する
+- 方針（フック、`enabledPlugins`、`extraKnownMarketplaces`、`outputStyle`、`language`）は
+  `claude/managed-settings.json` に書く。NixOS では `local.claudeManagedSettings` で
+  `/etc/claude-code/managed-settings.json` から直接リンクされ、マシンの全ユーザーに掛かる。
+  repo を直せば次のセッションから効く。JSON が壊れていると Claude Code が起動しない
+- `~/.claude/settings.json` は Claude Code が書く live ファイルで、repo で追跡しない。
+  `/model` や `/config`、`/plugin` で試したプラグインはここに入る。常用すると決めたプラグインは
+  `claude/managed-settings.json` に移す
 - 全プロジェクト共通の指示は `shared/AGENTS.md` に書く。Claude Code だけに効かせたい指示は
   `claude/CLAUDE.md` の import の下に書く
 - skills は Claude Code と Codex で同じ `SKILL.md` 形式。片方だけが解釈する frontmatter の
   キーは、もう片方には無視される
-- マシン固有値は `settings.json` と `base.rules` に入れない。マシン固有の指示は[下記](#マシン固有の指示)のホスト設定に書く。プロジェクト固有のローカル値は
+- マシン固有値は `managed-settings.json` と `base.rules` に入れない。マシン固有の指示は[下記](#マシン固有の指示)のホスト設定に書く。プロジェクト固有のローカル値は
   各プロジェクトの `.claude/settings.local.json` や `.codex/`、一時的な変更は起動引数を使う
 - live な設定は Nix 世代のロールバックでは戻らない。設定 repo の Git 履歴で復元する
 
@@ -143,15 +148,19 @@ switch 後の確認:
 
 設計判断は [../architecture/agent-config.md](../architecture/agent-config.md#マシン固有の指示はシステム層に置く) を参照。
 
-## Claudeの設定更新に対応する直接リンク
+## Claude の方針（managed settings）
 
-`settings.json`だけは`home.file`の世代リンクを使わず、
-activationで設定checkoutへ直接リンクする。2026-09-13にClaudeの
-プラグイン導入で、Nix store内に一時ファイルを作ろうとしてEROFSに
-なることを確認した。直接リンクなら原子更新の一時ファイルもcheckout内に置ける。
+NixOS のホストで `local.claudeManagedSettings` に設定 repo の `claude/managed-settings.json` の
+絶対パスを渡すと、`/etc/claude-code/managed-settings.json` がそのファイルへの直接リンクになる。
 
-Linux/Darwinともに同じ処理を使い、dry-runでは書き込まない。
-既存の通常ファイルは上書きせずエラーにする。中断でリンクが欠けても
-再activationで修復できる。Nix世代のrollbackで設定本文は戻らない。
-`agentConfigRoot`を無効化するときは、直接リンクした
-`~/.claude/settings.json`も手動で外す（他のリンクはHome Managerが管理する）。
+```nix
+local.claudeManagedSettings = "/home/pomu/sagyo/agents-private/claude/managed-settings.json";
+```
+
+- 効いているかは、セッションの `/status` の **Setting sources** に managed settings が出るかで確かめる
+- マシンの全ユーザーに掛かる。フックのコマンドは、フックのファイルが無いユーザーでは何もせずに終える形にする
+- 以前 `~/.claude/settings.json` を設定 repo へリンクしていたマシンでは、最初の activation が
+  リンクを普通のファイルに一度だけ移し替える（方針の項目は除く）。`agentConfigRoot` を無効化しても、
+  `~/.claude/settings.json` は普通のファイルとして残る
+
+設計判断は [../architecture/agent-config.md](../architecture/agent-config.md#claude-の方針は-managed-settings-に置きlive-設定は追跡しない) を参照。

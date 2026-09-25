@@ -41,7 +41,7 @@ flake_public 側が設定 repo について知るのはレイアウト規約（`
   Claude は `~/.claude/skills` から直接参照する。Codex は `~/.agents/skills` を
   `codex/skills/` に向け、そこから共有スキルへ相対リンクを張る。Codex 専用スキルは
   `codex/skills/` のみに置くため、Claude には公開されない
-- `claude/`: Claude Code だけが読むもの。`settings.json` と `hooks/` `output-styles/` `agents/` `commands/`
+- `claude/`: Claude Code だけが読むもの。`managed-settings.json`（方針）と `hooks/` `output-styles/` `agents/` `commands/`
 - `codex/rules/base.rules`: Codex だけが読むもの
 
 共通指示を repo 直下に置かないのは、Codex が cwd から上の `AGENTS.md` を project 指示としても
@@ -144,9 +144,8 @@ Claude Code がユーザー設定を読むカテゴリ（`skills` `agents` `comm
 ### `settings.json` を `--settings` で毎回重ねる（live を追跡しない）
 
 `claude --settings <file>` はコマンドライン層としてユーザー設定の上に重なるが、ラッパーを
-通さない起動（IDE、他ツールからの呼び出し）には効かず、`/model` の保存先が profile に
-上書きされて効かなく見える。live を symlink する現行方式のほうが、rules の `default.rules`
-と同じ「アプリの書き戻しを diff で見て選別する」運用に揃う。
+通さない起動（IDE、他ツールからの呼び出し）には効かない。managed settings なら起動の経路に
+よらず掛かる。
 
 ### home-manager が生成した読み取り専用の `settings.json` / `config.toml`
 
@@ -195,15 +194,25 @@ global の配線で全プロジェクトに効いているので不要。同じ 
   private 設定を repo に置けるようになる
 - `--profile` を複数回渡せるようになったら `base` プロファイル案を再検討する
 
-## Claudeの設定更新に対応する直接リンク
+## Claude の方針は managed settings に置き、live 設定は追跡しない
 
-`settings.json`だけは`home.file`の世代リンクを使わず、
-activationで設定checkoutへ直接リンクする。2026-09-13にClaudeの
-プラグイン導入で、Nix store内に一時ファイルを作ろうとしてEROFSに
-なることを確認した。直接リンクなら原子更新の一時ファイルもcheckout内に置ける。
+`~/.claude/settings.json` は Claude Code が `/model`、`/config`、`/plugin` のたびに書き込む。
+以前は設定 repo の `claude/settings.json` へ直接リンクし、アプリの書き込みを diff で選別していたが、
+コミットのたびに選別する手間が残った。Codex の `config.toml` と同じく、live ファイルは追跡しない。
 
-Linux/Darwinともに同じ処理を使い、dry-runでは書き込まない。
-既存の通常ファイルは上書きせずエラーにする。中断でリンクが欠けても
-再activationで修復できる。Nix世代のrollbackで設定本文は戻らない。
-`agentConfigRoot`を無効化するときは、直接リンクした
-`~/.claude/settings.json`も手動で外す（他のリンクはHome Managerが管理する）。
+残したい方針（フック、`enabledPlugins`、`extraKnownMarketplaces`、`outputStyle`、`language`）は、
+設定 repo の `claude/managed-settings.json` に置く。NixOS の `local.claudeManagedSettings` が
+`/etc/claude-code/managed-settings.json` をこのファイルへの直接リンクにする（Nix store に写さない）。
+managed settings はユーザー設定より優先され、一覧の項目（フックなど）はユーザー設定の分と合わさる。
+
+- マシンの全ユーザーに掛かる。フックのファイルが無いユーザーでも Bash を止めないよう、フックの
+  コマンドはファイルが無ければ何もせずに終える形にする
+- JSON が壊れていると Claude Code は起動しない。設定 repo のテストで、JSON として読めることを確かめる
+- managed に置いた `outputStyle` などは、セッションの中から変えられない
+
+移行は Home Manager の `claudeSettings` activation が一度だけ行う。`~/.claude/settings.json` が
+`<agentConfigRoot>/claude/settings.json` へのリンクなら、方針の項目を jq で除いた写しを普通のファイルと
+して書く（残すとフックが2回ずつ動く）。リンク先が無ければ `{}` を書く。それ以外のファイルやリンクには
+触らない。dry run では書かず、2回目以降は何もしない。JSON が読めなければリンクを残して失敗する。
+
+未確定: `/etc` のリンク先が無いとき（設定 repo を clone する前など）に Claude Code が起動を拒むか。
