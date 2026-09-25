@@ -225,6 +225,77 @@ nixos-rebuild-ng 25.11 のソース（`nixos_rebuild/process.py` の `run_wrappe
 
 このパスワード入力が負担になったら見直す。候補は二つある。一つは `id_lan` を agent に載せて `sudo` と `SSH_AUTH_SOCK` の方式に戻す案で、root から gcr の agent ソケットを使えるかは確認していない。もう一つはアクティベートのコマンドを NOPASSWD にする案で、パスワードなしで root として動かせるコマンドが増える。
 
+## cargo のビルド：`cargo remote-run`
+
+`cargo run` は nix-daemon を通さずに rustc を起動するので、常設のビルダーには回らない。
+spin713 で Bevy のプロジェクトを `cargo run` すると、4 スレッドのラップトップで数百のクレートをコンパイルすることになる。
+ビルドだけをデスクトップに任せ、GUI はラップトップで動かすために `cargo remote-run` を置いた。
+本体は [cargo-remote-run.sh](../../modules/home-manager/dev/cargo-remote-run.sh)、有効化は [cargo-remote-run.nix](../../modules/home-manager/dev/cargo-remote-run.nix) の `local.cargoRemoteRun` で、使い方は [howtouse](../howtouse/remote-build.md#cargo-run-のビルドだけを回すcargo-remote-run) にある。
+
+### 方式の選択
+
+退けた案と理由:
+
+- **Nix パッケージにして `nix run` する**（crane や `buildRustPackage`）: 常設のビルダーにそのまま回り、実行時の依存も手元へ届く。ただし derivation の中では cargo の incremental compilation が使えず、編集のたびに自分のクレートを最初からコンパイルする。完成したものを動かす用途には足りるが、編集と実行を繰り返す開発には遅い
+- **デスクトップに SSH で入って開発する**: 設定が要らない。GUI の画面はデスクトップに出るので、RDP 越しに見ることになる
+- **sccache-dist**: `cargo run` のままでコンパイルを分散できる。分散されるのは主に依存クレートで、編集中のクレートとリンクは手元に残る。スケジューラとビルドサーバーの設置も要る
+- **cargo-remote**（[sgeisler/cargo-remote](https://github.com/sgeisler/cargo-remote)）: rsync してリモートで cargo を実行する、同じ方式の既製品。既定ブランチの最終コミットが 2021-04-24 で（2026-09-26 に GitHub API で確認）、保守が止まっている。devShell を手元と揃える仕組みもない
+
+採用したのは、rsync、ssh、`nix copy` を組み合わせた自前のスクリプト。
+
+### 手元の devShell をデスクトップへ送る
+
+デスクトップで同じ flake を評価し直す方式は採らない。
+devShell の中のビルドは Nix の cc wrapper を通るので、実行ファイルの ELF interpreter（glibc の動的リンカー）と RUNPATH は devShell のストアパスを指す。
+デスクトップが評価した devShell が手元と違うと（flake_public の checkout の版がずれている、未コミットの変更がある、など）、持ち帰った実行ファイルは手元にない glibc を探して起動できない。
+
+そこで手元で `nix print-dev-env --profile` を実行する。
+profile が指す env の出力は devShell のすべての入力を参照するので、これを `nix copy` すると devShell 全体がデスクトップに揃う。
+デスクトップは print-dev-env の出力（bash の rc）を読み込むだけで、flake を評価しない。
+`--substitute-on-destination` を付け、binary cache にあるパスはデスクトップが cache.nixos.org から取る。`builders-use-substitutes` と同じ理由で、ラップトップから tailnet 越しに送るより速いことが多い。
+devShell の env は手元か常設ビルダーでビルドしたもので、binary cache になく署名もない。
+`nix copy` は既定で送り先に署名を確かめさせるので、デスクトップが env を持っていないと `lacks a signature by a trusted key` で失敗する。
+そこで `--no-check-sigs` を付ける。確認を省けるのは送り先で trusted-users に入っているユーザーだけで、後述の `trusted-users` の節の範囲内に収まる。
+2026-09-26 に、手元にだけある未署名のパスで、付けないと失敗し、付けると送れることを確かめた。
+デスクトップから rust-min の env を消した後の `cargo remote-run` でも、env が送られてビルドと実行まで進んだ。
+それまでの実行が通っていたのは、env を常設ビルダーがデスクトップでビルドしていて、送る必要がなかったからだ。
+
+デスクトップで rc を読み込むときの扱い:
+
+- ワークスペースの中で読み込む。aquaponics-sim の shellHook は `just --list` を実行し、ホームディレクトリで読み込むと `error: no justfile found` が出た
+- rc の標準出力は捨てる。shellHook の出力を混ぜると、次に述べる runner の出力を読めなくなる
+- rc は `mktemp -d` で一時ディレクトリを作り、`NIX_BUILD_TOP` と `TMPDIR` に入れる（Nix 2.31.5 の print-dev-env の出力で確認）。消さないとデスクトップの `/tmp` に実行のたびに残るので、終了時に消す。読み込む前に `NIX_BUILD_TOP` を unset し、rc が作ったものだけを消す。偽の rc でテストしたとき、サンドボックスから引き継いだ `NIX_BUILD_TOP=/build` を消しかけたことがある
+
+### 実行ファイルの選択は `cargo run` に任せる
+
+`cargo build --message-format=json` の出力から実行ファイルを拾う方式では、`default-run`、cwd のパッケージ、`-p`、`--bin`、`--example` による選択を cargo と同じに作り直す必要がある。
+代わりにデスクトップでも `cargo run` を実行し、`--config` で `target.'cfg(all())'.runner` を差し替える。
+runner は実行ファイルを動かさず、デスクトップ側のワークスペース、`CARGO_MANIFEST_DIR`、実行ファイルのパス、実行時の引数を NUL 区切りで標準出力に出す。
+cargo run の引数の解釈がそのまま使え、スクリプトは `--` の前後を分けなくてよい。
+
+cargo は cwd の下にある実行ファイルを cwd からの相対パスで runner に渡し、それ以外は絶対パスで渡す（2026-09-26 にデスクトップの cargo 1.91.1 で確認）。スクリプトは両方を扱う。
+[cargo の設定の仕様](https://doc.rust-lang.org/cargo/reference/config.html#targetcfgrunner)では、triple と cfg の runner が両方当たると triple が優先され、cfg の runner が複数当たるとエラーになる。
+そのため、プロジェクトが `target.<triple>.runner` を持っているとプログラムがデスクトップで動き、`target.'cfg(...)'.runner` を持っているとエラーで止まる。この二つの構成には対応しない。
+
+### そのほかの判断
+
+- rsync で `target/` を除外する。除外したパスは `--delete` でも受け側から消えないので、デスクトップの `target/` が残って incremental compilation に使われる。`-a` で mtime を保つので、変更していないファイルは cargo からも変更なしに見える
+- 手元の cwd のワークスペースからの相対位置を、デスクトップでも同じにする。`cargo run` はサブディレクトリで実行するとそのパッケージを選ぶので、cwd を揃えないと選ぶ実行ファイルが変わる
+- 実行ファイルは `target/remote-run/bin/` に置き、手元の cargo のビルド結果（`target/debug/` など）と混ぜない
+- 実行ファイルの debug 情報は残したまま持ち帰る。aquaponics-sim の debug ビルドは 961 MB で、`objcopy --strip-debug` すると 85 MB になる（`zstd -3` で圧縮するとそれぞれ 183 MB と 23 MB）。debug 情報を除くと panic のバックトレースからファイル名と行番号が消えるので、転送の速さと手元の容量よりこちらを優先した（2026-09-26 にユーザーが選んだ）
+- 持ち帰る前に、前回の実行ファイルを消す。rsync は一時ファイルに書いてから置き換えるので、残すと大きな実行ファイル 2 つ分の空きが手元に要る。spin713 の空きが 739 MB のとき、2 回目の転送が `No space left on device` で失敗した。代わりに rsync の差分転送は使えない。転送は `--compress` で圧縮し、両ホストの rsync 3.4.1 は zstd を優先する（`rsync --version` の `Compress list`）
+- 手元で実行するとき、`CARGO_MANIFEST_DIR` を手元のパッケージのディレクトリに設定する。Bevy 0.14.2 の `bevy_asset/src/io/file/mod.rs` の `get_base_path` は、`BEVY_ASSET_ROOT`、`CARGO_MANIFEST_DIR`、実行ファイルのディレクトリの順に asset のルートを決める。設定しないと `target/remote-run/bin/assets` を探して読み込みに失敗する
+- ビルドの失敗は `ssh` の終了コードでスクリプトを止める。前回持ち帰った実行ファイルは動かさない
+- `ssh` に端末を割り当てない（`-t` を付けない）。端末を割り当てると標準出力と標準エラー出力が一つになり、runner の出力を分けて読めない。標準入力も rc を送るのに使っている。代わりに、Ctrl-C で手元の ssh が終わってもデスクトップのプロセスに SIGHUP が届かない。40 秒眠る build script のビルド中に手元のプロセスグループへ SIGINT を送ったところ、手元は終了コード 255 ですぐ終わり、デスクトップの bash と build script は 3 秒後にも残っていて、45 秒後には消えていた（2026-09-26）。cargo が次の出力で書き込みに失敗して終わるのか、ビルドを最後まで続けたのかは確かめていない
+
+### 計測（2026-09-26、spin713 → nixos-desktop、LAN 内の tailnet 経由）
+
+- 依存のない crate（rust-toybox/test-bitA）: 変更がないときの 1 回の実行が 2.1 秒。print-dev-env の評価（flake_public は未コミットの変更があり、評価キャッシュが使えない）、`nix copy` の確認、ssh と rsync の接続がこの時間の中身になる
+- 初回の print-dev-env: flake_public の `rust-min` の toolchain が手元になく、取得に 593 秒かかった。評価の最大メモリは 178 MB。direnv でその devShell に一度入っていれば、この取得は起きない
+- aquaponics-sim（Bevy 0.14.2、依存は `opt-level = 3`）: デスクトップに `target/` がない状態からのビルドは 14 分 49 秒（cargo の表示。デスクトップではほかの評価も同時に走っていた）。実行ファイルは 961 MB
+- aquaponics-sim をビルドなしで実行: `cargo run` の runner が呼ばれるまで 7.5 秒、転送 18.7 秒、起動からウィンドウ作成まで 1.0 秒。7.5 秒には、計測のために外側で実行した `nix develop` の評価も入っている
+- aquaponics-sim の `app/src/main.rs` の mtime を更新して実行: デスクトップでの再コンパイルは 16.2 秒（cargo の表示）、runner が呼ばれるまで 19.7 秒、転送 20.2 秒。Bevy のログの SystemInfo と AdapterInfo は、ラップトップの CPU（i3-8130U）と GPU（Intel UHD Graphics 620、Vulkan）を示した
+
 ## モジュール責務の分離
 
 | モジュール | 責務 |
@@ -235,6 +306,8 @@ nixos-rebuild-ng 25.11 のソース（`nixos_rebuild/process.py` の `run_wrappe
 | `modules/nixos/users.nix` | `nixos-rebuild` 本体の NOPASSWD（`--sudo` のアクティベートは対象外） |
 | `hosts/machines.nix` | ホスト一覧、LAN 共通鍵の公開鍵、ビルダーの能力（マシンの単一の情報源） |
 | `hosts/nixos-spin713/default.nix` | `local.remoteBuilders.enable = true` と `localBuilds = false`（どのホストがビルドを回し、手元でビルドするかの方針） |
+| `modules/home-manager/dev/cargo-remote-run.nix` | `local.cargoRemoteRun` から `cargo-remote-run` コマンドを生成（接続先はユーザーごとに `host` で指定） |
+| `hosts/nixos-spin713/home.nix` | spin713 の `pomu` で `cargo remote-run` を有効にし、接続先を `desktop-ts` にする |
 
 「共通インフラ」と「マシン登録簿」を分離し、新ホストを追加するときに触る場所を
 `hosts/machines.nix` の1エントリに局所化している（詳細は [machine-ssh.md](./machine-ssh.md)）。
@@ -246,3 +319,6 @@ nixos-rebuild-ng 25.11 のソース（`nixos_rebuild/process.py` の `run_wrappe
 - tailnet をやめるなら、`hostName` を `.local` に戻す。そのときは出先で常設ビルダーが使えなくなる
 - デスクトップのスレッド数やメモリが変わったら、`builders` の `maxJobs` と `supportedFeatures` をそのホストの `nix config show` の値に合わせ直す
 - 出先で tailnet に入れない場面が増え、`--max-jobs 4` を付ける手間が目立ったら、spin713 の `localBuilds` を true に戻す。エージェントへの指示は残るので、エージェントが黙って手元でビルドすることは指示の側で防ぐ
+- `cargo remote-run` で、実行ファイルの転送が編集と実行の繰り返しの待ち時間の大半を占めるようになったら（出先の回線など）、持ち帰る前にデスクトップで `objcopy --strip-debug` する。バックトレースの行番号と引き換えに、転送量はおよそ 8 分の 1 になる。ラップトップの空きが実行ファイル 1 つ分を下回ったときも同じ。Bevy の `dynamic_linking` を使いたくなったら、`target/<profile>/deps/` の共有ライブラリも持ち帰り、`LD_LIBRARY_PATH` に足す
+- Ctrl-C の後にデスクトップで cargo が残り、次の実行がロック待ちになるのが目立ったら、rc を別のファイルで送り、ssh の標準入力を接続の確認に使う。デスクトップ側は標準入力の EOF を待って cargo を止める
+- `cargo remote-run` の毎回の devShell の評価が遅いと感じたら、nix-direnv が `.direnv/` に残す profile を使う。nix-direnv の内部のファイル名に依存するので、最初は採らなかった

@@ -2,6 +2,10 @@
 
 {
   imports = [ ../../profiles/home/pomu-workstation.nix ];
+  local.cargoRemoteRun = {
+    enable = true;
+    host = "desktop-ts";
+  };
   dconf = {
     enable = true;
     settings = {

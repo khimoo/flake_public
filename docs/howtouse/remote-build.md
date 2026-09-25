@@ -71,6 +71,61 @@ nix develop --max-jobs 4
 
 デスクトップが 32 個のビルドを同時に抱えているときは、あふれた分は失敗せず、空きが出るまで待つ。
 
+## `cargo run` のビルドだけを回す（`cargo remote-run`）
+
+cargo は nix-daemon を通さずに rustc を起動するので、`cargo run` のビルドは常設のビルダーに回らない。
+`cargo remote-run` は `cargo run` と同じ引数を受け取り、ビルドをデスクトップで行い、できた実行ファイルをラップトップで実行する。
+Bevy などの GUI の画面はラップトップに出る。
+
+direnv で devShell に入ったプロジェクトの中で、`cargo run` の代わりに使う。
+
+```sh
+cargo remote-run                         # cargo run と同じ実行ファイルを選ぶ（default-run も含む）
+cargo remote-run --release -- --foo bar  # -- の後ろは実行時の引数
+cargo remote-run --bin dump_diagrams
+```
+
+spin713 では `hosts/nixos-spin713/home.nix` の `local.cargoRemoteRun`（接続先は `desktop-ts`）で有効にしてある。
+home-manager の switch の後から使える。
+
+実行のたびに、次の順で動く。
+
+1. `.envrc` の `use flake [ref]` から devShell を決め、`nix print-dev-env` で手元に用意する。それを `nix copy` でデスクトップへ送る。デスクトップにないパスは、デスクトップが cache.nixos.org から取る
+2. cargo のワークスペースを、デスクトップの `~/.cache/cargo-remote-run/<手元のホスト名>/<手元の絶対パス>` へ `rsync` する。`target/`、`.git/`、`.direnv/` と、`.gitignore` に当たるファイルは送らない
+3. デスクトップでその devShell を読み込み、`cargo run` を実行する。ただし実行ファイルは動かさず、cargo が選んだ実行ファイルのパスだけを返させる
+4. 実行ファイルを手元の `target/remote-run/bin/` に持ち帰って実行する。`CARGO_MANIFEST_DIR` は手元のパッケージのディレクトリを指すので、Bevy は手元の `assets/` を読む
+
+実行ファイルは debug 情報を含めたまま持ち帰る。
+Bevy の debug ビルドは大きく（aquaponics-sim で約 1 GB）、自宅の LAN 内でも転送に 20 秒ほどかかる。
+手元にはその大きさの空きが要る。
+前回持ち帰ったものは転送の前に消すので、2 つ分は要らない。
+
+コンパイルのエラーと警告は、手元の端末にそのまま出る。
+ビルドに失敗したときは実行しない。
+
+ビルド中に Ctrl-C を押すと、手元はすぐに止まる。
+デスクトップの cargo は、そのとき走っている rustc や build script が終わるまで残る。
+その間に実行し直すと、cargo はロックが空くのを待つことがある。
+
+### 使えない構成
+
+- `.envrc` に `use flake` がないプロジェクト。devShell を決められないので、最初に止まる
+- ワークスペースの外にある path 依存（`path = "../other"`）。デスクトップに送らないので、ビルドが失敗する
+- 実行時に `target/` の中の共有ライブラリを読む構成（Bevy の `dynamic_linking` feature など）。持ち帰るのは実行ファイルだけなので、起動時にライブラリが見つからない
+- プロジェクトの `.cargo/config.toml` が runner を設定している構成。`target.<triple>.runner` ならそちらが優先され、プログラムがデスクトップで動く。`target.'cfg(...)'.runner` なら cargo がエラーで止まる
+- デスクトップのログインシェルが bash でないとき。引数を bash の形式でエスケープして渡している
+- デスクトップに繋がらないとき。手元でビルドするなら、普通の `cargo run` を使う
+
+### デスクトップに残るもの
+
+デスクトップにはプロジェクトごとのソースの写しと `target/` が残り、次の実行で incremental compilation に使われる。
+容量を空けるときは、プロジェクトのディレクトリごと消す。
+次の実行は最初からのビルドになる。
+
+```sh
+ssh desktop-ts rm -rf .cache/cargo-remote-run/nixos-spin713/home/pomu/sagyo/aquaponics-sim
+```
+
 ## `--build-host` で明示的に回す
 
 `local.remoteBuilders` を有効にしていないホストからは、`nixos-rebuild` に `--build-host` を付けてビルドを回す。
@@ -232,4 +287,5 @@ builders = {
 - [hosts/machines.nix](../../hosts/machines.nix) — ホスト一覧、LAN 共通鍵の公開鍵、ビルダーの能力
 - [modules/nixos/nix-settings.nix](../../modules/nixos/nix-settings.nix) — trusted-users
 - [modules/nixos/users.nix](../../modules/nixos/users.nix) — `nixos-rebuild` 本体だけを NOPASSWD にする sudo 規則
+- [modules/home-manager/dev/cargo-remote-run.nix](../../modules/home-manager/dev/cargo-remote-run.nix) / [cargo-remote-run.sh](../../modules/home-manager/dev/cargo-remote-run.sh) — `local.cargoRemoteRun` と `cargo remote-run` の本体
 - マシン間 SSH の使い方・設計: [machine-ssh.md](./machine-ssh.md) / [../architecture/machine-ssh.md](../architecture/machine-ssh.md)

@@ -177,6 +177,15 @@ lib.genAttrs systems (
       assert !(home.config.home.activation ? rustowl);
       assert (builtins.any (p: (p.pname or "") == "rustowl") home.config.home.packages) == (system == "x86_64-linux");
       assert (mkTestHome system [{ local.rustowl.enable = false; }]).config.xdg.dataFile."nvim/nix/rustowl.lua".text == "return nil";
+      assert !(hasLauncher home.config "cargo-remote-run");
+      assert hasLauncher (mkTestHome system [
+        {
+          local.cargoRemoteRun = {
+            enable = true;
+            host = "builder";
+          };
+        }
+      ]).config "cargo-remote-run";
       assert !(builtins.any (p: (p.pname or "") == "vscode") home.config.home.packages);
       assert hasLauncher users.alice "claude-opus";
       assert hasLauncher users.alice "codex-astra";
@@ -328,6 +337,20 @@ lib.genAttrs systems (
         }
         ''
           python ${./activation.py}
+          touch "$out"
+        '';
+    cargo-remote-run =
+      pkgs.runCommandCC "cargo-remote-run"
+        {
+          nativeBuildInputs = [
+            pkgs.python3
+            pkgs.cargo
+            pkgs.rustc
+            pkgs.rsync
+          ];
+        }
+        ''
+          python ${./cargo-remote-run.py} ${../modules/home-manager/dev/cargo-remote-run.sh}
           touch "$out"
         '';
     quaderno-plan = pkgs.runCommand "quaderno-plan" { nativeBuildInputs = [ pkgs.python3 ]; } ''

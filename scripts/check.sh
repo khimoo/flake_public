@@ -18,5 +18,5 @@ nix eval --json --no-update-lock-file .#checks \
   --apply 'systems: builtins.mapAttrs (_: checks: builtins.mapAttrs (_: c: c.drvPath) checks) systems'
 printf '\n'
 check_system=$(nix eval --impure --raw --expr builtins.currentSystem)
-nix build --no-link --no-update-lock-file ".#checks.${check_system}.module-contracts" ".#checks.${check_system}.docs" ".#checks.${check_system}.activation" ".#checks.${check_system}.quaderno-plan"
+nix build --no-link --no-update-lock-file ".#checks.${check_system}.module-contracts" ".#checks.${check_system}.docs" ".#checks.${check_system}.activation" ".#checks.${check_system}.quaderno-plan" ".#checks.${check_system}.cargo-remote-run"
 git diff --check

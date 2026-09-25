@@ -12,7 +12,7 @@ Flake 設定の設計判断・実装構造のドキュメント。設定変更�
 | [rustowl.md](./rustowl.md) | RustOwl の導入（rustowl-flake 由来）と Neovim 連携 |
 | [users.md](./users.md) | ユーザー管理・sudo 設定・home-manager 連携 |
 | [machine-ssh.md](./machine-ssh.md) | flake 内マシンの相互 SSH（`machines.nix` 集約・LAN 共通鍵）の設計判断 |
-| [remote-build.md](./remote-build.md) | SSH 経由のリモートビルドの設計判断。常設ビルダー（`nix.buildMachines`）を主にした理由、tailnet の接続名を使う理由、到達できないときの挙動、spin713 で手元のビルドを止める（`max-jobs = 0`）理由、`--build-host` の併用 |
+| [remote-build.md](./remote-build.md) | SSH 経由のリモートビルドの設計判断。常設ビルダー（`nix.buildMachines`）を主にした理由、tailnet の接続名を使う理由、到達できないときの挙動、spin713 で手元のビルドを止める（`max-jobs = 0`）理由、`--build-host` の併用、`cargo remote-run` で手元の devShell を送り実行ファイルだけを持ち帰る理由 |
 | [tailscale.md](./tailscale.md) | LAN の外からのマシン間 SSH とリモートビルドを Tailscale で通す判断。`.local` と `-ts` の接続名を分ける理由、MagicDNS が openresolv 経由で引ける根拠、デスクトップを自動サスペンドさせない理由、GUI の確認に waypipe ではなく RDP を使い tailnet 側だけに開ける理由 |
 | [xdg-scheme-workaround.md](./xdg-scheme-workaround.md) | XDG スキームハンドラの手動登録（一時的） |
 | [devshells.md](./devshells.md) | コードリーディング用共通 devShell の設計判断 |
