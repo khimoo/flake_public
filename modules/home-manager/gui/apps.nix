@@ -2,6 +2,7 @@
   config,
   pkgs,
   kiro,
+  inputs,
   lib,
   ...
 }:
@@ -72,6 +73,7 @@ let
     {
       pkg = pkgs.krita;
     }
+    { pkg = inputs.rnote.packages.${pkgs.stdenv.hostPlatform.system}.default; }
     { pkg = pkgs.mypaint; }
     {
       pkg = pkgs.vlc;
