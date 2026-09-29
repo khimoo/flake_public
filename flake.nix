@@ -49,6 +49,12 @@
       url = "github:khimoo/zettelkasten-workflow";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # comma と command-not-found が引く nix-index のデータベース。週次で生成済みのものを
+    # 取り、手元で nixpkgs 全体を索引しない。判断は docs/architecture/comma.md に置いた。
+    nix-index-database = {
+      url = "github:nix-community/nix-index-database";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
