@@ -25,7 +25,12 @@ Read [README](README.md) and the relevant [architecture](docs/architecture/READM
 
 ## Verification
 
-Run `bash scripts/check.sh` after configuration changes. It checks the current-system flake outputs, every standalone Home Manager generation, Linux/Darwin module contracts, local documentation links and whitespace, then builds native checks. See [validation](docs/howtouse/validation.md) for scope and commands.
+Choose the smallest verification that exercises the boundary changed. Do not run `bash scripts/check.sh` by default: it evaluates every NixOS and standalone Home Manager configuration and can build evaluation-time dependencies such as the patched Mutter, so unrelated changes can make it slow. See [validation](docs/howtouse/validation.md) for the available commands and their scope.
+
+- For a host or Home Manager module change, evaluate the affected configuration and build the changed package or focused check. Evaluate a second configuration only when it shares the changed path.
+- For documentation-only changes, run `python3 scripts/check-docs.py .` and `git diff --check`.
+- Run the full `bash scripts/check.sh` for changes whose effects cannot be bounded to specific outputs, such as shared configuration assembly, profile/user isolation, platform conditions, activation infrastructure or global overlays. The Linux CI also runs the full command after push.
+- Run expensive evaluation and builds on the desktop. Do not run the full check on `nixos-spin713`; it has previously made the machine unresponsive.
 
 - For a regression, add a focused check at the boundary that failed (platform support, user isolation, activation failure), not a test that simply repeats implementation details.
 - For package changes, build the changed package and run its existing install checks.
