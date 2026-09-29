@@ -150,6 +150,7 @@ nixos-rebuild switch \
 
 アクティベートの直前に `sudo` のパスワードを聞かれる（同じ端末で直前に `sudo` を通していれば省略される）。
 `users.nix` で NOPASSWD にしているのは `nixos-rebuild` 本体だけで、`--sudo` が `sudo` 付きで呼ぶ `nix-env` と `switch-to-configuration` は対象外だから。
+パスワードを聞かれずに済ませるときは、[ビルドと切り替えを分ける](#パスワードを聞かれずに切り替える)。
 
 ### LAN の外からビルドする
 
@@ -165,6 +166,22 @@ nixos-rebuild switch \
 
 両ホストが tailnet に参加している必要がある（[tailscale.md](./tailscale.md)）。
 `--use-substitutes` を付けると、binary cache にあるパスはラップトップが cache.nixos.org から直接取り、デスクトップから tailnet 越しに運ぶのはデスクトップで作ったパスだけになる（[判断の根拠](../architecture/tailscale.md#出先のリモートビルドでは---use-substitutes-を付ける)）。
+
+### パスワードを聞かれずに切り替える
+
+`--sudo` のパスワードはビルドと転送が終わってから聞かれるので、ビルドが長いと端末を離れている間にプロンプトで止まる。
+ビルドと切り替えを別のコマンドに分けると、パスワードを一度も聞かれない:
+
+```sh
+nixos-rebuild build --flake .#nixos-spin713 --build-host desktop-ts --use-substitutes \
+  && sudo nixos-rebuild switch --flake .#nixos-spin713
+```
+
+1 つ目は `sudo` なしでデスクトップでビルドし、成果物をラップトップのストアに取り込む。
+2 つ目は同じ構成を評価し直すが、成果物がもうストアにあるのでビルドしない。
+`--build-host` を付けないので、root から SSH することもない。
+`sudo nixos-rebuild` は `users.nix` の NOPASSWD に当たるので、パスワードは聞かれない。
+代わりに flake の評価が 2 回走る。
 
 ## 動作確認
 

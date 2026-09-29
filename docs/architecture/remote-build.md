@@ -223,7 +223,12 @@ nixos-rebuild-ng 25.11 のソース（`nixos_rebuild/process.py` の `run_wrappe
 
 `users.nix` で NOPASSWD にしているのは `nixos-rebuild` 本体だけなので、`--sudo` が `sudo` 付きで呼ぶアクティベートのコマンドではパスワードを聞かれる。プロンプトはビルドと転送が終わった後に出る。
 
-このパスワード入力が負担になったら見直す。候補は二つある。一つは `id_lan` を agent に載せて `sudo` と `SSH_AUTH_SOCK` の方式に戻す案で、root から gcr の agent ソケットを使えるかは確認していない。もう一つはアクティベートのコマンドを NOPASSWD にする案で、パスワードなしで root として動かせるコマンドが増える。
+ビルドが長いと、端末を離れている間にこのプロンプトで止まる。
+手順では、`--build-host` 付きの `nixos-rebuild build` でビルドと転送を済ませ、続けて `sudo nixos-rebuild switch` で切り替える（[手順](../howtouse/remote-build.md#パスワードを聞かれずに切り替える)）。
+2 つ目のコマンドは成果物がストアにあるのでビルドせず、`--build-host` を付けないので root から SSH もしない。
+NOPASSWD の範囲は変えずに済み、代わりに flake の評価が 2 回走る。
+
+1 回のコマンドのままパスワードをなくすなら、候補は二つある。一つは `id_lan` を agent に載せて `sudo` と `SSH_AUTH_SOCK` の方式に戻す案で、root から gcr の agent ソケットを使えるかは確認していない。もう一つはアクティベートのコマンドを NOPASSWD にする案で、パスワードなしで root として動かせるコマンドが増える。
 
 ## cargo のビルド：`cargo remote-run`
 
