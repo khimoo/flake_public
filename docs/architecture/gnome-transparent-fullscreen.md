@@ -30,7 +30,7 @@ X11 クライアント用の `meta-window-actor-x11.c` にはこの処理がな�
 ## 判断
 
 mutter にパッチを当て、`system.replaceDependencies` で差し替える。
-有効にしたのは spin713 だけで、オプションは `local.gnome.transparentFullscreen.enable`。
+desktop と spin713 で `local.gnome.transparentFullscreen.enable` を有効にした。
 
 パッチは `meta-window-actor-wayland.c` の 2 か所を変える。
 
@@ -53,14 +53,14 @@ mutter の依存（glib や mesa など）は nixpkgs を更新するたびに�
 
 spin713 は `hosts/nixos-spin713/chrome-audio.nix` ですでに `replaceDependencies` を使っている。
 評価のたびに元のシステム closure を実体化する IFD の負担は、もう払っている。
-デスクトップに入れると、デスクトップの評価にも新しくこの負担がかかるので、有効にしていない。
+デスクトップでも全画面の半透明ウィンドウを使うため、この評価負担を受け入れて有効にした。
 
 ## 代償
 
 - xdg-shell の規定（must）から外れる。kitty 以外でも、opaque region を宣言せずにアルファ付きのバッファで全画面にする Wayland アプリは、下の画面が透ける。該当するアプリは調べていない。候補は EGL や Vulkan で描くゲーム、動画プレイヤー、Wine で、`weston-simple-egl` の現行版は全画面のとき自分で不透明にするので当たらない。
 - そうした表示の崩れを、アプリや mutter に不具合として報告できない。
 - nixpkgs は `replaceDependencies` を短期の手段として作っている（「This should be a short term solution」）。置換は `nix-store --dump` の出力を `sed` で書き換える処理なので、圧縮されたファイルの中のパスは置換されない。置換が漏れていないかは、closure に元の mutter が残っていないかで確かめる。
-- mutter は nixpkgs を更新するたびにビルドされ、spin713 の評価（`scripts/check.sh` と CI を含む）はそのビルドを待つ。
+- mutter は nixpkgs を更新するたびにビルドされ、desktop と spin713 の評価（`scripts/check.sh` と CI を含む）はそのビルドを待つ。
 - パッチが当たらなくなるとビルドが止まる。黙って無効になることはない。
 - パッチで mutter の ABI を変えてはいけない。gnome-shell は元の mutter のヘッダでビルドされたまま使われる。
 
@@ -80,6 +80,9 @@ D-Bus から起動される dconf-service などはデーモンの環境を引�
 ヘッドレスでは KMS の CRTC がないので、direct scanout は起きない。
 パッチの 2 つ目（scanout の候補から外す変更）は、ソースを読んだ判断にとどまる。
 実機で全画面の kitty がまだ黒いなら、ここを疑う。
+
+2026-09-29、desktop でも `system.build.toplevel.drvPath` の評価と、置換先の mutter のビルドが通った。
+実機の GNOME セッションでの表示は、世代切替と再ログイン後に確認する。
 
 ## 見直しの契機
 

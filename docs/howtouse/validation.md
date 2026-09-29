@@ -27,7 +27,7 @@ Git flakeは未追跡ファイルを読みません。新しいファイルは `
 
 Darwin構成はLinuxから評価できますが、macOSバイナリのbuild・activation・GUI動作を検証したことにはなりません。外部リンクの到達性、Markdownの見出しanchor、文書内容の正しさも自動リンク検証の対象外です。
 
-spin713の音声回避策と全画面を透かすmutterのパッチは `system.replaceDependencies` を使い、評価中にシステムclosureの参照を生成するimport-from-derivation（IFD）が発生します。評価の途中でパッチを当てたmutterもビルドするので、binary cacheに無い間はCIでもmutterのビルドを待ちます。未生成の `references.nix.drv` に対して `nix flake check` が失敗するため、一括検証では先に両ホストを明示評価します。freshなCIではGUI・音楽制作を含む多数のstore依存を取得・buildするので、十分なディスク容量と時間が必要です。`--no-build` はこの評価依存をなくす指定ではありません。NixOSの世代切替は行いません。
+spin713の音声回避策と、両ホストの全画面を透かすmutterのパッチは `system.replaceDependencies` を使い、評価中にシステムclosureの参照を生成するimport-from-derivation（IFD）が発生します。評価の途中でパッチを当てたmutterもビルドするので、binary cacheに無い間はCIでもmutterのビルドを待ちます。未生成の `references.nix.drv` に対して `nix flake check` が失敗するため、一括検証では先に両ホストを明示評価します。freshなCIではGUI・音楽制作を含む多数のstore依存を取得・buildするので、十分なディスク容量と時間が必要です。`--no-build` はこの評価依存をなくす指定ではありません。NixOSの世代切替は行いません。
 
 ## 変更に応じた追加確認
 

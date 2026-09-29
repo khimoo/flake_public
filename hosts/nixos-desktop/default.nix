@@ -6,6 +6,7 @@
     ../../modules/nixos/common.nix
   ];
   boot.kernelParams = [ "btusb.enable_autosuspend=n" ];
+  local.gnome.transparentFullscreen.enable = true;
 
   # 外出先から tailnet 経由で SSH とリモートビルドに使うので、無操作でサスペンドさせない。
   # サスペンドすると外から起こす手段がない（docs/architecture/tailscale.md）。
