@@ -22,6 +22,7 @@
     ./codex.nix
     ./agent-instructions.nix
     ./claude-managed-settings.nix
+    ./gnome-transparent-fullscreen.nix
   ];
 
   # システム状態バージョン

@@ -88,6 +88,11 @@ kitty 組み込みの `Ctrl+Shift+F6`（`debug_config`）も割当てを出す�
 | `Ctrl+=` / `Ctrl+-` | 5% 上げる / 下げる |
 | `Ctrl+0` | 既定の 0.75 に戻す |
 
+全画面（`Ctrl+Shift+F11`）でも下が透けるのは、`local.gnome.transparentFullscreen.enable` を有効にしたホスト（spin713）だけ。
+GNOME の mutter は、全画面にした半透明のウィンドウの下を黒で塗るので、有効にしていないホストでは最大化で代わりにする。
+有効にしたあとは、システムを切り替えてもログインし直すまで反映されない（動いている gnome-shell は古い mutter のまま）。
+代償と外す条件は [docs/architecture/gnome-transparent-fullscreen.md](../../architecture/gnome-transparent-fullscreen.md) を参照。
+
 ## スクロールバック
 
 `Ctrl+a y`（または kitty 既定の `Ctrl+Shift+H`）でスクロールバックが Neovim で開く。kitty 自身は

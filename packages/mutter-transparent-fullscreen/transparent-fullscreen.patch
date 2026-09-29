@@ -1,0 +1,30 @@
+--- a/src/compositor/meta-window-actor-wayland.c
++++ b/src/compositor/meta-window-actor-wayland.c
+@@ -388,7 +388,12 @@
+     }
+ 
+   window = meta_window_actor_get_meta_window (actor);
+-  if (meta_window_is_fullscreen (window) && n_visible_surface_actors == 1)
++  /* Scanout shows only the buffer of the surface. Without the black
++   * background, a translucent surface must be composited with the content
++   * below it. */
++  if (meta_window_is_fullscreen (window) && n_visible_surface_actors == 1 &&
++      (self->background ||
++       meta_surface_actor_is_opaque (topmost_surface_actor)))
+     return topmost_surface_actor;
+ 
+   if (meta_window_is_fullscreen (window) && n_visible_surface_actors == 2)
+@@ -572,8 +577,11 @@
+         continue;
+ 
+       clutter_actor_get_allocation_box (child, &actor_box);
+-      if (meta_surface_actor_is_opaque (META_SURFACE_ACTOR (child)) &&
+-          G_APPROX_VALUE (actor_box.x1, 0, CLUTTER_COORDINATE_EPSILON) &&
++      /* xdg_toplevel.set_fullscreen requires that nothing below a translucent
++       * fullscreen surface is visible. Skip the black background for any
++       * surface that covers the whole monitor, so that the content below a
++       * translucent surface stays visible. */
++      if (G_APPROX_VALUE (actor_box.x1, 0, CLUTTER_COORDINATE_EPSILON) &&
+           G_APPROX_VALUE (actor_box.y1, 0, CLUTTER_COORDINATE_EPSILON) &&
+           G_APPROX_VALUE (actor_box.x2, fullscreen_layout.width,
+                           CLUTTER_COORDINATE_EPSILON) &&

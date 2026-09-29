@@ -1,0 +1,2 @@
+# unified diff の文脈行は、元の空行でも先頭に空白 1 文字を持つ。
+*.patch -whitespace

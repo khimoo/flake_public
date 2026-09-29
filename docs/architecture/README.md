@@ -23,6 +23,7 @@ Flake 設定の設計判断・実装構造のドキュメント。設定変更�
 | [minecraft-backup.md](./minecraft-backup.md) | 発火を定時タイマーではなく PrismLauncher の post-exit フックにした理由、ZIP から restic へ移した判断、Drive のリポジトリをホストごとに分けて 2 台からの往復を成立させる設計 |
 | [agent-config.md](./agent-config.md) | Claude Code と Codex のユーザー設定の git 管理（`shared/` `claude/` `codex/` の三分割、パス注入 + out-of-store symlink、Codex の live ファイルを張らない理由、flake input を退けた理由）。マシン固有の指示をシステム層（`/etc/claude-code/CLAUDE.md` と Codex の `developer_instructions`）に置く理由 |
 | [kitty.md](./kitty.md) | 端末を wezterm から kitty へ移す判断。tmux を挟む案を退けた理由、`Ctrl+a > 階層 > 動詞` のキー体系と 3 マスを空けたままにする理由、`socket-only` を選んだ理由、smart-splits の `at_edge` を `stop` にした理由 |
+| [gnome-transparent-fullscreen.md](./gnome-transparent-fullscreen.md) | 全画面にした半透明のウィンドウの下に mutter が敷く黒を、パッチと `system.replaceDependencies` で外す判断。xdg-shell の規定から外れる代償、direct scanout も止める理由、overlay や XWayland、他のコンポジタを退けた理由 |
 | [inkscape.md](./inkscape.md) | Inkscape の新規文書テンプレート（ページ・デスクの色）を live symlink で持つ判断。store に置くと GUI からの保存が失敗する理由と、保存時に表示状態が混ざる代償 |
 | [unstable-packages.md](./unstable-packages.md) | 安定チャンネルの版では動作不能になるパッケージ（codex・tinymist・neovim）だけを nixos-unstable から差し替える overlay と、全体を unstable に上げなかった理由 |
 | [private-repo-clone.md](./private-repo-clone.md) | SSH 鍵配布と private repo の宣言的 clone（home.activation で age 鍵 1 本から id_github / id_lan を復号し clone・NixOS/WSL/macOS 共通・復号と clone のモジュール分離・更新は switch から切り離して pull-repos に置く判断） |
