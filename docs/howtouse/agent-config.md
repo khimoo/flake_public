@@ -79,7 +79,7 @@ local.profile.agentProfiles = {
 
 1. 設定 repo を任意の場所に clone する
    （NixOS なら [private-repo-clone.md](./private-repo-clone.md) で自動 clone にできる）
-2. 対象ユーザーの home モジュール（既存 2 台では `profiles/home/pomu-workstation.nix`）に clone 先を指定する:
+2. 対象ユーザーの home モジュール（既存 2 台では `profiles/home/pomu-agents.nix`。`pomu-workstation.nix` がこれを import する）に clone 先を指定する:
 
    ```nix
    local.profile.agentConfigRoot = "/home/pomu/sagyo/agents-private";

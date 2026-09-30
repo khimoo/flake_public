@@ -1,8 +1,8 @@
 # 会社PCのNixOS-WSLを、秘密情報と外部への接続経路を持たないCLI専用ホストとして追加する
 
-構成予定の設定ファイル: `hosts/nixos-wsl/`、`modules/nixos/base.nix`、`profiles/home/pomu-agents.nix`
+設定ファイル: [modules/nixos/base.nix](../../modules/nixos/base.nix)、[profiles/home/pomu-agents.nix](../../profiles/home/pomu-agents.nix)（実装済み）、`hosts/nixos-wsl/`（未実装）
 
-**現状：未実装（設計段階）。** 事前にリポジトリ全体の nixpkgs および Home Manager を 26.05 へアップデートする必要があります。その設計は別途行います。
+**現状：一部実装済み。** `base.nix` と `pomu-agents.nix` への分割は実装済みで、`nixos-wsl` ホストは未実装です。ホストを追加する前に、リポジトリ全体の nixpkgs および Home Manager を 26.05 へアップデートする必要があります。その設計は別途行います。
 実装後はセットアップ手順を `docs/howtouse/wsl.md` へ切り出し、本ファイルには意思決定の経緯（判断根拠）を記録します。
 
 会社のWindows PCに導入したNixOS-WSLを `nixosConfigurations.nixos-wsl` として定義し、`sudo nixos-rebuild switch --flake .#nixos-wsl` を一度実行するだけで、Home Manager環境まで一括で構築できるようにします。
@@ -20,7 +20,7 @@
 
 既存のホスト用コンポーネントは、そのままではWSL環境に流用できません。
 [common.nix](../../modules/nixos/common.nix) では systemd-boot、NetworkManager、GNOME、PipeWire、libvirt、Bluetooth を一括で導入しますが、これらはWSL環境では不要か、WSL自体が管理する仕組みと衝突します。
-[nix-settings.nix](../../modules/nixos/nix-settings.nix) にも、GUIアプリの gparted や gsconnect、Android端末をUSB経由で操作する adb など、WSLでは使わない設定が混在しています。
+分割前の [nix-settings.nix](../../modules/nixos/nix-settings.nix) には、GUIアプリの gparted や gsconnect、Android端末をUSB経由で操作する adb など、WSLでは使わない設定も混在していました。
 Home Manager側の [pomu.nix](../../profiles/home/pomu.nix) には、個人アカウント（`khimoo`）のGit ID情報や、Gemini APIキーのシークレットが含まれています。シークレットを復号するための [secrets.nix](../../modules/home-manager/secrets.nix) は、ローカルにage暗号鍵が存在しない場合、アクティベーションを `exit 1` で異常終了させてしまいます。
 
 ## 設計上の意思決定
@@ -66,12 +66,12 @@ Home Managerのモジュール群は、すべてのパスを `home.homeDirectory
 
 ### 4. 共通設定を `base.nix` に分離する
 
-新たに `modules/nixos/base.nix` を作成し、どのホストでも共通して必要となる最小限の設定を集約します。
+[base.nix](../../modules/nixos/base.nix) には、どのホストでも共通して必要となる最小限の設定を集約しています。
 このファイルで [locale.nix](../../modules/nixos/locale.nix)、[users.nix](../../modules/nixos/users.nix)、nix-settings.nix（GUI関連を除く）、[codex.nix](../../modules/nixos/codex.nix)、[agent-instructions.nix](../../modules/nixos/agent-instructions.nix)、[claude-managed-settings.nix](../../modules/nixos/claude-managed-settings.nix)、[permit-insecure.nix](../../modules/nixos/permit-insecure.nix) をインポートし、`networking.hostName` や `system.stateVersion` もこの `base.nix` で設定します。
 Codexのサブエージェント無効化設定（`codex.nix`）を `base.nix` に含めるのは、WSL環境にもCodexを導入するためです。また、`permit-insecure.nix` は、Home ManagerをNixOSに組み込んでいる全ホストで必須となります。
 
-[common.nix](../../modules/nixos/common.nix) は `base.nix` をインポートした上で、デスクトップ環境（desktop）向けの残りの設定を保持する構成に変更します。具体的には、boot、networking（NetworkManagerやKDE Connect用のポート）、desktop、printing、ssh、tailscale、remote-builders、Bluetooth、libvirt、audio（musnix）、sns-block、gnome-transparent-fullscreen、および新規追加する `adb.nix` がこれに該当します。
-これに伴い、`nix-settings.nix` に定義されていた gparted や gsconnect は [desktop.nix](../../modules/nixos/desktop.nix) へ、`programs.adb` は `adb.nix` へそれぞれ移動します。
+[common.nix](../../modules/nixos/common.nix) は `base.nix` をインポートした上で、デスクトップ環境（desktop）向けの残りの設定を保持します。具体的には、boot、networking（NetworkManagerやKDE Connect用のポート）、desktop、printing、ssh、tailscale、remote-builders、Bluetooth、libvirt、audio（musnix）、sns-block、gnome-transparent-fullscreen、および [adb.nix](../../modules/nixos/adb.nix) がこれに該当します。
+分割前に `nix-settings.nix` にあった gparted や gsconnect は [desktop.nix](../../modules/nixos/desktop.nix) に、`programs.adb` は `adb.nix` に置いています。
 
 [users.nix](../../modules/nixos/users.nix) は現状維持とします。
 このモジュールでは、WSL環境には存在しない `networkmanager` や `libvirtd`、`adbusers` などのグループをユーザーに付与していますが、NixOSの仕様上、グループ定義側から所属メンバーを評価するため（`elem config.name u.extraGroups`）、システムに定義されていないグループは自動的に無視されます（nixos-25.11 の `nixos/modules/config/users-groups.nix` の仕様）。そのため、不要なグループが指定されていてもエラーは発生しません。
@@ -91,8 +91,8 @@ NixOS-WSLは、`wheel` グループに属する全ユーザーに対し、パス
 
 ### 5. Home Manager設定は agents-private 向けの設定のみを共有する
 
-新たに `profiles/home/pomu-agents.nix` を作成し、[pomu-workstation.nix](../../profiles/home/pomu-workstation.nix) から `agentConfigRoot`（`~/sagyo/agents-private`）、`agentProfiles`（Claudeのopus・fable、Codexのastra）、`agentCompression` の設定を移行します。なお、`agentConfigRepo` はこの共通ファイルには含めません。
-これにより、`pomu-workstation.nix` は `pomu.nix` と `pomu-agents.nix` をインポートし、`agentConfigRepo` などの固有設定のみを保持する形に整理します。
+[pomu-agents.nix](../../profiles/home/pomu-agents.nix) には、`agentConfigRoot`（`~/sagyo/agents-private`）、`agentProfiles`（Claudeのopus・fable、Codexのastra）、`agentCompression` の設定を置いています。なお、`agentConfigRepo` はこの共通ファイルには含めません。
+[pomu-workstation.nix](../../profiles/home/pomu-workstation.nix) は `pomu.nix` と `pomu-agents.nix` をインポートし、`agentConfigRepo` などの固有設定のみを保持します。
 
 WSL環境のHome Manager設定（`hosts/nixos-wsl/home.nix`）は、`pomu-agents.nix` のみをインポートします。`pomu.nix` は読み込まないため、`khimoo` のGit ID情報、Geminiのシークレット、`antigravity-cli` は導入されません。また、各種機能フラグ（feature）はすべてデフォルトの無効状態を維持します。
 リポジトリルート（`flakeRoot`）は、デフォルトの `~/sagyo/flake_public` を使用します。Neovimの設定はこのパスを直接参照するシンボリックリンクとして構成されているため、WSL上でも同じディレクトリ階層にクローンする必要があります。
@@ -103,8 +103,13 @@ WSL環境のHome Manager設定（`hosts/nixos-wsl/home.nix`）は、`pomu-agents
 
 ## 検証方針
 
-モジュールの分割リファクタリングは、まず `nixpkgs` のバージョンを `25.11` に固定した状態で行い、作業の前後で `desktop` および `spin713` の `system.build.toplevel.drvPath`（ビルド定義のパス）を比較して、構成に不要な変更が生じていないかを検証します。
-パッケージ定義を別のモジュールへ移行した際、`environment.systemPackages` 内の並び順が変化し、パッケージ構成自体は同一であっても `drvPath` が変わることがあります。その場合は、`nix-diff` ツールを用いて差分が純粋な並び順の変更のみであることを確認します。
+モジュールの分割リファクタリングは、`nixpkgs` を `25.11` に固定したまま行い、作業の前後で `desktop` と `spin713` の構成を比べました。
+`system.build.toplevel.drvPath` は分割の前後で変わりますが、これは挙動の変化によるものではありません。[secrets.nix](../../modules/home-manager/secrets.nix) が flake のソース内にある `secrets.yaml` のパスを activation に埋め込んでおり、このパスはソース全体のハッシュを含むため、リポジトリのどのファイルを変えても変わります。
+そこで、次の方法で挙動が変わっていないことを確かめました（2026年9月30日、nixos-25.11 b6018f8）。
+
+- `config.system.path` のストアパスが、分割の前後で両ホストとも同じだった。パッケージの並び順が変わると、同じファイルを持つパッケージのうちどちらが残るかが変わりうる（`buildEnv` の `ignoreCollisions = true`）が、それも起きていない。
+- `nix-diff` で見た中身の差分は、`secrets.yaml` のパスだけだった。`nix-diff` は入力が変わった途中の derivation の環境の比較を省くので、最終レビューでは、違う derivation の組すべての環境を、対応するストアパスのハッシュを置き換えたうえで比べた。残る差は同じ `secrets.yaml` のパスと、mutter の置換で書き換えるパスの組の並び順だけだった。
+- home 側の分割については、pomu の `local.profile`、`local.agentCompression`、`home.file` と `home.activation` の名前、`home.packages` の名前の評価結果が、前後で一致した。
 
 「会社PC内でクローズドな環境を維持する」というセキュリティ要件が満たされているかは、実際の `nixos-wsl` の構成を評価して得られる設定値（`config` の値）を調べる必要があります。この検証ではビルドを実行せず、生成された成果物も検証しません。そのため、[tests/default.nix](../../tests/default.nix) の制約テスト（`contracts`）に、モック（仮想ホスト）ではなく実機想定の `inputs.self.nixosConfigurations.nixos-wsl` を直接アサーションする検証テストを追加します。
 

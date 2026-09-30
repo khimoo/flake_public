@@ -7,7 +7,7 @@
 
 `flake.nix` は環境を選択し、factoryがモジュールを組み立てる。NixOS用の `settings` にはホスト名・ユーザー一覧・時刻・キーマップ・stateVersionだけを入れる。Home Managerへこの属性集合は渡さない。
 
-Home Managerはユーザーごとに `config.local.profile` を評価する。個人のGit identity、clone先、Claude設定、LAN鍵配布はそのユーザーのhomeモジュールにだけ定義する。現在の個人設定は `profiles/home/pomu.nix`、2台のworkstationの選択は `profiles/home/pomu-workstation.nix` にある。新しいユーザーはこれを明示的にimportしない限り引き継がない。
+Home Managerはユーザーごとに `config.local.profile` を評価する。個人のGit identity、clone先、Claude設定、LAN鍵配布はそのユーザーのhomeモジュールにだけ定義する。現在の個人設定は `profiles/home/pomu.nix`、2台のworkstationの選択は `profiles/home/pomu-workstation.nix`、Claude CodeとCodexの設定repo（agents-private）の置き場所とlauncherは `profiles/home/pomu-agents.nix` にある。新しいユーザーはこれを明示的にimportしない限り引き継がない。
 
 機構は共通モジュール、選択はprofile、ハードウェアはhostsに置く。機能の有効化に型付きboolを使うことは正常なモジュール合成であり、一般的な「制御結合を避ける」という順位表で禁止しない。
 

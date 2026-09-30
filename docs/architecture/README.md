@@ -34,6 +34,6 @@ Flake 設定の設計判断・実装構造のドキュメント。設定変更�
 | [quaderno.md](./quaderno.md) | Quaderno A4 Gen2 から同一 LAN 経由で手書き PDF を取り込む設計（取り込み専用・手元はアーカイブ・mDNS で機器を見つける・`dpt-rp1-py` を master 固定で持つ理由。実機確認は未了） |
 | [antigravity-cli.md](./antigravity-cli.md) | Antigravity CLI（agy）を版固定と autoPatchelf で入れる判断。nix-ld と公式インストーラを退けた理由、自己更新が働かないこと |
 | [comma.md](./comma.md) | comma と command-not-found に nix-index-database の配布データベースを使う判断。small データベース（`bin/` だけ）で両方を動かし full を取得しない理由、nixos-unstable の索引と 25.11 の版のずれ |
-| [wsl.md](./wsl.md) | 会社 PC の NixOS-WSL を CLI だけの閉じたホスト（`nixos-wsl`）として足す設計（未実装）。age 鍵と tailnet を持たせない理由、agents-private を読み取り専用の deploy key と別名のホストで入れる理由、共通の設定を `base.nix` に切り出す判断 |
+| [wsl.md](./wsl.md) | 会社 PC の NixOS-WSL を CLI だけの閉じたホスト（`nixos-wsl`）として足す設計（`base.nix` と `pomu-agents.nix` への分割は実装済み、ホストは未実装）。age 鍵と tailnet を持たせない理由、agents-private を読み取り専用の deploy key と別名のホストで入れる理由、共通の設定を `base.nix` に切り出す判断 |
 
 - [Graphify](graphify.md) — コード・文書の任意の探索環境。

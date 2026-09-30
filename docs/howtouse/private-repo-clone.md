@@ -99,7 +99,7 @@ grep -c 'BEGIN OPENSSH' secrets/secrets.yaml   # 0 なら OK
 
 ## clone 元 URL を指定して switch
 
-対象ユーザーのhomeモジュールの `local.profile` に各repoのURLとパスを足す。既存2台では `profiles/home/pomu-workstation.nix` に定義する。以下は `local.profile = { ... };` の内部に置く。
+対象ユーザーのhomeモジュールの `local.profile` に各repoのURLとパスを足す。既存2台では `profiles/home/pomu-workstation.nix` に定義する（`agentConfigRoot` だけは `profiles/home/pomu-agents.nix` にあり、`pomu-workstation.nix` がそれを import する）。以下は `local.profile = { ... };` の内部に置く。
 現在自動 clone に対応しているのは以下 4 種類の repo:
 
 ```nix
