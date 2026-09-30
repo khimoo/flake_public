@@ -8,9 +8,8 @@
     [ (modulesPath + "/installer/scan/not-detected.nix")
     ];
 
-  # 7.0 系にピン留め: latest(7.1 系)は X399 の ACPI S5 バグを踏み poweroff で電源が切れない。
-  # 7.0 は blender-hip/AMD GPU(https://wiki.nixos.org/wiki/AMD_GPU)に十分新しい。詳細: docs/architecture/kernel-pin.md
-  boot.kernelPackages = pkgs.linuxPackages_7_0;
+  # 既定の LTS を使う。7.1 系は X399 の ACPI S5 バグを踏み、poweroff で電源が切れなかった。
+  # linuxPackages_latest に上げる前に、実機で電源が切れることを確かめる。詳細: docs/architecture/kernel-pin.md
   boot.initrd.availableKernelModules = [ "xhci_pci" "ahci" "nvme" "usbhid" "usb_storage" "sd_mod" ];
   boot.initrd.kernelModules = [ "v4l2loopback" ];
   boot.kernelModules = [ "kvm-amd" ];

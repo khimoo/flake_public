@@ -15,9 +15,7 @@
     HandleLidSwitchDocked = "suspend";
     HandleLidSwitchExternalPower = "ignore";
   };
-  systemd.sleep.extraConfig = ''
-    HibernateDelaySec=10m
-  '';
+  systemd.sleep.settings.Sleep.HibernateDelaySec = "10m";
 
   fileSystems."/" = {
     device = "/dev/disk/by-uuid/dc4c4fad-614c-44d5-95b8-56d0307cc5fa";

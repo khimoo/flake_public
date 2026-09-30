@@ -31,7 +31,7 @@ in {
   home.packages = with pkgs; [
     prismlauncher
     wine64
-    blender-hip
+    pkgsRocm.blender
   ] ++ extraGnomeExtensionsList;
 
   dconf.settings."org/gnome/shell".enabled-extensions =

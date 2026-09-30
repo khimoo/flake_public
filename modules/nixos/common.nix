@@ -8,7 +8,6 @@
     ./boot.nix
     ./networking.nix
     ./desktop.nix
-    ./adb.nix
     ./printing.nix
     ./ssh.nix
     ./tailscale.nix

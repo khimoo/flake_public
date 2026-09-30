@@ -70,8 +70,8 @@ Home Managerのモジュール群は、すべてのパスを `home.homeDirectory
 このファイルで [locale.nix](../../modules/nixos/locale.nix)、[users.nix](../../modules/nixos/users.nix)、nix-settings.nix（GUI関連を除く）、[codex.nix](../../modules/nixos/codex.nix)、[agent-instructions.nix](../../modules/nixos/agent-instructions.nix)、[claude-managed-settings.nix](../../modules/nixos/claude-managed-settings.nix)、[permit-insecure.nix](../../modules/nixos/permit-insecure.nix) をインポートし、`networking.hostName` や `system.stateVersion` もこの `base.nix` で設定します。
 Codexのサブエージェント無効化設定（`codex.nix`）を `base.nix` に含めるのは、WSL環境にもCodexを導入するためです。また、`permit-insecure.nix` は、Home ManagerをNixOSに組み込んでいる全ホストで必須となります。
 
-[common.nix](../../modules/nixos/common.nix) は `base.nix` をインポートした上で、デスクトップ環境（desktop）向けの残りの設定を保持します。具体的には、boot、networking（NetworkManagerやKDE Connect用のポート）、desktop、printing、ssh、tailscale、remote-builders、Bluetooth、libvirt、audio（musnix）、sns-block、gnome-transparent-fullscreen、および [adb.nix](../../modules/nixos/adb.nix) がこれに該当します。
-分割前に `nix-settings.nix` にあった gparted や gsconnect は [desktop.nix](../../modules/nixos/desktop.nix) に、`programs.adb` は `adb.nix` に置いています。
+[common.nix](../../modules/nixos/common.nix) は `base.nix` をインポートした上で、デスクトップ環境（desktop）向けの残りの設定を保持します。具体的には、boot、networking（NetworkManagerやKDE Connect用のポート）、desktop、printing、ssh、tailscale、remote-builders、Bluetooth、libvirt、audio（musnix）、sns-block、gnome-transparent-fullscreenがこれに該当します。
+分割前に `nix-settings.nix` にあった gparted や gsconnect は [desktop.nix](../../modules/nixos/desktop.nix) にに置いています。adb は、26.05 で USB の権限を systemd が扱うようになったので、Home Manager の [dev/apps.nix](../../modules/home-manager/dev/apps.nix) で `android-tools` を入れています。
 
 [users.nix](../../modules/nixos/users.nix) は現状維持とします。
 このモジュールでは、WSL環境には存在しない `networkmanager` や `libvirtd`、`adbusers` などのグループをユーザーに付与していますが、NixOSの仕様上、グループ定義側から所属メンバーを評価するため（`elem config.name u.extraGroups`）、システムに定義されていないグループは自動的に無視されます（nixos-25.11 の `nixos/modules/config/users-groups.nix` の仕様）。そのため、不要なグループが指定されていてもエラーは発生しません。
