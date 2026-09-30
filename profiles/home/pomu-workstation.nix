@@ -3,7 +3,10 @@ let
   work = "${config.home.homeDirectory}/sagyo";
 in
 {
-  imports = [ ./pomu.nix ];
+  imports = [
+    ./pomu.nix
+    ./pomu-agents.nix
+  ];
   local.profile = {
     features = {
       gui = true;
@@ -17,24 +20,10 @@ in
     lanSsh = true;
     zettelkastenRoot = "${work}/zettelkasten";
     zettelkastenRepoUrl = "git@github.com:khimoo/zettelkasten.git";
-    agentConfigRoot = "${work}/agents-private";
     agentConfigRepo = "git@github.com:khimoo/agents-private.git";
-    agentProfiles = {
-      claude = [
-        "opus"
-        "fable"
-      ];
-      codex = [ "astra" ];
-    };
     vaultSkeletonRepo = "${work}/zettelkasten-workflow";
     vaultSkeletonRepoUrl = "git@github.com:khimoo/zettelkasten-workflow.git";
     llmWikisRoot = "${work}/llm-wikis";
     llmWikisRepoUrl = "git@github.com:khimoo/llm-wikis.git";
-  };
-
-  # 日本語のセッションを既定にする。英語でコメントや文書を書くときだけ /caveman で切り替える。
-  local.agentCompression = {
-    caveman = "off";
-    genshijin = "normal";
   };
 }
