@@ -119,8 +119,8 @@ nixpkgs の `vimPlugins.smart-splits-nvim` が同じファイルを同梱して�
 kitty はスクロールバックの検索も vi 風の選択も持たない。`show_scrollback` は外部ページャに渡すだけ。
 そこで `scrollback_pager` を Neovim に向け、検索と選択を Neovim の機能で埋める。
 
-この設定は Neovim 0.12 以降でしか動かないので、`overlays/unstable-packages.nix` で
-`neovim-unwrapped` を unstable から取っている。経緯は
+この設定は Neovim 0.12 以降でしか動かない。nixos-26.05 の Neovim は 0.12.4 なので安定版のまま使える
+（25.11 のあいだは `overlays/unstable-packages.nix` で unstable から取っていた）。経緯は
 [unstable-packages.md](./unstable-packages.md) を参照。
 
 ## 設定の置き方
@@ -144,5 +144,5 @@ wezterm 側の `font.lua` と同じ手口。
 
 ## 関連
 
-- [unstable-packages.md](./unstable-packages.md) — Neovim 0.12 を unstable から取っている理由
+- [unstable-packages.md](./unstable-packages.md) — 25.11 のあいだ Neovim 0.12 を unstable から取っていた理由
 - [docs/howtouse/cli-tools/kitty.md](../howtouse/cli-tools/kitty.md) — 操作の一覧

@@ -25,15 +25,15 @@ Flake 設定の設計判断・実装構造のドキュメント。設定変更�
 | [kitty.md](./kitty.md) | 端末を wezterm から kitty へ移す判断。tmux を挟む案を退けた理由、`Ctrl+a > 階層 > 動詞` のキー体系と 3 マスを空けたままにする理由、`socket-only` を選んだ理由、smart-splits の `at_edge` を `stop` にした理由 |
 | [gnome-transparent-fullscreen.md](./gnome-transparent-fullscreen.md) | 全画面にした半透明のウィンドウの下に mutter が敷く黒を、パッチと `system.replaceDependencies` で外す判断。xdg-shell の規定から外れる代償、direct scanout も止める理由、overlay や XWayland、他のコンポジタを退けた理由 |
 | [inkscape.md](./inkscape.md) | Inkscape の新規文書テンプレート（ページ・デスクの色）を live symlink で持つ判断。store に置くと GUI からの保存が失敗する理由と、保存時に表示状態が混ざる代償 |
-| [unstable-packages.md](./unstable-packages.md) | 安定チャンネルの版では動作不能になるパッケージ（codex・tinymist・neovim）だけを nixos-unstable から差し替える overlay と、全体を unstable に上げなかった理由 |
+| [unstable-packages.md](./unstable-packages.md) | 安定チャンネルの版では動作不能になるパッケージだけを nixos-unstable から差し替える overlay と、全体を unstable に上げなかった理由 |
 | [private-repo-clone.md](./private-repo-clone.md) | SSH 鍵配布と private repo の宣言的 clone（home.activation で age 鍵 1 本から id_github / id_lan を復号し clone・NixOS/WSL/macOS 共通・復号と clone のモジュール分離・更新は switch から切り離して pull-repos に置く判断） |
 | [llm-wikis.md](./llm-wikis.md) | AI に読ませる知識ベース（LLM Wiki）を独立 private repo に置く判断。Claude 設定 repo / vault への相乗りを退けた理由、skill 化しない理由、flake の配線が clone 1 行で済む帰結 |
 | [new-machine.md](./new-machine.md) | **TODO**: nixos-anywhere + disko + age 鍵自動注入で新マシンを 1 コマンドプロビジョニングし、silent skip を根絶する設計メモ（未実装） |
-| [kernel-pin.md](./kernel-pin.md) | nixos-desktop のカーネルを 7.0 系にピン留め（7.1 系が X399 の ACPI S5 バグを踏み poweroff で電源が切れないのを回避）の設計判断 |
+| [kernel-pin.md](./kernel-pin.md) | nixos-desktop のカーネルに既定の LTS を使う判断（7.1 系が X399 の ACPI S5 バグを踏み poweroff で電源が切れなかった経緯と、latest を試す条件） |
 | [codex-subagents.md](./codex-subagents.md) | Codex のサブエージェント（既定で親の履歴を全部コピーする MultiAgentV2）を無効化する判断と、置き場に `~/.codex/config.toml` への symlink ではなく `/etc/codex/config.toml`（システム層）を選んだ理由 |
 | [quaderno.md](./quaderno.md) | Quaderno A4 Gen2 から同一 LAN 経由で手書き PDF を取り込む設計（取り込み専用・手元はアーカイブ・mDNS で機器を見つける・`dpt-rp1-py` を master 固定で持つ理由。実機確認は未了） |
 | [antigravity-cli.md](./antigravity-cli.md) | Antigravity CLI（agy）を版固定と autoPatchelf で入れる判断。nix-ld と公式インストーラを退けた理由、自己更新が働かないこと |
-| [comma.md](./comma.md) | comma と command-not-found に nix-index-database の配布データベースを使う判断。small データベース（`bin/` だけ）で両方を動かし full を取得しない理由、nixos-unstable の索引と 25.11 の版のずれ |
+| [comma.md](./comma.md) | comma と command-not-found に nix-index-database の配布データベースを使う判断。small データベース（`bin/` だけ）で両方を動かし full を取得しない理由、nixos-unstable の索引と 26.05 の版のずれ |
 | [wsl.md](./wsl.md) | 会社 PC の NixOS-WSL を CLI だけの閉じたホスト（`nixos-wsl`）として足す設計（`base.nix` と `pomu-agents.nix` への分割は実装済み、ホストは未実装）。age 鍵と tailnet を持たせない理由、agents-private を読み取り専用の deploy key と別名のホストで入れる理由、共通の設定を `base.nix` に切り出す判断 |
 
 - [Graphify](graphify.md) — コード・文書の任意の探索環境。

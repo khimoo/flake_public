@@ -30,7 +30,7 @@
 | `top` | `btm` | bottom |
 | `cd` | `z` | zoxide |
 
-> `yazi` は `yy` 関数で起動する（終了時にディレクトリを追従する）。直接 `yazi` でも起動できるがディレクトリ追従なし。
+> `yazi` は `y` 関数で起動する（終了時にディレクトリを追従する）。直接 `yazi` でも起動できるがディレクトリ追従なし。
 
 ---
 
@@ -42,7 +42,7 @@
 z myproject          # zoxide: 過去に訪問した "myproject" に cd
 direnv allow         # 初回のみ: devShell を有効化 (.envrc がある場合)
 # → 自動で devShell の環境変数・ツールが読み込まれる
-yy                   # yazi でファイル構造を確認、Enter で開く
+y                    # yazi でファイル構造を確認、Enter で開く
 nvim .               # エディタで開く
 ```
 
