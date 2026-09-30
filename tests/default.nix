@@ -187,6 +187,9 @@ lib.genAttrs systems (
         }
       ]).config "cargo-remote-run";
       assert !(builtins.any (p: (p.pname or "") == "vscode") home.config.home.packages);
+      # ~/.config/nvim は checkout への live symlink なので、その下に置くファイルは home-manager-files の
+      # ビルドで "outside $HOME" になる。評価だけでは見つからないので、ここで止める。
+      assert !(builtins.any (f: f.enable && lib.hasPrefix ".config/nvim/" f.target) (builtins.attrValues home.config.home.file));
       assert hasLauncher users.alice "claude-opus";
       assert hasLauncher users.alice "codex-astra";
       assert users.alice.home.file ? ".codex/astra.config.toml";

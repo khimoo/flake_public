@@ -36,6 +36,9 @@ in
     # なったら既定と同じになるので、この 2 行を消す。
     withRuby = false;
     withPython3 = false;
+    # Home Manager 26.05 は Lua のパスや provider の設定を ~/.config/nvim/init.lua に書き出すが、
+    # ~/.config/nvim は checkout への symlink なのでその中に置けない。ラッパーの引数で読み込ませる。
+    sideloadInitLua = true;
     extraPackages = map (d: d.pkg) nvimPluginDeps;
     # image.nvim が必要とする ImageMagick の Lua バインディング (magick luarock)。
     # nixpkgs 経由で注入することで luarocks をユーザ環境に出さずに済む。
