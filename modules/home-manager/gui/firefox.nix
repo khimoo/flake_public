@@ -3,6 +3,9 @@
 lib.mkIf config.local.profile.features.gui {
   programs.firefox = {
     enable = true;
+    # Home Manager 26.05 の既定は XDG の ~/.config/mozilla/firefox だが、移るには各マシンで
+    # ~/.mozilla/firefox を手で移す必要がある。設定を宣言的管理に移してから移行するので、それまでは従来の場所に置く。
+    configPath = ".mozilla/firefox";
     profiles.default = {
       isDefault = true;
       settings = {

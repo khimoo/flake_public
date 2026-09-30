@@ -53,8 +53,8 @@
         grep = "rg";
         top = "btm";
         cd = "z";
-        # yazi は enableBashIntegration により yy 関数が定義済み
-        # yazi=yy のエイリアスは yy 内部の yazi 呼び出しと無限再帰するため使わない
+        # yazi は enableBashIntegration により y 関数が定義済み
+        # yazi=y のエイリアスは y 内部の yazi 呼び出しと無限再帰するため使わない
       };
 
       initExtra = ''

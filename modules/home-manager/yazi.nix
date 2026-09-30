@@ -4,6 +4,9 @@
   programs.yazi = {
     enable = true;
     enableBashIntegration = true;
+    # home.stateVersion が 26.05 未満のあいだ、Home Manager は従来の既定（yy）を使うので明示する。
+    # 全ユーザーの home.stateVersion が 26.05 以上になったら既定と同じになるので、この行を消す。
+    shellWrapperName = "y";
 
     plugins = {
       inherit (pkgs.yaziPlugins)

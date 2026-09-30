@@ -7,7 +7,7 @@ let
     { pkg = pkgs.deno;             for = "denols / 各種 deno ベースのプラグイン"; }
     { pkg = pkgs.ripgrep;          for = "telescope (live_grep)"; }
     { pkg = pkgs.nil;              for = "nil_ls (LSP 本体)"; }
-    { pkg = pkgs.nixfmt-rfc-style; for = "nil_ls の formatter"; }
+    { pkg = pkgs.nixfmt; for = "nil_ls の formatter"; }
     { pkg = pkgs.vscode-extensions.vadimcn.vscode-lldb;
                                    for = "rustaceanvim DAP (codelldb)"; }
     { pkg = pkgs.mermaid-cli;      for = "diagram.nvim (mermaid → PNG レンダリング, mmdc)"; }
@@ -31,6 +31,11 @@ in
     vimAlias = true;
     defaultEditor = true;
     withNodeJs = true;
+    # home.stateVersion が 26.05 未満のあいだ、Home Manager は従来の既定（true）を使うので明示する。
+    # Python と Ruby の provider を使うプラグインはない。全ユーザーの home.stateVersion が 26.05 以上に
+    # なったら既定と同じになるので、この 2 行を消す。
+    withRuby = false;
+    withPython3 = false;
     extraPackages = map (d: d.pkg) nvimPluginDeps;
     # image.nvim が必要とする ImageMagick の Lua バインディング (magick luarock)。
     # nixpkgs 経由で注入することで luarocks をユーザ環境に出さずに済む。

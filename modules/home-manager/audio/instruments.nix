@@ -7,7 +7,7 @@
 lib.mkIf config.local.profile.features.audio {
   home.packages = with pkgs; [
     # 減算/汎用シンセ
-    surge-XT
+    surge-xt
     vital        # unfree
     helm
     zynaddsubfx
