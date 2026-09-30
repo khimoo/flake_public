@@ -17,7 +17,7 @@ Home Manager を使う全環境に入る。設定は [modules/home-manager/nix-i
 `-i` はパッケージを `nix profile` に入れる。Home Manager の管理の外に入るので、常用するコマンドは Nix の設定に書く。
 
 パッケージはレジストリの `nixpkgs` から取る。
-NixOS では `nixpkgs.flake.setFlakeRegistry` によってシステムの nixpkgs（この flake が固定した nixos-25.11）を指す。
+NixOS では `nixpkgs.flake.setFlakeRegistry` によってシステムの nixpkgs（この flake が固定した nixos-26.05）を指す。
 システムのレジストリに `nixpkgs` がない環境では、グローバルレジストリの nixpkgs-unstable になる。`-F` で別の flake を指定できる。
 
 ## 未知のコマンドを打ったとき
@@ -53,4 +53,4 @@ nix flake update nix-index-database
 
 nix-index-database は週に一度データベースを作り直す。`flake.lock` を上げて switch するまで、手元のデータベースは固定した版のままになる。
 
-データベースは nixos-unstable を索引している。レジストリの `nixpkgs` が nixos-25.11 を指す環境では、unstable にだけあるパッケージが見つかっても `nix shell` で失敗し、名前が変わったパッケージは見つからないことがある。
+データベースは nixos-unstable を索引している。レジストリの `nixpkgs` が nixos-26.05 を指す環境では、unstable にだけあるパッケージが見つかっても `nix shell` で失敗し、名前が変わったパッケージは見つからないことがある。

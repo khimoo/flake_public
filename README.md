@@ -60,7 +60,7 @@ home-manager switch --flake .#pomu-wsl
      system = "x86_64-linux";
      users = [{ username = "alice"; isAdmin = true; }];
      timezone = "Asia/Tokyo";
-     stateVersion = "25.11"; # 初回導入時の値を維持する
+     stateVersion = "26.05"; # 初回導入時の値を維持する
    };
    ```
 

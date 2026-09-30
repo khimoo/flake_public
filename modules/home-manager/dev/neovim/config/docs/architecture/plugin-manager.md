@@ -30,8 +30,8 @@ switch がオフラインで完結し、再現性も `flake.lock` に一本化�
 採用しない理由は安定チャンネルの遅れ。nixos-25.11 の `vimPlugins.nvim-treesitter` は 2025-05-24 の
 master 版で、Neovim 0.12 ではハイライトが壊れるため main ブランチへ移した経緯がある
 ([treesitter.md](../plugins/treesitter.md))。この遅れを 50 個近いプラグインぶん引き受けることになり、
-neovim と tree-sitter を unstable に差し替えて回避している方針
-([unstable-packages.md](../../../../../../../docs/architecture/unstable-packages.md)) と逆行する。
+安定チャンネルの遅れで動かなくなるパッケージだけを unstable から差し替える方針
+([unstable-packages.md](../../../../../../../docs/architecture/unstable-packages.md)) とも合わない。
 プラグインを一つ更新するたびに rebuild が要る点も、Lua を rebuild なしで反映させる現行の設計目標と合わない。
 
 ### nixvim / nvf

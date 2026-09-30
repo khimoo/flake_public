@@ -51,7 +51,7 @@ in map (user: {
 
 ### 共通グループの一括付与
 
-全ユーザーに `networkmanager`, `libvirtd`, `adbusers` を付与している。
+全ユーザーに `networkmanager`, `libvirtd` を付与している。
 これはこの Flake が個人利用を前提としており、全ユーザーが同じ機能を使う想定のため。
 
 ### home-manager との境界

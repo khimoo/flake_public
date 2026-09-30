@@ -15,7 +15,7 @@
 
 2026年9月30日時点で確認した NixOS-WSL 2605.7.2 イメージの状態は以下の通りです。
 
-- NixOS 26.05 および NixOS-WSL の `release-26.05` ブランチで構成されています。現在、当リポジトリは `nixos-25.11` に固定しているため、このまま `switch` するとシステムがダウングレードされてしまいます。
+- NixOS 26.05 および NixOS-WSL の `release-26.05` ブランチで構成されています。調査した時点の当リポジトリは `nixos-25.11` に固定しており、そのまま `switch` するとダウングレードになるため、先にリポジトリ全体を 26.05 に上げました。
 - デフォルトユーザーは `nixos` です。イメージが自動生成する `configuration.nix` は `system.stateVersion = "26.05"` に設定されており、Flakesは有効化されていません。
 
 既存のホスト用コンポーネントは、そのままではWSL環境に流用できません。
@@ -74,7 +74,7 @@ Codexのサブエージェント無効化設定（`codex.nix`）を `base.nix` �
 分割前に `nix-settings.nix` にあった gparted や gsconnect は [desktop.nix](../../modules/nixos/desktop.nix) にに置いています。adb は、26.05 で USB の権限を systemd が扱うようになったので、Home Manager の [dev/apps.nix](../../modules/home-manager/dev/apps.nix) で `android-tools` を入れています。
 
 [users.nix](../../modules/nixos/users.nix) は現状維持とします。
-このモジュールでは、WSL環境には存在しない `networkmanager` や `libvirtd`、`adbusers` などのグループをユーザーに付与していますが、NixOSの仕様上、グループ定義側から所属メンバーを評価するため（`elem config.name u.extraGroups`）、システムに定義されていないグループは自動的に無視されます（nixos-25.11 の `nixos/modules/config/users-groups.nix` の仕様）。そのため、不要なグループが指定されていてもエラーは発生しません。
+このモジュールでは、WSL環境には存在しない `networkmanager` や `libvirtd` などのグループをユーザーに付与していますが、NixOSの仕様上、グループ定義側から所属メンバーを評価するため（`elem config.name u.extraGroups`）、システムに定義されていないグループは自動的に無視されます（nixos-25.11 の `nixos/modules/config/users-groups.nix` の仕様）。そのため、不要なグループが指定されていてもエラーは発生しません。
 `audio` グループはNixOSのデフォルトで定義されているため `nixos` ユーザーにも割り当てられます。WSL環境にオーディオ機能はありませんが、所属していても実害はありません。
 
 WSL用のホスト設定（`hosts/nixos-wsl/default.nix`）は、NixOS-WSLモジュールと `base.nix` のみをインポートするシンプルな構成にします。`wsl.defaultUser` は `settings.primaryUser` から動的に取得します。

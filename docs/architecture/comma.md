@@ -31,9 +31,9 @@ comma と `nix-locate` のラッパーはどちらも `NIX_INDEX_DATABASE` で�
 
 ## データベースと nixpkgs の版のずれ
 
-データベースは nixos-unstable を索引しているが、この flake の nixpkgs は nixos-25.11 に固定している。
+データベースは nixos-unstable を索引しているが、この flake の nixpkgs は nixos-26.05 に固定している。
 comma はレジストリの `nixpkgs` からパッケージを取る。NixOS では `nixpkgs.flake.setFlakeRegistry` が真（spin713 で確認）なので、システムの nixpkgs を指す。
-そのため、unstable にだけあるパッケージは見つかっても `nix shell` で失敗し、25.11 と unstable で名前が違うパッケージは見つからないことがある。
+そのため、unstable にだけあるパッケージは見つかっても `nix shell` で失敗し、26.05 と unstable で名前が違うパッケージは見つからないことがある。
 
 ## 見直す条件
 
