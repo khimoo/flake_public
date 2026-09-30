@@ -32,12 +32,12 @@ let
     libdrm
     libgbm
     mesa
-    xorg.libX11
-    xorg.libXcursor
-    xorg.libXi
-    xorg.libXrandr
-    xorg.libXinerama
-    xorg.libxcb
+    libx11
+    libxcursor
+    libxi
+    libxrandr
+    libxinerama
+    libxcb
     xwayland
   ];
 
@@ -109,9 +109,9 @@ in
       pnpm
       yarn
       typescript
-      nodePackages.typescript-language-server
-      nodePackages.prettier
-      nodePackages.eslint
+      typescript-language-server
+      prettier
+      eslint
     ];
   };
 }

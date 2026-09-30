@@ -84,6 +84,11 @@ D-Bus から起動される dconf-service などはデーモンの環境を引�
 2026-09-29、desktop でも `system.build.toplevel.drvPath` の評価と、置換先の mutter のビルドが通った。
 実機の GNOME セッションでの表示は、世代切替と再ログイン後に確認する。
 
+2026-10-01、nixos-26.05（nixpkgs 7fc6f2c）の mutter 50.4 でも確かめた。
+nixpkgs 側のパッチを当てたソースに、このパッチはずれなく当たり（`patch --dry-run`）、パッチ版のビルドが通った。
+desktop と spin713 の `system.build.toplevel` をビルドし、closure にある mutter がパッチ版 1 つだけであることを確認した。spin713 では、音声回避策の置換で参照を書き換えたパッチ版になる。
+26.05 での実機の表示は、世代切替と再ログイン後に確認する。
+
 ## 見直しの契機
 
 - mutter が全画面の黒い下地を選べるようになったとき、または wayland-protocols #116 の透明な全画面の要求が入り、kitty がそれを使うようになったとき。
