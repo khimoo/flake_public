@@ -10,6 +10,9 @@ let
         rev = "7b1470d9261674f7eeb29d18eb9b5375bde80ebb";
         hash = "sha256-coYSt+Jhbeb/wBvtFTOApxNI89Dw2/wI4r1iOKZUplE=";
       };
+      # この unpackPhase は展開先のディレクトリに入らないので、nixpkgs が alsa-ucm-conf に当てるパッチ
+      # （26.05 では USB-Audio の Volt2 の typo 修正）が当たらずにビルドが止まる。spin713 には関係しない。
+      patches = [ ];
       unpackPhase = ''
         runHook preUnpack
         tar xf "$src"
