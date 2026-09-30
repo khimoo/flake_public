@@ -7,7 +7,7 @@ Codex CLI のサブエージェント（`spawn_agent` 等のマルチエージ�
 ## NixOS の場合
 
 [modules/nixos/codex.nix](../../modules/nixos/codex.nix) が
-`/etc/codex/config.toml` を生成する。`modules/nixos/common.nix` から import 済みなので
+`/etc/codex/config.toml` を生成する。`modules/nixos/base.nix` から import 済みなので
 rebuild するだけで効く。設定を変えたいときはこのファイルを編集する。
 
 ## NixOS 以外（WSL / macOS）の場合

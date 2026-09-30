@@ -1,6 +1,5 @@
 # ネットワーク・ファイアウォール設定
-{ specialArgs, ... }: {
-  networking.hostName = specialArgs.settings.hostname;
+{ ... }: {
   networking.networkmanager.enable = true;
 
   # KDE Connect / GSConnect 用ファイアウォール設定

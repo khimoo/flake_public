@@ -25,11 +25,7 @@
   nix.settings.auto-optimise-store = true;
 
   # システムパッケージ
-  environment.systemPackages = with pkgs; [
+  environment.systemPackages = [
     inputs.home-manager.packages.${pkgs.stdenv.hostPlatform.system}.home-manager # manageHome = falseの人もhome-manager使えるようにしてる
-    gparted
-    gnomeExtensions.gsconnect
   ];
-
-  programs.adb.enable = true;
 }

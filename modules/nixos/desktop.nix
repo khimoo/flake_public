@@ -1,5 +1,5 @@
 # デスクトップ環境（GNOME/GDM）とキーマップ設定
-{ specialArgs, ... }: {
+{ pkgs, specialArgs, ... }: {
   services.xserver.enable = true;
   services.displayManager.gdm.enable = true;
   services.desktopManager.gnome.enable = true;
@@ -8,4 +8,9 @@
     layout = specialArgs.settings.keymap;
     variant = "";
   };
+
+  environment.systemPackages = with pkgs; [
+    gparted
+    gnomeExtensions.gsconnect
+  ];
 }
