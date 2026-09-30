@@ -4,7 +4,7 @@
 
 ## 問題
 
-この flake は nixpkgs を `nixos-25.11` にピン止めしている。安定チャンネルは分岐後に新機能を取り込まない
+この flake は nixpkgs を `nixos-26.05` にピン止めしている。安定チャンネルは分岐後に新機能を取り込まない
 ため、更新の速いパッケージほど上流との差が開く。
 
 codex (OpenAI のコーディングエージェント CLI) の場合:
@@ -67,6 +67,8 @@ stdin から読み込み済みの行を端末へ転送しない。同じ入力�
 前者は画面が空になり、後者は色付きで全行が出る。
 [neovim#33720](https://github.com/neovim/neovim/pull/33720) が転送する側に変更した。
 
+nixos-26.05 は neovim 0.12.4 を持つので、26.05 に上げた時点で差し替えをやめた。
+
 4つ目の経路は、差し替えた版が別のパッケージの版を引き上げる場合で、tree-sitter がこれに当たる。
 
 | 取得元 | version |
@@ -81,6 +83,8 @@ markdown を開くと injection クエリの `set-lang-from-info-string!` が単
 リストを受け取り、`node:range` が nil で落ちる。後継の main ブランチは全パーサの導入を
 `tree-sitter build` に一本化したので、CLI が 0.26.1 以上でないとパーサを一つも入れられない
 (main の `lua/nvim-treesitter/health.lua` の `TREE_SITTER_MIN_VER`)。25.11 の 0.25.10 では足りない。
+
+nixos-26.05 は tree-sitter 0.26.8 を持つので、neovim と同時に差し替えをやめた。
 
 ## 判断
 
@@ -97,11 +101,11 @@ markdown を開くと injection クエリの `set-lang-from-info-string!` が単
   表示できる。それでも差し替えを選択したのは、この回避策を導入すると kitty の標準的な設定を非標準的な
   コードで維持することになり、0.12 が安定チャンネルに提供された際にそのコードを削除する手間（負債）が
   残るためである。overlay に1行追加してここに理由を記述しておく方が、`kitty.conf` に説明の必要な
-  コードを残すよりも、後から経緯を追いやすい。この件は、基準を緩和した唯一の例外として扱う。
+  コードを残すよりも、後から経緯を追いやすい。この件は、基準を緩和した唯一の例外として扱う。26.05 で安定チャンネルに戻した。
 - `tree-sitter` は基準を満たしている。Neovim 0.12 環境下では、0.25.10 だとパーサーを1つも導入できず、
   すべての言語で Tree-sitter によるシンタックスハイライトが機能しなくなる。ただし、これは独立した
   判断ではなく Neovim の差し替えに伴う依存項目のため、Neovim を安定版（25.11）に戻す場合は、これも
-  同時に除外する。
+  同時に除外する。26.05 で neovim と同時に安定チャンネルに戻した。
 - `codex` はこの overlay から除外し、専用の flake である `codex-cli-nix`（`flake.nix` の inputs）から
   取得している。unstable チャンネルであっても上流のリリースから数週間の遅れが生じることがあり、その
   遅延自体が動作不良を引き起こす原因になるためである。
@@ -124,7 +128,7 @@ markdown を開くと injection クエリの `set-lang-from-info-string!` が単
 コストは nixpkgs を 2 つ評価する分の時間とメモリ、および closure に unstable 側の stdenv 由来の依存が
 別途乗ること。
 
-全体を unstable に上げる案は見送った。home-manager が `release-25.11` に固定されていて `master` へ
+全体を unstable に上げる案は見送った。home-manager が安定版の release ブランチ（判断した時点では `release-25.11`）に固定されていて `master` へ
 道連れになること、`follows` している小規模な input (winapps / claude-history / zettelkasten) が
 nixpkgs の破壊的変更に追随できるか読めないこと、musnix がリアルタイムオーディオでカーネル設定に
 踏み込んでいることが理由。この数パッケージのために動かす範囲としては大きい。
@@ -132,9 +136,8 @@ nixpkgs の破壊的変更に追随できるか読めないこと、musnix が�
 ## 見直しの契機
 
 - NixOS のリリースを上げたとき: 差が縮んでいれば対象から外して安定チャンネルに戻す。tinymist は
-  修正を含む 0.15 以降が安定チャンネルに入った時点で外せる。neovim は 0.12 以降が入った時点。
-  tree-sitter は neovim と同時に判断する。安定チャンネルが 0.26.1 以降を持てば外せるが、
-  neovim を戻すなら nvim-treesitter も master に戻るので不要になる。
+  修正を含む 0.15 以降が安定チャンネルに入った時点で外せる（nixos-26.05 は 0.14.18）。
+  neovim と tree-sitter は 26.05 で外した。
 - 全体を unstable に移行したとき: この overlay と input ごと不要になる。
 - 対象を増やすとき: 上の採用基準に照らす。「新しい方が嬉しい」だけでは足さない。
 

@@ -1,4 +1,4 @@
-# 安定（stable）チャンネル（nixos-25.11）のバージョンが古すぎることで、実際の運用に支障が出る
+# 安定（stable）チャンネル（nixos-26.05）のバージョンが古すぎることで、実際の運用に支障が出る
 # パッケージのみを nixos-unstable のものに差し替えるための overlay です。
 #
 # 採用基準：安定チャンネルのバージョンのままだと機能が正常に動作せず、かつ unstable 側でその問題が
@@ -22,8 +22,6 @@ in
 {
   inherit (unstable)
     tinymist
-    neovim-unwrapped
-    tree-sitter
     graphify
     ;
 }
