@@ -4,6 +4,8 @@
 let
   cb-ucm-conf = with pkgs;
     alsa-ucm-conf.overrideAttrs {
+      # wttsrc は取得しているが、unpackPhase と installPhase は $src（本家の alsa-ucm-conf）を使っている。
+      # この上書きが入れる ucm2 は Chromebook 用のものではない。音声の不具合を調べるときはここを疑う。
       wttsrc = fetchFromGitHub {
         owner = "WeirdTreeThing";
         repo = "alsa-ucm-conf-cros";

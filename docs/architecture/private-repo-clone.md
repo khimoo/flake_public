@@ -191,6 +191,11 @@ activation が `secrets.yaml` を age 鍵で復号して書き出すので、事
   `secrets.yaml` をコミットするまで eval が通らない
 - standalone（`homeConfigurations`）は URL 側を全て未指定にすれば `secrets.yaml` を
   参照しないので、age 鍵も暗号文も無しで switch できる
+- activation は暗号文を flake のソース内のパス（`toString secretsFile`）で参照する。文字列に依存関係が
+  付かないので、そのソースはシステムの closure に入らない（2026-10-03、desktop の 26.05 の toplevel で確認）。
+  GC でソースが消えたあとに、まだ書き出していない secret がある状態で起動時の activation
+  （`home-manager-<user>.service`）が走ると、復号に失敗する可能性がある（未確認）。書き出し済みの secret は
+  読み直さないので、鍵を置いて一度 switch したあとは起きにくい
 
 ## clone失敗後の再実行
 

@@ -37,3 +37,20 @@ spin713の音声回避策と、両ホストの全画面を透かすmutterのパ�
 - 文書だけ: `python3 scripts/check-docs.py .` と `git diff --check`。
 
 適用は利用者自身がREADMEのコマンドで行い、結果と必要なら復旧手順を確認します。
+
+## 原因を絞り込むときの評価
+
+`system.replaceDependencies` を使う両ホストの `system.build.toplevel` は、評価だけでもシステム全体の取得とbuildを待ちます。設定のエラーや警告を探すだけなら、置換を通らない値を先に評価します。
+
+```sh
+h=nixos-desktop
+nix eval --json .#nixosConfigurations.$h.config.assertions \
+  --apply 'as: map (a: a.message) (builtins.filter (a: !a.assertion) as)'
+nix eval --json .#nixosConfigurations.$h.config.warnings
+nix eval --raw .#nixosConfigurations.$h.config.system.path.drvPath
+nix eval --raw .#nixosConfigurations.$h.config.system.build.etc.drvPath
+```
+
+これはbuildを伴わないので、home-manager-filesのようにbuildで初めて出る失敗は見つかりません。devShellsも対象外なので、最後に一括検証を通します。
+
+リファクタで挙動が変わっていないことを確かめるとき、`system.build.toplevel.drvPath` の比較は使えません。[secrets.nix](../../modules/home-manager/secrets.nix) が暗号文をflakeのソース内のパスでactivationに埋め込むので、repoのどのファイルを変えてもdrvPathが変わります。代わりに `config.system.path` のストアパスと、変更した値の評価結果を前後で比べます。`nix-diff` は入力が変わったderivationの環境の比較を省くので、差分が出なかったことを根拠にしません。
