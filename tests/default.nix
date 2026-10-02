@@ -310,6 +310,39 @@ lib.genAttrs systems (
     module-contracts = pkgs.runCommand "module-contracts" { } ''
       echo ${lib.escapeShellArg contracts} > "$out"
     '';
+    # GNOME は metadata.json の shell-version に自分のメジャー版がない拡張を読み込まない（OUT OF DATE）。
+    # nixpkgs を上げて GNOME と拡張の版がずれても評価とビルドは通るので、ここで止める。
+    # 対応版は拡張のパッケージの中にしかないので、評価ではなくビルドの段階で読む。
+    gnome-extensions =
+      if system != "x86_64-linux" then
+        pkgs.runCommand "gnome-extensions-skipped" { } "touch $out"
+      else
+        let
+          checkHost =
+            hostname:
+            let
+              host = inputs.self.nixosConfigurations.${hostname};
+              shellMajor = lib.versions.major host.pkgs.gnome-shell.version;
+              extensions = builtins.filter (p: p ? extensionUuid) host.config.home-manager.users.pomu.home.packages;
+            in
+            lib.concatMapStrings (p: ''
+              check ${hostname} ${shellMajor} ${lib.escapeShellArg p.extensionUuid} ${p}
+            '') extensions;
+        in
+        pkgs.runCommand "gnome-extensions" { nativeBuildInputs = [ pkgs.jq ]; } ''
+          fail=0
+          check() {
+            metadata="$4/share/gnome-shell/extensions/$3/metadata.json"
+            if ! jq -e --arg v "$2" '.["shell-version"] | index($v) != null' "$metadata" > /dev/null; then
+              echo "$1: $3 does not support GNOME $2 (shell-version: $(jq -c '.["shell-version"]' "$metadata"))" >&2
+              fail=1
+            fi
+          }
+          ${checkHost "nixos-desktop"}
+          ${checkHost "nixos-spin713"}
+          [ "$fail" = 0 ]
+          touch "$out"
+        '';
     graphify-smoke = pkgs.runCommand "graphify-smoke" {
       nativeBuildInputs = [ pkgs.python3 inputs.nixpkgs-unstable.legacyPackages.${system}.graphify ];
     } ''

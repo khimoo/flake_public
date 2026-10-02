@@ -149,3 +149,13 @@ nixpkgs の破壊的変更に追随できるか読めないこと、musnix が�
 ## Graphify
 
 安定チャンネルに存在しないため、既存 unstable の package を使う。[採用理由](graphify.md)を参照。
+
+## extension-list（GNOME 拡張）
+
+nixos-26.05 の `gnomeExtensions.extension-list` は版 43 で、`metadata.json` の `shell-version` が `["49"]` だけになっている。
+GNOME Shell 50 は対応版にない拡張を読み込まない（`gnome-extensions info` の状態が `OUT OF DATE`）ので、パネルのアイコンが出なかった。
+extensions.gnome.org と nixos-unstable には GNOME 50 に対応した版 45 があるので、この拡張だけを unstable から取る（2026-10-03 に確認）。
+`gnomeExtensions` は入れ子の集合なので、集合ごとではなく extension-list だけを差し替える。
+
+安定チャンネルの extension-list が GNOME 50 に対応した版（45 以降）になったら外す。
+GNOME と拡張の版のずれは、`checks.x86_64-linux.gnome-extensions`（`scripts/check.sh` がビルドする）が検出する。

@@ -24,4 +24,9 @@ in
     tinymist
     graphify
     ;
+
+  # gnomeExtensions は入れ子の集合なので、ほかの拡張は安定版のまま extension-list だけを差し替える。
+  gnomeExtensions = prev.gnomeExtensions // {
+    inherit (unstable.gnomeExtensions) extension-list;
+  };
 }
