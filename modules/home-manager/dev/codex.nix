@@ -6,6 +6,7 @@
 #                                                                   Claude Code は claude/CLAUDE.md の @import で同じファイルを読む
 #   ~/.agents/skills              <- <root>/codex/skills             Codex 専用と共有スキルへのリンク
 #   ~/.codex/rules/base.rules     <- <root>/codex/rules/base.rules   人が書く実行ポリシー
+#   ~/.codex/agents               <- <root>/codex/agents             カスタムエージェントの定義 (sol-worker など)
 #   ~/.codex/<name>.config.toml   <- <root>/codex/<name>.config.toml モデル別プロファイル (agentProfiles.codex)。
 #                                                                   `codex --profile <name>` がユーザー層の上に重ねる
 #
@@ -47,6 +48,7 @@ in
       ".codex/AGENTS.md".source = mkLink "shared/AGENTS.md";
       ".agents/skills".source = mkLink "codex/skills";
       ".codex/rules/base.rules".source = mkLink "codex/rules/base.rules";
+      ".codex/agents".source = mkLink "codex/agents";
     } // builtins.listToAttrs (map (name: {
       name = ".codex/${name}.config.toml";
       value.source = mkLink "codex/${name}.config.toml";
