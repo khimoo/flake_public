@@ -17,6 +17,11 @@
   programs.niri.enable = true;
   local.gnome.transparentFullscreen.enable = true;
 
+  local.audio.echoCancel = {
+    enable = true;
+    source = "alsa_input.platform-avs_dmic.19.auto.stereo-fallback";
+  };
+
   # ビルドはデスクトップに回す。このマシンは 4 スレッドで、/nix も SD カード上にある。
   # デスクトップに繋がらないときに黙って手元でビルドさせず、失敗させて人が判断する。
   local.remoteBuilders = {

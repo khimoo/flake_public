@@ -59,6 +59,10 @@
   programs.steam.enable = true;
 
   # 音声設定（PipeWire）
+  local.audio.echoCancel = {
+    enable = true;
+    source = "alsa_input.usb-Kingston_HyperX_SoloCast-00.analog-stereo";
+  };
   services.pulseaudio.enable = false;
   security.rtkit.enable = true;
   services.pipewire = {

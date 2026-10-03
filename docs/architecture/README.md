@@ -7,6 +7,7 @@ Flake 設定の設計判断・実装構造のドキュメント。設定変更�
 | ドキュメント | 概要 |
 |-------------|------|
 | [configuration.md](./configuration.md) | ホスト・個人プロファイル・型付きオプションの境界と検証方針 |
+| [audio-echo-cancel.md](./audio-echo-cancel.md) | PipeWire の WebRTC AEC、実マイク固定と既定出力の monitor 参照 |
 | [default-apps.md](./default-apps.md) | デフォルトアプリケーションの MIME 関連付け設定 |
 | [teams-dispatcher.md](./teams-dispatcher.md) | Teams マルチアカウント URL ディスパッチャ |
 | [rustowl.md](./rustowl.md) | RustOwl の導入（rustowl-flake 由来）と Neovim 連携 |
