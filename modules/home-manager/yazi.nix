@@ -72,13 +72,13 @@
       # git.yazi: ファイル一覧取得時に Git 状態を自動フェッチ
       plugin.prepend_fetchers = [
         {
-          id = "git";
-          name = "*";
+          group = "git";
+          url = "*";
           run = "git";
         }
         {
-          id = "git";
-          name = "*/";
+          group = "git";
+          url = "*/";
           run = "git";
         }
       ];
