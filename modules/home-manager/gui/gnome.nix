@@ -7,6 +7,7 @@ let
     kimpanel
     gsconnect
     paperwm
+    (pkgs.callPackage ../../../packages/mic-indicator-visibility-manager { })
   ];
 
 in lib.mkIf config.local.profile.features.gnome {
@@ -18,6 +19,13 @@ in lib.mkIf config.local.profile.features.gnome {
       "org/gnome/shell" = {
         disable-user-extensions = false;
         enabled-extensions = map (ext: ext.extensionUuid) gnomeExtensionsList;
+      };
+      "org/gnome/shell/extensions/mic-indicator-visibility" = {
+        show-virtual-sources = true;
+        ignored-properties = [
+          "node.name:echo-cancel-capture"
+          "node.name:echo-cancel-reference"
+        ];
       };
       "org/gnome/desktop/interface" = {
         accent-color = "blue";
