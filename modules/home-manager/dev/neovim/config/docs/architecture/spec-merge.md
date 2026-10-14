@@ -32,7 +32,24 @@ return {
 }
 ```
 
-`plugins/treesitter.lua` には `ensure_installed = {}` のベース spec を置き、各言語モジュールが list_extend で追加する。
+`plugins/treesitter.lua` のベース spec も関数形式にし、未設定の場合だけ一覧を初期化する。
+各言語モジュールは list_extend で追加する。
+
+```lua
+opts = function(_, opts)
+  opts.ensure_installed = opts.ensure_installed or {}
+end,
+```
+
+ベースを `opts = { ensure_installed = {} }` にすると、言語 spec が先に処理された場合に
+追加済みの配列が空で上書きされる。実際に最終設定が空になり、`latex` パーサが
+自動導入されず数式が描画されなかった。初期化を関数にすることで読み込み順への依存を除く。
+lazy.nvim 2025-11-06 の `lua/lazy/core/plugin.lua` の `values` / `_values` で両順序を検証した。
+
+[回帰チェック](../../../../../../../scripts/check-neovim-parser-merge.lua) は、実際の lazy.nvim の
+マージ処理を使い、両順序で Markdown 用パーサと他言語の既存パーサが残ることを確認する。
+実行方法は [検証ガイド](../../../../../../../docs/howtouse/validation.md) を参照。
+利用時の数式表示と依存は [Markdown ガイド](../plugins/markdown.md) を参照。
 
 ### 具体例: LSP override の追加
 

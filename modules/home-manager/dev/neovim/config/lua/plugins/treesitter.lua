@@ -8,7 +8,11 @@ return {
         -- ensure_installed は各言語モジュール (lang/<x>/treesitter.lua) から
         -- spec マージで追加される。main ブランチに同名のオプションは無いので、
         -- 本リポジトリ内の受け渡し用の名前として残し config で install() に渡す。
-        opts = { ensure_installed = {} },
+        -- 言語 spec が先に評価されても追加済みの一覧を空に戻さない。
+        -- 読み込み順と回帰チェック: config/docs/architecture/spec-merge.md
+        opts = function(_, opts)
+            opts.ensure_installed = opts.ensure_installed or {}
+        end,
         config = function(_, opts)
             require("nvim-treesitter").install(opts.ensure_installed)
 

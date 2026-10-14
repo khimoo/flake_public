@@ -36,6 +36,17 @@ spin713の音声回避策と、両ホストの全画面を透かすmutterのパ�
 - Neovim: Luaの構文と対象機能を実機で確認。live checkoutの変更はrebuildを待たず反映されます。
 - 文書だけ: `python3 scripts/check-docs.py .` と `git diff --check`。
 
+Neovim の Markdown パーサ指定のマージは、lazy.nvim を導入済みの Neovim で
+リポジトリのルートから確認します。プラグインのダウンロードやパーサのビルドは行いません。
+
+```sh
+nvim --headless -n -u NONE -i NONE -l scripts/check-neovim-parser-merge.lua
+```
+
+[回帰チェック](../../scripts/check-neovim-parser-merge.lua) は実際の lazy.nvim のマージ処理を使い、
+共通 spec と Markdown spec の読み込み順を入れ替えても必要なパーサが残ることを確認します。
+背景は [spec マージの設計](../../modules/home-manager/dev/neovim/config/docs/architecture/spec-merge.md) を参照。
+
 適用は利用者自身がREADMEのコマンドで行い、結果と必要なら復旧手順を確認します。
 
 ## 原因を絞り込むときの評価

@@ -82,6 +82,12 @@ treesitter parser として `latex` が `lang/markdown/treesitter.lua` の `ensu
 
 `latex` parser は nvim-treesitter の parser リストで `requires_generate_from_grammar = true` 扱いなので、初回 `:TSInstall latex` 時に `tree-sitter generate` で grammar.js から parser.c を生成する。そのため `tree-sitter` CLI と nodejs (`withNodeJs = true` で注入済) が PATH 上に必要。新環境セットアップでは `ensure_installed` により自動でこのフローが走るので、手動で `:TSInstall` する必要はない。
 
+自動導入の一覧は、言語 spec と共通 spec のどちらが先に読まれても保持する。
+読み込み順によって一覧が空になっていた不具合と回帰チェックは
+[spec マージの設計](../architecture/spec-merge.md) を参照。
+設定変更後は Neovim を再起動する。初回のパーサ導入が完了した後に Markdown を開き直し、
+ノーマルモードで数式の行からカーソルを外すと Unicode 近似表示を確認できる。
+
 ### サポートされない記法
 
 | 記法 | 例 | 状態 |
@@ -197,7 +203,7 @@ mermaid ブロックを複数持つ .md では初回描画や編集中に Chromi
 湧いて RAM を食い潰し、システムが swap スラッシングを起こしてフリーズする。
 トリガを間引くことで、編集が一区切りした時だけ再描画する。
 
-> 図を即座に再描画したい場合は `:Diagram show` を手動実行する。
+> 図を即座に再描画したい場合は `:lua require("diagram").render()` を手動実行する。
 
 ### 同時実行数の制限（mmdc スロットリング）
 
@@ -253,8 +259,8 @@ lazy.nvim の **luarocks 統合は無効化**してある (`lua/config/lazy.lua`
 
 | コマンド | 動作 |
 |---------|------|
-| `:Diagram show` | 現在のバッファの図を強制再レンダリング |
-| `:Diagram hide` | プレビューを非表示 |
+| `:lua require("diagram").render()` | 現在のバッファの図を再描画 |
+| `:lua require("diagram").clear()` | プレビューを非表示 |
 | `:checkhealth image` | image.nvim の依存（magick 等）が揃っているか確認 |
 
 ### ペイン分割時の挙動
