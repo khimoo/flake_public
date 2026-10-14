@@ -70,6 +70,14 @@ in
 
     home.packages = [ windows-vm ];
 
+    # 右 Ctrl の単独押しで、キーボードを Windows に渡すかホストに残すかを切り替える。
+    # ホットキーは押された時点の修飾キーが SDL_KeyModMask を含めば発動するので、修飾キー自身を指定できる。
+    # 理由と代償は docs/architecture/windows-vm.md。
+    xdg.configFile."freerdp/sdl-freerdp.json".text = builtins.toJSON {
+      SDL_KeyModMask = [ "KMOD_RCTRL" ];
+      SDL_Grab = "SDL_SCANCODE_RCTRL";
+    };
+
     xdg.desktopEntries.windows-vm = {
       name = "Windows";
       comment = "VM の Windows を起動して FreeRDP で接続する";

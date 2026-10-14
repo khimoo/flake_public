@@ -18,6 +18,15 @@ Windows のサインイン画面が出たら、パスワードでサインイン
 
 端末から `windows-vm connect` を実行しても同じ動作になり（`connect` は省略できます）、こちらでは FreeRDP の出力を確認できます。
 
+## Super や Alt+Tab を Windows に渡すか切り替える
+
+FreeRDP のウィンドウにフォーカスがある間、FreeRDP はキーボードを掴み、Super や Alt+Tab も Windows に渡します。
+右 Ctrl を単独で押すたびに、キーボードを Windows に渡す状態と、ホスト（GNOME）に残す状態が切り替わります。ホストに残している間は、Super や Alt+Tab が GNOME の操作になります。
+右 Ctrl そのものは Windows に届きません。Windows で Ctrl を使うときは左 Ctrl を使います。
+FreeRDP のほかのホットキーも右 Ctrl との組み合わせになります（全画面は右 Ctrl + Enter）。右 Ctrl を押した時点で切り替えも起きるので、もう一度右 Ctrl を押して戻します。
+設定は `~/.config/freerdp/sdl-freerdp.json` にあり、このユーザーが起動するすべての `sdl-freerdp` に適用されます。
+右 Ctrl での切り替えは、まだ実機で確かめていません。
+
 ## 終わる
 
 Windows のスタートメニューからシャットダウンします。

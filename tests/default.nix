@@ -342,6 +342,12 @@ lib.genAttrs systems (
       # Windows VM のランチャーはデスクトップだけで有効にする。GUI のないユーザーでは評価を止める。
       assert hasLauncher desktopUser "windows-vm";
       assert desktopUser.local.windowsVm.domain == "win11";
+      # sdl-freerdp は右 Ctrl の単独押しでキーボードの掴みを切り替える（docs/architecture/windows-vm.md）。
+      assert
+        builtins.fromJSON desktopUser.xdg.configFile."freerdp/sdl-freerdp.json".text == {
+          SDL_KeyModMask = [ "KMOD_RCTRL" ];
+          SDL_Grab = "SDL_SCANCODE_RCTRL";
+        };
       assert rejects windowsVm;
       assert
         system != "x86_64-linux"

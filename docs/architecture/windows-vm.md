@@ -66,6 +66,29 @@ GNOME の通知は一覧に残るので、古い通知のボタンを後から�
 アプリ一覧から起動すると端末がなく、エラーの出力が見えない。
 想定した失敗（VM の状態、起動待ちのタイムアウト、二重起動）は内容を通知し、それ以外の失敗も終了時に通知する。
 
+## キーボードの掴みを右 Ctrl で切り替える
+
+FreeRDP はフォーカスのある間キーボードを掴むので、Super や Alt+Tab は Windows に渡り、GNOME の操作に使えない。
+同じキーを両方に割り当てることはできないので、掴む状態とホストに返す状態を切り替えるキーを決める。VirtualBox のホストキー（既定は右 Ctrl の単独押し）と同じ方式にする。
+
+GNOME には、アプリが奪ったショートカットを取り戻すキー（mutter の `restore-shortcuts`、既定は `Super+Escape`）がある。
+ただし取り戻す方向だけで切り替えにはならず、このデスクトップでは dconf で空に上書きされている。PaperWM が `Super+Escape` を `toggle-scratch-window` に使っている。
+
+FreeRDP 3.31.1 の SDL のクライアント（`client/SDL/SDL3/sdl_input.cpp`）では、キーが押されたときに、その時点の修飾キーの状態が `SDL_KeyModMask` を含み、押されたキーが `SDL_Grab` と一致すると、掴みを切り替える。一致したキーは Windows に送らない。
+修飾キー自身を `SDL_Grab` に指定してもこの条件は満たせるので、`SDL_KeyModMask` を `KMOD_RCTRL`、`SDL_Grab` を `SDL_SCANCODE_RCTRL` にして、右 Ctrl の単独押しで切り替える。
+設定は `~/.config/freerdp/sdl-freerdp.json` から読まれる。FreeRDP はこのファイルに書き込まないので、Home Manager から置く。
+
+右 Alt は使わない。このデスクトップでは keyd が右 Alt を右クリックの連打に使っていて（[keyd-turbo.nix](../../hosts/nixos-desktop/keyd-turbo.nix)）、右 Alt がアプリまで届かない。
+
+代償は次のとおり。
+
+- 右 Ctrl が Windows に届かなくなる。左 Ctrl は使える。
+- FreeRDP のほかのホットキーも右 Ctrl との組み合わせになり（全画面は右 Ctrl + Enter）、押すと掴みも一緒に切り替わる。
+- このユーザーが起動するすべての `sdl-freerdp` に適用される。virt-manager など、ほかのツールでは別のキーを使う。
+
+修飾キーの状態は、イベントを処理する時点で `SDL_GetModState()` から読まれる。そのため、ごく短く叩くと、処理の前に離したとみなされて取りこぼす可能性がある。
+実機ではまだ確かめていない。取りこぼしが目立つなら、修飾キーと別のキーの組み合わせ（右 Ctrl + G など）に戻す。
+
 ## 会社 PC との接続で分かったこと
 
 VM の中の mstsc は手元の MotionPro（`127.0.0.1`）に接続し、MotionPro がその通信をトンネルで会社へ送る。
