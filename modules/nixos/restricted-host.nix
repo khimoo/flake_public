@@ -8,7 +8,7 @@ let
   forbidUser =
     what: pred:
     lib.mapAttrsToList (name: user: {
-      assertion = !(pred user.local.profile);
+      assertion = !(pred user);
       message = "local.restrictedHost: Home Manager user `${name}` must not have ${what} on a restricted host (docs/architecture/wsl.md).";
     }) users;
 in
@@ -30,11 +30,14 @@ in
         message = "local.restrictedHost: remote builders must not be configured on a restricted host (docs/architecture/wsl.md).";
       }
     ]
-    ++ forbidUser "secrets to decrypt (local.profile.secrets / sshKeys)" (p: p.secrets != [ ] || p.sshKeys != [ ])
-    ++ forbidUser "the shared LAN key (local.profile.lanSsh)" (p: p.lanSsh)
-    ++ forbidUser "automatic private repo clones (local.profile.privateRepos)" (p: p.privateRepos != [ ])
-    ++ forbidUser "a git identity in this repository (local.profile.gitUsername / gitUserEmail)" (
-      p: p.gitUsername != null || p.gitUserEmail != null
+    ++ forbidUser "secrets to decrypt (local.profile.secrets / sshKeys)" (
+      u: u.local.profile.secrets != [ ] || u.local.profile.sshKeys != [ ]
+    )
+    ++ forbidUser "the shared LAN key (local.profile.lanSsh)" (u: u.local.profile.lanSsh)
+    ++ forbidUser "automatic private repo clones (local.profile.privateRepos)" (u: u.local.profile.privateRepos != [ ])
+    # local.profile を通さず programs.git に直接書いた identity も、公開 repo に載る点は同じ。
+    ++ forbidUser "a git identity in this repository (local.profile.gitUsername / gitUserEmail / programs.git.settings.user)" (
+      u: (u.programs.git.settings.user or { }) != { }
     );
   };
 }

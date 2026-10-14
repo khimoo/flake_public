@@ -7,10 +7,10 @@
 会社のWindows PCに導入したNixOS-WSLを `nixosConfigurations.nixos-work-wsl` として定義し、`sudo nixos-rebuild switch --flake .#nixos-work-wsl` を一度実行するだけで、Home Manager環境まで一括で構築できるようにします。
 このホストは会社PC内で完結するCLI環境とし、個人の秘密情報や自宅マシンへのアクセス経路は一切持たせないようにします。
 
-## 現状の課題
+## 導入前の課題
 
-現在、WSL環境はスタンドアロンのHome Manager設定である `homeConfigurations.pomu-wsl` としてしか定義されていません。
-[flake.nix](../../flake.nix) の `nixosConfigurations` には `nixos-desktop` と `nixos-spin713` のみが登録されているため、WSL上で `sudo nixos-rebuild switch --flake .` を実行すると、イメージ既定のホスト名である `nixos` の設定が見つからずエラーになります。
+導入前の WSL 環境は、スタンドアロンの Home Manager 設定 `homeConfigurations.pomu-wsl` としてしか定義されていませんでした。
+[flake.nix](../../flake.nix) の `nixosConfigurations` には `nixos-desktop` と `nixos-spin713` しかなかったため、WSL 上で `sudo nixos-rebuild switch --flake .` を実行すると、イメージ既定のホスト名である `nixos` の設定が見つからずエラーになっていました。
 
 2026年9月30日時点で確認した NixOS-WSL 2605.7.2 イメージの状態は以下の通りです。
 

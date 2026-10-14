@@ -116,6 +116,14 @@ let
         }
       ];
     }).config;
+  # 制限を破った構成では、落ちる assertion がすべて restrictedHost のものでなければならない。
+  # ほかの assertion が落ちただけでも「止まった」とみなすと、制限が壊れても気づけない。
+  stoppedByRestriction =
+    config:
+    let
+      failed = map (a: a.message) (builtins.filter (a: !a.assertion) config.assertions);
+    in
+    failed != [ ] && builtins.all (lib.hasPrefix "local.restrictedHost:") failed;
   codexConfig = host: builtins.fromTOML host.environment.etc."codex/config.toml".text;
   systemAssertionsHold = config: builtins.all (a: a.assertion) config.assertions;
   mkTestHome =
@@ -186,13 +194,17 @@ lib.genAttrs systems (
       assert wslUser.local.profile.agentConfigRoot == "/home/nixos/sagyo/agents-private";
       assert hasLauncher wslUser "codex-astra";
       assert systemAssertionsHold (restrictedHost { local.restrictedHost.enable = true; } [ ]);
-      assert !(systemAssertionsHold (restrictedHost {
+      assert stoppedByRestriction (restrictedHost {
         local.restrictedHost.enable = true;
         services.openssh.enable = true;
-      } [ ]));
-      assert !(systemAssertionsHold (restrictedHost { local.restrictedHost.enable = true; } [
+      } [ ]);
+      assert stoppedByRestriction (restrictedHost { local.restrictedHost.enable = true; } [
         { local.profile.lanSsh = true; }
-      ]));
+      ]);
+      # local.profile を通さず Home Manager の git の設定に直接書いた identity も止める。
+      assert stoppedByRestriction (restrictedHost { local.restrictedHost.enable = true; } [
+        { programs.git.settings.user.email = "someone@example.com"; }
+      ]);
       assert users.alice.local.profile.gitUsername == "Alice";
       assert users.bob.local.profile.gitUsername == null;
       assert users.bob.local.profile.gitUserEmail == null;

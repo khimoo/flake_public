@@ -14,7 +14,7 @@ bash scripts/check.sh
 1. MarkdownのローカルファイルリンクとAI共通規約の入口を確認。
 2. 全NixOSホストの `system.build.toplevel.drvPath` を明示評価してから、`nix flake check --no-build --no-update-lock-file` で全NixOSホスト・native packages・devShells・checksを評価。
 3. `homeConfigurations` の全 `activationPackage.drvPath` を明示的に評価。
-4. Linux / Darwinのモジュール検証を評価し、nativeのchecks（モジュール・GNOMEの拡張の対応版・文書・隔離したactivationテスト・Quadernoの選別ロジック・偽ホストに対する `cargo remote-run`）だけをbuild。
+4. Linux / Darwinのモジュール検証を評価し、nativeのchecks（モジュール・GNOMEの拡張の対応版・private repoを持たないユーザーのpull-repos・文書・隔離したactivationテスト・Quadernoの選別ロジック・偽ホストに対する `cargo remote-run`）だけをbuild。
 5. `git diff --check` で空白の問題を確認。
 
 [CI](../../.github/workflows/check.yml) もLinux runnerで同じコマンドを使います。リモートのCI実行はpush後に確認してください。
@@ -27,7 +27,7 @@ Git flakeは未追跡ファイルを読みません。新しいファイルは `
 
 Darwin構成はLinuxから評価できますが、macOSバイナリのbuild・activation・GUI動作を検証したことにはなりません。外部リンクの到達性、Markdownの見出しanchor、文書内容の正しさも自動リンク検証の対象外です。
 
-spin713の音声回避策と、両ホストの全画面を透かすmutterのパッチは `system.replaceDependencies` を使い、評価中にシステムclosureの参照を生成するimport-from-derivation（IFD）が発生します。評価の途中でパッチを当てたmutterもビルドするので、binary cacheに無い間はCIでもmutterのビルドを待ちます。未生成の `references.nix.drv` に対して `nix flake check` が失敗するため、一括検証では先に両ホストを明示評価します。freshなCIではGUI・音楽制作を含む多数のstore依存を取得・buildするので、十分なディスク容量と時間が必要です。`--no-build` はこの評価依存をなくす指定ではありません。NixOSの世代切替は行いません。
+spin713の音声回避策と、desktopとspin713の全画面を透かすmutterのパッチは `system.replaceDependencies` を使い、評価中にシステムclosureの参照を生成するimport-from-derivation（IFD）が発生します。評価の途中でパッチを当てたmutterもビルドするので、binary cacheに無い間はCIでもmutterのビルドを待ちます。未生成の `references.nix.drv` に対して `nix flake check` が失敗するため、一括検証では先に全NixOSホストを明示評価します。freshなCIではGUI・音楽制作を含む多数のstore依存を取得・buildするので、十分なディスク容量と時間が必要です。`--no-build` はこの評価依存をなくす指定ではありません。NixOSの世代切替は行いません。
 
 ## 変更に応じた追加確認
 
@@ -51,7 +51,7 @@ nvim --headless -n -u NONE -i NONE -l scripts/check-neovim-parser-merge.lua
 
 ## 原因を絞り込むときの評価
 
-`system.replaceDependencies` を使う両ホストの `system.build.toplevel` は、評価だけでもシステム全体の取得とbuildを待ちます。設定のエラーや警告を探すだけなら、置換を通らない値を先に評価します。
+`system.replaceDependencies` を使うdesktopとspin713の `system.build.toplevel` は、評価だけでもシステム全体の取得とbuildを待ちます。設定のエラーや警告を探すだけなら、置換を通らない値を先に評価します。
 
 ```sh
 h=nixos-desktop

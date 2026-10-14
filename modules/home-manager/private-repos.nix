@@ -1,4 +1,4 @@
-# private repo を home-manager だけで宣言的に clone する。NixOS でも非 NixOS(WSL/macOS)でも
+# private repo を home-manager だけで宣言的に clone する。NixOS でも非 NixOS(macOS)でも
 # 同じ経路で動くよう systemd ではなく home.activation を使う(nixos-rebuild switch でも
 # home-manager switch でも走り、Darwin でも動く)。
 #
