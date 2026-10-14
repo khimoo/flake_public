@@ -462,5 +462,15 @@ lib.genAttrs systems (
       python test_quaderno_plan.py
       touch "$out"
     '';
+    # windows-vm の起動、待機、ロック、止め忘れの通知を、偽の virsh と FreeRDP で確かめる。
+    # flock は util-linux にしかなく、ランチャー自体も Linux 専用なので、Darwin では省く。
+    windows-vm =
+      if system != "x86_64-linux" then
+        pkgs.runCommand "windows-vm-skipped" { } "touch $out"
+      else
+        pkgs.runCommand "windows-vm" { nativeBuildInputs = [ pkgs.python3 pkgs.util-linux ]; } ''
+          python ${./windows-vm.py} ${../modules/home-manager/windows-vm.sh}
+          touch "$out"
+        '';
   }
 )
