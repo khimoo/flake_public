@@ -55,6 +55,12 @@
       url = "github:nix-community/nix-index-database";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # WSL ホストの OS 側（wsl.conf、既定ユーザー、ブートローダーの代わり）。ブランチは nixpkgs の
+    # リリースに合わせる（docs/architecture/wsl.md）。
+    nixos-wsl = {
+      url = "github:nix-community/NixOS-WSL/release-26.05";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     rnote.url = "github:khimoo/rnote";
   };
 
@@ -121,6 +127,19 @@
               ];
           timezone = "Asia/Tokyo";
           stateVersion = "25.05";
+        };
+        nixos-work-wsl = mkSystem {
+          hostname = "nixos-work-wsl";
+          system = "x86_64-linux";
+          users = [
+            {
+              username = "nixos";
+              isAdmin = true;
+              homeFile = ./hosts/nixos-work-wsl/home.nix;
+            }
+          ];
+          timezone = "Asia/Tokyo";
+          stateVersion = "26.05";
         };
       };
 
