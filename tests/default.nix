@@ -42,6 +42,14 @@ let
   wsl = inputs.self.nixosConfigurations.nixos-work-wsl.config;
   wslUser = wsl.home-manager.users.nixos;
   wslSshConfig = wsl.environment.etc."ssh/ssh_config".text;
+  desktopUser = inputs.self.nixosConfigurations.nixos-desktop.config.home-manager.users.pomu;
+  windowsVm = {
+    imports = [ ../modules/home-manager/windows-vm.nix ];
+    local.windowsVm = {
+      enable = true;
+      domain = "win11";
+    };
+  };
   nixosHost =
     hostname: module:
     (configurations.mkSystem {
@@ -331,6 +339,16 @@ lib.genAttrs systems (
             };
           }
         ]);
+      # Windows VM のランチャーはデスクトップだけで有効にする。GUI のないユーザーでは評価を止める。
+      assert hasLauncher desktopUser "windows-vm";
+      assert desktopUser.local.windowsVm.domain == "win11";
+      assert rejects windowsVm;
+      assert
+        system != "x86_64-linux"
+        || allAssertions (mkTestHome system [
+          windowsVm
+          { local.profile.features.gui = true; }
+        ]);
       assert rejects { local.quaderno.enable = true; };
       assert
         system == "x86_64-linux"
@@ -472,5 +490,16 @@ lib.genAttrs systems (
           python ${./windows-vm.py} ${../modules/home-manager/windows-vm.sh}
           touch "$out"
         '';
+    # windows-vm のビルド（writeShellApplication の shellcheck）を CI で通す。
+    # デスクトップの構成は評価しかしないので、ここでビルドしないと見つからない。
+    windows-vm-package =
+      if system != "x86_64-linux" then
+        pkgs.runCommand "windows-vm-package-skipped" { } "touch $out"
+      else
+        lib.findFirst (p: (p.name or "") == "windows-vm") (throw "windows-vm is not installed")
+          (mkTestHome system [
+            windowsVm
+            { local.profile.features.gui = true; }
+          ]).config.home.packages;
   }
 )

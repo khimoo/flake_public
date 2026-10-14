@@ -6,7 +6,11 @@ let
   ];
 
 in {
-  imports = [ ../../profiles/home/pomu-workstation.nix ../../modules/home-manager/minecraft-backup.nix ];
+  imports = [
+    ../../profiles/home/pomu-workstation.nix
+    ../../modules/home-manager/minecraft-backup.nix
+    ../../modules/home-manager/windows-vm.nix
+  ];
 
   # リポジトリを NVMe(/) ではなく SATA の @backup subvol に置く。/ は残り 2 割を切っている。
   # ディレクトリの作成と所有者付けは data-disk.nix が行う。
@@ -26,6 +30,13 @@ in {
   local.quaderno = {
     enable = true;
     archiveDir = "/mnt/backup/quaderno";
+  };
+
+  # Windows はたまにしか使わないので、VM は常時起動せず、アプリ一覧の「Windows」から起動する。
+  # 画面は SPICE ではなく FreeRDP で表示する（docs/architecture/windows-vm.md）。
+  local.windowsVm = {
+    enable = true;
+    domain = "win11";
   };
 
   home.packages = with pkgs; [
