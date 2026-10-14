@@ -1,9 +1,8 @@
 # 会社PCのNixOS-WSLを、秘密情報と外部への接続経路を持たないCLI専用ホストとして追加する
 
-設定ファイル: [modules/nixos/base.nix](../../modules/nixos/base.nix)、[profiles/home/pomu-agents.nix](../../profiles/home/pomu-agents.nix)（実装済み）、`hosts/nixos-work-wsl/`、`modules/nixos/restricted-host.nix`（未実装）
+設定ファイル: [hosts/nixos-work-wsl/default.nix](../../hosts/nixos-work-wsl/default.nix)、[hosts/nixos-work-wsl/home.nix](../../hosts/nixos-work-wsl/home.nix)、[modules/nixos/restricted-host.nix](../../modules/nixos/restricted-host.nix)、[modules/nixos/base.nix](../../modules/nixos/base.nix)、[profiles/home/pomu-agents.nix](../../profiles/home/pomu-agents.nix)
 
-**現状：一部実装済み。** `base.nix` と `pomu-agents.nix` への分割と、前提だったリポジトリ全体の 26.05 への更新は済んでいます。`nixos-work-wsl` ホストは未実装です。
-実装後はセットアップ手順を `docs/howtouse/wsl.md` へ切り出し、本ファイルには意思決定の経緯（判断根拠）を記録します。
+導入と更新の手順は [docs/howtouse/wsl.md](../howtouse/wsl.md) を参照してください。本ファイルには判断の根拠を記録します。
 
 会社のWindows PCに導入したNixOS-WSLを `nixosConfigurations.nixos-work-wsl` として定義し、`sudo nixos-rebuild switch --flake .#nixos-work-wsl` を一度実行するだけで、Home Manager環境まで一括で構築できるようにします。
 このホストは会社PC内で完結するCLI環境とし、個人の秘密情報や自宅マシンへのアクセス経路は一切持たせないようにします。
@@ -134,19 +133,6 @@ WSL環境のHome Manager設定（`hosts/nixos-work-wsl/home.nix`）は、`pomu-a
 
 共通モジュールの構成とユーザーごとのHome Manager設定の分離（設計方針文書『AGENTS.md』における「profile/user isolation」の原則）の双方を変更するため、ローカル開発環境（desktop）で事前に `bash scripts/check.sh` によるテストを実行します。なお、`check.sh` はトップレベルの `drvPath` を評価するのみであるため、WSL用のトップレベルビルドはデスクトップPC上で別途実行して検証します。
 ただし、初回適用（`switch`）、WSL再起動後のログイン挙動、Neovimの動作、デプロイキーを用いたクローンとプル、`ssh -G` による実際の鍵解決結果などは、実機環境（会社のWindows PC上のWSL）でのみ検証可能です。
-
-## 移行手順
-
-1. **モジュールの分離**（実施済み）：`25.11` のロックファイルを維持したまま、`base.nix` および `pomu-agents.nix` への分割（リファクタリング）を行いました。`nixpkgs` のバージョンが異なると `drvPath` の比較検証が機能しないため、3つの手順の最初に行いました。
-2. **システム全体のアップデート**（実施済み）：リポジトリ全体のNixOSおよびHome Managerのバージョンを `26.05` に上げました（別設計に基づく）。
-3. **WSL環境の構築**：WSL用のホスト定義、検証用の自動テスト、利用ガイドなどのドキュメントを追加し、従来の `pomu-wsl` 設定を削除します。
-
-## ドキュメントの更新計画
-
-新規に `docs/howtouse/wsl.md` を作成し、新しいPCにNixOS-WSL環境をセットアップする際の標準手順を整理します。具体的には、HTTPS経由での初期クローン、初回の `switch` 手順（`nixos-rebuild` が flakes の機能を自分で有効にするので、`nix.conf` の設定は要らない）、デプロイキーの生成と登録、`agents-private` のクローン方法、会社用Gitアカウント情報の設定方法、`Host github.com` 定義に関する注意点と `ssh -G` を用いた検証方法、セキュリティ観点からGemini APIキーを配置しない理由について記載します。
-なお、従来の `pomu-wsl` から新構成への移行は一度きりの作業であるため、恒常的な利用ガイド（howtouse）には記載せず、コミットメッセージに詳細を記録します。
-
-また、WSLをスタンドアロンのHome Manager環境として記述している既存の各種ドキュメントを修正します。対象は、`README.md`、`howtouse` および `architecture` の各インデックス、`agent-config.md`、`codex-subagents.md`（利用ガイド・設計の双方）、`private-repo-clone.md`、`comma.md`、`unstable-packages.md` です。
 
 ## 今後の見直し契機（トリガー）
 
