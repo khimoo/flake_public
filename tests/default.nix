@@ -170,6 +170,10 @@ lib.genAttrs systems (
         (mkTestHome system [ { local.profile.features.typo = true; } ]).config.local.profile.features.gui;
     contracts =
       assert allAssertions home;
+      # /etc/nixos を checkout へのリンクにして、--flake なしの nixos-rebuild がこの flake を使うようにする。
+      assert builtins.elem "L+ /etc/nixos - - - - /home/nixos/sagyo/flake_public" wsl.systemd.tmpfiles.rules;
+      assert builtins.elem "L+ /etc/nixos - - - - /home/pomu/sagyo/flake_public"
+        inputs.self.nixosConfigurations.nixos-desktop.config.systemd.tmpfiles.rules;
       assert wsl.local.restrictedHost.enable;
       assert systemAssertionsHold wsl;
       assert wsl.wsl.enable && wsl.wsl.defaultUser == "nixos";

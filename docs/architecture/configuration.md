@@ -25,6 +25,18 @@ Home Managerはユーザーごとに `config.local.profile` を評価する。�
 
 SSHクライアントのIdentityFileは `~/.ssh/` を使い、全ユーザーへprimaryUserの絶対パスを配らない。LAN接続先のユーザー名はprimaryUserで、鍵配布は `local.profile.lanSsh` を選んだユーザーだけ。例外は常設のリモートビルドで、nix-daemon（root）だけがprimaryUserの `id_lan` を絶対パスで読む（[remote-build.md](./remote-build.md)）。`--build-host` はrootを使わず、実行ユーザーのままSSHする。
 
+## /etc/nixos のリンク
+
+NixOS ホストでは、`/etc/nixos` を primaryUser の `local.profile.flakeRoot` へのシンボリックリンクとして設定する（[base.nix](../../modules/nixos/base.nix) 参照）。`--flake` を指定しない `nixos-rebuild` は `/etc/nixos/flake.nix` を探し、シンボリックリンクであれば解決先のディレクトリを Flake とみなして、現在のホスト名と同名の `nixosConfigurations` を適用する（nixpkgs 26.05 の nixos-rebuild-ng、`nixos_rebuild/models.py` の `Flake.from_arg` および `Flake.parse` による挙動）。そのため、初回のみ `--flake <参照>#<構成名>` で適用しておけば、以降は `sudo nixos-rebuild switch` だけで済むようになる。
+
+`flake.nix` のみリンクする形でも `nixos-rebuild` は動作する（`nixos-rebuild` が `flake.nix` のリンク先から親ディレクトリを特定するため）。しかし、ディレクトリごとリンクしているのは、`/etc/nixos` を Flake 参照として `nix` コマンドに直接渡せるようにするためである。`flake.nix` のみリンクした場合、Nix は `/etc/nixos` を Flake のルートとして store にコピーしようとするが、リンク先の絶対パスは store 内に存在しないため評価に失敗してしまう。また、インストール時に生成される `configuration.nix` や `hardware-configuration.nix` は残さない。本構成ではこれらを使用せず、ハードウェア固有の設定は `hosts/<ホスト>/hardware.nix` に配置する。
+
+この設定は `systemd.tmpfiles.rules` の `L+` ルールとして定義されており、起動時および switch 時に適用される。systemd 260.4 においては以下の挙動を確認している。既存の `/etc/nixos` がディレクトリの場合は中身ごと削除してシンボリックリンクに置き換える。ディレクトリ内にシンボリックリンク（手動で張った `flake.nix` のリンクなど）がある場合はリンクのみを削除し、リンク先の実体（チェックアウト先）は保持する。また、リンク先が変更された場合は自動で張り直され、変更がない状態で再度ルールが適用されても影響はない。
+
+チェックアウトが存在しない間はリンク切れの状態となる。このとき `--flake` なしで `nixos-rebuild` を実行すると、`/etc/nixos/flake.nix` が見つからないため従来の構成ファイルを探索しようとする。しかし、本構成の Nix 検索パスには `nixos-config` が含まれていないため、`file 'nixos-config' was not found in the Nix search path` というエラーで停止し、何も適用されないようになっている。
+
+primaryUser に Home Manager のユーザー設定がないホストでは `flakeRoot` が存在しないため、このルールは配置しない。また、ホスト名と構成名を一致させない運用にする場合は、この仕組みを見直す必要がある。
+
 ## 外部状態と検証
 
 Nix評価はcheckoutの実在やage鍵を要求しない。clone・秘密鍵復元はactivationで実施する。既存の鍵は上書きせず、更新は手動のローテーション手順に委ねる。既存cloneもpullせず、更新は `pull-repos` に分ける。

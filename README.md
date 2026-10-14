@@ -40,7 +40,8 @@ home-manager switch --flake .#pomu-macos
 ```
 
 別ディレクトリからは `--flake /絶対パス/flake_public#<構成名>` を使います。
-`flake.nix` 単体を `/etc/nixos/` へリンクする必要はありません。
+NixOSで一度 switch を実行すると、`/etc/nixos` が primaryUser のチェックアウト先へのシンボリックリンクに置き換わります。それ以降は、単に `sudo nixos-rebuild switch` を実行するだけで、ホスト名と同じ名前の構成が適用されるようになります（詳細は[仕組み](docs/architecture/configuration.md#etcnixos-のリンク)を参照）。
+なお、その際にインストール時の `/etc/nixos` 内のファイルは削除されるため、必要なファイルがある場合はあらかじめリポジトリへ移動しておいてください。
 
 ## 新しいホストを追加する
 

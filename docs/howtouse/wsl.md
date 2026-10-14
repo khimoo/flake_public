@@ -41,10 +41,12 @@ git config --file ~/.gitconfig user.email "<会社のメールアドレス>"
 
 ```sh
 git -C ~/sagyo/flake_public pull
-sudo nixos-rebuild switch --flake ~/sagyo/flake_public#nixos-work-wsl
+sudo nixos-rebuild switch
 ```
 
-`#nixos-work-wsl` の指定は省略しないでください。手順 3 の再起動前など、ホスト名が `nixos` のままの場合、省略すると存在しない `nixosConfigurations.nixos` を参照しようとしてエラーになります。
+手順 2 の switch を実行すると、`/etc/nixos` は `~/sagyo/flake_public` へのリンクに置き換わります。そのため `--flake` を指定しなくても、`nixos-rebuild` はチェックアウト先を参照し、ホスト名と同じ名前の構成（`nixos-work-wsl`）を適用します。イメージによって作成された `/etc/nixos/configuration.nix` はこの時点で削除されます。仕組みの詳細については [docs/architecture/configuration.md](../architecture/configuration.md#etcnixos-のリンク) を参照してください。
+
+手順 4 の clone が完了するまではリンク先が存在しないため、`--flake` を省略して `nixos-rebuild` を実行するとエラーで停止します。それまでに再度 switch する場合は、手順 2 と同じコマンドを使用してください。
 
 flake の変更は自宅マシン側で行って push し、この PC では pull のみを実施します。
 
