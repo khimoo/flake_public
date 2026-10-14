@@ -1,6 +1,6 @@
 # デスクトップの Windows VM を FreeRDP で使う
 
-状態: 設計（未実装）。
+状態: 実装済み（2026-10-15）。「未確認」の項目は switch したあとの確認待ち。
 
 ## 目的
 
@@ -108,6 +108,6 @@ NLA を切ると、3389 番ポートに届く相手は誰でもサインイン�
 ## 確かめ方
 
 - `nix eval` で nixos-desktop の Home Manager の構成を評価し、`windows-vm` をビルドする（`writeShellApplication` が shellcheck を通す）。
-- `local.profile.features.gui` を無効にした構成で assertion が評価を止めることを、`extendModules` で確かめる。
+- `local.profile.features.gui` を無効にした構成で assertion が評価を止めることを、`tests/default.nix` の契約（`rejects`）で確かめる。
 - ドキュメントは `python3 scripts/check-docs.py .` と `git diff --check` で確かめる。
 - switch したあとにご本人に確かめてもらう: VM が止まっている状態からの `connect`、すでに動いている状態からの `connect`、FreeRDP を閉じたあとの通知とボタン、二重起動の拒否、右クリックの「シャットダウン」と「SPICE で開く」。

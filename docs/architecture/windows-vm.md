@@ -1,0 +1,84 @@
+# デスクトップの Windows VM を FreeRDP で使う
+
+使い方: [howtouse/windows-vm.md](../howtouse/windows-vm.md)
+
+実装: [modules/home-manager/windows-vm.nix](../../modules/home-manager/windows-vm.nix)、[modules/home-manager/windows-vm.sh](../../modules/home-manager/windows-vm.sh)、検証: [tests/windows-vm.py](../../tests/windows-vm.py)
+
+nixos-desktop の libvirt VM（`win11`）は、VM の中の MotionPro（Array Networks の SSL VPN クライアント）と mstsc で会社 PC に接続するときと、たまに Windows を使うときに起動する。
+画面は SPICE ではなくホストの FreeRDP から RDP で表示し、VM は使うときだけランチャー（`windows-vm`）で起動する。
+以下の観察はいずれも 2026-10-14 のもので、FreeRDP 3.31.1（nixpkgs の `freerdp`。`sdl-freerdp` は SDL3 のクライアント）、QEMU のマシン型 `pc-q35-9.2`、Windows 11 Education（ビルド 26200）で確かめた。
+
+## SPICE ではなく RDP で表示する
+
+VM のビデオは QXL で 3D アクセラレーション（`gl`）は無効、表示は SPICE（virt-manager）だった。
+この経路では、VM の中のメモ帳でも打鍵が遅れ、会社 PC への RDP ではさらに遅れた。
+VM の Windows でリモートデスクトップを有効にし、ホストの `sdl-freerdp` から接続すると、VM の中と会社 PC の両方で操作感がかなり改善した。
+比べたのは体感で、遅延の数値は測っていない。
+
+GPU を VM に渡す案（パススルーや Looking Glass）は、ホストの GPU が RX 6600 の一枚だけなので取れない。
+SPICE と QXL の設定を調整する案は、変えられる項目が少なく、RDP に切り替えたほどの効果は見込めないので試していない。
+
+USB リダイレクトは SPICE の機能なので、SPICE の画面は残し、USB を渡すときだけ virt-manager で開く。
+SPICE と RDP は同時に接続できる。Windows は画面を一つのセッションにしか出さないので、RDP の接続中は SPICE 側がロック画面になる。
+
+## NLA を切る
+
+VM の Windows には Microsoft Entra ID のアカウントでサインインしている。
+NLA を有効にしたままでは、FreeRDP から接続できなかった。
+
+- ユーザー名を `\AzureAD\<UPN>` にすると、FreeRDP は UPN のドメインを Kerberos のレルムとみなして KDC を探し、`Cannot contact any KDC for realm` でタイムアウトした。
+- `/auth-pkg-list:!kerberos` を足しても Kerberos を試し、最後は `ERRCONNECT_LOGON_FAILURE` で拒否された。
+
+Microsoft の資料（[Connect to remote Microsoft Entra joined device](https://learn.microsoft.com/en-us/windows/client-management/client-tools/connect-to-remote-aadj-pc)）によると、Entra ID の認証を使わない RDP で Entra ID のアカウントを使うには、接続元と接続先が同じテナントにある必要がある。
+ホストの NixOS はテナントに参加していないので、この条件を満たせない。
+
+NLA を切り、`/sec:tls` で接続して Windows のサインイン画面からサインインすると使えた。
+代償として、3389 番ポートに届く相手は誰でもサインイン画面まで進める。
+この VM は libvirt の `default` ネットワーク（NAT）の内側にあり、届くのはホストと同じネットワークにいる VM だけなので、これを受け入れる。
+
+同じ資料にある Entra ID の認証（mstsc の `enablerdsaadauth`、FreeRDP の `/sec:aad`）は、接続元がテナントに参加していなくても使える。
+ただし接続先をホスト名で指定する必要があり、テナントの条件付きアクセスにも左右されるので、試していない。
+FreeRDP の `/sec:aad` で接続できると確かめられたら、NLA を戻す。
+
+## 使うときだけ起動する
+
+Windows を使うのは週に数回程度で、VM は動いている間 12 GiB のメモリを確保する（ホストは 32 GiB）。
+そのため常時起動はしない。
+ランチャーは、VM が止まっていれば起動し、`virsh domifaddr --source lease` で引いた IP の 3389 番ポートが応答するまで待ってから接続する。
+終わるときは Windows のスタートメニューからシャットダウンし、VM ごと止める。
+
+退けた案は次の二つ。
+
+- FreeRDP を閉じたら自動で VM をシャットダウンする: 止め忘れはなくなるが、ウィンドウを閉じただけで保存していない作業ごと Windows が終了し、再接続もできなくなる。
+- 閉じたら libvirt の managed save で状態を保存し、次回すぐに再開する: 起動待ちはなくなるが、保存先の `/` は空きが 13 GB（使用率 97%）しかなく、最大 12 GiB のメモリの内容を書き込むと埋まりかねない。再開後は VPN の接続も切れているので、再接続の手間は残る。`/` に余裕ができ、起動待ちが気になるようになったら試す。そのときは、virtiofs の共有があっても保存できるかを先に確かめる。
+
+VM の IP は libvirt の DHCP で割り当てられ、変わりうるので、ランチャーは問い合わせのたびに引き直す。
+libvirt の NSS モジュールで VM の名前を引けるようにする案は、一つのスクリプトのためにシステムの名前解決を変えることになるので採らない。
+
+## 止め忘れの通知と二重起動
+
+FreeRDP のウィンドウだけを閉じると VM は動いたまま残るので、ランチャーは通知で知らせ、ボタンから止められるようにする。
+GNOME の通知は一覧に残るので、古い通知のボタンを後から押すと、そのとき使っている別のセッションの Windows まで止めてしまう。
+これを防ぐため、ランチャーは起動を待つ間から FreeRDP が終わるまで `$XDG_RUNTIME_DIR/windows-vm.lock` を `flock` で握り、ボタンの処理はロックを握れたときだけ VM を止める。
+同じロックで二重起動も止める。同じ VM に二つ目の RDP 接続を張ると、一つ目が切れるからである。
+
+アプリ一覧から起動すると端末がなく、エラーの出力が見えない。
+想定した失敗（VM の状態、起動待ちのタイムアウト、二重起動）は内容を通知し、それ以外の失敗も終了時に通知する。
+
+## 会社 PC との接続で分かったこと
+
+VM の中の mstsc は手元の MotionPro（`127.0.0.1`）に接続し、MotionPro がその通信をトンネルで会社へ送る。
+YouTube などの通信はこのトンネルを通らないので、家の回線が速くても、トンネルの速さについては何も分からない。
+
+MotionPro のトンネルのプロトコルを TCP から UDP に変えると、mstsc の接続情報が示す帯域は 460 Kbps から 1.14 Mbps に、RTT は 53 ms から 45 ms になった（それぞれ一回ずつの測定）。
+mstsc は手元の MotionPro に TCP で接続するので、接続情報のトランスポートは UDP にしても TCP のまま表示される。
+UDP でトンネルを張れたことは、MotionPro のプロセスが外向きの UDP ポートを開いていることで確かめた。
+Array Networks の SSL VPN が DTLS（UDP）のトンネルを持つことは、[OpenConnect の資料](https://www.infradead.org/openconnect/array.html) にも書かれている。
+
+会社 PC の RemoteFX のパフォーマンスカウンタの RTT は当てにしない。
+従来の mstsc では UDP の RTT が常に 0 になり、TCP の RTT も動かなくなるという報告があり（[Microsoft Q&A](https://learn.microsoft.com/en-us/answers/questions/109572/remotefx-rtt-performance-counters)）、今回も 3 回とも同じ値だった。
+mstsc の接続バーから開く接続情報のほうを使う。
+
+会社 PC とのクリップボードは連携しない。
+会社 PC では `fDisableClip` がポリシーに設定されておらず、`WinStations\RDP-Tcp` の値も `0` で、`rdpclip` も動いていた。
+止めているのは MotionPro が mstsc に渡す接続設定かゲートウェイで、会社の管理によるものなので回避しない。
