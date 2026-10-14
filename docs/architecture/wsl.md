@@ -1,6 +1,6 @@
 # 会社PCのNixOS-WSLを、秘密情報と外部への接続経路を持たないCLI専用ホストとして追加する
 
-設定ファイル: [hosts/nixos-work-wsl/default.nix](../../hosts/nixos-work-wsl/default.nix)、[hosts/nixos-work-wsl/home.nix](../../hosts/nixos-work-wsl/home.nix)、[modules/nixos/restricted-host.nix](../../modules/nixos/restricted-host.nix)、[modules/nixos/base.nix](../../modules/nixos/base.nix)、[profiles/home/pomu-agents.nix](../../profiles/home/pomu-agents.nix)
+設定ファイル: [hosts/nixos-work-wsl/default.nix](../../hosts/nixos-work-wsl/default.nix)、[modules/nixos/restricted-host.nix](../../modules/nixos/restricted-host.nix)、[modules/nixos/base.nix](../../modules/nixos/base.nix)、[profiles/home/pomu-agents.nix](../../profiles/home/pomu-agents.nix)
 
 導入と更新の手順は [docs/howtouse/wsl.md](../howtouse/wsl.md) を参照してください。本ファイルには判断の根拠を記録します。
 
@@ -31,8 +31,7 @@ Home Manager側の [pomu.nix](../../profiles/home/pomu.nix) には、個人ア�
 
 age暗号鍵（`~/.config/sops/age/keys.txt`）は配置しません。
 本リポジトリ用のage鍵は1本のみで、同じ鍵から `gemini_api_key` だけでなく、GitHub用の `git_ssh_key` や自宅PCへのログイン用となる `lan_ssh_key` も復号できる構成になっています（[.sops.yaml](../../.sops.yaml)）。会社PCにこの鍵を置くと、自宅マシンへ侵入可能な秘密鍵を容易に取り出せてしまうため、配置を避けます。
-その結果、WSL上にはGeminiのAPIキーが存在しなくなります。ただし、`agents-private` の管理設定に含まれるコミット前校正フック（`claude/hooks/gemini-proofread-commit.py`）は、校正処理に失敗してもコミット自体はそのまま通す仕様になっているため、キーがなくても開発作業（コミット）が妨げられることはありません。
-また、キーを持たせないことで、業務上のコミットメッセージが意図せずGeminiへ送信される事態を確実に防げる利点もあります。
+その結果、WSL上にはGeminiのAPIキーも存在しません。
 
 GitのID情報（名前やメールアドレス）は、本リポジトリのどのファイルにも記載しません。会社用のGitHubアカウント情報をパブリックリポジトリにハードコードすると、個人アカウント `khimoo` と現在の勤務先との関連性が一般に公開されてしまうためです。
 会社用のID情報は、WSL環境上の `~/.gitconfig` に手動で設定します。GitはHome Managerが配置する `~/.config/git/config` と、個別設定用の `~/.gitconfig` の両方を自動で読み込むため、リポジトリ側で特別な仕組みを用意する必要はありません。
@@ -41,7 +40,21 @@ GitのID情報（名前やメールアドレス）は、本リポジトリのど
 `khimoo` アカウントの書き込み（push）権限を持つ認証情報も配置しません。WSLの仮想ディスクはWindows側のファイルとして保存されており、会社のシステム管理ツールや管理者権限からアクセス可能な状態にあるためです。
 パブリックリポジトリ（`flake_public`）はHTTPS経由でクローンし、pull（閲覧・同期）専用とします。コードの変更作業はすべて自宅マシンで行い、WSL環境で見つかった不具合も帰宅後に自宅環境で修正・反映する運用とします。
 
-### 2. agents-private は読み取り専用のデプロイキー（Deploy Key）で取得する
+### 2. 自分用のエージェント設定（agents-private）は配置しない
+
+現在の会社には、会社公認の Claude や Codex のアカウントがありません（2026-10-14 時点）。個人アカウントを業務で使用した場合、次のような問題が生じます。
+
+- 会社のコードや情報が、会社と契約のない外部サービスへ個人として送信されてしまう。個人向けプランには法人向けのようなデータ取り扱いに関する契約がなく、設定によっては会話内容がモデルの学習に利用される。
+- ログインの認証情報（`~/.claude/.credentials.json`、`~/.codex/auth.json`）が、会社側から参照可能なディスク上に残ってしまう。
+- 会話履歴や別端末からのセッション継続機能などを通じて、業務内容が個人アカウント側に蓄積されてしまう。
+
+そのため、このホストでは Claude Code や Codex を使用せず、個人用の設定（agents-private）も配置しません。利用機会がないにもかかわらず、設定内容が会社から閲覧可能な状態になるリスクだけが残るためです。
+
+なお、`claude` や `codex` コマンドは他ホストと共有している Home Manager モジュールによって導入されるため、このホストにもインストールされます。ただし、コマンドが存在するだけでは外部への送信は行われないため、共有モジュールにわざわざ条件分岐を追加してまで除外することはしていません。また、どのアカウントでログインするかは実行時の操作であり、`restrictedHost` の assertion では強制できないため、手順書（[docs/howtouse/wsl.md](../howtouse/wsl.md)）に記載して運用で対応します。
+
+#### 社用アカウントのある会社で設定を戻す際の設計
+
+当初は、agents-private を読み取り専用の deploy key で導入する設計にしていました（4c54a17 と 1d685c5 で実装しており、ホスト設定、テスト、手順書に該当箇所があります）。社用アカウントがある環境で元の構成に戻す際は、以下の判断を引き継ぎます。
 
 デプロイキーはGitHub上でリポジトリごとに個別に登録するSSH公開鍵であり、`khimoo` アカウント本来の権限と切り離して管理できます。読み取り専用として登録することで、`agents-private` のクローンとプルのみを許可します。
 その代わり、`agents-private` に含まれる指示書、設定、`decisions/` の履歴などのコンテンツは、会社の管理者や管理ツールが会社PCのディスクを通じて閲覧可能な状態になります。なお、WSL側から `agents-private` への直接プッシュはできません。
@@ -92,7 +105,6 @@ Codexのサブエージェント無効化設定（`codex.nix`）を `base.nix` �
 `audio` グループはNixOSのデフォルトで定義されているため `nixos` ユーザーにも割り当てられます。WSL環境にオーディオ機能はありませんが、所属していても実害はありません。
 
 WSL用のホスト設定（`hosts/nixos-work-wsl/default.nix`）は、NixOS-WSLモジュールと `base.nix` のみをインポートするシンプルな構成にします。`wsl.defaultUser` は `settings.primaryUser` から動的に取得します。
-また、`local.claudeManagedSettings` はパスをハードコードせず、Home Manager側の `agentConfigRoot` をもとに組み立てます。
 Flakeの `inputs` に `nixos-wsl`（`github:nix-community/NixOS-WSL/release-26.05`）を追加し、`nixpkgs` は `follows` を用いて全体のバージョンと統一します。
 システム全体の構築には、既存の `mkSystem`（[configurations.nix](../../lib/configurations.nix)）を使用します。`mkSystem` は常に `musnix` のNixOSモジュールをインポートしますが、`musnix` の各機能はデフォルトで無効化されているため、WSL向けに個別の条件分岐を設ける必要はありません。
 
@@ -103,17 +115,15 @@ NixOS-WSLは、`wheel` グループに属する全ユーザーに対し、パス
 - **各モジュールを個別にインポートする案**：既存の共通モジュールを変更せずに済みますが、結局 `nix-settings.nix` からGUI部分を分離する必要がある上、将来的に `common.nix` に基礎的な共通設定が追加された際、WSL環境だけが更新から取り残されるリスクがあります。
 - **`common.nix` 内で `local.wsl.enable` などのフラグにより分岐させる案**：ファイル構成を変更せずに済みますが、WSL固有の処理が多くのモジュールに分散してしまい、今後ホストの種類が増えるたびに条件分岐が複雑化する恐れがあります。
 
-### 6. Home Manager設定は agents-private 向けの設定のみを共有する
+### 6. Home Manager の個人設定を読まない
 
 [pomu-agents.nix](../../profiles/home/pomu-agents.nix) には、`agentConfigRoot`（`~/sagyo/agents-private`）、`agentProfiles`（Claudeのopus・fable、Codexのastra）、`agentCompression` の設定を置いています。なお、`agentConfigRepo` はこの共通ファイルには含めません。
 [pomu-workstation.nix](../../profiles/home/pomu-workstation.nix) は `pomu.nix` と `pomu-agents.nix` をインポートし、`agentConfigRepo` などの固有設定のみを保持します。
 
-WSL環境のHome Manager設定（`hosts/nixos-work-wsl/home.nix`）は、`pomu-agents.nix` のみをインポートします。`pomu.nix` は読み込まないため、`khimoo` のGit ID情報、Geminiのシークレット、`antigravity-cli` は導入されません。また、各種機能フラグ（feature）はすべてデフォルトの無効状態を維持します。
+`nixos-work-wsl` の `nixos` ユーザーには home のファイルを指定せず（`homeFile` なし）、`pomu.nix` も `pomu-agents.nix` も読み込みません。そのため、`khimoo` のGit ID情報、Geminiのシークレット、`antigravity-cli`、agents-private の設定は導入されません。また、各種機能フラグ（feature）はすべてデフォルトの無効状態を維持します。
 リポジトリルート（`flakeRoot`）は、デフォルトの `~/sagyo/flake_public` を使用します。Neovimの設定はこのパスを直接参照するシンボリックリンクとして構成されているため、WSL上でも同じディレクトリ階層にクローンする必要があります。
 これに伴い、既存の `homeConfigurations.pomu-wsl` は削除します。なお、`pomu-macos` および `pomu-nixos` は従来通り `pomu.nix` を直接インポートするため影響を受けません。
 
-初回のビルドと適用（`switch`）は、`agents-private` をクローンする前でも実行可能です。`~/.claude` などへのシンボリックリンクはクローンするまでリンク切れの状態になるだけで、アクティベーション自体はエラーになりません。[claude.nix](../../modules/home-manager/dev/claude.nix) のアクティベーション処理が実行されるのは、古い形式のシンボリックリンクが残存している場合のみです。
-デプロイキーのエイリアス設定は `switch` を実行することで `/etc/ssh/ssh_config` に反映されるため、導入手順は「1. `switch` の実行」「2. デプロイキーの作成とGitHubへの登録」「3. `agents-private` のクローン」の順になります。
 
 ## 検証方針
 
@@ -129,16 +139,15 @@ WSL環境のHome Manager設定（`hosts/nixos-work-wsl/home.nix`）は、`pomu-a
 
 - 実際の `inputs.self.nixosConfigurations.nixos-work-wsl` が `local.restrictedHost.enable` を有効にしていて、assertion がすべて成り立つこと。
 - 制限を破る構成（sshd を有効にしたホストと、`lanSsh` を有効にした Home Manager のユーザーを持つホスト）では、assertion が成り立たないこと。テスト用の架空のホストで確かめます。
-- assertion では表せない設定：`/etc/ssh/ssh_config` に `github-agents-private` 用の定義ブロックがそのままの形であり、deploy key がそこにしか現れず、`Host github.com` ブロックがないこと。`local.claudeManagedSettings` が `agentConfigRoot` から組み立てられていること。`secrets` と `privateRepos` の activation がないこと。
+- assertion では表せない設定：自分用のエージェントの設定がないこと（`agentConfigRoot` と `local.claudeManagedSettings` が null で、`claude-opus` などの起動用のコマンドがなく、`/etc/ssh/ssh_config` に `IdentityFile` がない）。`secrets` と `privateRepos` の activation がないこと。
 
 共通モジュールの構成とユーザーごとのHome Manager設定の分離（設計方針文書『AGENTS.md』における「profile/user isolation」の原則）の双方を変更するため、ローカル開発環境（desktop）で事前に `bash scripts/check.sh` によるテストを実行します。なお、`check.sh` はトップレベルの `drvPath` を評価するのみであるため、WSL用のトップレベルビルドはデスクトップPC上で別途実行して検証します。
-ただし、初回適用（`switch`）、WSL再起動後のログイン挙動、Neovimの動作、デプロイキーを用いたクローンとプル、`ssh -G` による実際の鍵解決結果などは、実機環境（会社のWindows PC上のWSL）でのみ検証可能です。
+ただし、初回適用（`switch`）、WSL再起動後のログイン挙動、Neovimの動作などは、実機環境（会社のWindows PC上のWSL）でのみ検証可能です。
 
 ## 今後の見直し契機（トリガー）
 
 - **WSLの利用環境が「会社PC」から「個人PC」に変更された場合**：制限を解除し、age暗号鍵や各種シークレット、Tailscaleネットワーク（tailnet）への接続設定を再構成します。
-- **会社のセキュリティポリシーや規程により、会社PC上への `agents-private` の配置が不適当と判断された場合**（現状の規程の再確認結果や、今後の改定によるもの）：デプロイキーの利用を取りやめ、`agents-private` なしで動作する構成にダウングレードします。
-- **`agents-private` のコミット前校正フックが「エラー時にコミットをブロックする仕様」に変更された場合**：WSL環境においてClaude Code経由でのコミット処理が妨げられるようになるため、対策を検討します。
+- **社用の Claude や Codex のアカウントがある会社に移った場合**：上の「社用アカウントのある会社で戻すときの設計」で agents-private を戻します。その前に、自分用のプラグインやフック（コミット前に Gemini で校正するフックなど）を会社の作業で使ってよいかを、その会社の規程で確かめます。
 - **NixOS全体のシステムリリースをアップデートする場合**：NixOS-WSLのインプットソース（Flake input）も同期して対応するリリースブランチ（`release-YY.MM`）へ追従させます。
 
 ## 参考資料・リンク

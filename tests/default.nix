@@ -42,16 +42,6 @@ let
   wsl = inputs.self.nixosConfigurations.nixos-work-wsl.config;
   wslUser = wsl.home-manager.users.nixos;
   wslSshConfig = wsl.environment.etc."ssh/ssh_config".text;
-  # deploy key は、この区切りの中にだけ現れなければならない。別の区切りや Host * に付くと、
-  # 会社の GitHub への接続にも deploy key が使われる。
-  wslDeployKeyBlock = ''
-    Host github-agents-private
-      HostName github.com
-      User git
-      IdentityFile ~/.ssh/id_agents_private
-      IdentitiesOnly yes
-  '';
-  countOf = needle: haystack: builtins.length (lib.splitString needle haystack) - 1;
   nixosHost =
     hostname: module:
     (configurations.mkSystem {
@@ -183,16 +173,14 @@ lib.genAttrs systems (
       assert wsl.local.restrictedHost.enable;
       assert systemAssertionsHold wsl;
       assert wsl.wsl.enable && wsl.wsl.defaultUser == "nixos";
-      assert lib.hasInfix wslDeployKeyBlock wslSshConfig;
-      assert countOf "id_agents_private" wslSshConfig == 1;
-      assert countOf "IdentityFile" wslSshConfig == 1;
-      assert !(lib.hasInfix "Host github.com" wslSshConfig);
-      assert wsl.local.claudeManagedSettings == "/home/nixos/sagyo/agents-private/claude/managed-settings.json";
+      # 社用の AI アカウントがない会社の PC なので、自分用のエージェントの設定（agents-private）を置かない。
+      assert wslUser.local.profile.agentConfigRoot == null;
+      assert wsl.local.claudeManagedSettings == null;
+      assert !(lib.hasInfix "IdentityFile" wslSshConfig);
       assert !(wslUser.home.activation ? secrets);
       assert !(wslUser.home.activation ? privateRepos);
       assert !(lib.any (enabled: enabled) (lib.attrValues wslUser.local.profile.features));
-      assert wslUser.local.profile.agentConfigRoot == "/home/nixos/sagyo/agents-private";
-      assert hasLauncher wslUser "codex-astra";
+      assert !(hasLauncher wslUser "codex-astra");
       assert systemAssertionsHold (restrictedHost { local.restrictedHost.enable = true; } [ ]);
       assert stoppedByRestriction (restrictedHost {
         local.restrictedHost.enable = true;
