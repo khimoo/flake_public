@@ -52,7 +52,7 @@ USB リダイレクトが必要なときだけ、これまでどおり virt-mana
 1. `virsh domstate` で状態を調べる。`shut off` なら `virsh start` で起動し、「Windows を起動しています」と通知する。`running` ならそのまま進む。それ以外の状態（`paused` など）は、状態を書いたエラーを通知して終わる。
 2. `bootTimeoutSeconds` を期限に、`virsh domifaddr --source lease` で最初の IPv4 アドレスを引き、そのアドレスの 3389 番ポートに TCP で接続できるまで数秒おきに試す。期限を過ぎたら、待った秒数を書いたエラーを通知して終わる。
 3. `$XDG_RUNTIME_DIR/windows-vm.lock` を `flock -n` で握ったまま、`sdl-freerdp /v:<IP> /sec:tls /dynamic-resolution /network:lan +clipboard /cert:tofu` を実行する。ロックを握れなければ、すでに接続していると通知して終わる。同じ VM に二つ目の RDP 接続を張ると一つ目が切れるので、二重に起動させない。
-4. FreeRDP が終わったあとも VM が `running` なら、「シャットダウン」のボタン付きで「Windows はまだ起動しています」と通知する（`notify-send --action --wait`）。ボタンが押されたら、ロックを `flock -n` で握れた場合に限り `virsh shutdown` する。
+4. FreeRDP が終わったら、VM が止まるのを最大 60 秒（2 秒おきに 30 回）待つ。スタートメニューからシャットダウンすると FreeRDP が先に終わり、VM はその数十秒後に止まるためである。それでも VM が `running` なら、「シャットダウン」のボタン付きで「Windows はまだ起動しています」と通知する（`notify-send --action --wait`）。ボタンが押されたら、ロックを `flock -n` で握れた場合に限り `virsh shutdown` する。
 
 `windows-vm shutdown` は、VM が `running` なら `virsh shutdown` を実行し、要求したことを通知する。
 アプリ一覧の右クリックから明示的に選ぶ操作なので、接続中でも止める。
@@ -75,8 +75,8 @@ GNOME の通知はメッセージ一覧に残るので、古い通知のボタ�
 リモートデスクトップの有効化と NLA の無効化は VM の中の設定で、repo からは管理できない。
 `docs/howtouse/windows-vm.md` に手順として書く。
 
-NLA を切ると、3389 番ポートに届く相手は誰でもサインイン画面まで進める。
-この VM は libvirt の NAT の内側にあり、届くのはホストと同じネットワークの VM だけなので、これを受け入れる。
+NLA を切ると、3389 番ポートに届く相手には、認証の前に動く RDP の処理と、サインイン画面でのパスワードの試行がさらされる。
+この VM は libvirt の NAT の内側にあり、届くのはホスト自身と、同じ `default` ネットワークにつながるほかの VM だけなので、これを受け入れる。
 
 ### クリップボードの範囲
 
@@ -97,6 +97,7 @@ NLA を切ると、3389 番ポートに届く相手は誰でもサインイン�
 - `sdl-freerdp` のウィンドウが GNOME で「Windows」のアイコンにまとまるか。まとまらなければ `/wm-class` と `StartupWMClass` を合わせる。
 - VM の証明書が変わったとき、アプリ一覧から起動した `sdl-freerdp` が確認の画面を出すか。
 - アプリ一覧から起動したときの `windows-vm` と FreeRDP の出力がどこに残るか（journal に出るなら、文書に調べ方を書く）。
+- SPICE と RDP を同時に接続したとき、SPICE 側がロック画面になり、USB をそのまま渡せるか。
 
 ## 変更するファイル
 

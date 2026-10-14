@@ -51,7 +51,9 @@ wait_for_rdp() {
 }
 
 request_shutdown() {
-  if [ "$(state)" != running ]; then
+  local current
+  current=$(state)
+  if [ "$current" != running ]; then
     notify "Windows は起動していません"
     return
   fi
@@ -75,7 +77,7 @@ remind() {
 }
 
 connect() {
-  local current ip
+  local current ip polls=0
   exec 9>"$lock"
   # 同じ VM に二つ目の RDP 接続を張ると一つ目が切れるので、起動を待つ間から握っておく。
   flock -n 9 || fail "Windows への接続はすでに開いています"
@@ -93,7 +95,15 @@ connect() {
   sdl-freerdp "/v:$ip" /sec:tls /dynamic-resolution /network:lan +clipboard /cert:tofu || true
   flock -u 9
   exec 9>&-
-  if [ "$(state)" = running ]; then remind; fi
+  # スタートメニューからシャットダウンすると FreeRDP が先に終わり、VM はその数十秒後に止まる。
+  # 止まるのを待ち、それでも動いていれば止め忘れを通知する。
+  current=$(state)
+  while [ "$current" = running ] && [ "$polls" -lt 30 ]; do
+    sleep 2
+    polls=$((polls + 1))
+    current=$(state)
+  done
+  if [ "$current" = running ]; then remind; fi
 }
 
 case ${1-connect} in

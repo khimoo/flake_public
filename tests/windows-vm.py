@@ -23,6 +23,16 @@ printf '%s\\n' "$*" >> "$VM_DIR/virsh.log"
 case $1 in
   domstate)
     [ "$2" = win11 ] || { echo "error: failed to get domain '$2'" >&2; exit 1; }
+    # stop-after があれば、その回数だけ問い合わせられたあとで VM が止まったことにする。
+    if [ -f "$VM_DIR/stop-after" ]; then
+      left=$(cat "$VM_DIR/stop-after")
+      if [ "$left" -le 0 ]; then
+        echo "shut off" > "$VM_DIR/state"
+        rm "$VM_DIR/stop-after"
+      else
+        echo $((left - 1)) > "$VM_DIR/stop-after"
+      fi
+    fi
     cat "$VM_DIR/state"
     echo
     ;;
@@ -47,6 +57,7 @@ case $1 in
 esac
 """,
     # Windows のスタートメニューからのシャットダウンは、RDP_BEHAVIOR=poweroff で VM を止めて表す。
+    # 実際には FreeRDP が先に終わり、VM はその数十秒後に止まる。RDP_BEHAVIOR=shutdown-later がその順。
     "sdl-freerdp": """
 printf '%s\\n' "$@" > "$VM_DIR/freerdp.args"
 echo run >> "$VM_DIR/freerdp.runs"
@@ -57,6 +68,7 @@ if [ -n "${RDP_NESTED-}" ]; then
   echo "$status" > "$VM_DIR/nested.status"
 fi
 if [ "${RDP_BEHAVIOR-}" = poweroff ]; then echo "shut off" > "$VM_DIR/state"; fi
+if [ "${RDP_BEHAVIOR-}" = shutdown-later ]; then echo 3 > "$VM_DIR/stop-after"; fi
 exit "${RDP_EXIT:-0}"
 """,
     # ボタンが押されたときは NOTIFY_ACTION の値を返す。NOTIFY_HOLD_LOCK があれば、
@@ -283,6 +295,21 @@ class WindowsVm(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertIn("usage: windows-vm", result.stderr)
         self.assertEqual(self.log("notify.log"), "")
+
+    def test_waits_for_windows_to_finish_shutting_down_before_reminding(self):
+        self.vm_state("running", lease="127.0.0.1")
+        self.listen_rdp()
+        result = self.run_script("connect", RDP_BEHAVIOR="shutdown-later", NOTIFY_ACTION="shutdown")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("--action=", self.log("notify.log"))
+        self.assertNotIn("shutdown win11", self.log("virsh.log"))
+
+    def test_shutdown_reports_unexpected_failures_as_a_notification(self):
+        self.vm_state("running")
+        result = self.run_script("shutdown", WINDOWS_VM_DOMAIN="missing")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("windows-vm が失敗しました", self.log("notify.log"))
+        self.assertNotIn("Windows は起動していません", self.log("notify.log"))
 
     def test_follows_a_lease_that_changes_while_waiting(self):
         self.vm_state("running", lease="127.0.0.2")
