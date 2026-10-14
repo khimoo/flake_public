@@ -24,6 +24,8 @@ buildFHSEnv は Linux でしか作れないので、macOS の Home Manager に�
 - 同じ venv の `python` は、モードの外では `Could not start dynamically linked executable` で起動しなかった。
 - モードの中でも、ホームディレクトリへの書き込み、名前解決、Home Manager のコマンド（`nvim`、`git`）は外と同じに使えた。`sudo` は no_new_privs のために失敗した。
 
+同じ日に nixos-work-wsl（WSL2）でも確かめた。モードの中では `UV_PYTHON_PREFERENCE` が `only-managed` になり、uv が取得した Python 3.14.6 が起動したので、bubblewrap は WSL2 でも動く。
+
 退けた案:
 
 - nix-ld をシステムで有効にする。エディタを含めてどこからでも `.venv` の Python が動くが、uv 以外の配布バイナリも常に動くようになる。[antigravity-cli.md](./antigravity-cli.md) で nix-ld を退けたのと同じ理由になる。
@@ -39,5 +41,4 @@ wheel がなくソースからビルドされる依存は、モードの中の�
 
 ## 未確定
 
-- nixos-work-wsl（WSL2）で bubblewrap が動くか。動かなければ nix-ld を有効にする案に戻る。
 - Windows 側の VS Code から WSL に接続して開発するか。VS Code のサーバー自体が配布バイナリで nix-ld を必要とするので、そうするなら nix-ld を有効にし、uv-mode は外す。
