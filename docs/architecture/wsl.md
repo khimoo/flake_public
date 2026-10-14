@@ -1,11 +1,11 @@
 # 会社PCのNixOS-WSLを、秘密情報と外部への接続経路を持たないCLI専用ホストとして追加する
 
-設定ファイル: [modules/nixos/base.nix](../../modules/nixos/base.nix)、[profiles/home/pomu-agents.nix](../../profiles/home/pomu-agents.nix)（実装済み）、`hosts/nixos-wsl/`（未実装）
+設定ファイル: [modules/nixos/base.nix](../../modules/nixos/base.nix)、[profiles/home/pomu-agents.nix](../../profiles/home/pomu-agents.nix)（実装済み）、`hosts/nixos-work-wsl/`、`modules/nixos/restricted-host.nix`（未実装）
 
-**現状：一部実装済み。** `base.nix` と `pomu-agents.nix` への分割は実装済みで、`nixos-wsl` ホストは未実装です。ホストを追加する前に、リポジトリ全体の nixpkgs および Home Manager を 26.05 へアップデートする必要があります。その設計は別途行います。
+**現状：一部実装済み。** `base.nix` と `pomu-agents.nix` への分割と、前提だったリポジトリ全体の 26.05 への更新は済んでいます。`nixos-work-wsl` ホストは未実装です。
 実装後はセットアップ手順を `docs/howtouse/wsl.md` へ切り出し、本ファイルには意思決定の経緯（判断根拠）を記録します。
 
-会社のWindows PCに導入したNixOS-WSLを `nixosConfigurations.nixos-wsl` として定義し、`sudo nixos-rebuild switch --flake .#nixos-wsl` を一度実行するだけで、Home Manager環境まで一括で構築できるようにします。
+会社のWindows PCに導入したNixOS-WSLを `nixosConfigurations.nixos-work-wsl` として定義し、`sudo nixos-rebuild switch --flake .#nixos-work-wsl` を一度実行するだけで、Home Manager環境まで一括で構築できるようにします。
 このホストは会社PC内で完結するCLI環境とし、個人の秘密情報や自宅マシンへのアクセス経路は一切持たせないようにします。
 
 ## 現状の課題
@@ -59,25 +59,40 @@ OpenSSHは、システム全体の `/etc/ssh/ssh_config` よりも先にユー�
 そのため、会社用の鍵は `Host github.com` ブロックに限定して記述する必要があります。ホスト名のマッチングには `HostName` で置き換えられる前の（コマンドやURLに指定された）エイリアス名が使われるため、`github-agents-private` は `Host github.com` ブロックには一致しません。
 この設定ルールはリポジトリ側から強制できないため、利用ガイド（howtouse）に明記し、`ssh -G github-agents-private` を実行して実際に使用される鍵を確認する検証手順を案内します。
 
-### 3. デフォルトユーザー名 `nixos` をそのまま使用する
+### 3. 会社PC向けであることと、制限していることを名前と設定で示す
+
+ホスト名は `nixos-work-wsl` にします。既存の `nixos-desktop`、`nixos-spin713` に合わせて `nixos-` で始め、`work` で会社の機械であることを示します。`pomu-wsl` や `nixos-wsl` のような名前では、個人用の WSL と区別がつきません。
+flake の input の `nixos-wsl` は、上流の NixOS-WSL プロジェクトの名前なので、そのまま使います。
+
+制限は [restricted-host.nix](../../modules/nixos/restricted-host.nix) のオプション `local.restrictedHost.enable` で表し、`nixos-work-wsl` だけが有効にします。オプションの宣言は `base.nix` から読み込むので、どのホストでも使えますが、既定は無効です。
+有効にすると、次のどれかが入った構成は、理由を示す assertion で評価が止まります。
+
+- 外からの SSH 接続（`services.openssh`）、tailnet への参加（`services.tailscale`）、リモートビルド（`nix.buildMachines`、`nix.distributedBuilds`）
+- Home Manager のユーザーの secret の復号（`local.profile.secrets`、`local.profile.sshKeys`）、LAN の共通鍵（`lanSsh`）、private repo の自動 clone（`privateRepos`）
+- Home Manager のユーザーの git の identity（`gitUsername`、`gitUserEmail`）
+
+`ssh.nix` などを import しないだけでは、設定を読んでも制限していることが分からず、後からうっかり足しても評価が通ってしまいます。オプションにすると、`local.restrictedHost.enable = true` の一行で制限していることが読み取れ、破る構成は評価の時点で止まります。
+代償として、モジュールが一つ増え、テストで確かめていた条件の一部が assertion と重なります。テストは、`nixos-work-wsl` がこのオプションを有効にしていることと、制限を破る構成を assertion が実際に止めることを確かめる形にします。
+
+### 4. デフォルトユーザー名 `nixos` をそのまま使用する
 
 Home Managerのモジュール群は、すべてのパスを `home.homeDirectory` を基準に動的に組み立てています。`/home/pomu` という絶対パスを直接指定しているのは `desktop` と `spin713` のホスト設定のみであり、WSL用のホスト設定はこれらとは独立して記述します。
 ユーザー名をあえて `pomu` に変更する利点は他マシンと絶対パスが揃う点のみですが、その一方で、構築済みのNixOS-WSL環境でユーザー名を変更するには `nixos-rebuild boot` の実行後にWSLインスタンスを再起動するなど煩雑な手順が必要になります。そのため、デフォルトの `nixos` のままで運用します。
 
-### 4. 共通設定を `base.nix` に分離する
+### 5. 共通設定を `base.nix` に分離する
 
 [base.nix](../../modules/nixos/base.nix) には、どのホストでも共通して必要となる最小限の設定を集約しています。
 このファイルで [locale.nix](../../modules/nixos/locale.nix)、[users.nix](../../modules/nixos/users.nix)、nix-settings.nix（GUI関連を除く）、[codex.nix](../../modules/nixos/codex.nix)、[agent-instructions.nix](../../modules/nixos/agent-instructions.nix)、[claude-managed-settings.nix](../../modules/nixos/claude-managed-settings.nix)、[permit-insecure.nix](../../modules/nixos/permit-insecure.nix) をインポートし、`networking.hostName` や `system.stateVersion` もこの `base.nix` で設定します。
 Codexのサブエージェント無効化設定（`codex.nix`）を `base.nix` に含めるのは、WSL環境にもCodexを導入するためです。また、`permit-insecure.nix` は、Home ManagerをNixOSに組み込んでいる全ホストで必須となります。
 
 [common.nix](../../modules/nixos/common.nix) は `base.nix` をインポートした上で、デスクトップ環境（desktop）向けの残りの設定を保持します。具体的には、boot、networking（NetworkManagerやKDE Connect用のポート）、desktop、printing、ssh、tailscale、remote-builders、Bluetooth、libvirt、audio（musnix）、sns-block、gnome-transparent-fullscreenがこれに該当します。
-分割前に `nix-settings.nix` にあった gparted や gsconnect は [desktop.nix](../../modules/nixos/desktop.nix) にに置いています。adb は、26.05 で USB の権限を systemd が扱うようになったので、Home Manager の [dev/apps.nix](../../modules/home-manager/dev/apps.nix) で `android-tools` を入れています。
+分割前に `nix-settings.nix` にあった gparted や gsconnect は [desktop.nix](../../modules/nixos/desktop.nix) に置いています。adb は、26.05 で USB の権限を systemd が扱うようになったので、Home Manager の [dev/apps.nix](../../modules/home-manager/dev/apps.nix) で `android-tools` を入れています。
 
 [users.nix](../../modules/nixos/users.nix) は現状維持とします。
 このモジュールでは、WSL環境には存在しない `networkmanager` や `libvirtd` などのグループをユーザーに付与していますが、NixOSの仕様上、グループ定義側から所属メンバーを評価するため（`elem config.name u.extraGroups`）、システムに定義されていないグループは自動的に無視されます（nixos-25.11 の `nixos/modules/config/users-groups.nix` の仕様）。そのため、不要なグループが指定されていてもエラーは発生しません。
 `audio` グループはNixOSのデフォルトで定義されているため `nixos` ユーザーにも割り当てられます。WSL環境にオーディオ機能はありませんが、所属していても実害はありません。
 
-WSL用のホスト設定（`hosts/nixos-wsl/default.nix`）は、NixOS-WSLモジュールと `base.nix` のみをインポートするシンプルな構成にします。`wsl.defaultUser` は `settings.primaryUser` から動的に取得します。
+WSL用のホスト設定（`hosts/nixos-work-wsl/default.nix`）は、NixOS-WSLモジュールと `base.nix` のみをインポートするシンプルな構成にします。`wsl.defaultUser` は `settings.primaryUser` から動的に取得します。
 また、`local.claudeManagedSettings` はパスをハードコードせず、Home Manager側の `agentConfigRoot` をもとに組み立てます。
 Flakeの `inputs` に `nixos-wsl`（`github:nix-community/NixOS-WSL/release-26.05`）を追加し、`nixpkgs` は `follows` を用いて全体のバージョンと統一します。
 システム全体の構築には、既存の `mkSystem`（[configurations.nix](../../lib/configurations.nix)）を使用します。`mkSystem` は常に `musnix` のNixOSモジュールをインポートしますが、`musnix` の各機能はデフォルトで無効化されているため、WSL向けに個別の条件分岐を設ける必要はありません。
@@ -89,12 +104,12 @@ NixOS-WSLは、`wheel` グループに属する全ユーザーに対し、パス
 - **各モジュールを個別にインポートする案**：既存の共通モジュールを変更せずに済みますが、結局 `nix-settings.nix` からGUI部分を分離する必要がある上、将来的に `common.nix` に基礎的な共通設定が追加された際、WSL環境だけが更新から取り残されるリスクがあります。
 - **`common.nix` 内で `local.wsl.enable` などのフラグにより分岐させる案**：ファイル構成を変更せずに済みますが、WSL固有の処理が多くのモジュールに分散してしまい、今後ホストの種類が増えるたびに条件分岐が複雑化する恐れがあります。
 
-### 5. Home Manager設定は agents-private 向けの設定のみを共有する
+### 6. Home Manager設定は agents-private 向けの設定のみを共有する
 
 [pomu-agents.nix](../../profiles/home/pomu-agents.nix) には、`agentConfigRoot`（`~/sagyo/agents-private`）、`agentProfiles`（Claudeのopus・fable、Codexのastra）、`agentCompression` の設定を置いています。なお、`agentConfigRepo` はこの共通ファイルには含めません。
 [pomu-workstation.nix](../../profiles/home/pomu-workstation.nix) は `pomu.nix` と `pomu-agents.nix` をインポートし、`agentConfigRepo` などの固有設定のみを保持します。
 
-WSL環境のHome Manager設定（`hosts/nixos-wsl/home.nix`）は、`pomu-agents.nix` のみをインポートします。`pomu.nix` は読み込まないため、`khimoo` のGit ID情報、Geminiのシークレット、`antigravity-cli` は導入されません。また、各種機能フラグ（feature）はすべてデフォルトの無効状態を維持します。
+WSL環境のHome Manager設定（`hosts/nixos-work-wsl/home.nix`）は、`pomu-agents.nix` のみをインポートします。`pomu.nix` は読み込まないため、`khimoo` のGit ID情報、Geminiのシークレット、`antigravity-cli` は導入されません。また、各種機能フラグ（feature）はすべてデフォルトの無効状態を維持します。
 リポジトリルート（`flakeRoot`）は、デフォルトの `~/sagyo/flake_public` を使用します。Neovimの設定はこのパスを直接参照するシンボリックリンクとして構成されているため、WSL上でも同じディレクトリ階層にクローンする必要があります。
 これに伴い、既存の `homeConfigurations.pomu-wsl` は削除します。なお、`pomu-macos` および `pomu-nixos` は従来通り `pomu.nix` を直接インポートするため影響を受けません。
 
@@ -111,10 +126,11 @@ WSL環境のHome Manager設定（`hosts/nixos-wsl/home.nix`）は、`pomu-agents
 - `nix-diff` で見た中身の差分は、`secrets.yaml` のパスだけだった。`nix-diff` は入力が変わった途中の derivation の環境の比較を省くので、最終レビューでは、違う derivation の組すべての環境を、対応するストアパスのハッシュを置き換えたうえで比べた。残る差は同じ `secrets.yaml` のパスと、mutter の置換で書き換えるパスの組の並び順だけだった。
 - home 側の分割については、pomu の `local.profile`、`local.agentCompression`、`home.file` と `home.activation` の名前、`home.packages` の名前の評価結果が、前後で一致した。
 
-「会社PC内でクローズドな環境を維持する」というセキュリティ要件が満たされているかは、実際の `nixos-wsl` の構成を評価して得られる設定値（`config` の値）を調べる必要があります。この検証ではビルドを実行せず、生成された成果物も検証しません。そのため、[tests/default.nix](../../tests/default.nix) の制約テスト（`contracts`）に、モック（仮想ホスト）ではなく実機想定の `inputs.self.nixosConfigurations.nixos-wsl` を直接アサーションする検証テストを追加します。
+「会社PC内でクローズドな環境を維持する」というセキュリティ要件は、`local.restrictedHost.enable` の assertion が評価の時点で強制します。[tests/default.nix](../../tests/default.nix) の制約テスト（`contracts`）では、次のことを確かめます。
 
-- **システムレベルの検証**：`sshd` および `tailscale` が完全に無効化されており、リモートビルド用の `nix.buildMachines` が空であることを確認します。また、`/etc/ssh/ssh_config` において、`github-agents-private` 用のホスト定義ブロックが存在し、`Host github.com` ブロックが存在しないことを確認します。
-- **ユーザーレベルの検証（nixosユーザー）**：Home Managerの設定において、`privateRepos`、`sshKeys`、`secrets` がすべて空であり、`secrets` 関連のアクティベーション処理が含まれていないことを確認します。併せて、GitのID（identity）設定が `null` であり、`lanSsh` やその他すべての機能フラグ（feature）が無効化されていることを確認します。
+- 実際の `inputs.self.nixosConfigurations.nixos-work-wsl` が `local.restrictedHost.enable` を有効にしていて、assertion がすべて成り立つこと。
+- 制限を破る構成（sshd を有効にしたホストと、`lanSsh` を有効にした Home Manager のユーザーを持つホスト）では、assertion が成り立たないこと。テスト用の架空のホストで確かめます。
+- assertion では表せない設定：`/etc/ssh/ssh_config` に `github-agents-private` 用の定義ブロックがそのままの形であり、deploy key がそこにしか現れず、`Host github.com` ブロックがないこと。`local.claudeManagedSettings` が `agentConfigRoot` から組み立てられていること。`secrets` と `privateRepos` の activation がないこと。
 
 共通モジュールの構成とユーザーごとのHome Manager設定の分離（設計方針文書『AGENTS.md』における「profile/user isolation」の原則）の双方を変更するため、ローカル開発環境（desktop）で事前に `bash scripts/check.sh` によるテストを実行します。なお、`check.sh` はトップレベルの `drvPath` を評価するのみであるため、WSL用のトップレベルビルドはデスクトップPC上で別途実行して検証します。
 ただし、初回適用（`switch`）、WSL再起動後のログイン挙動、Neovimの動作、デプロイキーを用いたクローンとプル、`ssh -G` による実際の鍵解決結果などは、実機環境（会社のWindows PC上のWSL）でのみ検証可能です。
@@ -127,7 +143,7 @@ WSL環境のHome Manager設定（`hosts/nixos-wsl/home.nix`）は、`pomu-agents
 
 ## ドキュメントの更新計画
 
-新規に `docs/howtouse/wsl.md` を作成し、新しいPCにNixOS-WSL環境をセットアップする際の標準手順を整理します。具体的には、HTTPS経由での初期クローン、初回のみFlakesを一時的に有効化して実施する `switch` 手順、デプロイキーの生成と登録、`agents-private` のクローン方法、会社用Gitアカウント情報の設定方法、`Host github.com` 定義に関する注意点と `ssh -G` を用いた検証方法、セキュリティ観点からGemini APIキーを配置しない理由について記載します。
+新規に `docs/howtouse/wsl.md` を作成し、新しいPCにNixOS-WSL環境をセットアップする際の標準手順を整理します。具体的には、HTTPS経由での初期クローン、初回の `switch` 手順（`nixos-rebuild` が flakes の機能を自分で有効にするので、`nix.conf` の設定は要らない）、デプロイキーの生成と登録、`agents-private` のクローン方法、会社用Gitアカウント情報の設定方法、`Host github.com` 定義に関する注意点と `ssh -G` を用いた検証方法、セキュリティ観点からGemini APIキーを配置しない理由について記載します。
 なお、従来の `pomu-wsl` から新構成への移行は一度きりの作業であるため、恒常的な利用ガイド（howtouse）には記載せず、コミットメッセージに詳細を記録します。
 
 また、WSLをスタンドアロンのHome Manager環境として記述している既存の各種ドキュメントを修正します。対象は、`README.md`、`howtouse` および `architecture` の各インデックス、`agent-config.md`、`codex-subagents.md`（利用ガイド・設計の双方）、`private-repo-clone.md`、`comma.md`、`unstable-packages.md` です。
