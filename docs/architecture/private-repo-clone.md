@@ -12,7 +12,7 @@
 
 新しい環境へ flake を適用するとき、従来は private repo を手で `git clone` する必要がある。
 これを無くし、switch するだけで clone される状態にしたい。対象は NixOS だけでなく
-非 NixOS（WSL / macOS）も含む。対象 repo は 1 つに限定せず、Claude 設定と Obsidian
+非 NixOS（macOS）も含む（会社PCの nixos-work-wsl は age 鍵を置かないので対象外。[wsl.md](./wsl.md)）。対象 repo は 1 つに限定せず、Claude 設定と Obsidian
 workflow など複数の private repo を **同じ経路** で自動化する。
 
 ## なぜ home-manager 単独か
@@ -21,7 +21,7 @@ workflow など複数の private repo を **同じ経路** で自動化する。
 理由:
 
 - ホスト鍵（`/etc/ssh/ssh_host_ed25519_key`）は root しか読めず、home-manager
-  （ユーザー権限）から扱えない。NixOS 専用になり、WSL / macOS を切り捨てる
+  （ユーザー権限）から扱えない。NixOS 専用になり、macOS を切り捨てる
 - 復号の種を「ユーザーが読める専用 age 鍵」にすれば root 不要になり、
   NixOS / 非 NixOS を同じ経路で扱える
 
@@ -114,7 +114,7 @@ clone 対象が無い環境でも flake 1 つを対象にコマンドは生え�
 「環境が意図どおりになった」がずれる状態を作らないほうがよい。
 
 副作用として、既存マシンで age 鍵を失うと `nixos-rebuild switch` が完全に通らなくなる。
-NixOS ホストは `id_lan` のために `sshKeys` が常に非空だからである。回復手段は
+`lanSsh` を有効にしているユーザー（desktop と spin713 の pomu）は、`id_lan` のために `sshKeys` が常に非空だからである。回復手段は
 [howtouse 側](../howtouse/private-repo-clone.md#age-鍵を作り直す)に書いてある。
 switch できないと回復もできないという循環は起きない——age 鍵を置く操作に switch は要らない。
 
@@ -186,7 +186,7 @@ activation が `secrets.yaml` を age 鍵で復号して書き出すので、事
 
 ## 限界
 
-- NixOS ホストは `sshKeys` が常に非空なので、`secrets/secrets.yaml` が store path として
+- `lanSsh` を有効にしているユーザー（desktop と spin713 の pomu）は `sshKeys` が常に非空なので、`secrets/secrets.yaml` が store path として
   参照される。この repo をそのまま fork して自分の暗号文に差し替える場合、
   `secrets.yaml` をコミットするまで eval が通らない
 - standalone（`homeConfigurations`）は URL 側を全て未指定にすれば `secrets.yaml` を

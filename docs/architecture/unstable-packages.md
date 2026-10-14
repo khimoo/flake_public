@@ -120,7 +120,7 @@ nixos-26.05 は tree-sitter 0.26.8 を持つので、neovim と同時に差し�
   `modules/home-manager/dev/apps.nix` では単に `codex` と記述するだけでよく、それがどのチャンネルに
   由来するものかを意識する必要がない。パッケージの取得元を変更しても、利用側の記述を変更する必要はない。
 - overlay は `mkSystem` と `mkHome` の両方に適用されている（`lib/configurations.nix` の `overlays`）ため、
-  NixOS ホストとスタンドアロンの Home Manager（WSL / macOS）の双方で同じパッケージがインストールされる。
+  NixOS ホストとスタンドアロンの Home Manager（macOS）の双方で同じパッケージがインストールされる。
 - 既存の `overlays/default.nix` とはファイルを分けている。あちらは上流で修正されたら削除する
   「一時的なパッチ」の置き場であり、こちらは安定チャンネルが追いついた時点で適用をやめる
   「パッケージの差し替え」であるため、削除（クリーンアップ）の契機が異なる。

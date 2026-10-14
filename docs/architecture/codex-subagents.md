@@ -56,7 +56,7 @@ Codex の設定はレイヤ構造になっており、下から順に上書き�
 
 [agent-config.md](./agent-config.md) の `settings.json` と同じ方式。Codex は書き込み前に symlink 鎖を
 辿って実体に書く（`codex-rs/utils/path-utils/src/lib.rs` の
-`resolve_symlink_write_paths`）ので技術的には成立し、WSL や macOS でも効く。
+`resolve_symlink_write_paths`）ので技術的には成立し、macOS でも効く。
 
 退けた理由は、`~/.codex/config.toml` が設定ではなく**アプリケーション状態**の置き場
 だから。Codex は信頼済みディレクトリ（`[projects."<絶対パス>"]`）、TUI で選んだモデル、

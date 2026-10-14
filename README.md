@@ -1,6 +1,6 @@
 # NixOS Configuration Flake
 
-個人用のNixOS 2台と、WSL・macOS向けHome Manager環境を管理するリポジトリです。
+個人用のNixOS 2台と会社PCのNixOS-WSL、macOS向けHome Manager環境を管理するリポジトリです。
 
 ## 構成
 
@@ -19,7 +19,8 @@
 ## 対応範囲
 
 - NixOS: `nixos-desktop`, `nixos-spin713`（x86_64 Linux）。個人プロファイルがGUI・音楽制作・vault同期を選択。
-- Home Manager: `pomu-wsl`（x86_64 Linux CLI）、`pomu-macos`（aarch64 Darwin CLI）、`pomu-nixos`（x86_64 Linux GUI・音楽制作）。
+- NixOS-WSL: `nixos-work-wsl`（x86_64 Linux CLI、会社PC）。`local.restrictedHost` で秘密情報と外部への接続経路を持たせない。[手順](docs/howtouse/wsl.md) · [設計判断](docs/architecture/wsl.md)
+- Home Manager: `pomu-macos`（aarch64 Darwin CLI）、`pomu-nixos`（x86_64 Linux GUI・音楽制作）。
 - RustOwlの自動導入はx86_64 Linux限定。macOSのGUI・音楽制作・vaultプロファイルは未対応。
 - macOS構成の評価と実機での適用は別の確認です。検証範囲は[検証ガイド](docs/howtouse/validation.md)を参照。
 
@@ -35,7 +36,7 @@ checkoutの既定位置は `<ホーム>/sagyo/flake_public`。別の場所に置
 bash scripts/check.sh
 sudo nixos-rebuild switch --flake .#nixos-desktop
 # または standalone Home Manager
-home-manager switch --flake .#pomu-wsl
+home-manager switch --flake .#pomu-macos
 ```
 
 別ディレクトリからは `--flake /絶対パス/flake_public#<構成名>` を使います。

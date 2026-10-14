@@ -3,7 +3,8 @@
 新しい環境に flake を適用したとき、**手作業を age 鍵 1 本の設置だけ**にする運用。
 SSH 鍵（GitHub 認証用と LAN 用）は switch が書き出し、private repo（ノート本文・
 Claude 設定・Obsidian workflow）も switch が clone する。NixOS でも 非 NixOS
-（WSL / macOS）でも同じ経路（home-manager の `home.activation`）で動く。
+（macOS）でも同じ経路（home-manager の `home.activation`）で動く。会社PCの nixos-work-wsl は
+age 鍵を置かないので、この仕組みを使わない（[wsl.md](./wsl.md)）。
 
 設計判断は [docs/architecture/private-repo-clone.md](../architecture/private-repo-clone.md) を参照。
 

@@ -77,8 +77,8 @@ switch 中に `id_lan` / `id_github` が書き出され、その時点で新マ�
 
 ## 注意
 
-- 対象は NixOS ホストのみ（`ssh.nix` は NixOS モジュール）。standalone home-manager
-  （macOS / WSL）は LAN の一員とみなさず `id_lan` を配らない
+- 対象は `ssh.nix` を読む NixOS ホストのみ。standalone home-manager（macOS）と、
+  会社PCの nixos-work-wsl（[wsl.md](./wsl.md)）は LAN の一員とみなさず `id_lan` を配らない
 - `PasswordAuthentication = false` なので鍵認証必須。age 鍵を置かずに switch すると
   `id_lan` を書き出せないので activation が error で停止する（[private-repo-clone.md](./private-repo-clone.md) 参照）
 - 短縮名（`ssh desktop`）は同一 LAN（mDNS が届く範囲）が前提。LAN の外では `-ts` の接続名を使う（[tailscale.md](./tailscale.md)）

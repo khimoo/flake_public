@@ -139,7 +139,7 @@ Codex の[設定レイヤ](https://learn.chatgpt.com/docs/config-file/config-adv
 
 同じ本文が、Claude Code には `/etc/claude-code/CLAUDE.md`（管理者用の指示）として、Codex には `/etc/codex/config.toml` の `developer_instructions` として入る。
 本文は Nix store を経由するので、編集したら switch が要る。設定 repo の指示と違い、即反映はされない。
-対象は NixOS ホストだけで、standalone home-manager（WSL、macOS）には入らない。
+対象は NixOS ホスト（nixos-work-wsl を含む）だけで、standalone home-manager（macOS）には入らない。
 
 switch 後の確認:
 

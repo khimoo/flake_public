@@ -27,7 +27,7 @@ Flake 設定の設計判断・実装構造のドキュメント。設定変更�
 | [gnome-transparent-fullscreen.md](./gnome-transparent-fullscreen.md) | 全画面にした半透明のウィンドウの下に mutter が敷く黒を、パッチと `system.replaceDependencies` で外す判断。xdg-shell の規定から外れる代償、direct scanout も止める理由、overlay や XWayland、他のコンポジタを退けた理由 |
 | [inkscape.md](./inkscape.md) | Inkscape の新規文書テンプレート（ページ・デスクの色）を live symlink で持つ判断。store に置くと GUI からの保存が失敗する理由と、保存時に表示状態が混ざる代償 |
 | [unstable-packages.md](./unstable-packages.md) | 安定チャンネルの版では動作不能になるパッケージだけを nixos-unstable から差し替える overlay と、全体を unstable に上げなかった理由 |
-| [private-repo-clone.md](./private-repo-clone.md) | SSH 鍵配布と private repo の宣言的 clone（home.activation で age 鍵 1 本から id_github / id_lan を復号し clone・NixOS/WSL/macOS 共通・復号と clone のモジュール分離・更新は switch から切り離して pull-repos に置く判断） |
+| [private-repo-clone.md](./private-repo-clone.md) | SSH 鍵配布と private repo の宣言的 clone（home.activation で age 鍵 1 本から id_github / id_lan を復号し clone・NixOS/macOS 共通・復号と clone のモジュール分離・更新は switch から切り離して pull-repos に置く判断） |
 | [llm-wikis.md](./llm-wikis.md) | AI に読ませる知識ベース（LLM Wiki）を独立 private repo に置く判断。Claude 設定 repo / vault への相乗りを退けた理由、skill 化しない理由、flake の配線が clone 1 行で済む帰結 |
 | [new-machine.md](./new-machine.md) | **TODO**: nixos-anywhere + disko + age 鍵自動注入で新マシンを 1 コマンドプロビジョニングし、silent skip を根絶する設計メモ（未実装） |
 | [kernel-pin.md](./kernel-pin.md) | nixos-desktop のカーネルに既定の LTS を使う判断（7.1 系が X399 の ACPI S5 バグを踏み poweroff で電源が切れなかった経緯と、latest を試す条件） |

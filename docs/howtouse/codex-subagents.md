@@ -10,7 +10,7 @@ Codex CLI のサブエージェント（`spawn_agent` 等のマルチエージ�
 `/etc/codex/config.toml` を生成する。`modules/nixos/base.nix` から import 済みなので
 rebuild するだけで効く。設定を変えたいときはこのファイルを編集する。
 
-## NixOS 以外（WSL / macOS）の場合
+## NixOS 以外（macOS）の場合
 
 home-manager 単独構成では `/etc` を管理できないので、`~/.codex/config.toml` に
 同じ内容を手で書く。設定は次の 6 行だけ。

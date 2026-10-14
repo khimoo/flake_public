@@ -5,7 +5,7 @@
 
 設定ファイル:
 
-- `modules/nixos/tailscale.nix` — 全ホストで tailscaled を有効にする（`common.nix` から読む）
+- `modules/nixos/tailscale.nix` — `common.nix` を読むホストで tailscaled を有効にする（会社PCの nixos-work-wsl は読まない）
 - `modules/nixos/ssh.nix` — tailnet 経由の接続名 `<短縮名>-ts` を生成する
 - `hosts/nixos-desktop/default.nix` — デスクトップを無操作でサスペンドさせない。RDP のポートを tailnet 側だけに開ける
 

@@ -12,7 +12,7 @@ bash scripts/check.sh
 ```
 
 1. MarkdownのローカルファイルリンクとAI共通規約の入口を確認。
-2. 両ホストの `system.build.toplevel.drvPath` を明示評価してから、`nix flake check --no-build --no-update-lock-file` でNixOS両ホスト・native packages・devShells・checksを評価。
+2. 全NixOSホストの `system.build.toplevel.drvPath` を明示評価してから、`nix flake check --no-build --no-update-lock-file` で全NixOSホスト・native packages・devShells・checksを評価。
 3. `homeConfigurations` の全 `activationPackage.drvPath` を明示的に評価。
 4. Linux / Darwinのモジュール検証を評価し、nativeのchecks（モジュール・GNOMEの拡張の対応版・文書・隔離したactivationテスト・Quadernoの選別ロジック・偽ホストに対する `cargo remote-run`）だけをbuild。
 5. `git diff --check` で空白の問題を確認。

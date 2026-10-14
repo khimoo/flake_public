@@ -144,12 +144,6 @@
       };
 
       homeConfigurations = {
-        "pomu-wsl" = mkHome {
-          username = "pomu";
-          system = "x86_64-linux";
-          stateVersion = "25.05";
-          homeFile = ./profiles/home/pomu.nix;
-        };
         "pomu-macos" = mkHome {
           username = "pomu";
           system = "aarch64-darwin";

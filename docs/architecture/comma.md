@@ -9,7 +9,7 @@ comma と nix-index の command-not-found ハンドラは、ファイル名か�
 `nix-index` を手元で実行すると、nixpkgs の全パッケージのファイル一覧を binary cache から取り寄せて索引を作る。spin713 のような非力なマシンでこれを定期的に走らせたくない。
 nix-index-database は nixos-unstable の索引を週に一度作り、GitHub Releases に置く。flake input で版を固定し、データベースは `fetchurl` の hash で固定されるので、switch のたびに取り直すことはない。
 
-Home Manager のモジュール（`homeModules.nix-index`）を使う。NixOS のモジュールでは、standalone の Home Manager を使う WSL と macOS に入らない。
+Home Manager のモジュール（`homeModules.nix-index`）を使う。NixOS のモジュールでは、standalone の Home Manager を使う macOS に入らない。
 
 手元で `nix-index` を定期実行する案は退けた。固定した nixpkgs と索引の版を揃えられるが、索引作りの負荷がノートにかかる。
 
