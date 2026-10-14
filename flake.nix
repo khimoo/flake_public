@@ -137,6 +137,7 @@
             {
               username = "nixos";
               isAdmin = true;
+              homeFile = ./hosts/nixos-work-wsl/home.nix;
             }
           ];
           timezone = "Asia/Tokyo";

@@ -183,7 +183,10 @@ lib.genAttrs systems (
       assert !(lib.hasInfix "IdentityFile" wslSshConfig);
       assert !(wslUser.home.activation ? secrets);
       assert !(wslUser.home.activation ? privateRepos);
-      assert !(lib.any (enabled: enabled) (lib.attrValues wslUser.local.profile.features));
+      # 会社 PC でも kitty を使うため、GUI アプリは WSLg で表示する（docs/architecture/wsl.md）。
+      assert lib.attrNames (lib.filterAttrs (_: enabled: enabled) wslUser.local.profile.features) == [ "gui" ];
+      assert builtins.any (p: (p.pname or "") == "kitty") wslUser.home.packages;
+      assert wsl.wsl.startMenuLaunchers;
       assert !(hasLauncher wslUser "codex-astra");
       assert hasLauncher wslUser "uv-mode";
       assert systemAssertionsHold (restrictedHost { local.restrictedHost.enable = true; } [ ]);

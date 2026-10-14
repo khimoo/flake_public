@@ -1,11 +1,12 @@
-# 会社PCのNixOS-WSLを、秘密情報と外部への接続経路を持たないCLI専用ホストとして追加する
+# 会社PCのNixOS-WSLを、秘密情報と外部への接続経路を持たないホストとして追加する
 
-設定ファイル: [hosts/nixos-work-wsl/default.nix](../../hosts/nixos-work-wsl/default.nix)、[modules/nixos/restricted-host.nix](../../modules/nixos/restricted-host.nix)、[modules/nixos/base.nix](../../modules/nixos/base.nix)、[profiles/home/pomu-agents.nix](../../profiles/home/pomu-agents.nix)
+設定ファイル: [hosts/nixos-work-wsl/default.nix](../../hosts/nixos-work-wsl/default.nix)、[hosts/nixos-work-wsl/home.nix](../../hosts/nixos-work-wsl/home.nix)、[modules/nixos/restricted-host.nix](../../modules/nixos/restricted-host.nix)、[modules/nixos/base.nix](../../modules/nixos/base.nix)、[profiles/home/pomu-agents.nix](../../profiles/home/pomu-agents.nix)
 
 導入と更新の手順は [docs/howtouse/wsl.md](../howtouse/wsl.md) を参照してください。本ファイルには判断の根拠を記録します。
 
 会社のWindows PCに導入したNixOS-WSLを `nixosConfigurations.nixos-work-wsl` として定義し、`sudo nixos-rebuild switch --flake .#nixos-work-wsl` を一度実行するだけで、Home Manager環境まで一括で構築できるようにします。
-このホストは会社PC内で完結するCLI環境とし、個人の秘密情報や自宅マシンへのアクセス経路は一切持たせないようにします。
+このホストは会社PC内で完結する環境とし、個人の秘密情報や自宅マシンへのアクセス経路は一切持たせないようにします。
+当初は CLI だけのホストにしていましたが、kitty を使うために GUI アプリを WSLg で表示するよう改めました（「7. GUI アプリを WSLg で表示する」）。
 
 ## 導入前の課題
 
@@ -120,9 +121,33 @@ NixOS-WSLは、`wheel` グループに属する全ユーザーに対し、パス
 [pomu-agents.nix](../../profiles/home/pomu-agents.nix) には、`agentConfigRoot`（`~/sagyo/agents-private`）、`agentProfiles`（Claudeのopus・fable、Codexのastra）、`agentCompression` の設定を置いています。なお、`agentConfigRepo` はこの共通ファイルには含めません。
 [pomu-workstation.nix](../../profiles/home/pomu-workstation.nix) は `pomu.nix` と `pomu-agents.nix` をインポートし、`agentConfigRepo` などの固有設定のみを保持します。
 
-`nixos-work-wsl` の `nixos` ユーザーには home のファイルを指定せず（`homeFile` なし）、`pomu.nix` も `pomu-agents.nix` も読み込みません。そのため、`khimoo` のGit ID情報、Geminiのシークレット、`antigravity-cli`、agents-private の設定は導入されません。また、各種機能フラグ（feature）はすべてデフォルトの無効状態を維持します。
+`nixos-work-wsl` の `nixos` ユーザーは、`pomu.nix` も `pomu-agents.nix` も読み込みません。そのため、`khimoo` のGit ID情報、Geminiのシークレット、`antigravity-cli`、agents-private の設定は導入されません。
+home のファイルには [hosts/nixos-work-wsl/home.nix](../../hosts/nixos-work-wsl/home.nix) を指定し、機能フラグ（feature）は `gui` だけを有効にします（「7. GUI アプリを WSLg で表示する」）。
 リポジトリルート（`flakeRoot`）は、デフォルトの `~/sagyo/flake_public` を使用します。Neovimの設定はこのパスを直接参照するシンボリックリンクとして構成されているため、WSL上でも同じディレクトリ階層にクローンする必要があります。
 これに伴い、既存の `homeConfigurations.pomu-wsl` は削除します。なお、`pomu-macos` および `pomu-nixos` は従来通り `pomu.nix` を直接インポートするため影響を受けません。
+
+### 7. GUI アプリを WSLg で表示する
+
+会社PCでも、自宅と同じ kitty（`Ctrl+a > 階層 > 動詞` のキー体系と、Neovim との smart-splits の連携）で作業するため、`nixos` ユーザーで `features.gui` を有効にします。
+kitty は Windows 側に配布物がないので、WSL の中で動かし、WSLg で Windows のデスクトップに表示します。
+`wsl.startMenuLaunchers` を有効にして、NixOS-WSL にユーザーのプロファイルの `.desktop` ファイルを `/usr/share/applications` へ写させ、WSLg が Windows のスタートメニューに並べるようにします。
+
+2026-10-14 に会社PCで確かめたこと:
+
+- WSLg が使える。`/mnt/wslg` があり、`WAYLAND_DISPLAY=wayland-0`、`DISPLAY=:0` が設定されている。
+- NixOS-WSL が `hardware.graphics.enable` を有効にしているので、mesa のソフトウェア描画で OpenGL が使える。素の kitty（`nix run nixpkgs#kitty`）は Windows のデスクトップに表示され、Windows とのコピー＆ペーストは双方向に動いた。
+- Windows の IME で kitty に日本語を入力することはできなかった。
+
+日本語は、kitty に IME を入れず、Neovim の skkeleton で入力します。シェルのプロンプトなど、Neovim の外では日本語を打てません。
+WSL に fcitx5-skk を入れる案は退けました。WSLg の Wayland では IME のプロトコルを設定できないので、kitty を X11 で動かし、IBus 互換の経路で fcitx5 につなぐ必要があり、その経路が会社PCで動くかを試しながら進めることになるためです。
+
+kitty と端末フォントだけを有効にする機能（`features.terminal`）を新設する案も退けました。機能を増やさず、既存の `gui` をそのまま使うことを選んでいます。
+代償として、OBS、Chrome、Brave、IntelliJ、LibreOffice、Zoom なども入り、ダウンロードの量と WSL のディスク使用量が数 GB 単位で増えます。どれも binary cache から取得するので、会社PCでのビルドは発生しません。これらのアプリはすべてスタートメニューにも並びます。
+Slack、Discord、Thunderbird などの自動起動は `graphical-session.target` に結び付いています。WSL にはデスクトップのセッションがなくこの target に到達しないので、自動では起動しません。
+`local.restrictedHost` の制限は変えません。kitty の remote control は `listen_on unix:${XDG_RUNTIME_DIR}/kitty.sock` というローカルのソケットだけを使い、外への接続経路にはなりません。
+
+[gui/apps.nix](../../modules/home-manager/gui/apps.nix) は switch のたびに Cursor の AppImage を `api2.cursor.sh` から取得し、初回の取得に失敗するとアクティベーションが `exit 1` で止まります。会社のネットワークがこの URL を通すかは、未確認です。
+描画は mesa のソフトウェア描画のままにし、遅いと感じたときだけ `wsl.useWindowsDriver` で Windows の GPU ドライバーを使います。
 
 
 ## 検証方針
@@ -140,6 +165,7 @@ NixOS-WSLは、`wheel` グループに属する全ユーザーに対し、パス
 - 実際の `inputs.self.nixosConfigurations.nixos-work-wsl` が `local.restrictedHost.enable` を有効にしていて、assertion がすべて成り立つこと。
 - 制限を破る構成（sshd を有効にしたホストと、`lanSsh` を有効にした Home Manager のユーザーを持つホスト）では、assertion が成り立たないこと。テスト用の架空のホストで確かめます。
 - assertion では表せない設定：自分用のエージェントの設定がないこと（`agentConfigRoot` と `local.claudeManagedSettings` が null で、`claude-opus` などの起動用のコマンドがなく、`/etc/ssh/ssh_config` に `IdentityFile` がない）。`secrets` と `privateRepos` の activation がないこと。
+- 有効な機能フラグが `gui` だけで、kitty が入り、`wsl.startMenuLaunchers` が有効なこと。
 
 共通モジュールの構成とユーザーごとのHome Manager設定の分離（設計方針文書『AGENTS.md』における「profile/user isolation」の原則）の双方を変更するため、ローカル開発環境（desktop）で事前に `bash scripts/check.sh` によるテストを実行します。なお、`check.sh` はトップレベルの `drvPath` を評価するのみであるため、WSL用のトップレベルビルドはデスクトップPC上で別途実行して検証します。
 ただし、初回適用（`switch`）、WSL再起動後のログイン挙動、Neovimの動作などは、実機環境（会社のWindows PC上のWSL）でのみ検証可能です。
@@ -149,6 +175,8 @@ NixOS-WSLは、`wheel` グループに属する全ユーザーに対し、パス
 - **WSLの利用環境が「会社PC」から「個人PC」に変更された場合**：制限を解除し、age暗号鍵や各種シークレット、Tailscaleネットワーク（tailnet）への接続設定を再構成します。
 - **社用の Claude や Codex のアカウントがある会社に移った場合**：上の「社用アカウントのある会社で戻すときの設計」で agents-private を戻します。その前に、自分用のプラグインやフック（コミット前に Gemini で校正するフックなど）を会社の作業で使ってよいかを、その会社の規程で確かめます。
 - **NixOS全体のシステムリリースをアップデートする場合**：NixOS-WSLのインプットソース（Flake input）も同期して対応するリリースブランチ（`release-YY.MM`）へ追従させます。
+- **会社のネットワークが Cursor の取得（`api2.cursor.sh`）を通さない場合**：switch が止まるので、制限付きのホストでは取得を飛ばすようにします。
+- **Neovim の外でも日本語を打つ必要が出た場合**：kitty を X11 で動かし、fcitx5-skk を IBus 互換の経路でつなぐ案を会社PCで試します。
 
 ## 参考資料・リンク
 

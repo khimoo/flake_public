@@ -39,7 +39,23 @@ git config --file ~/.gitconfig user.email "<会社のメールアドレス>"
 
 ## uv を使う開発
 
-会社の Python プロジェクトを uv で開発するときは、`uv-mode` で入った環境の中で作業します。uv が取得する Python と manylinux wheel は、この環境の外では起動しません。共有リポジトリに shell.nix などを置く必要はありません。使い方は [cli-tools/uv-mode.md](./cli-tools/uv-mode.md) を参照してください。
+会社の Python プロジェクトを uv で開発するときは、`uv-mode` で入った環境の中で作業します。uv が取得する Python と manylinux wheel は、この環境の外では起動しません。モードの中では、プロンプトに `uv-mode` と表示されます。共有リポジトリに shell.nix などを置く必要はありません。使い方は [cli-tools/uv-mode.md](./cli-tools/uv-mode.md) を参照してください。
+
+## kitty と GUI アプリ
+
+このホストでは `features.gui` を有効にしており、kitty などの GUI アプリは WSLg で Windows のデスクトップに表示されます。kitty の設定とキー操作は自宅のマシンと同じです（[cli-tools/kitty.md](./cli-tools/kitty.md)）。
+
+GUI アプリは Windows のスタートメニューに並びます。kitty はスタートにピン留めしておくと、すぐに起動できます。
+
+日本語は、Neovim の中で skkeleton を使って入力します。Windows の IME は kitty には届かないので、シェルのプロンプトなど Neovim の外では日本語を打てません。
+
+`features.gui` を有効にした後の最初の switch の前に、Cursor の AppImage の取得先に届くかを確かめてください。switch のたびにここから取得しており、初回の取得に失敗するとアクティベーションが止まります。
+
+```sh
+curl -fsSI https://api2.cursor.sh/updates/download/golden/linux-x64/cursor/latest | head -1
+```
+
+`HTTP/2 200` などの応答が返れば問題ありません。エラーになる場合は switch せず、[docs/architecture/wsl.md](../architecture/wsl.md) の見直し契機に従って、制限付きのホストで取得を飛ばす変更を先に入れます。
 
 ## 更新手順
 
