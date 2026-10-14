@@ -417,6 +417,9 @@ lib.genAttrs systems (
           python ${./cargo-remote-run.py} ${../modules/home-manager/dev/cargo-remote-run.sh}
           touch "$out"
         '';
+    # private repo を持たないユーザーでも pull-repos のビルド（shellcheck）が通ること。
+    # standalone の Home Manager は評価しかしないので、ここでビルドしないと見つからない。
+    pull-repos = lib.findFirst (p: (p.name or "") == "pull-repos") (throw "pull-repos is not installed") home.config.home.packages;
     quaderno-plan = pkgs.runCommand "quaderno-plan" { nativeBuildInputs = [ pkgs.python3 ]; } ''
       cp ${../modules/home-manager/quaderno_plan.py} quaderno_plan.py
       cp ${./quaderno-plan.py} test_quaderno_plan.py

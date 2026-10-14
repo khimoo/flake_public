@@ -79,7 +79,9 @@ let
       ''}
 
       status=0
-      for dest in ${lib.escapeShellArgs pullTargets}; do
+      # 配列にしておくと、private repo がなく対象が flake 自身だけのときも shellcheck の SC2043 にならない。
+      targets=(${lib.escapeShellArgs pullTargets})
+      for dest in "''${targets[@]}"; do
         if [ ! -e "$dest/.git" ]; then
           echo "pull-repos: $dest は clone されていない (switch すれば clone される)" >&2
           status=1
