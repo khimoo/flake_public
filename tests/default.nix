@@ -82,6 +82,26 @@ let
       imports = [ ../modules/nixos/claude-managed-settings.nix ];
       local.claudeManagedSettings = path;
     };
+  # 会社 PC 向けの制限（modules/nixos/restricted-host.nix）を立てた架空のホスト。
+  restrictedHost =
+    hostModule: homeModules:
+    (configurations.mkSystem {
+      hostname = "example";
+      system = "x86_64-linux";
+      timezone = "Asia/Tokyo";
+      stateVersion = "25.11";
+      hostModule.imports = [
+        ../examples/new-host.nix
+        ../modules/nixos/restricted-host.nix
+        hostModule
+      ];
+      users = [
+        {
+          username = "alice";
+          inherit homeModules;
+        }
+      ];
+    }).config;
   codexConfig = host: builtins.fromTOML host.environment.etc."codex/config.toml".text;
   systemAssertionsHold = config: builtins.all (a: a.assertion) config.assertions;
   mkTestHome =
@@ -138,6 +158,14 @@ lib.genAttrs systems (
         (mkTestHome system [ { local.profile.features.typo = true; } ]).config.local.profile.features.gui;
     contracts =
       assert allAssertions home;
+      assert systemAssertionsHold (restrictedHost { local.restrictedHost.enable = true; } [ ]);
+      assert !(systemAssertionsHold (restrictedHost {
+        local.restrictedHost.enable = true;
+        services.openssh.enable = true;
+      } [ ]));
+      assert !(systemAssertionsHold (restrictedHost { local.restrictedHost.enable = true; } [
+        { local.profile.lanSsh = true; }
+      ]));
       assert users.alice.local.profile.gitUsername == "Alice";
       assert users.bob.local.profile.gitUsername == null;
       assert users.bob.local.profile.gitUserEmail == null;

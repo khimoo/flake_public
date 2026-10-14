@@ -9,6 +9,7 @@
     ./agent-instructions.nix
     ./claude-managed-settings.nix
     ./permit-insecure.nix
+    ./restricted-host.nix
   ];
 
   networking.hostName = specialArgs.settings.hostname;
