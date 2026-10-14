@@ -37,6 +37,10 @@ git config --file ~/.gitconfig user.email "<会社のメールアドレス>"
 
 会社の GitHub 用 SSH 鍵は、`~/.ssh/config` に手動で設定します。このホストでは Home Manager が `~/.ssh/config` を管理しないため、会社指定の手順どおりに記述できます。
 
+## uv を使う開発
+
+会社の Python プロジェクトを uv で開発するときは、`uv-mode` で入った環境の中で作業します。uv が取得する Python と manylinux wheel は、この環境の外では起動しません。共有リポジトリに shell.nix などを置く必要はありません。使い方は [cli-tools/uv-mode.md](./cli-tools/uv-mode.md) を参照してください。
+
 ## 更新手順
 
 ```sh

@@ -78,6 +78,8 @@
             dpt-rp1-py = nixpkgs.legacyPackages.${system}.callPackage ./packages/dpt-rp1-py { };
           } // nixpkgs.lib.optionalAttrs (system != "x86_64-darwin") {
             graphify = inputs.nixpkgs-unstable.legacyPackages.${system}.graphify;
+          } // nixpkgs.lib.optionalAttrs (nixpkgs.lib.hasSuffix "-linux" system) {
+            uv-mode = nixpkgs.legacyPackages.${system}.callPackage ./packages/uv-mode { };
           } // nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
             rustowl = inputs.rustowl.packages.${system}.rustowl;
             # legacyPackages は allowUnfree を持たないので、unfree の agy だけ設定付きで評価する。

@@ -1,5 +1,6 @@
 {
   skk-dict,
+  lib,
   pkgs,
   ...
 }:
@@ -20,6 +21,10 @@
     jq
     xh
     nodejs_22
+  ]
+  # buildFHSEnv は Linux でしか作れない（docs/architecture/uv-mode.md）。
+  ++ lib.optionals pkgs.stdenv.isLinux [
+    (pkgs.callPackage ../../packages/uv-mode { })
   ];
 
   home.sessionVariables = {

@@ -12,6 +12,7 @@
 | Git UI | lazygit | Git TUI クライアント (delta 連携) | [lazygit.md](./lazygit.md) |
 | AI リモート操作 | Happy | スマホから Codex を操作 | [happy.md](./happy.md) |
 | AI エージェント | Antigravity CLI (agy) | Gemini 3.8 Flash を使うエージェント CLI。日本語の校正の予備の経路 | [antigravity-cli.md](./antigravity-cli.md) |
+| Python | uv-mode | uv が取得する Python と manylinux wheel が動く環境に入る。共有リポジトリに Nix のファイルを置かずに uv で開発する | [uv-mode.md](./uv-mode.md) |
 | シェルツール | fzf, eza, zoxide, fd, rg, bat, btm, direnv, jq, xh | モダン CLI ツール群 | [shell-tools.md](./shell-tools.md) |
 | Nix | comma (`,`), nix-locate | 未インストールのコマンドを一度だけ実行。未知のコマンドに所属パッケージを表示 | [comma.md](./comma.md) |
 | PDF ビューア | tdf | 端末内で PDF を表示 (kitty graphics protocol) | [shell-tools.md#tdf](./shell-tools.md#tdf) |

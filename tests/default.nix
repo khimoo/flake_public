@@ -185,6 +185,7 @@ lib.genAttrs systems (
       assert !(wslUser.home.activation ? privateRepos);
       assert !(lib.any (enabled: enabled) (lib.attrValues wslUser.local.profile.features));
       assert !(hasLauncher wslUser "codex-astra");
+      assert hasLauncher wslUser "uv-mode";
       assert systemAssertionsHold (restrictedHost { local.restrictedHost.enable = true; } [ ]);
       assert stoppedByRestriction (restrictedHost {
         local.restrictedHost.enable = true;
@@ -235,6 +236,7 @@ lib.genAttrs systems (
       };
       assert !(home.config.home.activation ? rustowl);
       assert (builtins.any (p: (p.pname or "") == "rustowl") home.config.home.packages) == (system == "x86_64-linux");
+      assert (hasLauncher home.config "uv-mode") == (lib.hasSuffix "-linux" system);
       assert (mkTestHome system [{ local.rustowl.enable = false; }]).config.xdg.dataFile."nvim/nix/rustowl.lua".text == "return nil";
       assert !(hasLauncher home.config "cargo-remote-run");
       assert hasLauncher (mkTestHome system [
