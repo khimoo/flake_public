@@ -82,6 +82,12 @@
         package.disabled = true;
         aws.disabled = true;
         gcloud.disabled = true;
+        # packages/uv-mode が設定する目印。モードの外では uv が取得した Python を起動できないので、
+        # 中にいるかをプロンプトで見分けられるようにする。
+        env_var.IN_UV_MODE = {
+          format = "[uv-mode]($style) ";
+          style = "bold yellow";
+        };
       };
     };
 

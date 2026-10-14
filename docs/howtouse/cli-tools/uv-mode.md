@@ -14,6 +14,7 @@ uv-mode nvim .
 ```
 
 引数なしで実行するとモードのシェルに入り、`exit` で抜ける。
+モードの中では、starship のプロンプトに `uv-mode` と表示される。
 引数を付けると、そのコマンドだけをモードの中で実行する。
 `.venv` の Python を実行するもの（テスト、CLI、エディタの LSP）は、モードの中で起動する。モードの外で `.venv/bin/python` を起動すると、`Could not start dynamically linked executable` で止まる。
 

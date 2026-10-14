@@ -9,6 +9,9 @@ buildFHSEnv {
   targetPkgs = pkgs: with pkgs; [ uv zlib stdenv.cc.cc.lib ];
   runScript = writeShellScript "uv-mode-run" ''
     export UV_PYTHON_PREFERENCE=only-managed
+    # starship がプロンプトに uv-mode と出すための目印。uv は UV_ で始まる変数を自分の設定として読むので、
+    # その接頭辞を避けて IN_NIX_SHELL と同じ形にする。
+    export IN_UV_MODE=1
     if [ "$#" -eq 0 ]; then exec bash; fi
     exec "$@"
   '';

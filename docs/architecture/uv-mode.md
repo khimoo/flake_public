@@ -15,6 +15,7 @@ nixpkgs 26.05 には Python 3.8 がないので、3.8 の確認には uv が取�
 [packages/uv-mode](../../packages/uv-mode/default.nix) は buildFHSEnv で、uv と wheel が使うライブラリ（zlib、libstdc++）を FHS の配置に並べた環境を作る。
 一般的な Linux 向けのバイナリが動くのは、`uv-mode` で入った環境の中だけになる。
 環境の中では `UV_PYTHON_PREFERENCE=only-managed` を設定し、uv が Nix の `python3` を選ばないようにする。
+あわせて `IN_UV_MODE=1` を設定し、[core.nix](../../modules/home-manager/core.nix) の starship の `env_var.IN_UV_MODE` でプロンプトに `uv-mode` と表示する。モードの外で `uv sync` を実行し、ビルド用の一時環境の Python を起動できずに失敗したことがあったため、中にいるかを見分けられるようにした。変数名に `UV_` を付けないのは、uv が `UV_` で始まる環境変数を自分の設定として読むからで、Nix の `IN_NIX_SHELL` と同じ付け方にした。
 Linux のホストでは [core.nix](../../modules/home-manager/core.nix) が Home Manager で入れるので、プロジェクト側には何も置かず、`nix develop` のような評価も毎回は走らない。
 buildFHSEnv は Linux でしか作れないので、macOS の Home Manager には入れない。
 
