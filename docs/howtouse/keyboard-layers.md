@@ -10,13 +10,18 @@
 | 層 | 担当 | 設定 | 調べる道具 |
 |----|------|------|-----------|
 | keyd | evdev レベルのキーコード変換 | `/etc/keyd/*.conf` | `keyd monitor`, `keyd listen` |
-| xkb | レイアウトと段（Shift / AltGr） | `services.xserver.xkb` | `xkbcli compile-keymap`, GNOME のレイアウト表示 |
+| xkb | レイアウトと段（Shift / AltGr） | GNOME の `org.gnome.desktop.input-sources`（ログイン画面は `services.xserver.xkb`） | `xkbcli compile-keymap`, GNOME のレイアウト表示 |
 | アプリ | ショートカット解釈 | 各アプリ | 各アプリの設定画面 |
 
 keyd は物理キーボードを掴んで、変換済みのキーコードを `keyd virtual keyboard` という
 仮想デバイスとして流し直す。
 xkb に届くのは変換後の結果だけなので、GNOME の「キーボードレイアウトを表示」に
 keyd の分は出てこない。
+
+GNOME のキー配列は English (intl., with AltGr dead keys)（`us+altgr-intl`）で、
+Home Manager が dconf に書く（[pomu-workstation.nix](../../profiles/home/pomu-workstation.nix)）。
+素のキーは us と同じで、右 Alt が AltGr になる。
+GNOME の設定で変えても、次に switch すると戻る。
 
 例として spin713 では Alt+Backspace が Delete になるが、xkb 側にその定義は無い。
 `/etc/keyd/internal.conf` の `[alt]` セクションにある `backspace=delete` が実体。
@@ -87,7 +92,7 @@ xkb 側の段を一覧したいときは以下。
 `[ 素, Shift, AltGr, AltGr+Shift ]` の順に並ぶ。
 
 ```sh
-nix shell nixpkgs#libxkbcommon -c xkbcli compile-keymap --layout us | grep 'key <'
+nix shell nixpkgs#libxkbcommon -c xkbcli compile-keymap --layout us --variant altgr-intl | grep 'key <'
 ```
 
 押した瞬間の解決結果（keyd 変換後の keysym と修飾状態）は `xkbcli interactive-wayland`。

@@ -80,8 +80,15 @@ GNOME には、アプリが奪ったショートカットを取り戻すキー�
 ただし取り戻す方向だけで切り替えにはならず、このデスクトップでは dconf で空に上書きされている。PaperWM が `Super+Escape` を `toggle-scratch-window` に使っている。
 
 FreeRDP 3.31.1 の SDL のクライアント（`client/SDL/SDL3/sdl_input.cpp`）では、キーが押されたときに、その時点の修飾キーの状態が `SDL_KeyModMask` を含み、押されたキーが `SDL_Grab` と一致すると、掴みを切り替える。一致したキーは Windows に送らない。
-修飾キー自身を `SDL_Grab` に指定してもこの条件は満たせるので、`SDL_KeyModMask` を `KMOD_RALT`、`SDL_Grab` を `SDL_SCANCODE_RALT` にして、右 Alt の単独押しで切り替える。
+修飾キー自身を `SDL_Grab` に指定してもこの条件は満たせるので、`SDL_Grab` を `SDL_SCANCODE_RALT` にして、右 Alt の単独押しで切り替える。
 設定は `~/.config/freerdp/sdl-freerdp.json` から読まれる。FreeRDP はこのファイルに書き込まないので、Home Manager から置く。
+
+`SDL_KeyModMask` は `KMOD_MODE` にする。
+GNOME のキー配列は `us+altgr-intl`（[pomu-workstation.nix](../../profiles/home/pomu-workstation.nix)）で、右 Alt は AltGr（`ISO_Level3_Shift`）になる。
+SDL 3.4.10 は `ISO_Level3_Shift` をキーコード `SDLK_MODE` に変換し（`src/events/SDL_keysym_to_keycode.c`）、`SDLK_MODE` が押されている間は `KMOD_RALT` ではなく `KMOD_MODE` を立てる（`src/events/SDL_keyboard.c`）。
+最初は `KMOD_RALT` にしていて、右 Alt を押しても切り替わらなかった（2026-10-15）。そのときの配列は `us` に `lv3:ralt_switch` を足したもので、右 Alt はすでに AltGr だった。
+右 Alt を AltGr のままにするのは、アクセント付きの文字とデッドキーを AltGr で打つためである。`lv3:ralt_switch` を外して `KMOD_RALT` に合わせる案は、AltGr がなくなるので退けた。
+配列を変えて右 Alt が AltGr でなくなると、切り替えは発動しない。契約（[tests/default.nix](../../tests/default.nix)）で、デスクトップの配列が `us+altgr-intl` であることを確かめている。
 
 右 Ctrl と Fn も候補にしたが、使わない。HHKB には右 Ctrl がない。Fn は、つないでいるキーボード（HHKB-BT Keyboard と SEM USB Keyboard）がどちらもキーボードの中で処理し、OS に送らない（カーネルが示す各デバイスのキーの一覧に `KEY_FN` がない）。
 右 Alt を使えるように、keyd の右クリックの連打は、◇ + 右 Alt で入り切りするレイヤー（`toggle(turbo)`）に置く（[keyd-turbo.nix](../../hosts/nixos-desktop/keyd-turbo.nix)）。普段のモードでは右 Alt がそのままアプリに届く。
@@ -91,9 +98,9 @@ keyd に右 ◇ の「叩いたら右 Ctrl」（`overload`）を作らせる案�
 
 代償は次のとおり。
 
-- 右 Alt が Windows に届かなくなる。左 Alt は使える。
+- 右 Alt が Windows に届かなくなるので、Windows では AltGr の文字を打てない。左 Alt は使える。
 - FreeRDP のほかのホットキーも右 Alt との組み合わせになり（全画面は右 Alt + Enter）、押すと掴みも一緒に切り替わる。
-- ターボのモードの間は、右 Alt が連打に使われるので切り替えられない。
+- ターボのモードの間は、右 Alt が連打に使われるので切り替えられない。ホストでも AltGr の文字を打てない。
 - ◇ + 右 Alt は keyd が消費するので、◇ + Alt + キーのショートカットは左 Alt で押す。GNOME（◇ + Alt + S のスクリーンリーダー、◇ + Alt + 8 の拡大鏡など）、PaperWM（◇ + Alt + R、◇ + Alt + 矢印キー）、Windows（◇ + Alt + K のマイクのミュート、Xbox Game Bar の ◇ + Alt + R など）にある。◇ + Alt だけで動くものはない。
 - このユーザーが起動するすべての `sdl-freerdp` に適用される。virt-manager など、ほかのツールでは別のキーを使う。
 

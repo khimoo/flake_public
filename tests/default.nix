@@ -343,13 +343,17 @@ lib.genAttrs systems (
       # Windows VM のランチャーはデスクトップだけで有効にする。GUI のないユーザーでは評価を止める。
       assert hasLauncher desktopUser "windows-vm";
       assert desktopUser.local.windowsVm.domain == "win11";
-      # sdl-freerdp は右 Alt の単独押しでキーボードの掴みを切り替える。そのため keyd は普段の右 Alt を
-      # 書き換えず、ターボの連打は ◇ + 右 Alt で入れるレイヤーに置く（docs/architecture/windows-vm.md）。
+      # sdl-freerdp は右 Alt（AltGr）の単独押しでキーボードの掴みを切り替える。右 Alt が AltGr になる配列を
+      # 既定にし、keyd は普段の右 Alt を書き換えず、ターボの連打は ◇ + 右 Alt で入れるレイヤーに置く
+      # （docs/architecture/windows-vm.md）。
       assert
         builtins.fromJSON desktopUser.xdg.configFile."freerdp/sdl-freerdp.json".text == {
-          SDL_KeyModMask = [ "KMOD_RALT" ];
+          SDL_KeyModMask = [ "KMOD_MODE" ];
           SDL_Grab = "SDL_SCANCODE_RALT";
         };
+      assert lib.hasInfix "('xkb','us+altgr-intl')" (
+        toString desktopUser.dconf.settings."org/gnome/desktop/input-sources".sources
+      );
       assert !(desktopKeyd.main or { } ? rightalt);
       assert rejects windowsVm;
       assert

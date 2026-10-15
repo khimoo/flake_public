@@ -19,7 +19,7 @@
 #
 # 制約: 継続使用アイテム（食事・弓・盾）には使えない。isUsingItem() 中は
 # `if (!keyUse.isDown()) releaseUsingItem()` で毎 tick 使用がキャンセルされる。
-# 副作用: ターボのモードの間、右 Alt は AltGr (lv3:ralt_switch) として機能しなくなる（素の us 配列では無害）。
+# 副作用: ターボのモードの間、右 Alt は AltGr としても FreeRDP の切り替えキーとしても機能しない。
 { ... }:
 
 let intervalMs = 40;
