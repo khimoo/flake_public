@@ -5,12 +5,13 @@
 実装: [modules/home-manager/windows-vm.nix](../../modules/home-manager/windows-vm.nix)、[modules/home-manager/windows-vm.sh](../../modules/home-manager/windows-vm.sh)
 
 nixos-desktop の libvirt VM は、使うときだけ起動し、画面をホストの FreeRDP で表示します。
-VM の名前と起動を待つ上限は、[hosts/nixos-desktop/home-manager-pomu.nix](../../hosts/nixos-desktop/home-manager-pomu.nix) の `local.windowsVm` で指定しています。
+VM の名前は、[hosts/nixos-desktop/home-manager-pomu.nix](../../hosts/nixos-desktop/home-manager-pomu.nix) の `local.windowsVm` で指定しています。起動を待つ上限は既定の 600 秒です。
 
 ## 使う
 
 GNOME のアプリ一覧から「Windows」を開きます。
 VM が止まっていれば起動し、RDP が応答するまで待ってから接続します。待っている間は「Windows を起動しています」と通知されます。
+1 分ほどたっても接続できないときは、「Windows の起動に時間がかかっています」と一度だけ通知されます。Windows Update を適用する起動は数分かかります。
 Windows のサインイン画面が出たら、パスワードでサインインします。ユーザーを選ぶ画面では「他のユーザー」を選び、メールアドレスの形のユーザー名（UPN）を入力します。
 
 ウィンドウの大きさを変えると、Windows の解像度もそれに合わせて変わります。
@@ -36,7 +37,7 @@ FreeRDP のウィンドウだけを閉じると、Windows のセッションは�
 通知の「シャットダウン」を押すと VM を止めます。何もしなければ VM は動いたままで、もう一度「Windows」を開けば同じセッションに戻れます。
 あとで止めるときは、アプリ一覧の「Windows」を右クリックして「シャットダウン」を選びます。
 
-通知のボタンは、押した時点で別の接続が開いていれば何もしません。古い通知のボタンで、使っている最中の Windows を止めないためです。
+通知のボタンは、押した時点で別の接続が開いていれば、VM を止めずに「Windows を停止しませんでした」と通知します。古い通知のボタンで、使っている最中の Windows を止めないためです。
 
 シャットダウンは ACPI の電源ボタンを押したのと同じ操作（`virsh shutdown`）なので、保存していない作業が残っていると Windows が止まらないことがあります。
 止まらないときは、右クリックの「SPICE で開く」で Windows の画面を確かめます。
@@ -65,10 +66,12 @@ VM の名前が変わったときは、`local.windowsVm.domain` を合わせま�
 
 ## うまくいかないとき
 
-「Windows に接続できません」と通知されたら、待つ上限（既定は 180 秒）のうちに RDP が応答しませんでした。
-Windows Update の適用中などで起動が長引いているときは、少し待ってからもう一度開きます。毎回足りないなら `local.windowsVm.bootTimeoutSeconds` を延ばします。
+「Windows に接続できません」と通知されたら、待つ上限（既定は 600 秒）のうちに RDP が応答しませんでした。
+起動が長引いているときは、右クリックの「SPICE で開く」で画面を確かめ、起動し終わってからもう一度開きます。毎回足りないなら `local.windowsVm.bootTimeoutSeconds` を延ばします。
 Windows のリモートデスクトップが無効になっている場合も、同じ通知になります。
 
-「Windows への接続はすでに開いています」と通知されたら、別に開いた「Windows」が起動待ちか接続中です。
+「Windows は起動待機中または接続中です」と通知されたら、別に開いた「Windows」が起動を待っているか、接続しています。
 
-「windows-vm が失敗しました」と通知されたら、端末から `windows-vm connect` を実行して出力を確かめます。
+「Windows が停止しました」と通知されたら、起動を待つ間に VM が止まりました。もう一度「Windows」を開くと起動し直します。
+
+「windows-vm の実行に失敗しました」と通知されたら、端末から `windows-vm connect` を実行して出力を確かめます。

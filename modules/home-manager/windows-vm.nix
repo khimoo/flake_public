@@ -48,10 +48,10 @@ in
 
     bootTimeoutSeconds = lib.mkOption {
       type = lib.types.ints.positive;
-      default = 180;
+      default = 600;
       description = ''
         VM を起動してから RDP（3389 番ポート）が応答するまで待つ上限。
-        Windows Update の適用で起動が長引き、毎回足りないときに延ばす。
+        Windows Update を適用する起動は数分かかるので、それを待てる長さにしている。
       '';
     };
   };

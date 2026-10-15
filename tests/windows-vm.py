@@ -45,6 +45,16 @@ case $1 in
     echo "shut off" > "$VM_DIR/state"
     ;;
   domifaddr)
+    # lease-after があれば、その回数だけ問い合わせられたあとで late-lease の IP を貸し出したことにする。
+    if [ -f "$VM_DIR/lease-after" ]; then
+      left=$(cat "$VM_DIR/lease-after")
+      if [ "$left" -le 0 ]; then
+        cp "$VM_DIR/late-lease" "$VM_DIR/lease"
+        rm "$VM_DIR/lease-after"
+      else
+        echo $((left - 1)) > "$VM_DIR/lease-after"
+      fi
+    fi
     echo ' Name       MAC address          Protocol     Address'
     echo '-------------------------------------------------------------------------------'
     if [ -s "$VM_DIR/lease" ]; then
@@ -191,6 +201,7 @@ class WindowsVm(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertNotIn("start win11", self.log("virsh.log"))
         self.assertEqual(self.log("freerdp.runs"), "run\n")
+        self.assertNotIn("Windows の起動に時間がかかっています", self.log("notify.log"))
 
     def test_connect_is_the_default_subcommand(self):
         self.vm_state("running", lease="127.0.0.1")
@@ -212,8 +223,8 @@ class WindowsVm(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.log("nested.status"), "1\n")
         self.assertEqual(self.log("freerdp.runs"), "run\n")
-        self.assertIn("Windows への接続はすでに開いています", self.log("notify.log"))
-        self.assertNotIn("windows-vm が失敗しました", self.log("notify.log"))
+        self.assertIn("Windows は起動待機中または接続中です", self.log("notify.log"))
+        self.assertNotIn("windows-vm の実行に失敗しました", self.log("notify.log"))
 
     def test_reminder_button_shuts_down_a_vm_left_running(self):
         self.vm_state("running", lease="127.0.0.1")
@@ -246,7 +257,7 @@ class WindowsVm(unittest.TestCase):
         result = self.run_script("connect", WINDOWS_VM_BOOT_TIMEOUT="1")
         self.assertEqual(result.returncode, 1)
         self.assertEqual(self.log("freerdp.runs"), "")
-        self.assertIn("1 秒待っても RDP が応答しませんでした", self.log("notify.log"))
+        self.assertIn("1 秒待機しても RDP が応答しませんでした", self.log("notify.log"))
 
     def test_gives_up_when_the_vm_gets_no_address(self):
         self.vm_state("shut off")
@@ -267,7 +278,7 @@ class WindowsVm(unittest.TestCase):
         self.vm_state("running")
         result = self.run_script("connect", WINDOWS_VM_DOMAIN="missing")
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("windows-vm が失敗しました", self.log("notify.log"))
+        self.assertIn("windows-vm の実行に失敗しました", self.log("notify.log"))
 
     def test_shutdown_requests_acpi_shutdown_of_a_running_vm(self):
         self.vm_state("running")
@@ -308,8 +319,28 @@ class WindowsVm(unittest.TestCase):
         self.vm_state("running")
         result = self.run_script("shutdown", WINDOWS_VM_DOMAIN="missing")
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("windows-vm が失敗しました", self.log("notify.log"))
+        self.assertIn("windows-vm の実行に失敗しました", self.log("notify.log"))
         self.assertNotIn("Windows は起動していません", self.log("notify.log"))
+
+    def test_stops_waiting_when_the_vm_stops_during_boot(self):
+        self.vm_state("running")
+        (self.vm / "stop-after").write_text("3")
+        result = self.run_script("connect", WINDOWS_VM_BOOT_TIMEOUT="10")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("起動待機中に VM が停止しました（VM の状態: shut off）", self.log("notify.log"))
+        self.assertNotIn("RDP が応答しませんでした", self.log("notify.log"))
+        self.assertNotIn("windows-vm の実行に失敗しました", self.log("notify.log"))
+        self.assertEqual(self.log("freerdp.runs"), "")
+
+    def test_tells_the_user_once_when_boot_takes_long(self):
+        self.vm_state("running")
+        (self.vm / "late-lease").write_text("127.0.0.1")
+        (self.vm / "lease-after").write_text("40")
+        self.listen_rdp()
+        result = self.run_script("connect", RDP_BEHAVIOR="poweroff", WINDOWS_VM_BOOT_TIMEOUT="60")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.log("notify.log").count("Windows の起動に時間がかかっています"), 1)
+        self.assertEqual(self.log("freerdp.runs"), "run\n")
 
     def test_follows_a_lease_that_changes_while_waiting(self):
         self.vm_state("running", lease="127.0.0.2")
@@ -339,7 +370,7 @@ class WindowsVm(unittest.TestCase):
         result = self.run_script("connect", NOTIFY_ACTION="shutdown", NOTIFY_POWEROFF="1")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertNotIn("shutdown win11", self.log("virsh.log"))
-        self.assertNotIn("windows-vm が失敗しました", self.log("notify.log"))
+        self.assertNotIn("windows-vm の実行に失敗しました", self.log("notify.log"))
 
 
 if __name__ == "__main__":

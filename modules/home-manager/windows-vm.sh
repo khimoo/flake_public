@@ -20,7 +20,7 @@ fail() {
 on_exit() {
   local status=$?
   if [ "$status" -ne 0 ] && [ -z "$notified" ]; then
-    notify "windows-vm が失敗しました" "終了コード $status。端末から windows-vm を実行すると出力を確認できます。"
+    notify "windows-vm の実行に失敗しました" "終了コード: $status。端末から windows-vm を実行すると詳細な出力を確認できます。"
   fi
 }
 trap on_exit EXIT
@@ -41,13 +41,25 @@ reachable() {
   timeout 2 "$BASH" -c ": < /dev/tcp/$1/3389" 2>/dev/null
 }
 
+# 呼び出し元の ip に、RDP が応答したアドレスを入れる。
+# Windows Update の適用中は起動に数分かかるので、1 分ほどたったら一度だけ知らせる。
+# 待つ間に VM が止まったら、時間切れまで待たずに知らせる（そのままではロックを握り続ける）。
 wait_for_rdp() {
-  local deadline=$((SECONDS + boot_timeout)) ip
+  local deadline=$((SECONDS + boot_timeout)) current polls=0
   until ip=$(address) && [ -n "$ip" ] && reachable "$ip"; do
-    if [ "$SECONDS" -ge "$deadline" ]; then return 1; fi
+    current=$(state)
+    if [ "$current" != running ]; then
+      fail "Windows が停止しました" "起動待機中に VM が停止しました（VM の状態: $current）"
+    fi
+    if [ "$SECONDS" -ge "$deadline" ]; then
+      fail "Windows に接続できません" "$boot_timeout 秒待機しても RDP が応答しませんでした"
+    fi
+    polls=$((polls + 1))
+    if [ "$polls" -eq 30 ]; then
+      notify "Windows の起動に時間がかかっています" "更新プログラムを適用中の可能性があります。画面を確認するには、アプリ一覧の「Windows」を右クリックして「SPICE で開く」を選択してください。"
+    fi
     sleep 2
   done
-  echo "$ip"
 }
 
 request_shutdown() {
@@ -66,13 +78,13 @@ request_shutdown() {
 remind() {
   local action
   action=$(notify-send --app-name=Windows --action=shutdown=シャットダウン --wait \
-    "Windows はまだ起動しています" "使い終わったらシャットダウンしてください") || return 0
+    "Windows はまだ起動しています" "使用を終えたらシャットダウンしてください") || return 0
   [ "$action" = shutdown ] || return 0
   exec 9>"$lock"
   if flock -n 9; then
     request_shutdown
   else
-    notify "Windows を止めませんでした" "別の接続が開いています"
+    notify "Windows を停止しませんでした" "別の接続が開いています"
   fi
 }
 
@@ -80,7 +92,7 @@ connect() {
   local current ip polls=0
   exec 9>"$lock"
   # 同じ VM に二つ目の RDP 接続を張ると一つ目が切れるので、起動を待つ間から握っておく。
-  flock -n 9 || fail "Windows への接続はすでに開いています"
+  flock -n 9 || fail "Windows は起動待機中または接続中です"
   current=$(state)
   case $current in
     running) ;;
@@ -90,7 +102,7 @@ connect() {
       ;;
     *) fail "Windows を起動できません" "VM の状態: $current" ;;
   esac
-  ip=$(wait_for_rdp) || fail "Windows に接続できません" "$boot_timeout 秒待っても RDP が応答しませんでした"
+  wait_for_rdp
   # NLA は切ってある（Entra ID のアカウントでは通らない）。TLS だけで接続し、Windows の画面でサインインする。
   sdl-freerdp "/v:$ip" /sec:tls /dynamic-resolution /network:lan +clipboard /cert:tofu || true
   flock -u 9

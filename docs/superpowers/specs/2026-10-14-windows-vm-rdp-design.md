@@ -37,7 +37,7 @@ USB リダイレクトが必要なときだけ、これまでどおり virt-mana
 
 - `enable`: `mkEnableOption`。
 - `domain`: libvirt のドメイン名。既定値は置かず、デスクトップで `"win11"` を指定する。
-- `bootTimeoutSeconds`: VM を起動してから RDP が応答するまで待つ上限。既定は 180 秒。Windows Update の適用で起動が長引くときは呼び出し側で延ばす。
+- `bootTimeoutSeconds`: VM を起動してから RDP が応答するまで待つ上限。既定は 180 秒としていたが、Windows Update を適用する起動で約 5 分かかったので、実装後に 600 秒へ改めた（docs/architecture/windows-vm.md）。
 
 接続先は `qemu:///system` に固定する。VM はそこにしかなく、オプションにする理由がない。
 
