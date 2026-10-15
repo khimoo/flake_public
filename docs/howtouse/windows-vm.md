@@ -12,12 +12,33 @@ VM の名前は、[hosts/nixos-desktop/home-manager-pomu.nix](../../hosts/nixos-
 GNOME のアプリ一覧から「Windows」を開きます。
 VM が止まっていれば起動し、RDP が応答するまで待ってから接続します。待っている間は「Windows を起動しています」と通知されます。
 1 分ほどたっても接続できないときは、「Windows の起動に時間がかかっています」と一度だけ通知されます。Windows Update を適用する起動は数分かかります。
-Windows のサインイン画面が出たら、パスワードでサインインします。ユーザーを選ぶ画面では「他のユーザー」を選び、メールアドレスの形のユーザー名（UPN）を入力します。
+キーリングにユーザー名とパスワードを置いていれば、自動でサインインします（次の節）。
+置いていなければ、Windows のサインイン画面でパスワードを入力してサインインします。ユーザーを選ぶ画面では「他のユーザー」を選び、メールアドレスの形のユーザー名（UPN）を入力します。
 
 ウィンドウの大きさを変えると、Windows の解像度もそれに合わせて変わります。
 ホストと Windows のあいだでは、テキストのコピー＆ペーストができます。
 
 端末から `windows-vm connect` を実行しても同じ動作になり（`connect` は省略できます）、こちらでは FreeRDP の出力を確認できます。
+
+## パスワードを打たずにサインインする
+
+RDP のサインインでは PIN を使えません（[設計判断](../architecture/windows-vm.md#パスワードを-gnome-キーリングから渡してサインインする)）。
+代わりに、Windows のユーザー名とパスワードを GNOME のキーリングに置くと、ランチャーが FreeRDP に渡して自動でサインインします。
+`vm` の値は `local.windowsVm.domain`（このデスクトップでは `win11`）です。
+
+```sh
+# ユーザー名。AzureAD\ に続けてメールアドレスの形のユーザー名（UPN）を書く
+printf '%s' 'AzureAD\<UPN>' | nix shell nixpkgs#libsecret -c secret-tool store --label='Windows VM のユーザー名' service windows-vm vm win11 field user
+
+# パスワード。入力を求められるので打つ（画面には出ない）
+nix shell nixpkgs#libsecret -c secret-tool store --label='Windows VM のパスワード' service windows-vm vm win11 field password
+```
+
+Windows のパスワードを変えたら、パスワードのほうをもう一度実行して上書きします。
+やめるときは `nix shell nixpkgs#libsecret -c secret-tool clear service windows-vm vm win11` で両方を消します。どちらかが欠けていると、ランチャーは何も渡さず、サインイン画面が出ます。
+
+ユーザー名が `AzureAD\<UPN>` の形で自動サインインできないときは、`<UPN>` だけで試します。
+自動サインインは、まだ実機で確かめていません。
 
 ## Super や Alt+Tab を Windows に渡すか切り替える
 

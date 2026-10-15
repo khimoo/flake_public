@@ -88,6 +88,18 @@ remind() {
   fi
 }
 
+# GNOME キーリングに置いた Windows のユーザー名とパスワードを、FreeRDP の引数にして出す。
+# 片方でも欠けていれば何も出さず、Windows のサインイン画面で入力する。
+# FreeRDP は空の /p: でも自動サインインを試みるので、空のパスワードは渡さない。
+credentials() {
+  local user password
+  user=$(secret-tool lookup service windows-vm vm "$domain" field user 2>/dev/null) || return 0
+  password=$(secret-tool lookup service windows-vm vm "$domain" field password 2>/dev/null) || return 0
+  if [ -n "$user" ] && [ -n "$password" ]; then
+    printf '%s\n' "/u:$user" "/p:$password"
+  fi
+}
+
 connect() {
   local current ip polls=0
   exec 9>"$lock"
@@ -103,8 +115,12 @@ connect() {
     *) fail "Windows を起動できません" "VM の状態: $current" ;;
   esac
   wait_for_rdp
-  # NLA は切ってある（Entra ID のアカウントでは通らない）。TLS だけで接続し、Windows の画面でサインインする。
-  sdl-freerdp "/v:$ip" /sec:tls /dynamic-resolution /network:lan +clipboard /cert:tofu || true
+  # NLA は切ってある（Entra ID のアカウントでは通らない）。TLS だけで接続し、資格情報があれば自動でサインインする。
+  # パスワードをコマンドライン（ps から読める）に載せないよう、引数はすべて標準入力から渡す。
+  {
+    printf '%s\n' "/v:$ip" /sec:tls /dynamic-resolution /network:lan +clipboard /cert:tofu
+    credentials
+  } | sdl-freerdp /args-from:stdin || true
   flock -u 9
   exec 9>&-
   # スタートメニューからシャットダウンすると FreeRDP が先に終わり、VM はその数十秒後に止まる。

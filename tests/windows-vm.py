@@ -68,7 +68,15 @@ esac
 """,
     # Windows のスタートメニューからのシャットダウンは、RDP_BEHAVIOR=poweroff で VM を止めて表す。
     # 実際には FreeRDP が先に終わり、VM はその数十秒後に止まる。RDP_BEHAVIOR=shutdown-later がその順。
+    # /args-from:stdin だけを受け取ったときは、FreeRDP と同じく標準入力の一行を一つの引数として読む。
+    # freerdp.argv はコマンドライン（ps から見える部分）、freerdp.args は FreeRDP が受け取る引数。
     "sdl-freerdp": """
+printf '%s\\n' "$@" > "$VM_DIR/freerdp.argv"
+if [ "$*" = /args-from:stdin ]; then
+  args=()
+  while IFS= read -r line && [ -n "$line" ]; do args+=("$line"); done
+  set -- "${args[@]}"
+fi
 printf '%s\\n' "$@" > "$VM_DIR/freerdp.args"
 echo run >> "$VM_DIR/freerdp.runs"
 if flock -n "$XDG_RUNTIME_DIR/windows-vm.lock" true; then echo free; else echo held; fi > "$VM_DIR/lock-during-rdp"
@@ -98,6 +106,18 @@ case " $* " in
     printf '%s\\n' "${NOTIFY_ACTION-}"
     ;;
 esac
+""",
+    # GNOME キーリングの代わり。secret-<field> のファイルがあれば、その中身を秘密として返す。
+    "secret-tool": """
+printf '%s\\n' "$*" >> "$VM_DIR/secret-tool.log"
+[ "$1" = lookup ] || exit 99
+shift
+declare -A attrs
+while [ "$#" -ge 2 ]; do attrs[$1]=$2; shift 2; done
+[ "${attrs[service]-}" = windows-vm ] && [ "${attrs[vm]-}" = win11 ] || exit 1
+secret="$VM_DIR/secret-${attrs[field]-}"
+[ -f "$secret" ] || exit 1
+cat "$secret"
 """,
     "virt-manager": """
 printf '%s\\n' "$*" > "$VM_DIR/virt-manager.args"
@@ -371,6 +391,47 @@ class WindowsVm(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertNotIn("shutdown win11", self.log("virsh.log"))
         self.assertNotIn("windows-vm の実行に失敗しました", self.log("notify.log"))
+
+    def test_signs_in_with_credentials_from_the_keyring(self):
+        self.vm_state("running", lease="127.0.0.1")
+        (self.vm / "secret-user").write_text("AzureAD\\someone@example.org")
+        (self.vm / "secret-password").write_text("pass word;$x")
+        self.listen_rdp()
+        result = self.run_script("connect", RDP_BEHAVIOR="poweroff")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        args = self.log("freerdp.args").split("\n")
+        self.assertIn("/u:AzureAD\\someone@example.org", args)
+        self.assertIn("/p:pass word;$x", args)
+        self.assertEqual(args[0], "/v:127.0.0.1")
+
+    def test_keeps_the_password_off_the_command_line(self):
+        self.vm_state("running", lease="127.0.0.1")
+        (self.vm / "secret-user").write_text("AzureAD\\someone@example.org")
+        (self.vm / "secret-password").write_text("hunter2")
+        self.listen_rdp()
+        result = self.run_script("connect", RDP_BEHAVIOR="poweroff")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.log("freerdp.argv"), "/args-from:stdin\n")
+        self.assertIn("/p:hunter2", self.log("freerdp.args"))
+
+    def test_shows_the_sign_in_screen_without_stored_credentials(self):
+        self.vm_state("running", lease="127.0.0.1")
+        self.listen_rdp()
+        result = self.run_script("connect", RDP_BEHAVIOR="poweroff")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.log("freerdp.runs"), "run\n")
+        self.assertNotIn("/u:", self.log("freerdp.args"))
+        self.assertNotIn("/p:", self.log("freerdp.args"))
+
+    # FreeRDP は空の /p: でも自動サインインを試みる。
+    def test_sends_no_credentials_when_the_password_is_missing(self):
+        self.vm_state("running", lease="127.0.0.1")
+        (self.vm / "secret-user").write_text("AzureAD\\someone@example.org")
+        self.listen_rdp()
+        result = self.run_script("connect", RDP_BEHAVIOR="poweroff")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("/u:", self.log("freerdp.args"))
+        self.assertNotIn("/p:", self.log("freerdp.args"))
 
 
 if __name__ == "__main__":

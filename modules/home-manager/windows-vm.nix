@@ -22,6 +22,7 @@ let
       coreutils
       freerdp
       libnotify
+      libsecret
       libvirt
       util-linux
       virt-manager
