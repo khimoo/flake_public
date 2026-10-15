@@ -71,7 +71,7 @@ GNOME の通知は一覧に残るので、古い通知のボタンを後から�
 想定した失敗（VM の状態、起動待ちの間の停止とタイムアウト、二重起動）は内容を通知し、それ以外の失敗も終了時に通知する。
 通知の文言は Gemini で自然な日本語に直したものを使っている。
 
-## キーボードの掴みを右 Ctrl で切り替える
+## キーボードの掴みを右 Alt で切り替える
 
 FreeRDP はフォーカスのある間キーボードを掴むので、Super や Alt+Tab は Windows に渡り、GNOME の操作に使えない。
 同じキーを両方に割り当てることはできないので、掴む状態とホストに返す状態を切り替えるキーを決める。VirtualBox のホストキー（既定は右 Ctrl の単独押し）と同じ方式にする。
@@ -80,19 +80,25 @@ GNOME には、アプリが奪ったショートカットを取り戻すキー�
 ただし取り戻す方向だけで切り替えにはならず、このデスクトップでは dconf で空に上書きされている。PaperWM が `Super+Escape` を `toggle-scratch-window` に使っている。
 
 FreeRDP 3.31.1 の SDL のクライアント（`client/SDL/SDL3/sdl_input.cpp`）では、キーが押されたときに、その時点の修飾キーの状態が `SDL_KeyModMask` を含み、押されたキーが `SDL_Grab` と一致すると、掴みを切り替える。一致したキーは Windows に送らない。
-修飾キー自身を `SDL_Grab` に指定してもこの条件は満たせるので、`SDL_KeyModMask` を `KMOD_RCTRL`、`SDL_Grab` を `SDL_SCANCODE_RCTRL` にして、右 Ctrl の単独押しで切り替える。
+修飾キー自身を `SDL_Grab` に指定してもこの条件は満たせるので、`SDL_KeyModMask` を `KMOD_RALT`、`SDL_Grab` を `SDL_SCANCODE_RALT` にして、右 Alt の単独押しで切り替える。
 設定は `~/.config/freerdp/sdl-freerdp.json` から読まれる。FreeRDP はこのファイルに書き込まないので、Home Manager から置く。
 
-右 Alt は使わない。このデスクトップでは keyd が右 Alt を右クリックの連打に使っていて（[keyd-turbo.nix](../../hosts/nixos-desktop/keyd-turbo.nix)）、右 Alt がアプリまで届かない。
+右 Ctrl と Fn も候補にしたが、使わない。HHKB には右 Ctrl がない。Fn は、つないでいるキーボード（HHKB-BT Keyboard と SEM USB Keyboard）がどちらもキーボードの中で処理し、OS に送らない（カーネルが示す各デバイスのキーの一覧に `KEY_FN` がない）。
+右 Alt を使えるように、keyd の右クリックの連打は、◇ + 右 Alt で入り切りするレイヤー（`toggle(turbo)`）に置く（[keyd-turbo.nix](../../hosts/nixos-desktop/keyd-turbo.nix)）。普段のモードでは右 Alt がそのままアプリに届く。
+起動時と keyd の再起動後は普段のモードになる。いまどちらのモードかは画面に出ない。
+
+keyd に右 ◇ の「叩いたら右 Ctrl」（`overload`）を作らせる案は退けた。keyd は叩いた動作を、押す信号と離す信号を間を置かずに続けて送る。FreeRDP は押した信号を処理する時点で修飾キーの状態を読むので、その時点ではもう離されていて、切り替えが発動しないおそれが高い（ソースからの推論で、試してはいない）。
 
 代償は次のとおり。
 
-- 右 Ctrl が Windows に届かなくなる。左 Ctrl は使える。
-- FreeRDP のほかのホットキーも右 Ctrl との組み合わせになり（全画面は右 Ctrl + Enter）、押すと掴みも一緒に切り替わる。
+- 右 Alt が Windows に届かなくなる。左 Alt は使える。
+- FreeRDP のほかのホットキーも右 Alt との組み合わせになり（全画面は右 Alt + Enter）、押すと掴みも一緒に切り替わる。
+- ターボのモードの間は、右 Alt が連打に使われるので切り替えられない。
+- ◇ + 右 Alt は keyd が消費するので、◇ + Alt + キーのショートカットは左 Alt で押す。GNOME（◇ + Alt + S のスクリーンリーダー、◇ + Alt + 8 の拡大鏡など）、PaperWM（◇ + Alt + R、◇ + Alt + 矢印キー）、Windows（◇ + Alt + K のマイクのミュート、Xbox Game Bar の ◇ + Alt + R など）にある。◇ + Alt だけで動くものはない。
 - このユーザーが起動するすべての `sdl-freerdp` に適用される。virt-manager など、ほかのツールでは別のキーを使う。
 
 修飾キーの状態は、イベントを処理する時点で `SDL_GetModState()` から読まれる。そのため、ごく短く叩くと、処理の前に離したとみなされて取りこぼす可能性がある。
-実機ではまだ確かめていない。取りこぼしが目立つなら、修飾キーと別のキーの組み合わせ（右 Ctrl + G など）に戻す。
+実機ではまだ確かめていない。取りこぼしが目立つなら、修飾キーと別のキーの組み合わせ（右 Alt + G など）に戻す。
 
 ## 会社 PC との接続で分かったこと
 

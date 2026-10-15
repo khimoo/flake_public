@@ -22,11 +22,12 @@ Windows のサインイン画面が出たら、パスワードでサインイン
 ## Super や Alt+Tab を Windows に渡すか切り替える
 
 FreeRDP のウィンドウにフォーカスがある間、FreeRDP はキーボードを掴み、Super や Alt+Tab も Windows に渡します。
-右 Ctrl を単独で押すたびに、キーボードを Windows に渡す状態と、ホスト（GNOME）に残す状態が切り替わります。ホストに残している間は、Super や Alt+Tab が GNOME の操作になります。
-右 Ctrl そのものは Windows に届きません。Windows で Ctrl を使うときは左 Ctrl を使います。
-FreeRDP のほかのホットキーも右 Ctrl との組み合わせになります（全画面は右 Ctrl + Enter）。右 Ctrl を押した時点で切り替えも起きるので、もう一度右 Ctrl を押して戻します。
+右 Alt を単独で押すたびに、キーボードを Windows に渡す状態と、ホスト（GNOME）に残す状態が切り替わります。ホストに残している間は、Super や Alt+Tab が GNOME の操作になります。
+右 Alt そのものは Windows に届きません。Windows で Alt を使うとき（Alt+Tab など）は左 Alt を使います。
+FreeRDP のほかのホットキーも右 Alt との組み合わせになります（全画面は右 Alt + Enter）。右 Alt を押した時点で切り替えも起きるので、もう一度右 Alt を押して戻します。
+ゲーム用のターボ（◇ + 右 Alt で入り切りする、右 Alt での右クリックの連打）を入れている間は、右 Alt が連打に使われるので切り替えられません。◇ + 右 Alt でターボを切ってから使います。
 設定は `~/.config/freerdp/sdl-freerdp.json` にあり、このユーザーが起動するすべての `sdl-freerdp` に適用されます。
-右 Ctrl での切り替えは、まだ実機で確かめていません。
+右 Alt での切り替えは、まだ実機で確かめていません。
 
 ## 終わる
 

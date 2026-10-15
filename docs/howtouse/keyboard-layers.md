@@ -41,7 +41,7 @@ backspace=delete     Alt+Backspace で Delete
 | ホスト | ファイル | 対象 |
 |--------|---------|------|
 | nixos-spin713 | [chrome-audio.nix](../../hosts/nixos-spin713/chrome-audio.nix) | 内蔵キーボード（ChromeOS 配列の再現） |
-| nixos-desktop | [keyd-turbo.nix](../../hosts/nixos-desktop/keyd-turbo.nix) | 全キーボード（右 Alt の連打マクロ） |
+| nixos-desktop | [keyd-turbo.nix](../../hosts/nixos-desktop/keyd-turbo.nix) | 全キーボード（右 Alt の右クリック連打。◇ + 右 Alt で入り切りし、起動時は切れている） |
 
 ## 書かれていないキーはどうなるか
 

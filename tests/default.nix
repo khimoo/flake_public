@@ -43,6 +43,7 @@ let
   wslUser = wsl.home-manager.users.nixos;
   wslSshConfig = wsl.environment.etc."ssh/ssh_config".text;
   desktopUser = inputs.self.nixosConfigurations.nixos-desktop.config.home-manager.users.pomu;
+  desktopKeyd = inputs.self.nixosConfigurations.nixos-desktop.config.services.keyd.keyboards.default.settings;
   windowsVm = {
     imports = [ ../modules/home-manager/windows-vm.nix ];
     local.windowsVm = {
@@ -342,12 +343,14 @@ lib.genAttrs systems (
       # Windows VM のランチャーはデスクトップだけで有効にする。GUI のないユーザーでは評価を止める。
       assert hasLauncher desktopUser "windows-vm";
       assert desktopUser.local.windowsVm.domain == "win11";
-      # sdl-freerdp は右 Ctrl の単独押しでキーボードの掴みを切り替える（docs/architecture/windows-vm.md）。
+      # sdl-freerdp は右 Alt の単独押しでキーボードの掴みを切り替える。そのため keyd は普段の右 Alt を
+      # 書き換えず、ターボの連打は ◇ + 右 Alt で入れるレイヤーに置く（docs/architecture/windows-vm.md）。
       assert
         builtins.fromJSON desktopUser.xdg.configFile."freerdp/sdl-freerdp.json".text == {
-          SDL_KeyModMask = [ "KMOD_RCTRL" ];
-          SDL_Grab = "SDL_SCANCODE_RCTRL";
+          SDL_KeyModMask = [ "KMOD_RALT" ];
+          SDL_Grab = "SDL_SCANCODE_RALT";
         };
+      assert !(desktopKeyd.main or { } ? rightalt);
       assert rejects windowsVm;
       assert
         system != "x86_64-linux"
@@ -494,6 +497,16 @@ lib.genAttrs systems (
       else
         pkgs.runCommand "windows-vm" { nativeBuildInputs = [ pkgs.python3 pkgs.util-linux ]; } ''
           python ${./windows-vm.py} ${../modules/home-manager/windows-vm.sh}
+          touch "$out"
+        '';
+    # デスクトップの keyd の設定を keyd 自身で検証する。存在しないレイヤーへの toggle などは評価では
+    # 見つからず、switch したあとで keyd が設定を読めずにキーボードの変換が止まる。
+    keyd-config =
+      if system != "x86_64-linux" then
+        pkgs.runCommand "keyd-config-skipped" { } "touch $out"
+      else
+        pkgs.runCommand "keyd-config" { nativeBuildInputs = [ pkgs.keyd ]; } ''
+          keyd check ${pkgs.writeText "default.conf" inputs.self.nixosConfigurations.nixos-desktop.config.environment.etc."keyd/default.conf".text}
           touch "$out"
         '';
     # windows-vm のビルド（writeShellApplication の shellcheck）を CI で通す。

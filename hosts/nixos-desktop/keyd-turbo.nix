@@ -1,4 +1,8 @@
-# ゲーム用ターボ（右クリック連打）。右 Alt を押している間、右クリックを送り続ける。
+# ゲーム用ターボ（右クリック連打）。ターボのモードでは、右 Alt を押している間、右クリックを送り続ける。
+#
+# モードは ◇ + 右 Alt で入り切りする。起動時と keyd の再起動後は普通のモードで、右 Alt はそのまま届く。
+# 普段の右 Alt は FreeRDP がキーボードの掴みを切り替えるキーに使っている（docs/architecture/windows-vm.md）。
+# ◇ + 右 Alt は keyd が消費するので、◇ + Alt + キーのショートカットは左 Alt で押す。
 #
 # Minecraft の右クリックには 2 経路ある（1.8〜1.18 で構造は同一）。押しっぱなし経路は
 # startUseItem() が rightClickDelay=4 を代入するため 4 tick (200ms) に 1 回しか発火しない
@@ -15,7 +19,7 @@
 #
 # 制約: 継続使用アイテム（食事・弓・盾）には使えない。isUsingItem() 中は
 # `if (!keyUse.isDown()) releaseUsingItem()` で毎 tick 使用がキャンセルされる。
-# 副作用: 右 Alt は AltGr (lv3:ralt_switch) として機能しなくなる（素の us 配列では無害）。
+# 副作用: ターボのモードの間、右 Alt は AltGr (lv3:ralt_switch) として機能しなくなる（素の us 配列では無害）。
 { ... }:
 
 let intervalMs = 40;
@@ -25,8 +29,10 @@ in {
     keyboards.default = {
       # ワイルドカードはマウス専用デバイスにはマッチしない（keyd の仕様）
       ids = [ "*" ];
-      settings.main.rightalt =
-        "macro2(${toString intervalMs}, ${toString intervalMs}, macro(rightmouse))";
+      settings = {
+        meta.rightalt = "toggle(turbo)";
+        turbo.rightalt = "macro2(${toString intervalMs}, ${toString intervalMs}, macro(rightmouse))";
+      };
     };
   };
 }

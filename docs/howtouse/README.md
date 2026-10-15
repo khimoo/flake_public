@@ -31,7 +31,7 @@
 | Codex のサブエージェント設定 | サブエージェントを無効化してある理由と確認・復帰手順。NixOS 以外（macOS）で同じ設定を入れる方法、`fork_turns` の値の意味 | [codex-subagents.md](./codex-subagents.md) |
 | Quaderno の取り込み | 同じ LAN にいるときに手書き PDF をアーカイブへ落とす。初回のペアリング、取り込み先、デバイスで消した文書が手元に残ること | [quaderno.md](./quaderno.md) |
 | 会社PCの NixOS-WSL | `local.restrictedHost` で制限した `nixos-work-wsl` の導入、会社の git と SSH の設定、更新手順、置かないもの（個人の AI アカウントを含む） | [wsl.md](./wsl.md) |
-| デスクトップの Windows VM | アプリ一覧の「Windows」で VM を起動して FreeRDP で開く。右 Ctrl でのキーボードの切り替え、終わり方と止め忘れの通知、USB を渡すときの SPICE、VM を作り直したときの設定 | [windows-vm.md](./windows-vm.md) |
+| デスクトップの Windows VM | アプリ一覧の「Windows」で VM を起動して FreeRDP で開く。右 Alt でのキーボードの切り替え、終わり方と止め忘れの通知、USB を渡すときの SPICE、VM を作り直したときの設定 | [windows-vm.md](./windows-vm.md) |
 
 ## 関連
 
