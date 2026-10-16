@@ -52,7 +52,6 @@ Windows の Alt+Tab は、右 Alt を押して離してから、左 Alt を押�
 FreeRDP のほかのホットキーも右 Alt との組み合わせになります（全画面は右 Alt + Enter）。押すと、次に押したキーを離すまでキーボードが Windows に渡ります。
 ゲーム用のターボ（◇ + 右 Alt で入り切りする、右 Alt での右クリックの連打）を入れている間は、右 Alt が連打に使われるので、キーを Windows に渡せません。◇ + 右 Alt でターボを切ってから使います。
 この動作は、ランチャーが起動する FreeRDP にパッチを当てて作っています（[設計判断](../architecture/windows-vm.md#キーボードを掴むのは右-alt-の直後だけにする)）。設定の `~/.config/freerdp/sdl-freerdp.json` はこのユーザーが起動するすべての `sdl-freerdp` に適用されますが、パッチのない `sdl-freerdp` では、右 Alt はキーボードを Windows に渡すか GNOME に残すかの切り替えになります。
-右 Alt の直後に間を置かずにキーを押したときにそのキーが Windows に届くかは、まだ実機で確かめていません。
 
 ## 終わる
 
