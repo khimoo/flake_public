@@ -49,6 +49,13 @@ RDP のサインインでは PIN（Windows Hello）を使えない。
 TLS で接続しているときに FreeRDP にユーザー名とパスワードの両方を渡すと、FreeRDP はクライアント情報の PDU に `INFO_AUTOLOGON` を立てて資格情報を送る（FreeRDP 3.31.1 の `libfreerdp/core/connection.c` と `info.c`）。
 Windows はこれを受け取ると、サインイン画面を出さずにサインインする。
 
+ユーザー名は `.\AzureAD\<UPN>` の形で渡す。
+FreeRDP は `/u:` の値を最初の `\` で区切り、前をドメイン、後ろをユーザー名として送る（`client/common/cmdline.c` の `freerdp_parse_username_ptr`）。
+2026-10-16 に試すと、`AzureAD\<UPN>`（ドメインは `AzureAD`）と `<UPN>`（ドメインは空）では、パスワードが正しくても Windows は「ユーザー名またはパスワードが正しくありません」と返した。
+`.\AzureAD\<UPN>`（ドメインは `.`、ユーザー名は `AzureAD\<UPN>`）ではサインインできた。
+この形は、FreeRDP の作者が NLA を切って Entra ID に参加した PC に入るときの形として勧めている（[Devolutions のフォーラム](https://forum.devolutions.net/topics/32024/how-do-you-rdplogon-to-a-azure-active-directory-aad-joined-system)）。
+Windows がこの形だけを受け付ける理由は確かめていない。
+
 キーリングには項目を二つ置き、属性 `service=windows-vm`、`vm=<local.windowsVm.domain>`、`field=user` または `field=password` で引く。
 ユーザー名もキーリングに置くのは、UPN を公開している repo に書かないためである。
 二つのうち片方でも引けなければ、資格情報を渡さずに今までどおりサインイン画面を出す。FreeRDP は空の `/p:` でも自動サインインを試みるので、空のパスワードも渡さない。
@@ -63,11 +70,8 @@ Entra ID のウェブサインイン（`/sec:aad`）なら、パスワードを�
 ただし nixpkgs の FreeRDP は埋め込みのウェブ画面なしでビルドされている（`WITH_WEBVIEW=FALSE`）。そのため接続のたびに、端末に出た URL をブラウザーで開き、戻ってきた URL を貼り付ける必要がある。
 前の節の制約（ホスト名で指定すること、条件付きアクセス）もあるので採らない。
 
-次の点はまだ確かめていない。
-
-- Windows が、TLS で送られた Entra ID のアカウントの資格情報で自動サインインするか。ユーザー名を `AzureAD\<UPN>` と `<UPN>` のどちらの形で渡せばよいか。
-- VM で「接続時に常にパスワードを要求する」ポリシーが有効だと、資格情報を送ってもサインイン画面が出る。この VM で有効かどうか。
-- パスワードが違うとき、Windows がエラーを添えてサインイン画面を出すか。
+パスワードが違うと、Windows は「ユーザー名またはパスワードが正しくありません」と表示する。
+VM で「接続時に常にパスワードを要求する」ポリシーが有効になると、資格情報を送ってもサインイン画面が出る。2026-10-16 の時点では、自動サインインが通ったので有効になっていない。
 
 ## 使うときだけ起動する
 

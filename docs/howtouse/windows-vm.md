@@ -27,8 +27,8 @@ RDP のサインインでは PIN を使えません（[設計判断](../architec
 `vm` の値は `local.windowsVm.domain`（このデスクトップでは `win11`）です。
 
 ```sh
-# ユーザー名。AzureAD\ に続けてメールアドレスの形のユーザー名（UPN）を書く
-printf '%s' 'AzureAD\<UPN>' | nix shell nixpkgs#libsecret -c secret-tool store --label='Windows VM のユーザー名' service windows-vm vm win11 field user
+# ユーザー名。.\AzureAD\ に続けてメールアドレスの形のユーザー名（UPN）を書く
+printf '%s' '.\AzureAD\<UPN>' | nix shell nixpkgs#libsecret -c secret-tool store --label='Windows VM のユーザー名' service windows-vm vm win11 field user
 
 # パスワード。入力を求められるので打つ（画面には出ない）
 nix shell nixpkgs#libsecret -c secret-tool store --label='Windows VM のパスワード' service windows-vm vm win11 field password
@@ -37,8 +37,7 @@ nix shell nixpkgs#libsecret -c secret-tool store --label='Windows VM のパス�
 Windows のパスワードを変えたら、パスワードのほうをもう一度実行して上書きします。
 やめるときは `nix shell nixpkgs#libsecret -c secret-tool clear service windows-vm vm win11` で両方を消します。どちらかが欠けていると、ランチャーは何も渡さず、サインイン画面が出ます。
 
-ユーザー名が `AzureAD\<UPN>` の形で自動サインインできないときは、`<UPN>` だけで試します。
-自動サインインは、まだ実機で確かめていません。
+ユーザー名は先頭の `.\` まで含めて書きます。`AzureAD\<UPN>` や `<UPN>` だけでは、パスワードが正しくても Windows に拒否されます（[設計判断](../architecture/windows-vm.md#パスワードを-gnome-キーリングから渡してサインインする)）。
 
 ## Super や Alt+Tab を Windows に渡すか切り替える
 
@@ -98,3 +97,11 @@ Windows のリモートデスクトップが無効になっている場合も、
 「Windows が停止しました」と通知されたら、起動を待つ間に VM が止まりました。もう一度「Windows」を開くと起動し直します。
 
 「windows-vm の実行に失敗しました」と通知されたら、端末から `windows-vm connect` を実行して出力を確かめます。
+
+自動サインインで「ユーザー名またはパスワードが正しくありません」と表示されたら、キーリングの項目を確かめます。
+ユーザー名が `.\AzureAD\<UPN>` の形になっているかと、パスワードが合っているかを見ます。
+次のコマンドでパスワードを打つと、キーリングのものと一致するかどうかだけが表示されます。
+
+```sh
+nix shell nixpkgs#libsecret -c bash -c 'read -rsp "Password: " p; echo; [ "$p" = "$(secret-tool lookup service windows-vm vm win11 field password)" ] && echo 一致 || echo 不一致'
+```
