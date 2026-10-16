@@ -1,0 +1,84 @@
+diff -ru a/client/SDL/SDL3/sdl_disp.cpp b/client/SDL/SDL3/sdl_disp.cpp
+--- a/client/SDL/SDL3/sdl_disp.cpp
++++ b/client/SDL/SDL3/sdl_disp.cpp
+@@ -391,8 +391,7 @@
+ 			return _sdl->getInputChannelContext().keyboard_grab(ev.windowID, false);
+ 		case SDL_EVENT_WINDOW_MOUSE_ENTER:
+ 			WINPR_ASSERT(_sdl);
+-			if (!_sdl->getInputChannelContext().keyboard_grab(ev.windowID, true))
+-				return false;
++			/* The keyboard is grabbed only by the grab hotkey, never on mouse enter. */
+ 			return _sdl->getInputChannelContext().keyboard_focus_in();
+ 		case SDL_EVENT_WINDOW_FOCUS_GAINED:
+ 			return _sdl->getInputChannelContext().keyboard_focus_in();
+diff -ru a/client/SDL/SDL3/sdl_input.cpp b/client/SDL/SDL3/sdl_input.cpp
+--- a/client/SDL/SDL3/sdl_input.cpp
++++ b/client/SDL/SDL3/sdl_input.cpp
+@@ -576,6 +576,8 @@
+ 
+ 			if (ev.scancode == _hotkeyGrab)
+ 			{
++				if (ev.repeat)
++					return true;
+ 				WLog_Print(_sdl->getWLog(), WLOG_INFO, "%s+<%s> pressed, toggling grab state",
+ 				           masktostr(_hotkeyModmask).c_str(), sdl_scancode_name(_hotkeyGrab));
+ 				if (!keyboard_sync_state())
+@@ -612,6 +614,17 @@
+ 	}
+ #endif
+ 
++	/* The grab hotkey grabs the keyboard for one shortcut only: release the grab once
++	 * every key pressed after the hotkey has been released again. */
++	bool releaseGrab = false;
++	if (_sdl->grabKeyboard())
++	{
++		if (ev.type == SDL_EVENT_KEY_DOWN)
++			_grabPressed.insert(ev.scancode);
++		else if ((_grabPressed.erase(ev.scancode) > 0) && _grabPressed.empty())
++			releaseGrab = true;
++	}
++
+ 	auto scancode = freerdp_keyboard_remap_key(_remapTable, rdp_scancode);
+ #if defined(WITH_DEBUG_KBD)
+ 	{
+@@ -623,8 +636,11 @@
+ 		           ev.scancode, scancode, sc, ex ? " extended" : "");
+ 	}
+ #endif
+-	return freerdp_input_send_keyboard_event_ex(_sdl->context()->input,
+-	                                            ev.type == SDL_EVENT_KEY_DOWN, ev.repeat, scancode);
++	const BOOL rc = freerdp_input_send_keyboard_event_ex(
++	    _sdl->context()->input, ev.type == SDL_EVENT_KEY_DOWN, ev.repeat, scancode);
++	if (releaseGrab && !keyboard_grab(ev.windowID, false))
++		return false;
++	return rc;
+ }
+ 
+ bool sdlInput::keyboard_grab(Uint32 windowID, bool enable)
+@@ -636,6 +652,7 @@
+ 	auto settings = _sdl->context()->settings;
+ 	auto kbd_enabled = freerdp_settings_get_bool(settings, FreeRDP_GrabKeyboard);
+ 	auto status = enable && kbd_enabled;
++	_grabPressed.clear();
+ 	if (!_sdl->setGrabKeyboard(status))
+ 		WLog_Print(_sdl->getWLog(), WLOG_WARN, "Failed to ungrab keyboard");
+ 	return window->grabKeyboard(status);
+diff -ru a/client/SDL/SDL3/sdl_input.hpp b/client/SDL/SDL3/sdl_input.hpp
+--- a/client/SDL/SDL3/sdl_input.hpp
++++ b/client/SDL/SDL3/sdl_input.hpp
+@@ -22,6 +22,7 @@
+ #include <string>
+ #include <map>
+ #include <list>
++#include <set>
+ #include <atomic>
+ 
+ #include <winpr/wtypes.h>
+@@ -80,5 +81,7 @@
+ 	uint32_t _hotkeyGrab = 0;
+ 	uint32_t _hotkeyDisconnect = 0;
+ 	uint32_t _hotkeyMinimize = 0;
++	// keys pressed since the grab hotkey; the grab is released once all of them are released
++	std::set<Uint32> _grabPressed;
+ 	FREERDP_REMAP_TABLE* _remapTable = nullptr;
+ };

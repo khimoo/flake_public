@@ -16,11 +16,14 @@
 let
   cfg = config.local.windowsVm;
 
+  # 右 Alt の直後のショートカット一回だけキーボードを掴むよう、パッチを当てた FreeRDP を使う。
+  freerdpGrabOnce = pkgs.callPackage ../../packages/freerdp-grab-once { };
+
   windows-vm = pkgs.writeShellApplication {
     name = "windows-vm";
     runtimeInputs = with pkgs; [
       coreutils
-      freerdp
+      freerdpGrabOnce
       libnotify
       libsecret
       libvirt
@@ -71,7 +74,7 @@ in
 
     home.packages = [ windows-vm ];
 
-    # 右 Alt の単独押しで、キーボードを Windows に渡すかホストに残すかを切り替える。
+    # 右 Alt の単独押しで、次のショートカット一回だけキーボードを Windows に渡す。普段はホストに残す。
     # ホットキーは押された時点の修飾キーが SDL_KeyModMask を含めば発動するので、修飾キー自身を指定できる。
     # 右 Alt は配列で AltGr（ISO_Level3_Shift）になっていて、SDL は KMOD_RALT ではなく KMOD_MODE を立てる。
     # 理由と代償は docs/architecture/windows-vm.md。

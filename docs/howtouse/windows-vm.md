@@ -39,16 +39,20 @@ Windows のパスワードを変えたら、パスワードのほうをもう一
 
 ユーザー名は先頭の `.\` まで含めて書きます。`AzureAD\<UPN>` や `<UPN>` だけでは、パスワードが正しくても Windows に拒否されます（[設計判断](../architecture/windows-vm.md#パスワードを-gnome-キーリングから渡してサインインする)）。
 
-## Super や Alt+Tab を Windows に渡すか切り替える
+## Super や Alt+Tab を Windows に渡す
 
-FreeRDP のウィンドウにフォーカスがある間、FreeRDP はキーボードを掴み、Super や Alt+Tab も Windows に渡します。
-右 Alt を単独で押すたびに、キーボードを Windows に渡す状態と、ホスト（GNOME）に残す状態が切り替わります。ホストに残している間は、Super や Alt+Tab が GNOME の操作になります。
-右 Alt そのものは Windows に届きません。Windows で Alt を使うとき（Alt+Tab など）は左 Alt を使います。Windows では AltGr の文字を打てません。
-切り替えは、ホストのキー配列で右 Alt が AltGr になっていることを前提にしています。既定の配列は English (intl., with AltGr dead keys) です。GNOME の設定で右 Alt が AltGr にならない配列に変えると、切り替わらなくなります。
-FreeRDP のほかのホットキーも右 Alt との組み合わせになります（全画面は右 Alt + Enter）。右 Alt を押した時点で切り替えも起きるので、もう一度右 Alt を押して戻します。
-ゲーム用のターボ（◇ + 右 Alt で入り切りする、右 Alt での右クリックの連打）を入れている間は、右 Alt が連打に使われるので切り替えられません。◇ + 右 Alt でターボを切ってから使います。
-設定は `~/.config/freerdp/sdl-freerdp.json` にあり、このユーザーが起動するすべての `sdl-freerdp` に適用されます。
-右 Alt での切り替えは、まだ実機で確かめていません。
+FreeRDP のウィンドウにフォーカスがあれば、文字の入力とマウスは Windows に届きます。
+ただし GNOME に割り当てたキー（Super を含むもの、Alt+Tab、Alt+F4、Alt+F2 など）は、普段は GNOME の操作になります。Alt+F4 を押すと、FreeRDP のウィンドウが閉じます。
+これらのキーを Windows で使うときは、先に右 Alt を単独で押してから、そのキーを押します。右 Alt のあとに押したキーをすべて離すまでは、キーボードが Windows に渡ります。
+Windows の Alt+Tab は、右 Alt を押して離してから、左 Alt を押したまま Tab を押します。Alt を離すまでは、Tab を何回押しても Windows のウィンドウが切り替わります。
+右 Alt を押したあと、ほかのキーを押さずにもう一度右 Alt を押すと、取り消せます。
+
+右 Alt そのものは Windows に届きません。Windows で Alt を使うときは左 Alt を使います。Windows では AltGr の文字を打てません。
+右 Alt での操作は、ホストのキー配列で右 Alt が AltGr になっていることを前提にしています。既定の配列は English (intl., with AltGr dead keys) です。GNOME の設定で右 Alt が AltGr にならない配列に変えると、右 Alt を押しても何も起きなくなります。
+FreeRDP のほかのホットキーも右 Alt との組み合わせになります（全画面は右 Alt + Enter）。押すと、次に押したキーを離すまでキーボードが Windows に渡ります。
+ゲーム用のターボ（◇ + 右 Alt で入り切りする、右 Alt での右クリックの連打）を入れている間は、右 Alt が連打に使われるので、キーを Windows に渡せません。◇ + 右 Alt でターボを切ってから使います。
+この動作は、ランチャーが起動する FreeRDP にパッチを当てて作っています（[設計判断](../architecture/windows-vm.md#キーボードを掴むのは右-alt-の直後だけにする)）。設定の `~/.config/freerdp/sdl-freerdp.json` はこのユーザーが起動するすべての `sdl-freerdp` に適用されますが、パッチのない `sdl-freerdp` では、右 Alt はキーボードを Windows に渡すか GNOME に残すかの切り替えになります。
+右 Alt の直後に間を置かずにキーを押したときにそのキーが Windows に届くかは、まだ実機で確かめていません。
 
 ## 終わる
 

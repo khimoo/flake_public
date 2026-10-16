@@ -44,6 +44,10 @@ let
   wslSshConfig = wsl.environment.etc."ssh/ssh_config".text;
   desktopUser = inputs.self.nixosConfigurations.nixos-desktop.config.home-manager.users.pomu;
   desktopKeyd = inputs.self.nixosConfigurations.nixos-desktop.config.services.keyd.keyboards.default.settings;
+  desktopPkgs = inputs.self.nixosConfigurations.nixos-desktop.pkgs;
+  desktopWindowsVm = lib.findFirst (
+    p: (p.name or "") == "windows-vm"
+  ) (throw "windows-vm is not installed") desktopUser.home.packages;
   windowsVm = {
     imports = [ ../modules/home-manager/windows-vm.nix ];
     local.windowsVm = {
@@ -343,9 +347,13 @@ lib.genAttrs systems (
       # Windows VM のランチャーはデスクトップだけで有効にする。GUI のないユーザーでは評価を止める。
       assert hasLauncher desktopUser "windows-vm";
       assert desktopUser.local.windowsVm.domain == "win11";
-      # sdl-freerdp は右 Alt（AltGr）の単独押しでキーボードの掴みを切り替える。右 Alt が AltGr になる配列を
-      # 既定にし、keyd は普段の右 Alt を書き換えず、ターボの連打は ◇ + 右 Alt で入れるレイヤーに置く
+      # sdl-freerdp は右 Alt（AltGr）の単独押しで、次のショートカット一回だけキーボードを掴む。右 Alt が AltGr に
+      # なる配列を既定にし、keyd は普段の右 Alt を書き換えず、ターボの連打は ◇ + 右 Alt で入れるレイヤーに置く
       # （docs/architecture/windows-vm.md）。
+      # 一回だけ掴む動作はパッチを当てた FreeRDP にしかないので、ランチャーがそれを使っていることを確かめる。
+      assert lib.hasInfix (builtins.unsafeDiscardStringContext "${
+        desktopPkgs.callPackage ../packages/freerdp-grab-once { }
+      }/bin") desktopWindowsVm.text;
       assert
         builtins.fromJSON desktopUser.xdg.configFile."freerdp/sdl-freerdp.json".text == {
           SDL_KeyModMask = [ "KMOD_MODE" ];
