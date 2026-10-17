@@ -4,6 +4,6 @@
 
 lib.mkIf config.local.profile.features.audio {
   home.packages = with pkgs; [
-    zrythm
+    ardour
   ];
 }
