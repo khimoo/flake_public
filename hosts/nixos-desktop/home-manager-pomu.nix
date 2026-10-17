@@ -43,6 +43,14 @@ in {
     prismlauncher
     wine64
     pkgsRocm.blender
+    # 耳コピの ML モデルを動かす環境。データディスクも GPU もこのホストに固有なので core.nix には入れない。
+    # dataDir は data-disk.nix の @mimikopi のマウント先と一致させる。
+    # PyTorch の ROCm 版の wheel には、このホストの GPU（Navi 23 世代、gfx1032）向けのカーネルが
+    # 入っていないので、10.3.0 を指定して gfx1030 として扱わせる（docs/architecture/mimikopi-env.md）。
+    (callPackage ../../packages/mimikopi-env {
+      dataDir = "/home/pomu/.local/share/mimikopi";
+      hsaOverrideGfxVersion = "10.3.0";
+    })
   ] ++ extraGnomeExtensionsList;
 
   dconf.settings."org/gnome/shell".enabled-extensions =

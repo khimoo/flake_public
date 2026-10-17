@@ -20,6 +20,7 @@ SATA SSD（`/dev/sda`）は btrfs 単一パーティション。subvol を最終
 | `@games` | `~/Games` | `noatime,compress=zstd` | Steam のゲームライブラリ |
 | `@vm` | `/var/lib/libvirt/images` | `noatime`（NOCOW） | libvirt の VM イメージ |
 | `@backup` | `/mnt/backup` | `noatime,compress=zstd` | NVMe の退避先 |
+| `@mimikopi` | `~/.local/share/mimikopi` | `noatime,compress=zstd,nofail` | 耳コピの ML モデルの環境とチェックポイント（[mimikopi-env](./cli-tools/mimikopi-env.md)） |
 
 全 subvol は FS 全体で 1 つの UUID を共有し、`subvol=@xxx` で選ぶ。
 

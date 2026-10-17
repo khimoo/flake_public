@@ -347,6 +347,10 @@ lib.genAttrs systems (
       # Windows VM のランチャーはデスクトップだけで有効にする。GUI のないユーザーでは評価を止める。
       assert hasLauncher desktopUser "windows-vm";
       assert desktopUser.local.windowsVm.domain == "win11";
+      assert hasLauncher desktopUser "mimikopi-env";
+      # @mimikopi は手で作る subvol なので、作る前の switch や再起動で起動を止めないよう nofail を外さない。
+      assert builtins.elem "nofail"
+        inputs.self.nixosConfigurations.nixos-desktop.config.fileSystems."/home/pomu/.local/share/mimikopi".options;
       # sdl-freerdp は右 Alt（AltGr）の単独押しで、次のショートカット一回だけキーボードを掴む。右 Alt が AltGr に
       # なる配列を既定にし、keyd は普段の右 Alt を書き換えず、ターボの連打は ◇ + 右 Alt で入れるレイヤーに置く
       # （docs/architecture/windows-vm.md）。

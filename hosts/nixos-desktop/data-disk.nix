@@ -35,6 +35,10 @@ let
     { subvol = "@backup";    path = "/mnt/backup";              opts = dataOpts; }
     # VM は chattr +C で NOCOW 済み（CoW 断片化対策）。NOCOW ファイルには圧縮が効かないので付けない。
     { subvol = "@vm";        path = "/var/lib/libvirt/images";  opts = [ "noatime" ]; }
+    # 耳コピの ML モデルの環境とチェックポイント。subvol は手で作るので、作る前に switch や
+    # 再起動をしても起動を止めないよう nofail にする。マウントに失敗したときにルートへ書き込ませない
+    # 確認は mimikopi-env が受け持つ（docs/architecture/mimikopi-env.md）。
+    { subvol = "@mimikopi";  path = "/home/pomu/.local/share/mimikopi"; opts = dataOpts ++ [ "nofail" ]; }
   ];
 in
 {

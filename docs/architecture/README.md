@@ -35,6 +35,7 @@ Flake 設定の設計判断・実装構造のドキュメント。設定変更�
 | [quaderno.md](./quaderno.md) | Quaderno A4 Gen2 から同一 LAN 経由で手書き PDF を取り込む設計（取り込み専用・手元はアーカイブ・mDNS で機器を見つける・`dpt-rp1-py` を master 固定で持つ理由。実機確認は未了） |
 | [antigravity-cli.md](./antigravity-cli.md) | Antigravity CLI（agy）を版固定と autoPatchelf で入れる判断。nix-ld と公式インストーラを退けた理由、自己更新が働かないこと |
 | [uv-mode.md](./uv-mode.md) | uv が取得する Python と manylinux wheel を、buildFHSEnv の環境に入るコマンド（`uv-mode`）の中でだけ動かす判断。nix-ld、プロジェクトの shell.nix、direnv の devShell を退けた理由と、モードの中で `.venv` を使うものを起動する代償 |
+| [mimikopi-env.md](./mimikopi-env.md) | 耳コピのスキルが使う ML モデルを動かす buildFHSEnv（`mimikopi-env`）を uv-mode と分けた判断。ROCm 版の PyTorch が要るライブラリと `HSA_OVERRIDE_GFX_VERSION` の検証結果、データを SATA の専用 subvol に置き `nofail` とマウントの確認を組み合わせる理由 |
 | [comma.md](./comma.md) | comma と command-not-found に nix-index-database の配布データベースを使う判断。small データベース（`bin/` だけ）で両方を動かし full を取得しない理由、nixos-unstable の索引と 26.05 の版のずれ |
 | [wsl.md](./wsl.md) | 会社 PC の NixOS-WSL を閉じたホスト（`nixos-work-wsl`）として持つ判断。kitty を使うために GUI アプリを WSLg で表示し、日本語入力を Neovim の skkeleton に任せる判断。制限を `local.restrictedHost` の assertion で強制する理由。age 鍵と tailnet を持たせない理由、agents-private を読み取り専用の deploy key と別名のホストで入れる理由、共通の設定を `base.nix` に切り出す判断 |
 | [windows-vm.md](./windows-vm.md) | デスクトップの Windows VM を SPICE ではなく FreeRDP で表示し、使うときだけ起動する判断。NLA を切る理由（Entra ID のアカウント）、managed save と自動シャットダウンを退けた理由、止め忘れの通知をロックで守る理由、パスワードを GNOME キーリングから渡して自動でサインインする判断、普段はキーボードを掴まず右 Alt の直後のショートカット一回だけを Windows に渡すパッチ、keyd の右クリックの連打を ◇ + 右 Alt で入り切りするモードにした判断、MotionPro のトンネルとクリップボードについて分かったこと |

@@ -22,6 +22,7 @@ NVMe (Samsung 980, 466G) = ホット層          SATA (Samsung 860, 233G) = コ�
                                                  @games     → ~/Games (Steam ライブラリ)
                                                  @vm        → /var/lib/libvirt/images (NOCOW)
                                                  @backup    → /mnt/backup
+                                                 @mimikopi  → ~/.local/share/mimikopi (ML モデル)
 ```
 
 判断の軸は「SSD かどうか」ではなく **そのワークロードの IO パターン**。SATA が NVMe に
