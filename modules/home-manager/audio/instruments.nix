@@ -19,6 +19,7 @@ lib.mkIf config.local.profile.features.audio {
     # ドラムシンセ / サンプラー
     geonkick
     drumgizmo
+    x42-avldrums
 
     # vee-one シリーズ（軽量・統一感のある UI）
     synthv1
