@@ -119,3 +119,28 @@ treesitter で画像ノードとして認識できずインライン表示でき
   フォルダが rclone から見えない（初回同期が自動で `rclone mkdir` する）
 - **ローカル検証は `--override-input`**。workflow flake を編集中に flake_public 側を試すときは
   `--override-input zettelkasten path:/path/to/zettelkasten-workflow` で差し替える
+
+## Originals の同期設計
+
+Originalsは `--recover --max-lock 2m` を使う。強制中断時に残るロックは最後の更新から
+約2分で期限切れとなり、次の通常同期が直近の成功履歴から復旧を試みる。
+ロックの自動削除や自動resyncは行わない。履歴欠損・復旧失敗は停止して調査する。
+[rcloneの復旧仕様](https://rclone.org/bisync/#recover)と
+[ロック期限の仕様](https://rclone.org/bisync/#max-lock)を参照。
+
+同じrclone bisync本体を使い、Originals専用targetとbaselineを追加する。独自mergeや台帳は持たない。
+通常競合はOriginalsだけ `conflict-resolve none` / `conflict-loser num` として両版を保持し、
+attachments/papisの既存設定とbaselineは維持する。画像等の内容を自動マージしない。
+
+退避先は同期対象外で、ローカル・remoteそれぞれホスト別/実行世代別に分離する。削除は伝播し、
+失われる版を退避する。これは同じアカウントの喪失に備えるバックアップではない。
+初期化と履歴喪失は自動でresyncせず、人が比較・退避して対象だけ初期化する。
+
+利用側は `zettelkastenSync` が有効な環境でOriginalsコマンドを有効にするが、
+`originals.autoSync = false` とし、実Drive・両PC試験が済むまで新しい自動ジョブを生成しない。
+既存の添付・文献ジョブは維持する。2台は独立した同期履歴を持つため、重複実行と
+長期オフライン後の復帰を確認する。ローカルのロックをホスト間排他とはみなさない。
+
+通常競合で元のファイル名がなくなる場合は、保持された両版を確認し参照を修復する。
+導入・復旧手順は[使い方](../howtouse/zettelkasten-attachments-sync.md#originalsの導入と復旧)を参照。
+仕様根拠: [rclone bisync](https://rclone.org/bisync/)。

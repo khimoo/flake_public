@@ -31,6 +31,9 @@ in
       enable = true;
       vaultDir = config.local.profile.zettelkastenRoot;
       attachments.enable = attachmentsOn;
+      originals.enable = attachmentsOn;
+      # 実 Drive で手動検証・初期化してから自動同期を有効化する。
+      originals.autoSync = false;
       papis.enable = papisOn;
       obsidian.enable = obsidianOn;
       # vault の骨格を workflow repo へミラーする mirror-vault の宛先(環境固有 checkout)を注入。
