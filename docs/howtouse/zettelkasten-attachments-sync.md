@@ -129,8 +129,10 @@ Originals対応のworkflow inputを取り込んだ構成で使う。ソース編
 pinされた版や導入済みコマンドは変わらない。評価時のローカル検証は
 `--override-input zettelkasten path:/path/to/zettelkasten-workflow` を使い、lockファイルの変更とは分ける。
 
-`zettelkastenSync` 有効時にOriginalsもコマンド対象となる。導入時は
-`services.zettelkasten.originals.autoSync = false` で、自動同期ジョブは生成しない。
+`zettelkastenSync` 有効時にOriginalsもコマンド対象となる。現在は両PCの初期化を済ませ、
+`services.zettelkasten.originals.autoSync = true` としている。構成を反映すると
+`originals-sync.service`・`.path`・`.timer` が生成され、ローカル変更時と15分間隔で同期する。
+新しいPCを導入するときは、そのPCのautoSyncをfalseにして以下の初期化を先に行う。
 原本は `<vault>/Originals`、Drive同期先は `gdrive:zettelkasten-originals`。
 退避先は `${XDG_DATA_HOME:-$HOME/.local/share}/zettelkasten/originals-backups/<host>/<runid>`
 と `gdrive:zettelkasten-originals-backups/<host>/<runid>`。同期対象へ退避物を戻さない。
