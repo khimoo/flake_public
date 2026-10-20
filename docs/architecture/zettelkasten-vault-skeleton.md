@@ -26,8 +26,10 @@ live 同期そのものは引き続き `obsidian-git`（vault repo）が担い�
 ## seed が実際に配るのは vault をゼロから作る環境だけ
 
 この repo の運用では、vault は private notes repo の clone で用意する（`private-repos.nix`）。
-clone は骨格を丸ごと連れてくるので、**seed はほぼ skip する**。activation の順序に関わらず結果は
-同じで、clone より先に走れば vault 未存在で skip、後に走れば既存で skip する。
+clone 済みvaultの内容はnotes repoが所有する。`initializeVault = false` を明示し、
+修正済みworkflowでは `seedVault` activationそのものを生成しない。
+「既存を上書きしない」だけでは、削除されたファイルと未配置のファイルを区別できず、
+意図的な削除も復元してしまうためである。
 
 したがって public スナップショットが実際にコピーされるのは、`initializeVault = true` で vault を
 ゼロから作る環境だけである。この非対称を明示しておかないと、「新しいマシンを立てる前に mirror して
@@ -47,8 +49,7 @@ push する」という不要な手順を運用に持ち込む。**mirror の契
 - **それ以外はファイル単位**。「`CLAUDE.md` だけ既にある」「`Templates/` は空」が普通に起きるので、
   ディレクトリ単位にすると片方が既にあるだけで全部配られなくなる。
 
-代償として、public 側の骨格に新しいファイルが増えると、既存 vault にもそれだけが降ってくる。
-骨格に足す判断は「全 vault に配ってよいか」で行う。
+このファイル単位の補充は初期化を有効にした環境だけで行う。cloneする既存vaultには適用しない。
 
 ## 配るものの選び方は 2 通り
 
@@ -96,9 +97,21 @@ flake_public 自身なので、その意味でも注入する形が正しい。
 
 ## feature は「同期に依存するか」で切る
 
-flake_public 側の `local.profile.features.obsidian` が gate するのは Obsidian 本体の導入と `.obsidian` の seed だけで、
-骨格の seed は `services.zettelkasten.enable`（同期 feature でも立つ）側に載っている。骨格は Obsidian
-固有ではなく vault の中身なので、Obsidian を入れないマシンでも配られてよい、という切り方。
+`local.profile.features.obsidian` はアプリの導入、同期featureはrclone/papis等の設定を選ぶ。
+骨格と `.obsidian` のseedは、どのfeatureが有効かに加えて `initializeVault = true` を必要とする。
+既存vaultの所有者がnotes repoであることと、アプリ・同期機能の選択を混同しない。
+
+## 2026-10-20の旧骨格復活と検証
+
+13:06にnotes repoで削除した旧骨格は、13:38のHome Manager activationで11件再配置され、
+13:53のコミットで再登録された。実行世代のactivateスクリプトは
+`seed-vault --obsidian` を無条件に呼び、利用側は修正前workflow `8eb6bb3` を固定していた。
+`initializeVault = false` でもこの版はseedを生成したため、初期化の設定だけでは防げなかった。
+
+修正版 `18bd225` の取り込みに加え、`vault-seed-isolation` チェックで実際のdesktop/spin713設定から
+seedが生成されないことを確かめる。旧固定版ではこのチェックが失敗し、更新後は成功する。
+利用側にもseed activationが無いことのassertionを置き、古いpinが戻った場合に適用前に失敗させる。
+workflowの作業ツリー、lockされた版、適用済み世代は別の状態であり、反映には利用者による両PCのswitchが要る。
 
 ## 検討して退けた案: source-of-truth を public 側へ移す
 
@@ -121,8 +134,8 @@ public を追従させる。auto-commit（notes）と deliberate commit（flake 
 
 ## 運用上の性質・既知の制約
 
-- **public は派生で、mirror するまで stale**。実測では mirror の翌日には数ファイル乖離する。ただし stale が
-  害になるのは seed される環境だけで、この repo のホストはほぼ該当しない。
+- **public は派生で、mirror するまで stale**。実測では mirror の翌日には数ファイル乖離する。ただし clone 済みの
+  vaultへはseedしないので、通常のnotes同期はこの遅れの影響を受けない。
 - **反映には消費側の `nix flake update` が要る**。input は `flake.lock` に pin されているので、mirror して
   push しただけでは store のスナップショットは古いままになる。
 - **denylist の穴**。新規プラグインが tracked な `data.json` に機密を書くと mirror で public に流れうる。

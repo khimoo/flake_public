@@ -16,10 +16,8 @@
 let
   attachmentsOn = config.local.profile.features.zettelkastenSync;
   papisOn = config.local.profile.features.referenceSync;
-  # obsidian は同期(rclone/gdrive)に依存しない独立の関心。Obsidian 本体を入れ、vault に
-  # .obsidian 設定を非破壊で配置するだけで、Nix さえあれば同期なしでも成立する。
-  # 骨格(分類フォルダ・運用ドキュメント)の seed はこの feature ではなく enable 側に載るので、
-  # 同期だけ有効なホストでも骨格は配置される(既存ファイルは触らないので実質 no-op)。
+  # 既存 vault の設定と骨格は notes repo の clone が所有する。
+  # obsidian feature はアプリを導入し、seed は initializeVault = true の環境に限る。
   obsidianOn = config.local.profile.features.obsidian;
   enabled = attachmentsOn || papisOn || obsidianOn;
 in
@@ -27,8 +25,15 @@ in
   imports = [ inputs.zettelkasten.homeModules.zettelkasten ];
 
   config = lib.mkIf enabled {
+    # 古い input が戻っても、notes repo の内容を activation が復元する構成は適用させない。
+    assertions = [ {
+      assertion = !(config.home.activation ? seedVault);
+      message = "clone 管理の vault に seedVault activation は不要です。zettelkasten input を更新してください。";
+    } ];
     services.zettelkasten = {
       enable = true;
+      # private-repos.nix が clone するため、骨格の初期化・補充は行わない。
+      initializeVault = false;
       vaultDir = config.local.profile.zettelkastenRoot;
       attachments.enable = attachmentsOn;
       originals.enable = attachmentsOn;

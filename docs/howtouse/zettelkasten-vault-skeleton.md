@@ -1,8 +1,8 @@
 # vault の骨格の配布とミラー（使い方）
 
 Obsidian vault（Zettelkasten）の**骨格**——ノートの分類フォルダ、運用ドキュメント
-（`README.md` / `CLAUDE.md` / `IndexNote.md` / `Templates/` / 各フォルダの運用ルール）、
-`.obsidian`（設定 + community plugin 本体）、`.claude/skills/`——を扱う 2 つの操作:
+（`Home.md` / `AGENTS.md` / `CLAUDE.md` / `Templates/` / `System/Bases/`）、
+`.obsidian`（設定 + community plugin 本体）、`.agents/skills/` と `.claude/skills` のリンク——を扱う 2 つの操作:
 
 - **seed**: vault に無いものだけ、public repo のスナップショットを配る（非破壊）。
 - **mirror**: vault 側で運用を変えたあと、たまに手動で public repo へ写して commit する。
@@ -13,29 +13,35 @@ repo）が担うので、mirror はその代替ではない。
 設計判断・責務分離は [../architecture/zettelkasten-vault-skeleton.md](../architecture/zettelkasten-vault-skeleton.md) を参照。
 添付・papis の Drive 同期は別系統（[zettelkasten-attachments-sync.md](./zettelkasten-attachments-sync.md)）。
 
-## 自分のマシンでは seed はほぼ動かない
+## clone するマシンでは seed を生成しない
 
-vault は private notes repo の clone で用意しており、その clone が骨格を連れてくる。`seed-vault` は
-既にあるものを上書きしないので、**この repo のホストでは実質 skip する**。設定やドキュメントが
-新マシンに届く経路は clone であって、public repo ではない。
+vault は private notes repo の clone で用意する。この repo は
+`services.zettelkasten.initializeVault = false` を明示し、修正済み workflow では
+`home.activation.seedVault` 自体を生成しない。削除したファイルを「無いから補充する」経路を止める。
+利用側のassertionもseed activationの混入を拒否するため、古いinputのままの構成は適用前に止まる。
 
-したがって:
+workflow の checkout を直したり push したりするだけでは更新されない。
+`flake.lock` の `zettelkasten` input と、各PCへ適用する世代の更新が必要。
 
-- **新しいマシンを立てる前に mirror や push をする必要は無い。**
-- seed が実際に配るのは、`initializeVault = true` で vault をゼロから作る環境（＝ノートの repo を
-  持たない人）だけ。
+```sh
+nix flake update zettelkasten
+nix build .#checks.x86_64-linux.vault-seed-isolation --no-link
+```
 
-「ほぼ」なのは、`.obsidian` 以外がファイル単位の seed だから。public 側の骨格に新しく足した
-ファイルが vault に無ければ、それだけが次の switch で降ってくる。
+このチェックは desktop と spin713 の両方について、初期化が無効でseed activationが無いことを確かめる。
+確認後、利用者が変更を共有し、各PCで通常の switch を行う。AI は switch を実行しない。
+既に復活した旧ファイルは、この更新だけでは消えないため、notes repo 側の削除も同期する。
+
+新しいマシンを立てる前に mirror する必要は無い。設定とドキュメントはnotes repoのcloneで届く。
 
 ## 対応環境
 
 - NixOS ホスト（`nixos-desktop`, `nixos-spin713`）: `local.profile.features.obsidian = true` を設定済み
 - standalone home-manager: 本人のhomeモジュールの `local.profile.features.obsidian = true` と `local.profile.zettelkastenRoot` で有効化
 
-`local.profile.features.obsidian` が gate するのは **Obsidian 本体の導入と `.obsidian` の seed** だけ。骨格
-（分類フォルダ・運用ドキュメント）の seed は同期 feature 側にも載っているので、
-`zettelkastenSync` か `referenceSync` だけ有効なホストでも骨格は配置される。
+`local.profile.features.obsidian` は Obsidian 本体を導入する。`.obsidian` と分類フォルダ・
+運用ドキュメントの自動配置は `initializeVault = true` の環境だけで行う。
+同期featureを有効にするだけでは既存vaultへ骨格を補充しない。
 
 ノートの repo を持たない環境へ配るときは、`initializeVault = true` にしたうえで switch する
 （zettelkasten-workflow の README にセットアップ手順がある）。
@@ -123,4 +129,4 @@ preflight が復旧手順つきで落ちるので、まずそのメッセージ�
 | `配布対象が vault にありません` | `nix/skeleton-paths.nix` の列挙と vault が食い違っている。vault 側で用意するか列挙から外す |
 | `--dry-run` で `(差分なし)` | vault と public が既に一致。mirror 不要 |
 | seed したのに何も配られない | vault に既にある（clone 由来）。仕様どおりの skip |
-| `vault が未 clone です(skip)` | private notes repo をまだ clone していない。clone 後に再 switch すれば骨格が配置される |
+| `vault が未 clone です(skip)` | private notes repo をまだ clone していない。初期化環境なら再 switch、既存vaultならnotes repoのclone内容を確認する |

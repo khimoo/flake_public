@@ -414,6 +414,21 @@ lib.genAttrs systems (
       "module contracts passed";
   in
   {
+    # clone 済みの両PCへ、配布元の骨格を補充しない。古い workflow の pin も検出する。
+    vault-seed-isolation =
+      assert lib.all (user:
+        user.services.zettelkasten.enable
+        && !user.services.zettelkasten.initializeVault
+        && !(user.home.activation ? seedVault)
+        && user.local.profile.zettelkastenRepoUrl != null
+      ) [
+        desktopUser
+        inputs.self.nixosConfigurations.nixos-spin713.config.home-manager.users.pomu
+      ];
+      pkgs.runCommand "vault-seed-isolation" { } ''
+        echo "Cloned vaults have no seed activation on either host" > "$out"
+      '';
+
     module-contracts = pkgs.runCommand "module-contracts" { } ''
       echo ${lib.escapeShellArg contracts} > "$out"
     '';
