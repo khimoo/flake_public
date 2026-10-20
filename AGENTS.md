@@ -1,53 +1,28 @@
-# Repository instructions
+# flake_public での協働
 
-## Scope and workflow
+このリポジトリは、NixOS ホストと Home Manager 環境、エディタ・端末の設定を管理する。ユーザーが環境を使い、理解し、後から変更できるように作業する。このファイルをプロジェクト共通指示の正本とし、クライアント固有の設定や全プロジェクト共通の指示は複製しない。
 
-This repository manages NixOS hosts, Home Manager environments and live editor/terminal configuration.
-Read [README](README.md) and the relevant [architecture](docs/architecture/README.md) / [usage](docs/howtouse/README.md) documents before changing a feature.
+## 依頼の範囲と判断
 
-- Investigation and review do not authorize edits. An explicit implementation request authorizes the necessary edits and verification; do not ask again for each file.
-- Preserve unrelated user changes. Diagnose failures before replacing an approach; distinguish evaluation, build, activation and runtime failures.
-- Do not run `nixos-rebuild`, `home-manager switch`, or another generation-switch command. Prepare and verify changes; the user applies them.
-- `nix eval`, `nix build`, and `nix flake check` are allowed for verification. They can fetch/build store dependencies even during evaluation; they do not switch generations.
-- Never put plaintext secrets in this repository, tool output or conversation. Never use `sudo -S` to pass a password. For an authorized operation requiring root without switching generations, explain the operation and use `pkexec` where available; respect the execution environment's approval policy.
+- 説明・調査・レビューの依頼を、編集の許可として扱わない。ユーザーが自分で変更しながら学ぶ場合は、参照経路、変更箇所、影響を説明する。実装を依頼された場合は、必要な編集と検証を進める。
+- 合意済みの目的・設計・許可を引き継ぎ、同じ確認を繰り返さない。ユーザーが指定した工程や検証範囲を尊重する。調査しても決まらず、利用者・挙動・保守負担が変わる選択だけを尋ねる。
+- 無関係な変更や作業途中の差分を保持し、関連する問題を見つけても修正範囲を無断で広げない。
+- 確認した用途と保守負担を根拠に構成を提案する。既存実装や過去の説明だけで必要性を断定しない。維持すべき関係が決まったら、手で合わせる箇所を減らす。
+- 事実、推奨、ユーザーの決定、未確認事項を区別し、主語と目的語を明確に説明する。未知の上流挙動は公式文書かソースで確かめ、根拠の版・revision を示す。
 
-## Configuration boundaries
+## 守る境界
 
-- `flake.nix` selects hosts and standalone environments; `lib/configurations.nix` assembles them.
-- `hosts/` owns hardware and machine policy. `modules/nixos/` owns OS mechanisms.
-- `modules/home-manager/` owns user mechanisms. `local.profile` is the typed interface, defined in `modules/home-manager/profile.nix`.
-- Personal Git identity, mutable checkout paths, secrets and optional workflows belong in that user's home module or `profiles/home/`. Never pass one user's profile to all Home Manager users.
-- Use typed options, `mkEnableOption`, `mkIf`, `mkDefault` and assertions for settings that users may change. Feature toggles are normal Nix composition; do not replace them merely to follow generic coupling rankings.
-- Keep imports static. Conditions depending on `config` belong in `mkIf`; avoid `optionalAttrs config...` when it determines module structure.
-- Keep package provenance and compatibility patches in `overlays/` or `packages/`, and document their removal conditions.
-- Activation code must specify supported platforms, dry-run behavior, idempotence and recovery after interruption. Failure must not leave a partial result that is mistaken for completion.
-- Live symlinks for Neovim, terminals and Claude settings intentionally bypass generation rollback. Changes to their source files may affect running user workflows immediately.
+- **適用はユーザーが行う。** `nixos-rebuild`、`home-manager switch`、その他の世代切替を実行しない。Neovim・端末・エージェント設定の live symlink は参照元の編集が世代切替前から作用し、Nix 世代のロールバックでは戻らないため、編集時に影響を考慮する。
+- **秘密を出力しない。** 平文の秘密をリポジトリ・ツール出力・会話へ出さず、`sudo -S` を使わない。許可された root 操作は内容を説明し、利用可能なら `pkexec` を使い、実行環境の承認規則に従う。
+- **ユーザーを分離する。** 個人の Git identity、秘密、mutable checkout のパス、任意機能の選択は、そのユーザーの home モジュールまたは `profiles/home/` に置く。一人のプロファイルを全 Home Manager ユーザーへ渡さない。
+- **重い評価・build はデスクトップで行う。** 過去に応答不能になった `nixos-spin713` で全体検証を実行しない。評価だけでも依存の取得・build が起こり、`--no-build` でも評価時依存の build は防げない。
 
-## Verification
+## 参照先と報告
 
-Choose the smallest verification that exercises the boundary changed. Do not run `bash scripts/check.sh` by default: it evaluates every NixOS and standalone Home Manager configuration and can build evaluation-time dependencies such as the patched Mutter, so unrelated changes can make it slow. See [validation](docs/howtouse/validation.md) for the available commands and their scope.
+[README](README.md) で対象環境を把握し、[使い方](docs/howtouse/README.md) と [設計判断](docs/architecture/README.md) から対象文書・設定・利用側の参照を追う。毎回リポジトリ全体を調べる必要はない。
 
-- For a host or Home Manager module change, evaluate the affected configuration and build the changed package or focused check. Evaluate a second configuration only when it shares the changed path.
-- For documentation-only changes, run `python3 scripts/check-docs.py .` and `git diff --check`.
-- Run the full `bash scripts/check.sh` for changes whose effects cannot be bounded to specific outputs, such as shared configuration assembly, profile/user isolation, platform conditions, activation infrastructure or global overlays. The Linux CI also runs the full command after push.
-- Run expensive evaluation and builds on the desktop. Do not run the full check on `nixos-spin713`; it has previously made the machine unresponsive.
+- Nix の責務・合成・activation・パッケージの扱いは [構成の境界](docs/architecture/configuration.md) に従う。
+- 文書の配置・更新・索引は [文書整備](docs/howtouse/documentation.md) に従う。
+- 検証は [検証ガイド](docs/howtouse/validation.md) に従い、変更した境界を確認できる範囲を選ぶ。ユーザーが検証省略を指定した場合は従い、未検証と報告する。
 
-- For a regression, add a focused check at the boundary that failed (platform support, user isolation, activation failure), not a test that simply repeats implementation details.
-- For package changes, build the changed package and run its existing install checks.
-- For editor changes, check the affected Lua/configuration and document any runtime checks the user must perform.
-- Report precisely what passed and what requires a real host or manual activation. Never describe evaluation success as proof that macOS activation works.
-- For unfamiliar upstream behavior, consult official documentation or upstream source and record the relevant version/revision. Separate observed facts from hypotheses.
-
-## Documentation
-
-The repository owns its documentation rules; do not depend on a private agent memory file.
-
-- Usage and procedures: `docs/howtouse/`. Rationale and tradeoffs: `docs/architecture/`.
-- Neovim-specific keys/plugins: `modules/home-manager/dev/neovim/config/docs/`.
-- Update the affected usage and architecture documents with an implementation change, plus index entries when files are added or removed. Add reciprocal links when a pair exists.
-- Configuration is the source of truth for behavior. Detailed feature docs describe it; indexes link to details rather than copying full tables.
-- `docs/architecture/` holds the evidence, measurements and alternatives behind a decision; the commit message holds how the change came about. A source comment states the reason a reader needs at that line and links to the document for the rest.
-- Use local file links for implementation references. Keep commands and examples aligned with the current typed interface.
-- Mark proposals as unimplemented. Record evidence, uncertainty, and conditions for revisiting a decision.
-
-`AGENTS.md` is the common instruction source. `CLAUDE.md` imports it; do not maintain a second copy of these rules.
+変更内容、確認できた範囲、未実行・未確認事項、ユーザーの適用や実機確認が必要な部分を報告する。失敗は評価・build・activation・runtime の段階を切り分ける。Linux 上での Darwin 構成の評価成功を macOS での動作確認として扱わない。

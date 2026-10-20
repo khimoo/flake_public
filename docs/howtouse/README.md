@@ -6,7 +6,8 @@
 
 | カテゴリ | 概要 | ドキュメント |
 |----------|------|-------------|
-| 検証 | 変更時の一括検証・CI・実機確認の範囲 | [validation.md](./validation.md) |
+| 文書整備 | 使い方・設計文書の更新と索引・参照の整備 | [documentation.md](./documentation.md) |
+| 検証 | 変更範囲に応じた検証・CI・実機確認 | [validation.md](./validation.md) |
 | 音声 | WebRTC エコーキャンセルの仮想マイク選択・確認・無効化 | [audio-echo-cancel.md](./audio-echo-cancel.md) |
 | ユーザー管理 | ユーザーの追加・権限設定・home-manager 連携 | [users.md](./users.md) |
 | マシン間 SSH | flake 内のホストへ `ssh <短縮名>` で接続・マシン追加手順 | [machine-ssh.md](./machine-ssh.md) |

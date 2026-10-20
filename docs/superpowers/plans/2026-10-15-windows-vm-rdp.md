@@ -1,5 +1,7 @@
 # デスクトップの Windows VM を FreeRDP で使う Implementation Plan
 
+> 履歴: この文書は作成時点の仕様・計画の記録であり、当時の工程指定は現在の必須手順ではありません。現在の指示・手順は [AGENTS.md](../../../AGENTS.md)、[文書整備](../../howtouse/documentation.md)、[検証ガイド](../../howtouse/validation.md) に従います。実装の現状は設定と現在の詳細文書で確認してください。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** nixos-desktop の libvirt VM `win11` を、GNOME のアプリ一覧の「Windows」から起動し、ホストの FreeRDP で表示できるようにする。

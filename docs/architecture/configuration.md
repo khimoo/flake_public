@@ -9,11 +9,11 @@
 
 Home Managerはユーザーごとに `config.local.profile` を評価する。個人のGit identity、clone先、Claude設定、LAN鍵配布はそのユーザーのhomeモジュールにだけ定義する。現在の個人設定は `profiles/home/pomu.nix`、2台のworkstationの選択は `profiles/home/pomu-workstation.nix`、Claude CodeとCodexの設定repo（agents-private）の置き場所とlauncherは `profiles/home/pomu-agents.nix` にある。新しいユーザーはこれを明示的にimportしない限り引き継がない。
 
-機構は共通モジュール、選択はprofile、ハードウェアはhostsに置く。機能の有効化に型付きboolを使うことは正常なモジュール合成であり、一般的な「制御結合を避ける」という順位表で禁止しない。
+機構は共通モジュール、選択はprofile、ハードウェアはhostsに置く。imports は静的に保ち、`config` に依存する条件は `mkIf` に置く。`optionalAttrs config...` でモジュール構造を変えない。機能の有効化に型付きboolを使うことは正常なモジュール合成であり、一般的な「制御結合を避ける」という順位表で禁止しない。
 
 ## 型と制約
 
-`local.profile` は既定値・型・説明を持つNixオプション。誤字や型不一致は評価エラーにする。URLだけがありclone先がない設定、別ユーザーのhomeへのmutable checkout、重複clone先、vaultなしの同期、GUIなしのGNOME/IMEはassertionで拒否する。
+`local.profile` は既定値・型・説明を持つNixオプション。変更可能な設定は型付き option と `mkEnableOption`、上書き可能な既定値は `mkDefault`、成立すべき制約は assertion で表す。誤字や型不一致は評価エラーにする。URLだけがありclone先がない設定、別ユーザーのhomeへのmutable checkout、重複clone先、vaultなしの同期、GUIなしのGNOME/IMEはassertionで拒否する。
 
 `flakeRoot` は共有の読み取り用checkoutにもできるのでhome内への制約は付けない。mutableなprivate checkoutはユーザーのhome配下に限定する。ディスク階層化はその配下へmountする。これはパス設定ミスを防ぐ契約であり、symlinkやOS権限を検証するセキュリティ境界ではない。
 
@@ -41,6 +41,14 @@ primaryUser に Home Manager のユーザー設定がないホストでは `flak
 
 Nix評価はcheckoutの実在やage鍵を要求しない。clone・秘密鍵復元はactivationで実施する。既存の鍵は上書きせず、更新は手動のローテーション手順に委ねる。既存cloneもpullせず、更新は `pull-repos` に分ける。
 
+activation を変更するときは、対応 OS、dry-run、再実行、中断・失敗後の回復を扱う。途中の結果を完了済みと判定しない。
+
 live symlinkの内容はNix世代のロールバックでは戻らない。Gitで内容を復元する。
 
 検証は実際のfactoryで複数ユーザーを生成し、他人の鍵・private repo・Git identityが漏れないこと、OS制約と不正設定の拒否を確認する。NixOS本体・Home Manager全構成の評価と、実機でのactivationを区別して報告する。
+
+パッケージの出自と互換性パッチは `packages/` または `overlays/` に置き、パッチを外せる条件を記録する。
+
+## 共通文書と作業の入口
+
+人とエージェントは [文書整備](../howtouse/documentation.md) と [検証ガイド](../howtouse/validation.md)、既存のコマンドを共通に使う。Claude Code の `/workflow` は文書整備の入口であり、別の規約や検証方針を持たない。常時読む指示は入口と安全境界に絞り、詳細は対象文書で扱う。今回の整理では効果測定を行わず、運用で分かった問題に応じて調整する。

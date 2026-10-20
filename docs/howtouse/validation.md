@@ -3,6 +3,22 @@
 設計: [構成の境界](../architecture/configuration.md)
 実装: [check.sh](../../scripts/check.sh) / [モジュール検証](../../tests/default.nix) / [文書検証](../../scripts/check-docs.py)
 
+## 変更範囲から検証を選ぶ
+
+変更した境界を確認できる最小の検証を選びます。一括検証を毎回の既定にはしません。
+
+| 変更範囲 | 選ぶ検証 |
+|---|---|
+| 文書のみ | `python3 scripts/check-docs.py .` と `git diff --check` |
+| パッケージ | 変更したパッケージを build し、既存の installCheck まで確認 |
+| ホスト・Home Manager モジュール | 対象構成を評価し、該当する check または変更パッケージを build |
+| エディタ | 対象設定・Lua などの構文と、対象機能の実機確認 |
+| 影響を特定の出力に限定できない変更 | 下記の一括検証 |
+
+構成の組み立て、ユーザー分離、共通の OS 条件、activation 基盤、全体に効く overlay などの変更では、影響範囲を確認して一括検証を選びます。第二の構成へ確認を広げるのは、共有経路の変更で必要な場合です。回帰には壊れた契約を確認する既存の check を拡張するか、対象を絞った確認を追加し、実装の文面をなぞるだけのテストや新しい評価基盤を安易に増やしません。
+
+重い評価・build はデスクトップで行い、`nixos-spin713` で全体検証を実行しません。ユーザーが検証省略を指定した場合は従い、未検証と報告します。文書整備の進め方は [文書整備](documentation.md) を参照してください。
+
 ## 一括検証
 
 Nix（flakes有効）、Python 3、Git、Bashが必要です。
@@ -29,12 +45,11 @@ Darwin構成はLinuxから評価できますが、macOSバイナリのbuild・ac
 
 spin713の音声回避策と、desktopとspin713の全画面を透かすmutterのパッチは `system.replaceDependencies` を使い、評価中にシステムclosureの参照を生成するimport-from-derivation（IFD）が発生します。評価の途中でパッチを当てたmutterもビルドするので、binary cacheに無い間はCIでもmutterのビルドを待ちます。未生成の `references.nix.drv` に対して `nix flake check` が失敗するため、一括検証では先に全NixOSホストを明示評価します。freshなCIではGUI・音楽制作を含む多数のstore依存を取得・buildするので、十分なディスク容量と時間が必要です。`--no-build` はこの評価依存をなくす指定ではありません。NixOSの世代切替は行いません。
 
-## 変更に応じた追加確認
+## 対象別の確認手順
 
 - パッケージ: `nix build --no-link .#happy` などで変更したパッケージのinstallCheckまで実行。
 - activation: dry-runと失敗後の再実行を確認。実際の鍵復元・cloneはユーザーが対象環境で確認。
 - Neovim: Luaの構文と対象機能を実機で確認。live checkoutの変更はrebuildを待たず反映されます。
-- 文書だけ: `python3 scripts/check-docs.py .` と `git diff --check`。
 
 Neovim の Markdown パーサ指定のマージは、lazy.nvim を導入済みの Neovim で
 リポジトリのルートから確認します。プラグインのダウンロードやパーサのビルドは行いません。
@@ -62,6 +77,6 @@ nix eval --raw .#nixosConfigurations.$h.config.system.path.drvPath
 nix eval --raw .#nixosConfigurations.$h.config.system.build.etc.drvPath
 ```
 
-これはbuildを伴わないので、home-manager-filesのようにbuildで初めて出る失敗は見つかりません。devShellsも対象外なので、最後に一括検証を通します。
+この切り分け用の評価では、home-manager-filesのようにbuildで初めて出る失敗は見つからず、devShellsも対象外です。最後は冒頭の選択基準に従い、対象のbuild・check、または必要な場合に一括検証を行います。
 
 リファクタで挙動が変わっていないことを確かめるとき、`system.build.toplevel.drvPath` の比較は使えません。[secrets.nix](../../modules/home-manager/secrets.nix) が暗号文をflakeのソース内のパスでactivationに埋め込むので、repoのどのファイルを変えてもdrvPathが変わります。代わりに `config.system.path` のストアパスと、変更した値の評価結果を前後で比べます。`nix-diff` は入力が変わったderivationの環境の比較を省くので、差分が出なかったことを根拠にしません。
