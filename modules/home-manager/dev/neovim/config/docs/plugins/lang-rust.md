@@ -41,4 +41,5 @@ RustOwl が有効な状態でマウスをハイライト上に移動すると、
 ## プラットフォームとRustOwlの導入
 
 RustOwlの導入は `local.rustowl.enable` で選択する（x86_64 Linuxで既定true、Darwinではfalse）。サーバ実体とプラグインはどちらもNixのstoreから絶対パスで渡すため、PATH上の別のrustowlは使わない。無効なときはプラグインと対応キーを読み込まない。詳細は [RustOwl設計](../../../../../../../docs/architecture/rustowl.md) を参照。
+[flake.nix](../../../../../../../flake.nix) が同じ locked input から `packages.${system}.rustowl` と `packages.${system}.rustowl-nvim` を組で公開し、Home Manager は `inputs.self.packages.${system}` を参照する。`home.packages` とブリッジの `command` は公開サーバー、ブリッジの `plugin` は公開プラグインを使う。無効時はこれらを評価しない。
 Rust DAPのliblldbはLinuxで `.so`、macOSで `.dylib` を参照する。

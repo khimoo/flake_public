@@ -2,7 +2,7 @@
 
 uv が取得する Python と manylinux wheel を NixOS で動かすための環境に入るコマンド。
 共有リポジトリに shell.nix や flake.nix を置かずに、会社の Python プロジェクトを uv で開発するときに使う。
-パッケージは [packages/uv-mode](../../../packages/uv-mode/default.nix) で、Linux のホストでは [core.nix](../../../modules/home-manager/core.nix) から入る。
+パッケージの定義は [packages/uv-mode](../../../packages/uv-mode/default.nix)。[flake.nix](../../../flake.nix) は `packages.${system}.uv-mode` として公開し、Linux のホストでは [core.nix](../../../modules/home-manager/core.nix) が `inputs.self.packages.${system}.uv-mode` 経由で同じ成果物を導入する。
 設計判断は [architecture/uv-mode.md](../../architecture/uv-mode.md)。
 
 ## 使い方

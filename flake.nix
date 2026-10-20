@@ -81,7 +81,7 @@
           } // nixpkgs.lib.optionalAttrs (nixpkgs.lib.hasSuffix "-linux" system) {
             uv-mode = nixpkgs.legacyPackages.${system}.callPackage ./packages/uv-mode { };
           } // nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
-            rustowl = inputs.rustowl.packages.${system}.rustowl;
+            inherit (inputs.rustowl.packages.${system}) rustowl rustowl-nvim;
             # legacyPackages は allowUnfree を持たないので、unfree の agy だけ設定付きで評価する。
             antigravity-cli =
               (import nixpkgs { inherit system; config.allowUnfree = true; }).callPackage

@@ -1,5 +1,6 @@
 {
   skk-dict,
+  inputs,
   lib,
   pkgs,
   ...
@@ -24,7 +25,7 @@
   ]
   # buildFHSEnv は Linux でしか作れない（docs/architecture/uv-mode.md）。
   ++ lib.optionals pkgs.stdenv.isLinux [
-    (pkgs.callPackage ../../packages/uv-mode { })
+    inputs.self.packages.${pkgs.stdenv.hostPlatform.system}.uv-mode
   ];
 
   home.sessionVariables = {

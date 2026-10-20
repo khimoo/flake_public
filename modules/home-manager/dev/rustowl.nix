@@ -3,7 +3,7 @@
 let
   supported = pkgs.stdenv.hostPlatform.system == "x86_64-linux";
   enabled = config.local.rustowl.enable && supported;
-  packages = inputs.rustowl.packages.${pkgs.stdenv.hostPlatform.system};
+  packages = inputs.self.packages.${pkgs.stdenv.hostPlatform.system};
 in {
   options.local.rustowl.enable = lib.mkOption {
     type = lib.types.bool;

@@ -14,6 +14,8 @@ flake input `rustowl` は [nix-community/rustowl-flake](https://github.com/nix-c
 
 このflakeは `rust-toolchain.toml` に固定された nightly を rust-overlay で用意し、RustOwl をソースからビルドする。`$out/bin/sysroot/<toolchain>` に toolchain を配置するため、RustOwl の sysroot 探索がstore内で完結し、実行時ダウンロードへフォールバックしない。
 
+[flake.nix](../../flake.nix) は x86_64 Linux の `packages.${system}` に `rustowl` と `rustowl-nvim` を、同じ locked input の `inputs.rustowl.packages.${system}` から組で公開する。Home Manager は `inputs.self.packages.${system}` を参照し、公開側と同じサーバーを `home.packages` とブリッジの `command` に、対応するプラグインをブリッジの `plugin` に使う。公開属性を削除して導入参照が残ると評価エラーになる。
+
 `modules/home-manager/dev/rustowl.nix` は次の2つだけを行う。activation は無い。
 
 1. `home.packages` に `rustowl` を追加
@@ -27,6 +29,8 @@ flake input `rustowl` は [nix-community/rustowl-flake](https://github.com/nix-c
 - 絶対pathを使うので、旧方式が残した `~/.local/bin/rustowl` がPATHで優先されても影響しない
 - `local.rustowl.enable` が false のときブリッジは `return nil` を返し、プラグインと対応キーを読み込まない
 - プラグイン実体はNixが持つので `lazy-lock.json` には載せない
+
+キーと操作は [Neovim の Rust 言語サポート](../../modules/home-manager/dev/neovim/config/docs/plugins/lang-rust.md) を参照。
 
 ## バージョン更新手順
 
@@ -45,5 +49,6 @@ rustowl-flake は上流の `main` を追うため、パッケージの `version`
 ## 対応OS
 
 `local.rustowl.enable` は x86_64 Linux だけで既定 true。他のOSでは `home.packages` に何も足さず、明示的な有効化は assertion で拒否する。
+無効時は公開パッケージを評価せず、ブリッジは `return nil` を返すため、公開属性のない macOS でも評価できる。
 
 検証の範囲: [検証ガイド](../howtouse/validation.md)。
