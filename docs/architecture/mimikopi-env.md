@@ -6,7 +6,7 @@
 
 耳コピ（楽曲の自動採譜）のスキルは、音源分離と採譜の ML モデル（basic-pitch、Transkun、YourMT3+ など）を、モデルごとに分けた uv の環境で動かす。
 モデルによって PyTorch と TensorFlow のどちらを使うか、どの版を要求するかが違うので、一つの環境には同居させられない。
-どのモデルも PyPI の manylinux wheel で入るため、NixOS では [uv-mode](./uv-mode.md) と同じく FHS 環境の中でしか動かない。
+どのモデルも PyPI の manylinux wheel で入るため、NixOS では [uv-mode](../howtouse/cli-tools/uv-mode.md) と同じく FHS 環境の中でしか動かない。
 
 ## 確かめた結果
 
@@ -54,7 +54,7 @@ subvol は手で作るので、作る前に switch や再起動をすると、�
 ## 退けた案
 
 - uv-mode の `targetPkgs` に足す。上の「FHS 環境を uv-mode と分ける」に書いた理由で退けた。
-- nix-ld をシステムで有効にする。[uv-mode.md](./uv-mode.md) で退けたのと同じ理由になる。
+- nix-ld をシステムで有効にする。[uv-mode.md](../howtouse/cli-tools/uv-mode.md#設計) で退けたのと同じ理由になる。
 - `/mnt/backup` の下にディレクトリを作る。上の「データを SATA の専用 subvol に置く」に書いた理由で退けた。
 
 ## 代償

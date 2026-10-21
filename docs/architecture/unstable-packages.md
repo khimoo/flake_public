@@ -148,7 +148,7 @@ nixpkgs の破壊的変更に追随できるか読めないこと、musnix が�
 
 ## Graphify
 
-安定チャンネルに存在しないため、既存 unstable の package を使う。[採用理由](graphify.md)を参照。
+安定チャンネルに存在しないため、既存 unstable の package を使う。[採用理由](../howtouse/graphify.md#設計)を参照。
 
 ## extension-list（GNOME 拡張）
 

@@ -137,6 +137,7 @@ let
       stateVersion = "25.11";
     };
   allAssertions = home: builtins.all (a: a.assertion) home.config.assertions;
+  tagged = set: lib.mapAttrs (_: check: check // { checkSet = set; });
   # activation の after / before が存在しないノードを指しても、Home Manager はエラーにせず順序も保証しない。
   activationDepsExist =
     activation:
@@ -194,29 +195,10 @@ lib.genAttrs systems (
     unknownFeature =
       builtins.tryEval
         (mkTestHome system [ { local.profile.features.typo = true; } ]).config.local.profile.features.gui;
+    # 架空のホストと Home Manager の構成で確かめる、ホストに依らない契約。
     contracts =
       assert allAssertions home;
-      assert activationDepsExist desktopUser.home.activation;
       assert activationDepsExist activationHome.config.home.activation;
-      # /etc/nixos を checkout へのリンクにして、--flake なしの nixos-rebuild がこの flake を使うようにする。
-      assert builtins.elem "L+ /etc/nixos - - - - /home/nixos/sagyo/flake_public" wsl.systemd.tmpfiles.rules;
-      assert builtins.elem "L+ /etc/nixos - - - - /home/pomu/sagyo/flake_public"
-        inputs.self.nixosConfigurations.nixos-desktop.config.systemd.tmpfiles.rules;
-      assert wsl.local.restrictedHost.enable;
-      assert systemAssertionsHold wsl;
-      assert wsl.wsl.enable && wsl.wsl.defaultUser == "nixos";
-      # 社用の AI アカウントがない会社の PC なので、自分用のエージェントの設定（agents-private）を置かない。
-      assert wslUser.local.profile.agentConfigRoot == null;
-      assert wsl.local.claudeManagedSettings == null;
-      assert !(lib.hasInfix "IdentityFile" wslSshConfig);
-      assert !(wslUser.home.activation ? secrets);
-      assert !(hasLauncher wslUser "clone-repos");
-      # 会社 PC でも kitty を使うため、GUI アプリは WSLg で表示する（docs/architecture/wsl.md）。
-      assert lib.attrNames (lib.filterAttrs (_: enabled: enabled) wslUser.local.profile.features) == [ "gui" ];
-      assert builtins.any (p: (p.pname or "") == "kitty") wslUser.home.packages;
-      assert wsl.wsl.startMenuLaunchers;
-      assert !(hasLauncher wslUser "codex-astra");
-      assert hasLauncher wslUser "uv-mode";
       assert systemAssertionsHold (restrictedHost { local.restrictedHost.enable = true; } [ ]);
       assert stoppedByRestriction (restrictedHost {
         local.restrictedHost.enable = true;
@@ -358,29 +340,7 @@ lib.genAttrs systems (
             };
           }
         ]);
-      # Windows VM のランチャーはデスクトップだけで有効にする。GUI のないユーザーでは評価を止める。
-      assert hasLauncher desktopUser "windows-vm";
-      assert desktopUser.local.windowsVm.domain == "win11";
-      assert hasLauncher desktopUser "mimikopi-env";
-      # @mimikopi は手で作る subvol なので、作る前の switch や再起動で起動を止めないよう nofail を外さない。
-      assert builtins.elem "nofail"
-        inputs.self.nixosConfigurations.nixos-desktop.config.fileSystems."/home/pomu/.local/share/mimikopi".options;
-      # sdl-freerdp は右 Alt（AltGr）の単独押しで、次のショートカット一回だけキーボードを掴む。右 Alt が AltGr に
-      # なる配列を既定にし、keyd は普段の右 Alt を書き換えず、ターボの連打は ◇ + 右 Alt で入れるレイヤーに置く
-      # （docs/architecture/windows-vm.md）。
-      # 一回だけ掴む動作はパッチを当てた FreeRDP にしかないので、ランチャーがそれを使っていることを確かめる。
-      assert lib.hasInfix (builtins.unsafeDiscardStringContext "${
-        desktopPkgs.callPackage ../packages/freerdp-grab-once { }
-      }/bin") desktopWindowsVm.text;
-      assert
-        builtins.fromJSON desktopUser.xdg.configFile."freerdp/sdl-freerdp.json".text == {
-          SDL_KeyModMask = [ "KMOD_MODE" ];
-          SDL_Grab = "SDL_SCANCODE_RALT";
-        };
-      assert lib.hasInfix "('xkb','us+altgr-intl')" (
-        toString desktopUser.dconf.settings."org/gnome/desktop/input-sources".sources
-      );
-      assert !(desktopKeyd.main or { } ? rightalt);
+      # GUI のないユーザーでは Windows VM のランチャーの評価を止める。
       assert rejects windowsVm;
       assert
         system != "x86_64-linux"
@@ -426,8 +386,110 @@ lib.genAttrs systems (
       assert !((managedHost null).environment.etc ? "claude-code/managed-settings.json");
       assert !(codexConfig (agentHost "") ? developer_instructions);
       "module contracts passed";
+    # 会社 PC（nixos-work-wsl）の実際の構成に固有の確認（docs/architecture/wsl.md）。
+    wslContracts =
+      # /etc/nixos を checkout へのリンクにして、--flake なしの nixos-rebuild がこの flake を使うようにする。
+      assert builtins.elem "L+ /etc/nixos - - - - /home/nixos/sagyo/flake_public" wsl.systemd.tmpfiles.rules;
+      assert wsl.local.restrictedHost.enable;
+      assert systemAssertionsHold wsl;
+      assert wsl.wsl.enable && wsl.wsl.defaultUser == "nixos";
+      # 社用の AI アカウントがない会社の PC なので、自分用のエージェントの設定（agents-private）を置かない。
+      assert wslUser.local.profile.agentConfigRoot == null;
+      assert wsl.local.claudeManagedSettings == null;
+      assert !(lib.hasInfix "IdentityFile" wslSshConfig);
+      assert !(wslUser.home.activation ? secrets);
+      assert !(hasLauncher wslUser "clone-repos");
+      # 会社 PC でも kitty を使うため、GUI アプリは WSLg で表示する（docs/architecture/wsl.md）。
+      assert lib.attrNames (lib.filterAttrs (_: enabled: enabled) wslUser.local.profile.features) == [ "gui" ];
+      assert builtins.any (p: (p.pname or "") == "kitty") wslUser.home.packages;
+      assert wsl.wsl.startMenuLaunchers;
+      assert !(hasLauncher wslUser "codex-astra");
+      assert hasLauncher wslUser "uv-mode";
+      "nixos-work-wsl contracts passed";
+    # デスクトップ（nixos-desktop）の実際の構成に固有の確認。
+    desktopContracts =
+      assert activationDepsExist desktopUser.home.activation;
+      assert builtins.elem "L+ /etc/nixos - - - - /home/pomu/sagyo/flake_public"
+        inputs.self.nixosConfigurations.nixos-desktop.config.systemd.tmpfiles.rules;
+      # Windows VM のランチャーはデスクトップだけで有効にする。
+      assert hasLauncher desktopUser "windows-vm";
+      assert desktopUser.local.windowsVm.domain == "win11";
+      assert hasLauncher desktopUser "mimikopi-env";
+      # @mimikopi は手で作る subvol なので、作る前の switch や再起動で起動を止めないよう nofail を外さない。
+      assert builtins.elem "nofail"
+        inputs.self.nixosConfigurations.nixos-desktop.config.fileSystems."/home/pomu/.local/share/mimikopi".options;
+      # sdl-freerdp は右 Alt（AltGr）の単独押しで、次のショートカット一回だけキーボードを掴む。右 Alt が AltGr に
+      # なる配列を既定にし、keyd は普段の右 Alt を書き換えず、ターボの連打は ◇ + 右 Alt で入れるレイヤーに置く
+      # （docs/architecture/windows-vm.md）。
+      # 一回だけ掴む動作はパッチを当てた FreeRDP にしかないので、ランチャーがそれを使っていることを確かめる。
+      assert lib.hasInfix (builtins.unsafeDiscardStringContext "${
+        desktopPkgs.callPackage ../packages/freerdp-grab-once { }
+      }/bin") desktopWindowsVm.text;
+      assert
+        builtins.fromJSON desktopUser.xdg.configFile."freerdp/sdl-freerdp.json".text == {
+          SDL_KeyModMask = [ "KMOD_MODE" ];
+          SDL_Grab = "SDL_SCANCODE_RALT";
+        };
+      assert lib.hasInfix "('xkb','us+altgr-intl')" (
+        toString desktopUser.dconf.settings."org/gnome/desktop/input-sources".sources
+      );
+      assert !(desktopKeyd.main or { } ? rightalt);
+      "nixos-desktop contracts passed";
   in
-  {
+  # どの変更でも確かめる共通の契約（common）と、ホストや機能に固有の確認（feature）に分ける。
+  # scripts/check.sh は checkSet を見て build する集合を選ぶ。
+  tagged "common" {
+    module-contracts = pkgs.runCommand "module-contracts" { } ''
+      echo ${lib.escapeShellArg contracts} > "$out"
+    '';
+    docs = pkgs.runCommand "documentation-links" { nativeBuildInputs = [ pkgs.python3 ]; } ''
+      python ${../scripts/check-docs.py} ${../.}
+      touch "$out"
+    '';
+    activation =
+      pkgs.runCommand "activation-contracts"
+        {
+          nativeBuildInputs = [
+            pkgs.python3
+            pkgs.bash
+            pkgs.gawk
+            pkgs.flock
+          ];
+          cloneScript = commandText "clone-repos";
+          secretsScript = snippet "secrets";
+          updateScript = commandText "update-secrets";
+          passAsFile = [
+            "cloneScript"
+            "secretsScript"
+            "updateScript"
+          ];
+        }
+        ''
+          python ${./activation.py}
+          touch "$out"
+        '';
+    # private repo を持たないユーザーでも pull-repos のビルド（shellcheck）が通ること。
+    # standalone の Home Manager は評価しかしないので、ここでビルドしないと見つからない。
+    pull-repos = lib.findFirst (p: (p.name or "") == "pull-repos") (throw "pull-repos is not installed") home.config.home.packages;
+    # clone-repos の shellcheck。本文の動作は activation の check が偽の git で確かめる。
+    clone-repos = lib.findFirst (p: (p.name or "") == "clone-repos") (throw "clone-repos is not installed") activationHome.config.home.packages;
+    update-secrets = lib.findFirst (p: (p.name or "") == "update-secrets") (throw "update-secrets is not installed") activationHome.config.home.packages;
+    # 非対話の bash（エージェントのシェル）が、見つからないコマンドに入手方法を添え、127 のまま終わる。
+    # 実際の nix-locate と同梱の DB を使う。ビルド環境に node が無いことを前提にする。
+    command-not-found-hint =
+      if system != "x86_64-linux" then
+        pkgs.runCommand "command-not-found-hint-skipped" { } "touch $out"
+      else
+        pkgs.runCommand "command-not-found-hint" { hint = home.config.home.sessionVariables.BASH_ENV; } ''
+          status=0
+          BASH_ENV=$hint ${pkgs.bash}/bin/bash -c 'node --version' 2> err || status=$?
+          cat err
+          [ "$status" = 127 ]
+          grep -q 'nix shell nixpkgs#nodejs' err
+          touch "$out"
+        '';
+  }
+  // tagged "feature" {
     # clone 済みの両PCへ、配布元の骨格を補充しない。古い workflow の pin も検出する。
     vault-seed-isolation =
       assert lib.all (user:
@@ -442,10 +504,6 @@ lib.genAttrs systems (
       pkgs.runCommand "vault-seed-isolation" { } ''
         echo "Cloned vaults have no seed activation on either host" > "$out"
       '';
-
-    module-contracts = pkgs.runCommand "module-contracts" { } ''
-      echo ${lib.escapeShellArg contracts} > "$out"
-    '';
     # GNOME は metadata.json の shell-version に自分のメジャー版がない拡張を読み込まない（OUT OF DATE）。
     # nixpkgs を上げて GNOME と拡張の版がずれても評価とビルドは通るので、ここで止める。
     # 対応版は拡張のパッケージの中にしかないので、評価ではなくビルドの段階で読む。
@@ -486,32 +544,6 @@ lib.genAttrs systems (
       python ${./graphify-smoke.py}
       touch "$out"
     '';
-    docs = pkgs.runCommand "documentation-links" { nativeBuildInputs = [ pkgs.python3 ]; } ''
-      python ${../scripts/check-docs.py} ${../.}
-      touch "$out"
-    '';
-    activation =
-      pkgs.runCommand "activation-contracts"
-        {
-          nativeBuildInputs = [
-            pkgs.python3
-            pkgs.bash
-            pkgs.gawk
-            pkgs.flock
-          ];
-          cloneScript = commandText "clone-repos";
-          secretsScript = snippet "secrets";
-          updateScript = commandText "update-secrets";
-          passAsFile = [
-            "cloneScript"
-            "secretsScript"
-            "updateScript"
-          ];
-        }
-        ''
-          python ${./activation.py}
-          touch "$out"
-        '';
     cargo-remote-run =
       pkgs.runCommandCC "cargo-remote-run"
         {
@@ -526,32 +558,12 @@ lib.genAttrs systems (
           python ${./cargo-remote-run.py} ${../modules/home-manager/dev/cargo-remote-run.sh}
           touch "$out"
         '';
-    # private repo を持たないユーザーでも pull-repos のビルド（shellcheck）が通ること。
-    # standalone の Home Manager は評価しかしないので、ここでビルドしないと見つからない。
-    pull-repos = lib.findFirst (p: (p.name or "") == "pull-repos") (throw "pull-repos is not installed") home.config.home.packages;
-    # clone-repos の shellcheck。本文の動作は activation の check が偽の git で確かめる。
-    clone-repos = lib.findFirst (p: (p.name or "") == "clone-repos") (throw "clone-repos is not installed") activationHome.config.home.packages;
-    update-secrets = lib.findFirst (p: (p.name or "") == "update-secrets") (throw "update-secrets is not installed") activationHome.config.home.packages;
     quaderno-plan = pkgs.runCommand "quaderno-plan" { nativeBuildInputs = [ pkgs.python3 ]; } ''
       cp ${../modules/home-manager/quaderno_plan.py} quaderno_plan.py
       cp ${./quaderno-plan.py} test_quaderno_plan.py
       python test_quaderno_plan.py
       touch "$out"
     '';
-    # 非対話の bash（エージェントのシェル）が、見つからないコマンドに入手方法を添え、127 のまま終わる。
-    # 実際の nix-locate と同梱の DB を使う。ビルド環境に node が無いことを前提にする。
-    command-not-found-hint =
-      if system != "x86_64-linux" then
-        pkgs.runCommand "command-not-found-hint-skipped" { } "touch $out"
-      else
-        pkgs.runCommand "command-not-found-hint" { hint = home.config.home.sessionVariables.BASH_ENV; } ''
-          status=0
-          BASH_ENV=$hint ${pkgs.bash}/bin/bash -c 'node --version' 2> err || status=$?
-          cat err
-          [ "$status" = 127 ]
-          grep -q 'nix shell nixpkgs#nodejs' err
-          touch "$out"
-        '';
     # mc-setup-hooks が prismlauncher.cfg の [General] だけを書き換え、起動中は触らないこと。
     minecraft-setup-hooks = pkgs.runCommand "minecraft-setup-hooks" { nativeBuildInputs = [ pkgs.python3 pkgs.gawk ]; } ''
       python ${./minecraft-setup-hooks.py} ${../modules/home-manager/minecraft-setup-hooks.sh}
@@ -588,5 +600,11 @@ lib.genAttrs systems (
             windowsVm
             { local.profile.features.gui = true; }
           ]).config.home.packages;
+    wsl-contracts = pkgs.runCommand "wsl-contracts" { } ''
+      echo ${lib.escapeShellArg wslContracts} > "$out"
+    '';
+    desktop-contracts = pkgs.runCommand "desktop-contracts" { } ''
+      echo ${lib.escapeShellArg desktopContracts} > "$out"
+    '';
   }
 )

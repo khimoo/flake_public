@@ -1,41 +1,40 @@
 # 使い方ガイド
 
-この Flake で管理している環境の使い方ドキュメント。
+この Flake で管理している環境の使い方ドキュメント。各行は文書の目的だけを示す。
 
 ## 目次
 
 | カテゴリ | 概要 | ドキュメント |
 |----------|------|-------------|
-| 文書整備 | 使い方・設計文書の更新と索引・参照の整備 | [documentation.md](./documentation.md) |
-| 検証 | 変更範囲に応じた検証・CI・実機確認 | [validation.md](./validation.md) |
-| 音声 | WebRTC エコーキャンセルの仮想マイク選択・確認・無効化 | [audio-echo-cancel.md](./audio-echo-cancel.md) |
-| ユーザー管理 | ユーザーの追加・権限設定・home-manager 連携 | [users.md](./users.md) |
-| GUI アプリ | 導入・起動設定の変更箇所、Kiro・Cursor 削除後の残存ファイル | [gui-apps.md](./gui-apps.md) |
-| マシン間 SSH | flake 内のホストへ `ssh <短縮名>` で接続・マシン追加手順 | [machine-ssh.md](./machine-ssh.md) |
-| リモートビルド | ラップトップのビルドをデスクトップに自動で回す常設ビルダー、`--build-host` で明示的に回す運用、`cargo run` のビルドだけをデスクトップに回す `cargo remote-run` | [remote-build.md](./remote-build.md) |
-| Tailscale | LAN の外からデスクトップに `ssh desktop-ts` で入る。GUI の確認は RDP で画面ごと使う。出かける前の確認、ホストを tailnet に参加させる手順 | [tailscale.md](./tailscale.md) |
-| CLI ツール | シェル環境・ターミナル・ファイルマネージャ等 | [cli-tools/README.md](./cli-tools/README.md) |
-| Neovim | プラグイン・キーバインド・ワークフロー | [modules/home-manager/dev/neovim/config/docs/README.md](../../modules/home-manager/dev/neovim/config/docs/README.md) |
-| kitty | ターミナル。`Ctrl+a > 階層 > 動詞` のキー体系、タブ内ウィンドウ／タブを別の入れ物へ移す操作、Neovim をページャにしたスクロールバック | [cli-tools/kitty.md](./cli-tools/kitty.md) |
-| キーボードのレイヤー | 修飾キーごとの割り当てを調べる手順。keyd / xkb / アプリの 3 層と、GNOME の表に出ない変換の追い方 | [keyboard-layers.md](./keyboard-layers.md) |
-| 共通 devShell | コードリーディング用 devShell を `.envrc` から参照する運用 | [devshells.md](./devshells.md) |
-| papis の使い方 | 文献の追加・citekey の pin・BibTeX 書き出しと、papis 固有の同期上の注意 | [papis-gdrive-sync.md](./papis-gdrive-sync.md) |
-| Zettelkasten の Drive 同期 | 添付と papis ライブラリの Google Drive 同期。新マシンのセットアップ（rclone 認証・初回同期）と日常運用 | [zettelkasten-attachments-sync.md](./zettelkasten-attachments-sync.md) |
-| vault 骨格の配布・ミラー | 分類フォルダ・運用ドキュメント・`.obsidian` を public repo へ写す（mirror）手順、何が公開され何が落ちるか、seed が自分のマシンでは動かない理由 | [zettelkasten-vault-skeleton.md](./zettelkasten-vault-skeleton.md) |
-| ディスク階層構成 | NVMe(ホット)/SATA(コールド)の 2 層・btrfs subvol のレイアウトとセットアップ | [disk-tiering.md](./disk-tiering.md) |
-| Inkscape | 新規文書の既定の色（ページとデスク）をリポジトリで持つ。色の変え方、GUI から保存したときの差分の扱い、既存ファイルに効かないこと | [inkscape.md](./inkscape.md) |
-| 写真の仕分け | Google Photos から引き上げた Takeout アーカイブを digiKam で選別する。原本の位置・展開手順・日付が当てにならない理由 | [photo-triage.md](./photo-triage.md) |
-| Minecraft バックアップ | インスタンス終了で restic に世代を積み Drive へ写す。フック設定・復元手順・別マシンとの往復 | [minecraft-backup.md](./minecraft-backup.md) |
-| エージェント設定（Claude Code / Codex） | 共通指示・skills・Claude の settings・Codex の実行ポリシーを private repo で git 管理し symlink で挿す運用。マシン固有の指示をホスト設定から入れる手順 | [agent-config.md](./agent-config.md) |
-| LLM Wiki | AI に読ませる知識ベースをドメインごとに育てる運用。ingest / query / lint の回し方、新ドメインの足し方 | [llm-wikis.md](./llm-wikis.md) |
-| SSH 鍵配布と private repo 自動 clone | SSH 鍵（id_github / id_lan）を sops 暗号化し、age 鍵 1 本で新環境（NixOS/macOS。会社PCの nixos-work-wsl は除く）が switch 一発で鍵設置＋clone する運用。`pull-repos` での一括更新も | [private-repo-clone.md](./private-repo-clone.md) |
-| Codex のサブエージェント設定 | サブエージェントを無効化してある理由と確認・復帰手順。NixOS 以外（macOS）で同じ設定を入れる方法、`fork_turns` の値の意味 | [codex-subagents.md](./codex-subagents.md) |
-| Quaderno の取り込み | 同じ LAN にいるときに手書き PDF をアーカイブへ落とす。初回のペアリング、取り込み先、デバイスで消した文書が手元に残ること | [quaderno.md](./quaderno.md) |
-| 会社PCの NixOS-WSL | `local.restrictedHost` で制限した `nixos-work-wsl` の導入、会社の git と SSH の設定、更新手順、置かないもの（個人の AI アカウントを含む） | [wsl.md](./wsl.md) |
-| デスクトップの Windows VM | アプリ一覧の「Windows」で VM を起動して FreeRDP で開く。右 Alt でのキーボードの切り替え、終わり方と止め忘れの通知、USB を渡すときの SPICE、VM を作り直したときの設定 | [windows-vm.md](./windows-vm.md) |
+| 文書整備 | 使い方・設計文書と索引を整える手順 | [documentation.md](./documentation.md) |
+| 検証 | 変更範囲に応じた検証の選び方と `check.sh` | [validation.md](./validation.md) |
+| ユーザー管理 | ユーザーの追加と権限、目的別の利用ユーザー | [users.md](./users.md) |
+| SSH 鍵と private repo | 鍵の配布と更新、private repo の clone と更新 | [private-repo-clone.md](./private-repo-clone.md) |
+| マシン間 SSH | マシン間の接続とマシンの追加・廃棄 | [machine-ssh.md](./machine-ssh.md) |
+| リモートビルド | ビルドをデスクトップに回す方法 | [remote-build.md](./remote-build.md) |
+| Tailscale | LAN の外からデスクトップを使う方法 | [tailscale.md](./tailscale.md) |
+| 会社PCの NixOS-WSL | 会社 PC の WSL の導入と運用 | [wsl.md](./wsl.md) |
+| ディスク階層構成 | 2 層ディスクの subvol とマウント | [disk-tiering.md](./disk-tiering.md) |
+| GUI アプリ | GUI アプリの追加・削除の変更箇所 | [gui-apps.md](./gui-apps.md) |
+| デスクトップの Windows VM | Windows VM の起動と操作 | [windows-vm.md](./windows-vm.md) |
+| 音声 | 通話用エコーキャンセルの選択と確認 | [audio-echo-cancel.md](./audio-echo-cancel.md) |
+| CLI ツール | シェル環境と CLI ツール | [cli-tools/README.md](./cli-tools/README.md) |
+| kitty | 端末の操作 | [cli-tools/kitty.md](./cli-tools/kitty.md) |
+| Neovim | Neovim のプラグインとキー操作 | [modules/home-manager/dev/neovim/config/docs/README.md](../../modules/home-manager/dev/neovim/config/docs/README.md) |
+| キーボードのレイヤー | キーの割り当てを調べる手順 | [keyboard-layers.md](./keyboard-layers.md) |
+| 共通 devShell | 共通 devShell をプロジェクトから使う方法 | [devshells.md](./devshells.md) |
+| Inkscape | 新規文書の既定の色の管理 | [inkscape.md](./inkscape.md) |
+| Graphify | コードと文書の探索 | [graphify.md](./graphify.md) |
+| エージェント設定（Claude Code / Codex） | エージェントの設定の管理と変更 | [agent-config.md](./agent-config.md) |
+| Codex のサブエージェント設定 | サブエージェントの無効化の確認と復帰 | [codex-subagents.md](./codex-subagents.md) |
+| LLM Wiki | LLM Wiki の運用 | [llm-wikis.md](./llm-wikis.md) |
+| papis の使い方 | 文献の追加と書き出し | [papis-gdrive-sync.md](./papis-gdrive-sync.md) |
+| Zettelkasten の Drive 同期 | 添付と papis ライブラリの同期の設定と運用 | [zettelkasten-attachments-sync.md](./zettelkasten-attachments-sync.md) |
+| vault 骨格の配布・ミラー | vault の骨格を公開 repo へ写す手順 | [zettelkasten-vault-skeleton.md](./zettelkasten-vault-skeleton.md) |
+| 写真の仕分け | Google Photos から引き上げた写真の仕分け | [photo-triage.md](./photo-triage.md) |
+| Minecraft バックアップ | インスタンスのバックアップと復元 | [minecraft-backup.md](./minecraft-backup.md) |
+| Quaderno の取り込み | 手書き PDF の取り込み | [quaderno.md](./quaderno.md) |
 
 ## 関連
 
 - 設計判断・実装方針は [docs/architecture/](../architecture/README.md) を参照
-
-- [Graphify](graphify.md) — コード・文書の任意の探索環境。

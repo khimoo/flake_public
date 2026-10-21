@@ -1,43 +1,39 @@
 # Architecture
 
-Flake 設定の設計判断・実装構造のドキュメント。設定変更時に参照する。
+Flake 設定の設計判断・実装構造のドキュメント。設定変更時に参照する。各行は文書の目的だけを示し、判断の内容は各文書に書く。
 
 ## 目次
 
 | ドキュメント | 概要 |
 |-------------|------|
-| [configuration.md](./configuration.md) | ホスト・個人プロファイル・型付きオプションの境界と検証方針 |
-| [audio-echo-cancel.md](./audio-echo-cancel.md) | PipeWire の WebRTC AEC、実マイク固定と既定出力の monitor 参照 |
-| [default-apps.md](./default-apps.md) | デフォルトアプリケーションの MIME 関連付け設定 |
-| [teams-dispatcher.md](./teams-dispatcher.md) | Teams マルチアカウント URL ディスパッチャ |
-| [rustowl.md](./rustowl.md) | RustOwl の導入（rustowl-flake 由来）と Neovim 連携 |
-| [users.md](./users.md) | ユーザー管理・sudo 設定・home-manager 連携 |
-| [machine-ssh.md](./machine-ssh.md) | flake 内マシンの相互 SSH（`machines.nix` 集約・LAN 共通鍵）の設計判断 |
-| [remote-build.md](./remote-build.md) | SSH 経由のリモートビルドの設計判断。常設ビルダー（`nix.buildMachines`）を主にした理由、tailnet の接続名を使う理由、到達できないときの挙動、spin713 で手元のビルドを止める（`max-jobs = 0`）理由、`--build-host` の併用、`cargo remote-run` で手元の devShell を送り実行ファイルだけを持ち帰る理由 |
-| [tailscale.md](./tailscale.md) | LAN の外からのマシン間 SSH とリモートビルドを Tailscale で通す判断。`.local` と `-ts` の接続名を分ける理由、MagicDNS が openresolv 経由で引ける根拠、デスクトップを自動サスペンドさせない理由、GUI の確認に waypipe ではなく RDP を使い tailnet 側だけに開ける理由 |
-| [xdg-scheme-workaround.md](./xdg-scheme-workaround.md) | XDG スキームハンドラの手動登録（一時的） |
-| [devshells.md](./devshells.md) | コードリーディング用共通 devShell の設計判断 |
-| [papis-gdrive-sync.md](./papis-gdrive-sync.md) | 参照文献マネージャに papis を選んだ理由と、ライブラリを vault 内 `references/` に置く判断 |
-| [zettelkasten-attachments-sync.md](./zettelkasten-attachments-sync.md) | vault の添付・papis ライブラリの Google Drive 同期（workflow flake が仕組みを所有・認証は各マシンの rclone.conf）の設計判断 |
-| [zettelkasten-vault-skeleton.md](./zettelkasten-vault-skeleton.md) | vault 骨格（分類フォルダ・運用ドキュメント・`.obsidian`）の配布（seed = public→vault）とミラー（mirror = vault→public の派生更新）。live source-of-truth は vault（obsidian-git）、public は派生スナップショット。`.obsidian` は denylist・骨格は allowlist と選び方を逆にする理由と、seed の受益者が `initializeVault` 環境に限られる非対称 |
-| [disk-tiering.md](./disk-tiering.md) | NVMe/SATA の 2 層ディスク構成（btrfs subvol・NOCOW・ブートメニュー）の設計判断 |
-| [minecraft-backup.md](./minecraft-backup.md) | 発火を定時タイマーではなく PrismLauncher の post-exit フックにした理由、ZIP から restic へ移した判断、Drive のリポジトリをホストごとに分けて 2 台からの往復を成立させる設計 |
-| [agent-config.md](./agent-config.md) | Claude Code と Codex のユーザー設定の git 管理（`shared/` `claude/` `codex/` の三分割、パス注入 + out-of-store symlink、Codex の live ファイルを張らない理由、flake input を退けた理由）。マシン固有の指示をシステム層（`/etc/claude-code/CLAUDE.md` と Codex の `developer_instructions`）に置く理由 |
-| [kitty.md](./kitty.md) | 端末を wezterm から kitty へ移す判断。tmux を挟む案を退けた理由、`Ctrl+a > 階層 > 動詞` のキー体系と 3 マスを空けたままにする理由、`socket-only` を選んだ理由、smart-splits の `at_edge` を `stop` にした理由 |
-| [gnome-transparent-fullscreen.md](./gnome-transparent-fullscreen.md) | 全画面にした半透明のウィンドウの下に mutter が敷く黒を、パッチと `system.replaceDependencies` で外す判断。xdg-shell の規定から外れる代償、direct scanout も止める理由、overlay や XWayland、他のコンポジタを退けた理由 |
-| [inkscape.md](./inkscape.md) | Inkscape の新規文書テンプレート（ページ・デスクの色）を live symlink で持つ判断。store に置くと GUI からの保存が失敗する理由と、保存時に表示状態が混ざる代償 |
-| [unstable-packages.md](./unstable-packages.md) | 安定チャンネルの版では動作不能になるパッケージだけを nixos-unstable から差し替える overlay と、全体を unstable に上げなかった理由 |
-| [private-repo-clone.md](./private-repo-clone.md) | SSH 鍵配布と private repo の宣言的 clone（home.activation で age 鍵 1 本から id_github / id_lan を復号し clone・NixOS/macOS 共通・復号と clone のモジュール分離・更新は switch から切り離して pull-repos に置く判断） |
-| [llm-wikis.md](./llm-wikis.md) | AI に読ませる知識ベース（LLM Wiki）を独立 private repo に置く判断。Claude 設定 repo / vault への相乗りを退けた理由、skill 化しない理由、flake の配線が clone 1 行で済む帰結 |
-| [new-machine.md](./new-machine.md) | **TODO**: nixos-anywhere + disko + age 鍵自動注入で新マシンを 1 コマンドプロビジョニングし、silent skip を根絶する設計メモ（未実装） |
-| [kernel-pin.md](./kernel-pin.md) | nixos-desktop のカーネルに既定の LTS を使う判断（7.1 系が X399 の ACPI S5 バグを踏み poweroff で電源が切れなかった経緯と、latest を試す条件） |
-| [codex-subagents.md](./codex-subagents.md) | Codex のサブエージェント（既定で親の履歴を全部コピーする MultiAgentV2）を無効化する判断と、置き場に `~/.codex/config.toml` への symlink ではなく `/etc/codex/config.toml`（システム層）を選んだ理由 |
-| [quaderno.md](./quaderno.md) | Quaderno A4 Gen2 から同一 LAN 経由で手書き PDF を取り込む設計（取り込み専用・手元はアーカイブ・mDNS で機器を見つける・`dpt-rp1-py` を master 固定で持つ理由。実機確認は未了） |
-| [antigravity-cli.md](./antigravity-cli.md) | Antigravity CLI（agy）を版固定と autoPatchelf で入れる判断。nix-ld と公式インストーラを退けた理由、自己更新が働かないこと |
-| [uv-mode.md](./uv-mode.md) | uv が取得する Python と manylinux wheel を、buildFHSEnv の環境に入るコマンド（`uv-mode`）の中でだけ動かす判断。nix-ld、プロジェクトの shell.nix、direnv の devShell を退けた理由と、モードの中で `.venv` を使うものを起動する代償 |
-| [mimikopi-env.md](./mimikopi-env.md) | 耳コピのスキルが使う ML モデルを動かす buildFHSEnv（`mimikopi-env`）を uv-mode と分けた判断。ROCm 版の PyTorch が要るライブラリと `HSA_OVERRIDE_GFX_VERSION` の検証結果、データを SATA の専用 subvol に置き `nofail` とマウントの確認を組み合わせる理由 |
-| [comma.md](./comma.md) | comma と command-not-found に nix-index-database の配布データベースを使う判断。small データベース（`bin/` だけ）で両方を動かし full を取得しない理由、nixos-unstable の索引と 26.05 の版のずれ |
-| [wsl.md](./wsl.md) | 会社 PC の NixOS-WSL を閉じたホスト（`nixos-work-wsl`）として持つ判断。kitty を使うために GUI アプリを WSLg で表示し、日本語入力を Neovim の skkeleton に任せる判断。制限を `local.restrictedHost` の assertion で強制する理由。age 鍵と tailnet を持たせない理由、agents-private を読み取り専用の deploy key と別名のホストで入れる理由、共通の設定を `base.nix` に切り出す判断 |
-| [windows-vm.md](./windows-vm.md) | デスクトップの Windows VM を SPICE ではなく FreeRDP で表示し、使うときだけ起動する判断。NLA を切る理由（Entra ID のアカウント）、managed save と自動シャットダウンを退けた理由、止め忘れの通知をロックで守る理由、パスワードを GNOME キーリングから渡して自動でサインインする判断、普段はキーボードを掴まず右 Alt の直後のショートカット一回だけを Windows に渡すパッチ、keyd の右クリックの連打を ◇ + 右 Alt で入り切りするモードにした判断、MotionPro のトンネルとクリップボードについて分かったこと |
+| [configuration.md](./configuration.md) | ホスト・個人プロファイル・オプションの境界と、目的別の選択 |
+| [users.md](./users.md) | ユーザー管理と sudo、Home Manager との連携の設計 |
+| [machine-ssh.md](./machine-ssh.md) | マシン間 SSH と LAN 共通鍵の設計 |
+| [remote-build.md](./remote-build.md) | リモートビルドの設計 |
+| [tailscale.md](./tailscale.md) | LAN の外からの SSH・リモートビルド・RDP の経路の設計 |
+| [private-repo-clone.md](./private-repo-clone.md) | SSH 鍵の配布、秘密の更新、private repo の clone の設計 |
+| [new-machine.md](./new-machine.md) | 新マシンのプロビジョニングの設計メモ（未実装） |
+| [disk-tiering.md](./disk-tiering.md) | NVMe と SATA の 2 層ディスク構成の設計 |
+| [kernel-pin.md](./kernel-pin.md) | デスクトップのカーネルの選び方 |
+| [unstable-packages.md](./unstable-packages.md) | nixos-unstable から一部のパッケージだけを取る判断 |
+| [wsl.md](./wsl.md) | 会社 PC の NixOS-WSL の設計 |
+| [windows-vm.md](./windows-vm.md) | デスクトップの Windows VM の設計 |
+| [gnome-transparent-fullscreen.md](./gnome-transparent-fullscreen.md) | 全画面の半透明ウィンドウを透かす mutter のパッチの判断 |
+| [audio-echo-cancel.md](./audio-echo-cancel.md) | 通話用エコーキャンセルの設計 |
+| [default-apps.md](./default-apps.md) | 既定アプリと URL スキームの関連付けの設計 |
+| [xdg-scheme-workaround.md](./xdg-scheme-workaround.md) | URL スキームの既定を明示登録する理由 |
+| [teams-dispatcher.md](./teams-dispatcher.md) | Teams のマルチアカウント用 URL ディスパッチャの設計 |
+| [kitty.md](./kitty.md) | 端末を kitty にした判断とキー体系の設計 |
+| [devshells.md](./devshells.md) | コードリーディング用の共通 devShell の設計 |
+| [mimikopi-env.md](./mimikopi-env.md) | 耳コピの ML モデルを動かす環境の設計 |
+| [rustowl.md](./rustowl.md) | RustOwl の導入と Neovim 連携の設計 |
+| [agent-config.md](./agent-config.md) | Claude Code と Codex のユーザー設定の管理の設計 |
+| [codex-subagents.md](./codex-subagents.md) | Codex のサブエージェントを無効化する判断 |
+| [llm-wikis.md](./llm-wikis.md) | LLM Wiki を独立した private repo に置く判断 |
+| [papis-gdrive-sync.md](./papis-gdrive-sync.md) | 文献管理に papis を選び vault 内に置く判断 |
+| [zettelkasten-attachments-sync.md](./zettelkasten-attachments-sync.md) | vault の添付と papis ライブラリの Drive 同期の設計 |
+| [zettelkasten-vault-skeleton.md](./zettelkasten-vault-skeleton.md) | vault の骨格の配布とミラーの設計 |
+| [minecraft-backup.md](./minecraft-backup.md) | Minecraft のインスタンスのバックアップの設計 |
+| [quaderno.md](./quaderno.md) | Quaderno からの手書き PDF の取り込みの設計 |
 
-- [Graphify](graphify.md) — コード・文書の任意の探索環境。
+小さな機能（agy、comma、Graphify、Inkscape、uv-mode）は、使い方の文書の「設計」の節に判断を書く（[使い方ガイド](../howtouse/README.md)）。

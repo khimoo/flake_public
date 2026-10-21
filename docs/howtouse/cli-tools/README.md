@@ -6,16 +6,16 @@
 
 | カテゴリ | ツール | 説明 | ドキュメント |
 |----------|--------|------|-------------|
-| ファイルマネージャ | yazi | TUI ファイルマネージャ (プラグイン多数) | [yazi.md](./yazi.md) |
-| ターミナル | kitty | `Ctrl+a > 階層 > 動詞` のキー体系、タブ内ウィンドウ／タブの移動、Neovim をページャにしたスクロールバック | [kitty.md](./kitty.md) |
-| Git UI | lazygit | Git TUI クライアント (delta 連携) | [lazygit.md](./lazygit.md) |
-| AI リモート操作 | Happy | スマホから Codex を操作 | [happy.md](./happy.md) |
-| AI エージェント | Antigravity CLI (agy) | Gemini 3.8 Flash を使うエージェント CLI。日本語の校正の予備の経路 | [antigravity-cli.md](./antigravity-cli.md) |
-| Python | uv-mode | uv が取得する Python と manylinux wheel が動く環境に入る。共有リポジトリに Nix のファイルを置かずに uv で開発する | [uv-mode.md](./uv-mode.md) |
-| Python | mimikopi-env | 耳コピのスキルが使う ML モデル（ROCm 版の PyTorch など）が動く環境に入る。nixos-desktop だけ | [mimikopi-env.md](./mimikopi-env.md) |
-| シェルツール | fzf, eza, zoxide, fd, rg, bat, btm, direnv, jq, xh | モダン CLI ツール群 | [shell-tools.md](./shell-tools.md) |
-| Nix | comma (`,`), nix-locate | 未インストールのコマンドを一度だけ実行。未知のコマンドに所属パッケージを表示 | [comma.md](./comma.md) |
-| PDF ビューア | tdf | 端末内で PDF を表示 (kitty graphics protocol) | [shell-tools.md#tdf](./shell-tools.md#tdf) |
+| ファイルマネージャ | yazi | TUI ファイルマネージャ | [yazi.md](./yazi.md) |
+| ターミナル | kitty | 端末の操作 | [kitty.md](./kitty.md) |
+| Git UI | lazygit | Git の TUI クライアント | [lazygit.md](./lazygit.md) |
+| AI リモート操作 | Happy | スマホから Codex を操作する | [happy.md](./happy.md) |
+| AI エージェント | Antigravity CLI (agy) | 日本語の校正の予備の経路 | [antigravity-cli.md](./antigravity-cli.md) |
+| Python | uv-mode | uv が取得する Python と wheel を動かす環境 | [uv-mode.md](./uv-mode.md) |
+| Python | mimikopi-env | 耳コピの ML モデルを動かす環境 | [mimikopi-env.md](./mimikopi-env.md) |
+| シェルツール | fzf, eza, zoxide, fd, rg, bat, btm, direnv, jq, xh | 日常の CLI ツール | [shell-tools.md](./shell-tools.md) |
+| Nix | comma (`,`), nix-locate | 入っていないコマンドを一度だけ実行し、所属パッケージを調べる | [comma.md](./comma.md) |
+| PDF ビューア | tdf | 端末内の PDF 表示 | [shell-tools.md#tdf](./shell-tools.md#tdf) |
 
 ## シェルエイリアス (core.nix)
 

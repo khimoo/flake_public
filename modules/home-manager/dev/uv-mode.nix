@@ -1,6 +1,6 @@
 { lib, pkgs, ... }:
 
-# buildFHSEnv は Linux でしか作れない（docs/architecture/uv-mode.md）。
+# buildFHSEnv は Linux でしか作れない（docs/howtouse/cli-tools/uv-mode.md）。
 lib.mkIf pkgs.stdenv.isLinux {
   home.packages = [ (pkgs.callPackage ../../../packages/uv-mode { }) ];
 

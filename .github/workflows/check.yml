@@ -14,4 +14,4 @@ jobs:
       - uses: cachix/install-nix-action@v31
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
-      - run: bash scripts/check.sh
+      - run: bash scripts/check.sh --full

@@ -1,5 +1,5 @@
 # comma and the nix-index command-not-found handler share the prebuilt small
-# database, which indexes bin/ only. Rationale: docs/architecture/comma.md.
+# database, which indexes bin/ only. Rationale: docs/howtouse/cli-tools/comma.md.
 {
   config,
   inputs,

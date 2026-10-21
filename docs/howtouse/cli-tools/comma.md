@@ -2,7 +2,6 @@
 
 インストールしていないコマンドを、先頭に `,` を付けて一度だけ実行する。
 Home Manager を使う全環境に入る。設定は [modules/home-manager/nix-index.nix](../../../modules/home-manager/nix-index.nix)。
-設計判断は [architecture/comma.md](../../architecture/comma.md)。
 
 ## 実行する
 
@@ -59,3 +58,62 @@ nix flake update nix-index-database
 nix-index-database は週に一度データベースを作り直す。`flake.lock` を上げて switch するまで、手元のデータベースは固定した版のままになる。
 
 データベースは nixos-unstable を索引している。レジストリの `nixpkgs` が nixos-26.05 を指す環境では、unstable にだけあるパッケージが見つかっても `nix shell` で失敗し、名前が変わったパッケージは見つからないことがある。
+
+## 設計
+
+### 配布済みのデータベースを使う
+
+comma と nix-index の command-not-found ハンドラは、ファイル名からパッケージを引く nix-index のデータベースを使う。
+`nix-index` を手元で実行すると、nixpkgs の全パッケージのファイル一覧を binary cache から取り寄せて索引を作る。spin713 のような非力なマシンでこれを定期的に走らせたくない。
+nix-index-database は nixos-unstable の索引を週に一度作り、GitHub Releases に置く。flake input で版を固定し、データベースは `fetchurl` の hash で固定されるので、switch のたびに取り直すことはない。
+
+Home Manager のモジュール（`homeModules.nix-index`）を使う。NixOS のモジュールでは、standalone の Home Manager を使う macOS に入らない。
+
+手元で `nix-index` を定期実行する案は退けた。固定した nixpkgs と索引の版を揃えられるが、索引作りの負荷がノートにかかる。
+
+### small データベースで両方を動かす
+
+upstream は2種類のデータベースを配布する。2026-09-20 のリリース（`2026-09-20-075601`）の実測で、x86_64-linux の full は 101MiB、small は 1MiB、aarch64-darwin の full は 64MiB、small は 1MiB だった。
+small は各パッケージの `bin/` 配下のファイルだけを収録する。
+upstream の既定では comma が small を、nix-index（command-not-found ハンドラと `nix-locate`）が full を使う。
+
+comma も command-not-found ハンドラも、実行ファイル名からパッケージを引くだけなので small で足りる。
+full を使うと、`nix-index-database` を更新するたびに約100MiB が store に増え、古い世代が参照している間は GC で消えない。
+そこで `programs.nix-index.package` を `nix-index-with-small-db` に差し替えた。
+
+upstream のモジュールは、`programs.nix-index.package` とは別に、`programs.nix-index.enable` が真なら full のデータベースを `~/.cache/nix-index/files` へ symlink する（`symlinkToCacheHome`）。
+comma と `nix-locate` のラッパーはどちらも `NIX_INDEX_DATABASE` でデータベースを指定するので、この symlink を読まない（nix-index-database の rev `9ad7226` の `comma-wrapper.nix` と `nix-index-wrapper.nix`）。
+`symlinkToCacheHome = false` にして、full のデータベースを取得しないようにした。
+
+代償として、`lib/` や `include/` にあるライブラリやヘッダの所属パッケージを `nix-locate` で引けない。
+
+### 非対話の bash にも案内を出す
+
+nix-index の handler は `.bashrc` で定義されるので、対話シェルにしか届かない。Claude Code や Codex は
+コマンドを非対話の bash で実行し、`.bashrc` を読まない（2026-10-21 に Claude Code のシェルで
+`command_not_found_handle` が未定義であることを確認した）。グローバルの Python・Node.js・gcc を外したので、
+エージェントが `python` や `node` を探して止まる場面に案内を出したい。
+
+非対話の bash は、ログインシェルとして起動されても環境変数 `BASH_ENV` のファイルを読む。そこで
+`command_not_found_handle` を定義するファイルを [nix-index.nix](../../../modules/home-manager/nix-index.nix) で作り、
+`home.sessionVariables.BASH_ENV` に設定した。特定のエージェントの起動経路に依存せず、Happy や IDE から
+起動したエージェントにも届く。
+
+- 案内だけを出し、終了コードは 127 のまま。comma のように取得して実行すると、エージェントが意図しない
+  パッケージを使ったまま気づかない。
+- 候補の属性は同じ small データベースを `nix-locate` で引く。handler の中で PATH に無いコマンドを呼ぶと
+  handler が再帰するので、`nix-locate`、`sed`、`grep`、`paste` は絶対パスで呼ぶ。
+- 代償として、ユーザーのセッションで動く非対話の bash スクリプトは、すべてこのファイルを読む。定義するのは
+  関数一つなので、コマンドが見つからないときの表示が増えるほかに挙動は変わらない。
+
+### データベースと nixpkgs の版のずれ
+
+データベースは nixos-unstable を索引しているが、この flake の nixpkgs は nixos-26.05 に固定している。
+comma はレジストリの `nixpkgs` からパッケージを取る。NixOS では `nixpkgs.flake.setFlakeRegistry` が真（spin713 で確認）なので、システムの nixpkgs を指す。
+そのため、unstable にだけあるパッケージは見つかっても `nix shell` で失敗し、26.05 と unstable で名前が違うパッケージは見つからないことがある。
+
+### 見直す条件
+
+- nix-index-database が stable チャンネルの索引を配布したら、それに切り替えて版のずれをなくす。
+- ライブラリやヘッダの所属を `nix-locate` で引く用途が増えたら、`programs.nix-index.package` だけを full に戻す。store の増加と引き換えになる。
+- nix-index-database は x86_64-linux、aarch64-linux、aarch64-darwin だけに配布している（rev `9ad7226` の `flake.nix`）。それ以外のプラットフォームの Home Manager 環境を足すときは、このモジュールをそのプラットフォームで無効にする。
