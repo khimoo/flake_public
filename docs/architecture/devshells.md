@@ -77,8 +77,8 @@ input に再度追加し、`rust-nightly` shell を生やす。`rust-toybox/flak
 devShell とは独立。
 
 - **rustowl**: 借用ライフタイム可視化ツール。専用 nightly sysroot を
-  パッケージ内部（store path 配下の `bin/sysroot/...`）に持つ。PATH には
-  rustowl 本体しか出ない
+  パッケージ内部（store path 配下の `bin/sysroot/...`）に持つ。シェルの PATH には
+  出さず、Neovim が store の絶対パスで起動する
 - **devShell の rustc/cargo/rust-analyzer**: ユーザーが書く Rust コードの
   build/edit 用。PATH に出る
 

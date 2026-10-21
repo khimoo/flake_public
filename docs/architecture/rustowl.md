@@ -14,12 +14,11 @@ flake input `rustowl` は [nix-community/rustowl-flake](https://github.com/nix-c
 
 このflakeは `rust-toolchain.toml` に固定された nightly を rust-overlay で用意し、RustOwl をソースからビルドする。`$out/bin/sysroot/<toolchain>` に toolchain を配置するため、RustOwl の sysroot 探索がstore内で完結し、実行時ダウンロードへフォールバックしない。
 
-[flake.nix](../../flake.nix) は x86_64 Linux の `packages.${system}` に `rustowl` と `rustowl-nvim` を、同じ locked input の `inputs.rustowl.packages.${system}` から組で公開する。Home Manager は `inputs.self.packages.${system}` を参照し、公開側と同じサーバーを `home.packages` と rustowl 機能の `data.command` に、対応するプラグインを同機能の `data.plugin` に使う。公開属性を削除して導入参照が残ると評価エラーになる。
+[flake.nix](../../flake.nix) は x86_64 Linux の `packages.${system}` に `rustowl` と `rustowl-nvim` を、同じ locked input の `inputs.rustowl.packages.${system}` から組で公開する。Home Manager は `inputs.self.packages.${system}` を参照し、公開側と同じサーバーを rustowl 機能の `data.command` に、対応するプラグインを同機能の `data.plugin` に使う。公開属性を削除して導入参照が残ると評価エラーになる。
 
-`modules/home-manager/dev/rustowl.nix` は次の2つだけを行う。activation は無い。
+`modules/home-manager/dev/rustowl.nix` は、`local.neovim.features.rustowl` に実行ファイルとNeovimプラグインの store path を定義するだけを行う（`nvim/nix/features.lua` の `data.rustowl` に生成）。activation は無い。
 
-1. `home.packages` に `rustowl` を追加
-2. `local.neovim.features.rustowl` に、実行ファイルとNeovimプラグインの store path を定義する（`nvim/nix/features.lua` の `data.rustowl` に生成）
+LSP サーバーと同じく、`rustowl` はシェルの PATH に入れない。シェルから使うときは `nix run .#rustowl -- <引数>` で、同じ版を実行する。
 
 ## Neovim 連携
 
@@ -48,7 +47,7 @@ rustowl-flake は上流の `main` を追うため、パッケージの `version`
 
 ## 対応OS
 
-`local.rustowl.enable` は x86_64 Linux だけで既定 true。他のOSでは `home.packages` に何も足さず、明示的な有効化は assertion で拒否する。
+`local.rustowl.enable` は x86_64 Linux だけで既定 true。明示的な有効化は他のOSでは assertion で拒否する。
 無効時は公開パッケージを評価せず、rustowl 機能を読み込まないため、公開属性のない macOS でも評価できる。
 
 検証の範囲: [検証ガイド](../howtouse/validation.md)。
