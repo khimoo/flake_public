@@ -1,5 +1,7 @@
 # Neovim の機能ごとの依存。各機能は lua/features/<名前>.lua の spec と組になる（default.nix）。
 # 外部コマンドや Nix の生成物を使わないプラグインは lua/plugins/ に置き、ここには書かない。
+# lua/plugins/ から機能のプラグインへ設定を足す spec は optional = true にし、機能と一緒に外れるようにする。
+# neotest と render_markdown、diagram は nvim-treesitter を依存に持つので、treesitter を外しても nvim-treesitter は入る。
 { inputs, config, pkgs, lib, ... }:
 
 let

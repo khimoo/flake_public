@@ -3,7 +3,6 @@ return {
     'mrcjkb/rustaceanvim',
     version = '^5',
     lazy = false,
-    dependencies = { "mfussenegger/nvim-dap" },
     init = function()
       -- 生成元: modules/home-manager/dev/neovim/features.nix
       local codelldb_path = require("config.nix").data.rust.codelldb

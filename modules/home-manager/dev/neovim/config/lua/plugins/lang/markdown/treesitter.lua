@@ -1,5 +1,5 @@
 -- ベース spec が install() に渡す ensure_installed へ markdown 関連パーサを追加する。
--- lazy.nvim の spec マージにより、ベース spec (plugins/treesitter.lua) と本 spec が
+-- lazy.nvim の spec マージにより、ベース spec (features/treesitter.lua) と本 spec が
 -- 同じプラグインを指していると opts が deep-merge される。配列は merge ではなく
 -- 上書きされる仕様なので、function 形式で list_extend する必要がある。
 --
@@ -9,6 +9,8 @@
 --   なしだと extmark が一切置かれず ":RenderMarkdown debug" で "no marks on row" になる
 return {
   "nvim-treesitter/nvim-treesitter",
+  -- treesitter 機能を外すとこの spec も外れる。
+  optional = true,
   opts = function(_, opts)
     opts.ensure_installed = opts.ensure_installed or {}
     vim.list_extend(opts.ensure_installed, { "markdown", "markdown_inline", "mermaid", "latex" })

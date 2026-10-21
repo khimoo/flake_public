@@ -1,4 +1,5 @@
--- tinymist の override。plugins/lsp/init.lua の opts.servers に deep-merge される。
+-- tinymist の override。features/lsp.lua の opts.servers に deep-merge される。
+-- optional なので、lsp 機能を外すとこの spec も外れる。
 local main_file = require("plugins.lang.typst.main_file")
 
 local group = vim.api.nvim_create_augroup("TypstPinMain", { clear = true })
@@ -29,6 +30,7 @@ end
 
 return {
   "neovim/nvim-lspconfig",
+  optional = true,
   opts = {
     servers = {
       tinymist = {
