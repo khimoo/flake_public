@@ -11,7 +11,7 @@
 ## 導入前の課題
 
 導入前の WSL 環境は、スタンドアロンの Home Manager 設定 `homeConfigurations.pomu-wsl` としてしか定義されていませんでした。
-[flake.nix](../../flake.nix) の `nixosConfigurations` には `nixos-desktop` と `nixos-spin713` しかなかったため、WSL 上で `sudo nixos-rebuild switch --flake .` を実行すると、イメージ既定のホスト名である `nixos` の設定が見つからずエラーになっていました。
+[hosts/machines.nix](../../hosts/machines.nix) の `machines.nixos-work-wsl.nixos` から NixOS 構成を生成する。会社 PC の項目には `sshUser` と `builder` を指定せず、マシン間 SSH とリモートビルドには参加させない。
 
 2026年9月30日時点で確認した NixOS-WSL 2605.7.2 イメージの状態は以下の通りです。
 
@@ -98,7 +98,7 @@ Home Managerのモジュール群は、すべてのパスを `home.homeDirectory
 このファイルで [locale.nix](../../modules/nixos/locale.nix)、[users.nix](../../modules/nixos/users.nix)、nix-settings.nix（GUI関連を除く）、[codex.nix](../../modules/nixos/codex.nix)、[agent-instructions.nix](../../modules/nixos/agent-instructions.nix)、[claude-managed-settings.nix](../../modules/nixos/claude-managed-settings.nix) をインポートし、`networking.hostName` や `system.stateVersion` もこの `base.nix` で設定します。
 Codexのサブエージェント無効化設定（`codex.nix`）を `base.nix` に含めるのは、WSL環境にもCodexを導入するためです。
 
-[common.nix](../../modules/nixos/common.nix) は `base.nix` をインポートした上で、デスクトップ環境（desktop）向けの残りの設定を保持します。具体的には、boot、networking（NetworkManagerやKDE Connect用のポート）、desktop、printing、ssh、tailscale、remote-builders、Bluetooth、libvirt、audio（musnix）、sns-block、gnome-transparent-fullscreenがこれに該当します。
+[common.nix](../../modules/nixos/common.nix) は `base.nix` をインポートした上で、デスクトップ環境（desktop）向けの残りの設定を保持します。具体的には、boot、networking（NetworkManagerやKDE Connect用のポート）、desktop、printing、ssh、tailscale、remote-builders、Bluetooth、vm、music、audio（エコーキャンセル）、sns-block、gnome-transparent-fullscreenがこれに該当します。
 分割前に `nix-settings.nix` にあった gparted は [desktop.nix](../../modules/nixos/desktop.nix) に置いています。GSConnect は Home Manager の [gui/gnome.nix](../../modules/home-manager/gui/gnome.nix) が入れます。adb は、26.05 で USB の権限を systemd が扱うようになったので、Home Manager の [dev/apps.nix](../../modules/home-manager/dev/apps.nix) で `android-tools` を入れています。
 
 [users.nix](../../modules/nixos/users.nix) は現状維持とします。

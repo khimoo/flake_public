@@ -145,3 +145,5 @@ SATA を転用するにあたり、旧 Windows のブート設定が残ってい
 ポイント（NVMe 上）へアプリが書き込み NVMe を圧迫する・データが無いのに気づけない、という
 サイレント障害になる。内蔵ディスクで常時存在する前提なので、失敗時はむしろ loud に
 気づける既定（required）のままにしている。
+
+アプリの保存先は primaryUser の Home Manager 設定から読む。`local.mimikopi.enable` のときだけ `dataDir` に `@mimikopi` をマウントする。Minecraft の所有者設定は `local.minecraftBackup.repoDir` の親、Quaderno は `local.quaderno.archiveDir` を使い、それぞれ有効なときだけ tmpfiles で用意する。実装は [data-disk.nix](../../hosts/nixos-desktop/data-disk.nix)。

@@ -8,11 +8,11 @@
 
 ### データ駆動のユーザー生成
 
-ユーザー定義は `flake.nix` の `users` リストに集約し、`users.nix` はそのリストから NixOS 設定を導出する。
+ユーザー定義は `hosts/machines.nix` の各マシンの `nixos.users` リストに集約し、`users.nix` はそのリストから NixOS 設定を導出する。
 OSアカウントは属性値から導出し、ユーザー環境は本人の `homeFile` / `homeModules` に分離する。
 
 ```
-flake.nix (users リスト)  →  users.nix (users.users / sudo を導出)
+hosts/machines.nix (nixos.users)  →  users.nix (users.users / sudo を導出)
                            →  lib/configurations.nix 内 (home-manager ユーザーを導出)
 ```
 
@@ -51,8 +51,7 @@ in map (user: {
 
 ### 共通グループの一括付与
 
-全ユーザーに `networkmanager`, `libvirtd` を付与している。
-これはこの Flake が個人利用を前提としており、全ユーザーが同じ機能を使う想定のため。
+全ユーザーには `networkmanager` を付与する。`audio` は `local.music.users`、`libvirtd` は `local.vm.users` の対象者に、各機能が有効なときだけ付与する（[構成の境界](configuration.md)）。
 
 ### home-manager との境界
 

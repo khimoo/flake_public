@@ -7,6 +7,7 @@
 | 配置 | 責務 |
 |---|---|
 | `flake.nix` | ホスト・standalone環境・パッケージ・検証の入口 |
+| [hosts/machines.nix](hosts/machines.nix) | マシンの一覧と、NixOS構成・マシン間SSH・リモートビルドへの参加 |
 | [lib/configurations.nix](lib/configurations.nix) | `mkSystem` / `mkHome` の組み立て |
 | `hosts/` | ハードウェアとホスト固有設定 |
 | `profiles/home/` | 個人のGit設定、パス、鍵配布、機能の選択 |
@@ -54,19 +55,20 @@ NixOSで一度 switch を実行すると、`/etc/nixos` が primaryUser のチ�
    }
    ```
 
-3. `flake.nix` の `nixosConfigurations` に追加する:
+3. `hosts/machines.nix` の `machines` に追加する。`nixos` の中身が `mkSystem` の引数になり、`flake.nix` が NixOS 構成を作る:
 
    ```nix
-   my-new-host = mkSystem {
-     hostname = "my-new-host";
+   my-new-host = {
      system = "x86_64-linux";
-     users = [{ username = "alice"; isAdmin = true; }];
-     timezone = "Asia/Tokyo";
-     stateVersion = "26.05"; # 初回導入時の値を維持する
+     sshUser = "alice"; # マシン間 SSH の接続先にしないなら省く
+     nixos = {
+       users = [{ username = "alice"; isAdmin = true; }];
+       timezone = "Asia/Tokyo";
+       stateVersion = "26.05"; # 初回導入時の値を維持する
+     };
    };
    ```
 
 Home Managerはユーザーごとに独立した既定値から始まります。GUIや個人設定を追加する場合は `users` の `homeFile` / `homeModules` から指定します。[ユーザー管理](docs/howtouse/users.md)を参照。
-SSH短縮名の対象にする場合は `hosts/machines.nix` にも追加します。
 
 同じfactoryの複数ユーザー構成を [tests/default.nix](tests/default.nix) と [ハードウェア代替fixture](examples/new-host.nix) で評価しています。fixtureは実機へ適用する設定ではありません。

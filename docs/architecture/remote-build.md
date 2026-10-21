@@ -7,7 +7,7 @@
 設定ファイル:
 
 - `modules/nixos/remote-builders.nix` — `local.remoteBuilders.enable` から `nix.buildMachines` を生成する
-- `hosts/machines.nix` — ホスト一覧、LAN 共通鍵の公開鍵、ビルダーの能力（`builders`）
+- `hosts/machines.nix` — ホスト一覧、LAN 共通鍵の公開鍵、各マシンの `system`・`sshUser`・ビルダーの能力（`builder`）
 - `modules/nixos/ssh.nix` — openssh + avahi publish + マシン間 SSH の生成
 - `modules/nixos/nix-settings.nix` — `nix.settings.trusted-users`
 
@@ -110,9 +110,9 @@ Nix の `max-jobs` の説明文にある「`0` で手元のビルドを止め、
 
 ## ビルダーの能力は machines.nix に置く
 
-`hosts/machines.nix` の `builders` に、ビルダーごとの `system`、`maxJobs`、`supportedFeatures` を置く。
+`hosts/machines.nix` の各マシンに `system` と `sshUser` を置き、`builder` に `maxJobs` と `supportedFeatures` を置く。
 これらは呼び出し側でなくビルダーの性質なので、ホスト一覧と同じファイルに置いた。
-呼び出し側は `local.remoteBuilders.enable` を立てるだけで、`builders` のうち自分以外の全ホストを使う。自分しかいなければ assertion で拒否する。
+呼び出し側は `local.remoteBuilders.enable` を立てるだけで、`builder` を持つ自分以外の全ホストを使う。自分しかいなければ assertion で拒否する。
 
 - `maxJobs = 32`: デスクトップ自身の `max-jobs`（`auto`。32 スレッド）と揃えた。デスクトップが自分をビルドするときと同じ並列度になる。スロットが埋まると、`localBuilds` が真のホストはあふれた分を手元でビルドし、偽のホストは空きを待つ
 - `supportedFeatures`: デスクトップの `nix config show system-features`（`benchmark big-parallel kvm nixos-test`）と同じ値。`big-parallel` を載せないと、LLVM のように `requiredSystemFeatures = [ "big-parallel" ]` を持つ derivation はデスクトップに回らない
@@ -322,7 +322,7 @@ cargo は cwd の下にある実行ファイルを cwd からの相対パスで 
 - ラップトップにほかのユーザーを足すなら、そのユーザーのビルドも `pomu` としてデスクトップに送られることを見直す。`sshKey` を root 専用の鍵に分ける案がある
 - 出先で DERP 経由になり、成果物を持ち帰るほうが手元でビルドするより遅い場面が続いたら、その場では `--builders '' --max-jobs 4` で手元のビルドに切り替える。常態化したら、tailnet の経路ごとに有効にする仕組みを考える
 - tailnet をやめるなら、`hostName` を `.local` に戻す。そのときは出先で常設ビルダーが使えなくなる
-- デスクトップのスレッド数やメモリが変わったら、`builders` の `maxJobs` と `supportedFeatures` をそのホストの `nix config show` の値に合わせ直す
+- デスクトップのスレッド数やメモリが変わったら、`builder` の `maxJobs` と `supportedFeatures` をそのホストの `nix config show` の値に合わせ直す
 - 出先で tailnet に入れない場面が増え、`--max-jobs 4` を付ける手間が目立ったら、spin713 の `localBuilds` を true に戻す。エージェントへの指示は残るので、エージェントが黙って手元でビルドすることは指示の側で防ぐ
 - `cargo remote-run` で、実行ファイルの転送が編集と実行の繰り返しの待ち時間の大半を占めるようになったら（出先の回線など）、持ち帰る前にデスクトップで `objcopy --strip-debug` する。バックトレースの行番号と引き換えに、転送量はおよそ 8 分の 1 になる。ラップトップの空きが実行ファイル 1 つ分を下回ったときも同じ。Bevy の `dynamic_linking` を使いたくなったら、`target/<profile>/deps/` の共有ライブラリも持ち帰り、`LD_LIBRARY_PATH` に足す
 - Ctrl-C の後にデスクトップで cargo が残り、次の実行がロック待ちになるのが目立ったら、rc を別のファイルで送り、ssh の標準入力を接続の確認に使う。デスクトップ側は標準入力の EOF を待って cargo を止める

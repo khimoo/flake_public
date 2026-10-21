@@ -13,7 +13,7 @@ GUI は Linux の本人用 home モジュールで `local.profile.features.gui =
 { pkg = pkgs.pdfarranger; mimeTypes = { "application/pdf" = true; }; }
 ```
 
-エントリを削除すると、そこから生成する設定もなくなります。ただし、独立した設定の参照は別途たどってください。VS Code・IntelliJ などの開発用アプリは [dev/apps.nix](../../modules/home-manager/dev/apps.nix)、Firefox や端末は専用モジュール、スキームの登録は [gui/xdg-scheme-workaround.nix](../../modules/home-manager/gui/xdg-scheme-workaround.nix)、Obsidian は [zettelkasten.nix](../../modules/home-manager/zettelkasten.nix) が扱います。新しい GUI 子モジュールの import は `gui/default.nix` に追加します。
+エントリを削除すると、そこから生成する設定もなくなります。ただし、独立した設定の参照は別途たどってください。VS Code・IntelliJ などの開発用アプリは [dev/apps.nix](../../modules/home-manager/dev/apps.nix)、Firefox や端末は専用モジュールが扱います。Slack・Discord・Spotify・Zoom のスキームも各エントリの `mimeTypes` に含めます。Obsidian の導入とスキーム登録は [zettelkasten.nix](../../modules/home-manager/zettelkasten.nix) が扱います。新しい GUI 子モジュールの import は `gui/default.nix` に追加します。
 
 ## Kiro・Cursor を導入していた環境
 

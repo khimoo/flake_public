@@ -155,7 +155,7 @@ SATA は単一ディスクで冗長性が無い。Drive 側の写しが冗長コ
 
 `/mnt/backup` は root 所有なので、そのままではユーザーのコマンドが書けない。
 `sudo chown` を手順書に書くのではなく、`data-disk.nix` の `systemd.tmpfiles.rules` で
-`/mnt/backup/minecraft` を `primaryUser` 所有で作る。マシンを作り直しても同じ状態になる。
+有効時に `local.minecraftBackup.repoDir` の親（このホストでは `/mnt/backup/minecraft`）を `primaryUser` 所有で作る。マシンを作り直しても同じ状態になる。
 `repo/` はその下なので `restic init` が自分で作れる。
 
 `/mnt/backup` 直下は root のまま残している。用途が増えたときに所有者を分けられるようにする

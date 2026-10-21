@@ -13,7 +13,8 @@
     ./tailscale.nix
     ./remote-builders.nix
     ./bluetooth.nix
-    ./libvirt.nix
+    ./music.nix
+    ./vm.nix
     ./audio.nix
     ./sns-block.nix
     ./gnome-transparent-fullscreen.nix

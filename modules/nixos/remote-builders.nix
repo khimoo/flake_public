@@ -1,15 +1,15 @@
-# nix-daemon のビルドを hosts/machines.nix の builders に常設で回す（nix.buildMachines）。
+# nix-daemon のビルドを hosts/machines.nix の各マシンの builder に常設で回す（nix.buildMachines）。
 # nixos-rebuild だけでなく nix build / nix develop / direnv のビルドも回る。
 # 設計判断は docs/architecture/remote-build.md、使い方は docs/howtouse/remote-build.md。
 { config, lib, settings, ... }:
 let
   machines = import ../../hosts/machines.nix;
   cfg = config.local.remoteBuilders;
-  builders = lib.filterAttrs (host: _: host != settings.hostname) machines.builders;
+  builders = lib.filterAttrs (host: m: host != settings.hostname && m ? builder) machines.machines;
 in
 {
   options.local.remoteBuilders = {
-    enable = lib.mkEnableOption "remote builds on the other hosts listed in hosts/machines.nix builders";
+    enable = lib.mkEnableOption "remote builds on the other hosts with builder in hosts/machines.nix";
     localBuilds = lib.mkOption {
       type = lib.types.bool;
       default = true;
@@ -24,7 +24,7 @@ in
     assertions = [
       {
         assertion = builders != { };
-        message = "local.remoteBuilders: hosts/machines.nix の builders に ${settings.hostname} 以外のホストがない";
+        message = "local.remoteBuilders: hosts/machines.nix に ${settings.hostname} 以外で builder を持つホストがない";
       }
       {
         assertion = config.services.tailscale.enable;
@@ -38,7 +38,8 @@ in
       # `.local` の接続名にすると LAN の外で名前が引けず、ビルドが毎回手元に戻る。
       hostName = "${lib.removePrefix "nixos-" host}-ts";
       protocol = "ssh-ng";
-      inherit (builder) system maxJobs supportedFeatures;
+      inherit (builder) system;
+      inherit (builder.builder) maxJobs supportedFeatures;
       # SSH を張るのは nix-daemon（root）で、root の ~/.ssh に id_lan はない。
       sshKey = "${config.users.users.${settings.primaryUser}.home}/.ssh/id_lan";
     }) builders;

@@ -2,6 +2,8 @@
 
 使い方: [howtouse/windows-vm.md](../howtouse/windows-vm.md)
 
+OS 側は [modules/nixos/vm.nix](../../modules/nixos/vm.nix) の `local.vm` が libvirt と利用ユーザーをまとめる。`windowsDomain` が指定されていれば、`users` のうち `manageHome = false` でないユーザーに Windows ランチャーを設定する。
+
 実装: [modules/home-manager/windows-vm.nix](../../modules/home-manager/windows-vm.nix)、[modules/home-manager/windows-vm.sh](../../modules/home-manager/windows-vm.sh)、検証: [tests/windows-vm.py](../../tests/windows-vm.py)
 
 nixos-desktop の libvirt VM（`win11`）は、VM の中の MotionPro（Array Networks の SSL VPN クライアント）と mstsc で会社 PC に接続するときと、たまに Windows を使うときに起動する。

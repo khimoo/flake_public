@@ -17,10 +17,10 @@ let
   # ConnectTimeout が無いと、応答しないホストへの接続は TCP の既定のタイムアウトまで待つ。
   # nix-daemon は ssh にタイムアウトを渡さないので、落ちたビルダーの待ちはこの値で決まる
   # （docs/architecture/remote-build.md）。
-  hostBlock = patterns: hostName: ''
+  hostBlock = user: patterns: hostName: ''
     Host ${patterns}
       HostName ${hostName}
-      User ${settings.primaryUser}
+      User ${user}
       IdentityFile ~/.ssh/id_lan
       StrictHostKeyChecking accept-new
       ConnectTimeout 10
@@ -52,10 +52,10 @@ in {
   # `-ts` の接続名は MagicDNS の短縮名で引く。`.local` の接続名は mDNS だけに依存させ、
   # tailnet に入っていないときも LAN 内で繋がるように残す。
   programs.ssh.extraConfig = lib.concatStrings (map (host:
-    hostBlock "${shortName host} ${host} ${host}.local" "${host}.local"
+    hostBlock machines.machines.${host}.sshUser "${shortName host} ${host} ${host}.local" "${host}.local"
     + lib.optionalString config.services.tailscale.enable
-      (hostBlock "${shortName host}-ts" host)
-  ) machines.hosts) + ''
+      (hostBlock machines.machines.${host}.sshUser "${shortName host}-ts" host)
+  ) (builtins.attrNames (lib.filterAttrs (_: m: m ? sshUser) machines.machines))) + ''
     Host github.com
       User git
       IdentityFile ~/.ssh/id_github

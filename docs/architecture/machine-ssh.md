@@ -1,11 +1,11 @@
 # マシン間 SSH（設計判断）
 
-flake 内の全 NixOS ホストが相互に SSH でき、`ssh <短縮名>`（例 `ssh desktop`）で
+`machines` で `sshUser` を指定した NixOS ホストが相互に SSH でき、`ssh <短縮名>`（例 `ssh desktop`）で
 接続できるようにする配線。リモートビルド（[remote-build.md](./remote-build.md)）は
 この上に乗る一利用例。
 
 設定ファイル:
-- `hosts/machines.nix` — ホスト名一覧と LAN 共通鍵の公開鍵（単一の情報源）
+- `hosts/machines.nix` — マシンごとの `system`・`sshUser`・`builder`・`nixos` と LAN 共通鍵の公開鍵（単一の情報源）
 - `modules/nixos/ssh.nix` — そこから authorized_keys とクライアント設定を生成
 - `modules/home-manager/secrets.nix` — 秘密鍵側を `secrets/secrets.yaml` から書き出す
   （[private-repo-clone.md](./private-repo-clone.md) 参照）
@@ -17,8 +17,8 @@ flake 内の全 NixOS ホストが相互に SSH でき、`ssh <短縮名>`（例
 `machines.nix` を単一の情報源とし、共通モジュール `ssh.nix` が2方向に展開する:
 
 - **サーバ側**: `lanPublicKey` を primaryUser の `authorized_keys` に登録 → 相互ログイン可
-- **クライアント側**: `hosts` の各要素ぶんの `Host` ブロック（短縮エイリアス＋`IdentityFile`
-  ＋`accept-new`）を生成 → `ssh desktop` 等で接続可
+- **クライアント側**: `machines` のうち `sshUser` を持つ各項目ぶんの `Host` ブロック（短縮エイリアス＋`IdentityFile`
+  ＋接続先の `sshUser`＋`accept-new`）を生成 → `ssh desktop` 等で接続可
 
 秘密鍵の実体はここには無い。`secrets.nix` が switch のたびに `secrets/secrets.yaml`
 から `~/.ssh/id_lan` を書き出す。つまり**新マシンで手作業が要るのは age 鍵 1 本の設置だけ**で、

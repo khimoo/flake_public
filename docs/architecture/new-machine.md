@@ -3,6 +3,10 @@
 **現状: 未実装（設計メモ）**。実装したら使い方は `docs/howtouse/new-machine.md`
 に分離し、このファイルは設計判断だけを残す。
 
+## 現在のマシン定義
+
+ホストのハードウェアと `default.nix` を用意し、[hosts/machines.nix](../../hosts/machines.nix) の `machines` に一項目を足す。`system` と `nixos`（`users`・`timezone`・`stateVersion` など）から NixOS 構成を生成する。`homeFile` は `hosts/` からの相対パスで指定する。SSH 接続先にするなら `sshUser`、リモートビルダーにするなら `builder` を同じ項目に指定する。以下は追加のプロビジョニング自動化の設計メモ。
+
 ## 何を解決するか
 
 いまの flake は「宣言的な rebuild」の部分は綺麗に決まっているが、**新マシンを 0 から

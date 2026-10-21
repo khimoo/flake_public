@@ -16,6 +16,8 @@
   };
   local.gnome.transparentFullscreen.enable = true;
 
+  local.music.enable = true;
+
   local.audio.echoCancel = {
     enable = true;
     source = "alsa_input.platform-avs_dmic.19.auto.stereo-fallback";

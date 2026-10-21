@@ -2,7 +2,7 @@
 
 耳コピ（楽曲の自動採譜）のスキルが使う ML モデルを、uv の環境で動かすためのコマンド。
 nixos-desktop だけに入る。
-パッケージは [packages/mimikopi-env](../../../packages/mimikopi-env/default.nix) で、[home-manager-pomu.nix](../../../hosts/nixos-desktop/home-manager-pomu.nix) から入る。
+パッケージは [packages/mimikopi-env](../../../packages/mimikopi-env/default.nix) で、[home-manager-pomu.nix](../../../hosts/nixos-desktop/home-manager-pomu.nix) の `local.mimikopi` で有効化し、[mimikopi.nix](../../../modules/home-manager/mimikopi.nix) から入る。保存先は `local.mimikopi.dataDir` で一度だけ指定し、OS のマウントもこの値を読む。GPU の互換指定は `hsaOverrideGfxVersion`（既定 null）で設定する。
 設計判断は [architecture/mimikopi-env.md](../../architecture/mimikopi-env.md)。
 
 ## 初回の準備

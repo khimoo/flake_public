@@ -15,7 +15,8 @@
 # 使い方:   docs/howtouse/disk-tiering.md
 { config, pkgs, lib, settings, ... }:
 let
-  vaultRoot = config.home-manager.users.${settings.primaryUser}.local.profile.zettelkastenRoot;
+  hm = config.home-manager.users.${settings.primaryUser};
+  vaultRoot = hm.local.profile.zettelkastenRoot;
   # btrfs は FS 全体で 1 UUID。各 subvol は subvol= オプションで選ぶので全マウントで共有する。
   device = "/dev/disk/by-uuid/57ba3e14-4099-4708-a643-edfc45d3eb18";
 
@@ -38,8 +39,8 @@ let
     # 耳コピの ML モデルの環境とチェックポイント。subvol は手で作るので、作る前に switch や
     # 再起動をしても起動を止めないよう nofail にする。マウントに失敗したときにルートへ書き込ませない
     # 確認は mimikopi-env が受け持つ（docs/architecture/mimikopi-env.md）。
-    { subvol = "@mimikopi";  path = "/home/pomu/.local/share/mimikopi"; opts = dataOpts ++ [ "nofail" ]; }
-  ];
+  ] ++ lib.optional hm.local.mimikopi.enable
+    { subvol = "@mimikopi"; path = hm.local.mimikopi.dataDir; opts = dataOpts ++ [ "nofail" ]; };
 in
 {
   fileSystems = builtins.listToAttrs (map (m: {
@@ -73,11 +74,11 @@ in
   # 用途ごとのディレクトリを primaryUser 所有で用意する（/mnt/backup 直下は root のまま残し、
   # 用途が増えたときに混ざらないようにする）。systemd-tmpfiles は local-fs.target の後に走るので、
   # マウント前の root ファイルシステム側に作られてマウントに隠される事故は起きない。
-  systemd.tmpfiles.rules = [
-    "d /mnt/backup/minecraft 0755 ${settings.primaryUser} users -"
-    # Quaderno から取り込んだ PDF。増え続けるうえ、読むのは時々なので SATA に置く。
-    "d /mnt/backup/quaderno 0755 ${settings.primaryUser} users -"
-  ];
+  systemd.tmpfiles.rules =
+    lib.optional hm.local.minecraftBackup.enable
+      "d ${dirOf hm.local.minecraftBackup.repoDir} 0755 ${settings.primaryUser} users -"
+    ++ lib.optional hm.local.quaderno.enable
+      "d ${hm.local.quaderno.archiveDir} 0755 ${settings.primaryUser} users -";
 
   # btrfs をカーネル/システムで扱えるように（root は ext4 なので既定では無効）+ メンテ用 CLI。
   boot.supportedFilesystems = [ "btrfs" ];

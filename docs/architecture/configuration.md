@@ -5,7 +5,7 @@
 
 ## 責務
 
-`flake.nix` は環境を選択し、factoryがモジュールを組み立てる。NixOS用の `settings` にはホスト名・ユーザー一覧・時刻・キーマップ・stateVersionだけを入れる。Home Managerへこの属性集合は渡さない。
+[hosts/machines.nix](../../hosts/machines.nix) の `machines` がマシンの正本で、`nixos` を持つ項目から `flake.nix` が NixOS 構成を生成し、factoryがモジュールを組み立てる。NixOS用の `settings` にはホスト名・ユーザー一覧・時刻・キーマップ・stateVersionだけを入れる。Home Managerへこの属性集合は渡さない。
 
 Home Managerはユーザーごとに `config.local.profile` を評価する。個人のGit identity、clone先、Claude設定、LAN鍵配布はそのユーザーのhomeモジュールにだけ定義する。現在の個人設定は `profiles/home/pomu.nix`、2台のworkstationの選択は `profiles/home/pomu-workstation.nix`、Claude CodeとCodexの設定repo（agents-private）の置き場所とlauncherは `profiles/home/pomu-agents.nix` にある。新しいユーザーはこれを明示的にimportしない限り引き継がない。
 
@@ -31,11 +31,17 @@ Home Manager への `extraSpecialArgs` は `inputs` を渡す。アプリ専用�
 
 `local.rustowl.enable` は対応するx86_64 Linuxで既定true、それ以外でfalse。未対応OSへの明示的有効化は拒否する。GUI等の現在のLinux専用プロファイルもDarwinでは拒否する。
 
+## 目的ごとの OS とホームの選択
+
+[music.nix](../../modules/nixos/music.nix) の `local.music.enable` は musnix・JACK・低レイテンシー設定を有効にし、`users`（既定は primaryUser）を audio グループに入れる。そのうち Home Manager を持つユーザーの `features.audio` も有効にする。PipeWire の基本設定と通話用のエコーキャンセルの選択はホストに置く。standalone Home Manager の音楽アプリは `features.audio` で直接選ぶ。
+
+[vm.nix](../../modules/nixos/vm.nix) の `local.vm.enable` は libvirt・OVMF・virt-manager・default ネットワークの自動起動を有効にし、`users` を libvirtd グループに入れる。`windowsDomain` が null でなければ、Home Manager を持つ対象ユーザーに Windows ランチャーを設定する。両機能とも Home Manager の対象は `settings.users` の `manageHome` で選び、OS アカウントのみのユーザーにホーム構成を作らない。
+
 ## OSとの接点
 
 デスクトップのpapis用mountは、ホスト固有モジュールで primaryUser の `local.profile.zettelkastenRoot` を参照する。
 
-SSHクライアントのIdentityFileは `~/.ssh/` を使い、全ユーザーへprimaryUserの絶対パスを配らない。LAN接続先のユーザー名はprimaryUserで、鍵配布は `local.profile.lanSsh` を選んだユーザーだけ。例外は常設のリモートビルドで、nix-daemon（root）だけがprimaryUserの `id_lan` を絶対パスで読む（[remote-build.md](./remote-build.md)）。`--build-host` はrootを使わず、実行ユーザーのままSSHする。
+SSHクライアントのIdentityFileは `~/.ssh/` を使い、全ユーザーへprimaryUserの絶対パスを配らない。LAN接続先のユーザー名は各マシンの `sshUser` で、鍵配布は `local.profile.lanSsh` を選んだユーザーだけ。例外は常設のリモートビルドで、nix-daemon（root）だけがprimaryUserの `id_lan` を絶対パスで読む（[remote-build.md](./remote-build.md)）。`--build-host` はrootを使わず、実行ユーザーのままSSHする。
 
 ## /etc/nixos のリンク
 

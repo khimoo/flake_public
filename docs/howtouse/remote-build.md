@@ -20,7 +20,7 @@
 
 - `hosts/nixos-spin713/default.nix` の `local.remoteBuilders.enable = true` で、ラップトップの nix-daemon がデスクトップをビルダーとして使う
 - 同じ場所の `localBuilds = false` で、ラップトップ自身はビルドしない（`max-jobs = 0`）。binary cache からの取得は続く
-- ビルダーの一覧と能力（同時に受けるビルドの数、system features）は `hosts/machines.nix` の `builders` にある
+- ビルダーの一覧と能力（同時に受けるビルドの数、system features）は `hosts/machines.nix` の各マシンの `builder` にある
 - 両ホスト: `nix.settings.trusted-users = [ "@wheel" ]`。デスクトップは、SSH で入ってくる `pomu` からビルドを受け入れるのに使う
 
 ## 普段の使い方
@@ -270,7 +270,7 @@ LAN 認証は全マシン共通の鍵 1 本なので、鍵の生成も登録も�
 （[machine-ssh.md](./machine-ssh.md) の「マシンを追加するとき」を参照）。
 
 1. 新規ホストの `~/.config/sops/age/keys.txt` に age 鍵を置く
-2. `hosts/machines.nix` の `hosts` に1行足す
+2. `hosts/machines.nix` の `machines` に一項目を足し、`system` と `nixos`、接続先の `sshUser` を指定する
 3. 新規ホストの `default.nix` に `local.remoteBuilders.enable = true;` を足す
 4. 新規ホストを rebuild（switch 中に `~/.ssh/id_lan` が書き出される）
 
@@ -280,22 +280,23 @@ LAN 認証は全マシン共通の鍵 1 本なので、鍵の生成も登録も�
 
 ### ビルダーを増やす（別のホストもビルドサーバ化）
 
-`hosts/machines.nix` の `builders` に 1 エントリ足す。
+`hosts/machines.nix` の各マシンの `builder` を設定する。
 `maxJobs` と `supportedFeatures` は、そのホストで `nix config show max-jobs` と `nix config show system-features` を見て決める。
 
 ```nix
-builders = {
-  nixos-desktop = { ... };
-  <new-builder> = {
-    system = "x86_64-linux";
+machines.<new-builder> = {
+  system = "x86_64-linux";
+  sshUser = "pomu";
+  builder = {
     maxJobs = <max-jobs の値>;
     supportedFeatures = [ <system-features の値> ];
   };
+  # NixOS 構成も作る場合は nixos を定義する。
 };
 ```
 
 `local.remoteBuilders.enable` を立てたホストは、次の switch から自分以外の全ビルダーを使う。
-ビルダー側で要るのは、`hosts/machines.nix` の `hosts` に載っていることだけ。sshd と `authorized_keys` は `ssh.nix` が、`trusted-users` は `nix-settings.nix` が全ホストに設定する。
+ビルダー側で要るのは、`hosts/machines.nix` で `sshUser` を指定し、SSH サーバーと tailnet に参加していること。sshd と `authorized_keys` は `ssh.nix` が、`trusted-users` は `nix-settings.nix` が全ホストに設定する。
 
 ## 関連ファイル
 

@@ -30,28 +30,9 @@
   # ユニットの [Install] と同じ graphical.target に繋いで enabled にする。nixpkgs のモジュールが同じことをするようになったら消す。
   systemd.services.gnome-remote-desktop.wantedBy = [ "graphical.target" ];
 
-  virtualisation.spiceUSBRedirection.enable = true;
-  virtualisation.libvirtd = {
-    enable = true;
-    # UEFI対応などのためのQEMU設定
-    qemu = {
-      package = pkgs.qemu_kvm;
-      runAsRoot = true;
-      swtpm.enable = true;
-      vhostUserPackages = [ pkgs.virtiofsd ];
-    };
-  };
-  environment.etc = {
-    "ovmf/edk2-x86_64-secure-code.fd" = {
-      source = "${pkgs.qemu_kvm}/share/qemu/edk2-x86_64-secure-code.fd";
-    };
-    "ovmf/edk2-i386-vars.fd" = {
-      source = "${pkgs.qemu_kvm}/share/qemu/edk2-i386-vars.fd";
-    };
-  };
-
-  # virt-manager (GUIでのVM管理用)
-  programs.virt-manager.enable = true;
+  local.music.enable = true;
+  # Windows は必要なときだけランチャーから起動する。
+  local.vm = { enable = true; windowsDomain = "win11"; };
 
   # steam パッケージ単体でも FHS ラッパなので起動はするが、コントローラ/VR の udev ルール
   # (hardware.steam-hardware) と 32bit ドライバはこのモジュールが設定する。

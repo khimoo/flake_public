@@ -16,7 +16,6 @@ in
     ./apps.nix
     ./firefox.nix
     ./teams-dispatcher.nix
-    ./xdg-scheme-workaround.nix
   ];
 
   config = lib.mkMerge [

@@ -12,16 +12,20 @@ let
   # ---- 一般アプリの定義（導入・Wayland・自動起動・MIME をまとめる） ----
   # 専用モジュールやスキーム登録の変更箇所: docs/howtouse/gui-apps.md
 
+  # GNOME のスキーム解決には mimeapps.list の明示的な既定が必要なため、
+  # mimeTypes からアプリと一緒に登録する（nixpkgs#301893、未マージの修正 PR #494847）。
   guiApps = [
     # -- 常駐系（自動起動） --
     {
       pkg = pkgs.slack;
+      mimeTypes."x-scheme-handler/slack" = true;
       wayland = true;
       autostart = true;
       startFlags = "--silent";
     }
     {
       pkg = pkgs.discord;
+      mimeTypes."x-scheme-handler/discord" = true;
       wayland = true;
       autostart = true;
       startFlags = "--start-minimized";
@@ -79,6 +83,7 @@ let
     { pkg = pkgs.brave; }
     {
       pkg = pkgs.spotify;
+      mimeTypes."x-scheme-handler/spotify" = true;
       wayland = true;
     }
 
@@ -89,7 +94,14 @@ let
     { pkg = pkgs.tdf; }
     { pkg = pkgs.vmpk; }
     { pkg = pkgs.showmethekey; }
-    { pkg = pkgs.zoom-us; }
+    {
+      pkg = pkgs.zoom-us;
+      desktopName = "Zoom.desktop";
+      mimeTypes = {
+        "x-scheme-handler/zoommtg" = true;
+        "x-scheme-handler/zoomus" = true;
+      };
+    }
   ];
 
   # ---- 導出ロジック ----

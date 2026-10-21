@@ -38,7 +38,9 @@ PyTorch の ROCm 版の wheel には gfx1032 向けのカーネルが入って�
 ## データを SATA の専用 subvol に置く
 
 ルートの空き約 18GB に対して、ROCm 版の torch だけで約 15GB を使う。
-そこで、SATA SSD に `@mimikopi` を作り、`~/.local/share/mimikopi` にマウントする（[data-disk.nix](../../hosts/nixos-desktop/data-disk.nix)）。
+[mimikopi.nix](../../modules/home-manager/mimikopi.nix) の `local.mimikopi` でパッケージと保存先を設定する。ホストの Home Manager 設定で `dataDir` を一度指定し、OS は有効な場合だけその値へマウントする。
+
+SATA SSD に `@mimikopi` を作り、`~/.local/share/mimikopi` にマウントする（[data-disk.nix](../../hosts/nixos-desktop/data-disk.nix)）。
 モデルの読み込みはシーケンシャル読みが中心で、[disk-tiering.md](./disk-tiering.md) の分け方ではコールド層に当たる。
 
 `/mnt/backup` の下にディレクトリを作る案もあった。`systemd.tmpfiles` に一行足すだけで済むが、再取得できる数十 GB をバックアップの退避先に混ぜることになるので退けた。

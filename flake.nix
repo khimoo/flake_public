@@ -70,61 +70,9 @@
         inherit (inputs.rustowl.packages.x86_64-linux) rustowl rustowl-nvim;
       };
 
-      nixosConfigurations = {
-        nixos-spin713 = mkSystem {
-          hostname = "nixos-spin713";
-          system = "x86_64-linux";
-          users = [
-            {
-              username = "pomu";
-              isAdmin = true;
-              homeFile = ./hosts/nixos-spin713/home.nix;
-            }
-          ];
-          timezone = "Asia/Tokyo";
-          stateVersion = "25.05";
-        };
-        nixos-desktop = mkSystem {
-          hostname = "nixos-desktop";
-          system = "x86_64-linux";
-          users =
-            map
-              (
-                u:
-                u
-                // {
-                  homeFile = ./hosts/nixos-desktop + "/home-manager-${u.username}.nix";
-                }
-              )
-              [
-                {
-                  username = "pomu";
-                  isAdmin = true;
-                }
-                {
-                  username = "mase";
-                  isAdmin = false;
-                  manageHome = false;
-                  initialHashedPassword = "$6$jQHubQo9MXPX15.x$LSWMJBiOQT75T/HOeMyKlFmWZjl.wTi7CA.m02uFPPJqssvKCMq1..6fGYdjm7HMJhhBAIl1Vbpkuq92gaVbH/";
-                }
-              ];
-          timezone = "Asia/Tokyo";
-          stateVersion = "25.05";
-        };
-        nixos-work-wsl = mkSystem {
-          hostname = "nixos-work-wsl";
-          system = "x86_64-linux";
-          users = [
-            {
-              username = "nixos";
-              isAdmin = true;
-              homeFile = ./hosts/nixos-work-wsl/home.nix;
-            }
-          ];
-          timezone = "Asia/Tokyo";
-          stateVersion = "26.05";
-        };
-      };
+      nixosConfigurations = nixpkgs.lib.mapAttrs
+        (hostname: m: mkSystem ({ inherit hostname; inherit (m) system; } // m.nixos))
+        (nixpkgs.lib.filterAttrs (_: m: m ? nixos) (import ./hosts/machines.nix).machines);
 
       homeConfigurations = {
         "pomu-macos" = mkHome {

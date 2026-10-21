@@ -6,7 +6,7 @@ NixOS ホストにユーザーを追加・設定する方法。
 
 ## ユーザーの追加
 
-`flake.nix` の該当ホストの `users` リストにエントリを追加する。
+`hosts/machines.nix` の `machines.<ホスト>.nixos.users` リストにエントリを追加する。
 
 ### 基本的なユーザー（admin + home-manager 管理）
 
@@ -14,7 +14,7 @@ NixOS ホストにユーザーを追加・設定する方法。
 {
   username = "pomu";
   isAdmin = true;
-  homeFile = ./hosts/nixos-desktop/home-manager-pomu.nix;
+  homeFile = ./nixos-desktop/home-manager-pomu.nix;
   # 他のユーザーは本人用のhomeFileを使う。pomu用を共有しない。
 }
 ```
@@ -108,6 +108,10 @@ hosts/<hostname>/home-manager-<username>.nix  ← ユーザー固有（homeFile 
 ```
 
 `dev/`・`gui/`・`audio/` の子モジュールは、それぞれの `default.nix` が読み込みます。共通モジュールを読み込んでも、GUI などの任意機能は本人の `local.profile.features` で選択した場合だけ有効になります。[GUI アプリの管理](gui-apps.md)も参照してください。
+
+## 音楽制作・VM の利用ユーザー
+
+ホストの `local.music.enable` と `local.vm.enable` で目的ごとに有効化します。対象はそれぞれ `local.music.users` と `local.vm.users` で指定し、既定は primaryUser です。audio / libvirtd グループは対象者だけに付けます。音楽アプリと Windows VM のランチャーは、そのうち Home Manager を持つユーザーに設定します。VM の詳細は [Windows VM](windows-vm.md) を参照してください。
 
 ## 反映
 

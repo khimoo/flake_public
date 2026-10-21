@@ -30,6 +30,8 @@ in
       assertion = !(config.home.activation ? seedVault);
       message = "clone 管理の vault に seedVault activation は不要です。zettelkasten input を更新してください。";
     } ];
+    xdg.mimeApps.defaultApplications."x-scheme-handler/obsidian" =
+      lib.mkIf obsidianOn "obsidian.desktop";
     services.zettelkasten = {
       enable = true;
       # private-repos.nix が clone するため、骨格の初期化・補充は行わない。

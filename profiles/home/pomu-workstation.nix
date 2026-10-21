@@ -12,7 +12,6 @@ in
       gui = true;
       gnome = true;
       ime = true;
-      audio = true;
       referenceSync = true;
       zettelkastenSync = true;
       obsidian = true;

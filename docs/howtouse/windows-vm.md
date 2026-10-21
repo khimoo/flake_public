@@ -5,7 +5,7 @@
 実装: [modules/home-manager/windows-vm.nix](../../modules/home-manager/windows-vm.nix)、[modules/home-manager/windows-vm.sh](../../modules/home-manager/windows-vm.sh)
 
 nixos-desktop の libvirt VM は、使うときだけ起動し、画面をホストの FreeRDP で表示します。
-VM の名前は、[hosts/nixos-desktop/home-manager-pomu.nix](../../hosts/nixos-desktop/home-manager-pomu.nix) の `local.windowsVm` で指定しています。起動を待つ上限は既定の 600 秒です。
+VM の名前は、[hosts/nixos-desktop/default.nix](../../hosts/nixos-desktop/default.nix) の `local.vm.windowsDomain` で指定しています。`local.vm.enable` が libvirt・OVMF・virt-manager・default ネットワークの自動起動を有効にし、`local.vm.users`（既定は primaryUser）に `libvirtd` グループを付けます。`windowsDomain` を指定すると、そのうち Home Manager を持つユーザーにランチャーを導入します。null ならランチャーを導入しません。起動を待つ上限は既定の 600 秒です。
 
 ## 使う
 
@@ -87,7 +87,7 @@ Windows で次の二つを設定します。
 2. 同じ画面でオンのスイッチの横を展開し、「ネットワーク レベル認証」を必須にするチェックを外す。
 
 NLA を切る理由は [設計判断](../architecture/windows-vm.md#nla-を切る) にあります。
-VM の名前が変わったときは、`local.windowsVm.domain` を合わせます。
+VM の名前が変わったときは、ホストの `local.vm.windowsDomain` を合わせます。
 
 ## うまくいかないとき
 

@@ -1,8 +1,9 @@
 # XDG スキームハンドラ ワークアラウンド
 
-設定ファイル: `modules/home-manager/gui/xdg-scheme-workaround.nix`
+実装: [gui/apps.nix](../../modules/home-manager/gui/apps.nix) の `mimeTypes`、[zettelkasten.nix](../../modules/home-manager/zettelkasten.nix) の Obsidian 登録
+使い方: [GUI アプリの管理](../howtouse/gui-apps.md)
 
-**このファイルは一時的なワークアラウンドであり、upstream の修正がマージされたら削除可能。**
+アプリの導入条件と同じ条件で、URL スキームの既定を明示登録する。Slack・Discord・Spotify・Zoom は `guiApps` の項目を外せば登録も外れる。Obsidian は `obsidianOn` のときだけ登録する。Zoom の desktop ファイル名は `Zoom.desktop`。
 
 ## 問題
 
@@ -27,13 +28,11 @@ NixOS では、アプリの `.desktop` ファイルが `x-scheme-handler/slack` 
 - Issue: [NixOS/nixpkgs#301893](https://github.com/NixOS/nixpkgs/issues/301893)
 - Fix: [NixOS/nixpkgs#494847](https://github.com/NixOS/nixpkgs/pull/494847) — スキームハンドラが1つしかない場合に自動でデフォルト登録する修正。`staging-nixos` ブランチ向けで、まだマージされていない。
 
-## 削除手順
+## 見直す条件
 
 PR #494847 がマージされ、使用中の nixpkgs に含まれたら:
 
-1. `modules/home-manager/gui/xdg-scheme-workaround.nix` を削除
-2. `flake.nix` の `homeModules` からインポートを削除
-3. Slack 等のブラウザ認証リダイレクトが動作することを確認
+Slack 等のブラウザ認証リダイレクトを確かめ、明示登録が不要なら各アプリのスキーム用 `mimeTypes` と Obsidian の登録を外す。ファイル用 MIME の既定は維持する。
 
 ## 関連
 

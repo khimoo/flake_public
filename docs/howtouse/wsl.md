@@ -1,6 +1,6 @@
 # 会社PCの NixOS-WSL（nixos-work-wsl）
 
-会社の Windows PC にセットアップした NixOS-WSL は、本 flake の `nixosConfigurations.nixos-work-wsl` で管理します。
+会社の Windows PC にセットアップした NixOS-WSL は、本 flake の `nixosConfigurations.nixos-work-wsl` で管理します。定義は [hosts/machines.nix](../../hosts/machines.nix) の `machines.nixos-work-wsl.nixos` にあり、`sshUser` と `builder` は指定しません。
 このホストでは `local.restrictedHost.enable` を有効にしており、個人の機密情報や自宅マシンへの接続経路を含まない構成になっています。設計方針や判断理由の詳細は [docs/architecture/wsl.md](../architecture/wsl.md) を参照してください。
 
 ## 新しいPCへの導入手順

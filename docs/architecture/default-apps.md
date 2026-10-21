@@ -14,7 +14,8 @@ MIME タイプに対するデフォルトアプリケーションは `xdg.mimeAp
 | PDF, 画像, 動画, 音声, メール等 | [gui/apps.nix](../../modules/home-manager/gui/apps.nix) | `guiApps` の `mimeTypes` 属性から導出 |
 | text/html, text/xml, about 等 | `gui/firefox.nix` | `programs.firefox` + 直接指定 |
 | HTTP/HTTPS | `gui/teams-dispatcher.nix` | Teams URL ディスパッチャ経由 |
-| カスタムスキーム (slack://, discord:// 等) | `gui/xdg-scheme-workaround.nix` | NixOS の XDG 問題のワークアラウンド ([詳細](./xdg-scheme-workaround.md)) |
+| Slack・Discord・Spotify・Zoom のスキーム | `gui/apps.nix` | アプリごとの `mimeTypes` から導出（[理由](./xdg-scheme-workaround.md)） |
+| Obsidian のスキーム | `zettelkasten.nix` | Obsidian 有効時だけ登録 |
 
 パスはすべて `modules/home-manager/` からの相対。
 
