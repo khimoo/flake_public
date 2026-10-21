@@ -16,7 +16,7 @@ function M.setup(dap)
     else
       cb({
         type = 'executable',
-        command = 'python',
+        command = require("config.nix").data.dap.python,
         args = { '-m', 'debugpy.adapter' },
         options = { source_filetype = 'python' },
       })
@@ -35,7 +35,8 @@ function M.setup(dap)
           return cwd .. venv
         end
       end
-      return '/usr/bin/python'
+      local python = vim.fn.exepath('python3')
+      return python ~= '' and python or require("config.nix").data.dap.python
     end,
   } }
 end

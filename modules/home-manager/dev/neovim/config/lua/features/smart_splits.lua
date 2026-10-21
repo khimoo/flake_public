@@ -1,5 +1,8 @@
+local data = require("config.nix").data.smart_splits
+
 return {
-  "mrjones2014/smart-splits.nvim",
+  dir = data.plugin,
+  name = "smart-splits.nvim",
   lazy = false,
   opts = {
     at_edge = "stop",

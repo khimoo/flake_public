@@ -2,7 +2,7 @@
 
 ファイル間の高速移動と、Neovim ウィンドウ / kitty ペインの統合操作。
 
-- 設定ファイル: `lua/plugins/harpoon.lua`, `lua/plugins/smart-splits.lua`
+- 設定ファイル: `lua/plugins/harpoon.lua`, `lua/features/smart_splits.lua`
 
 ## プラグイン
 

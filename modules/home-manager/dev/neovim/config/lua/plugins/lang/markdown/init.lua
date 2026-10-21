@@ -6,8 +6,6 @@
 require("plugins.lang.markdown.filetype")
 
 return {
-  require("plugins.lang.markdown.render"),
   require("plugins.lang.markdown.autolist"),
-  require("plugins.lang.markdown.img-clip"),
   require("plugins.lang.markdown.treesitter"),
 }

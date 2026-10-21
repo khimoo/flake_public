@@ -18,13 +18,14 @@ in {
         message = "local.rustowl currently supports x86_64-linux only.";
       }];
       # Absolute store paths prevent the old ~/.local/bin/rustowl from shadowing
-      # the managed server. Nil disables the plugin even if a manual binary remains.
-      xdg.dataFile."nvim/nix/rustowl.lua".text = if enabled then ''
-        return {
-          command = "${packages.rustowl}/bin/rustowl",
-          plugin = "${packages.rustowl-nvim}",
-        }
-      '' else "return nil";
+      # the managed server.
+      local.neovim.features.rustowl = {
+        enable = enabled;
+        data = lib.mkIf enabled {
+          command = "${packages.rustowl}/bin/rustowl";
+          plugin = "${packages.rustowl-nvim}";
+        };
+      };
     }
     (lib.mkIf enabled {
       home.packages = [ packages.rustowl ];

@@ -1,83 +1,108 @@
-{ inputs, config, pkgs, lib, ... }:
+{ config, pkgs, lib, ... }:
 
 let
-  # skkeleton 専用の辞書。従来どおり overlay を通さない nixpkgs で展開する。
-  dictionaryPkgs = inputs.nixpkgs.legacyPackages.${pkgs.stdenv.hostPlatform.system};
-  skk-dict = dictionaryPkgs.stdenv.mkDerivation {
-    name = "skk-jisyo-dict";
-    src = inputs.skk-jisyo;
-    nativeBuildInputs = [ dictionaryPkgs.gzip ];
-    unpackPhase = "gzip -d < $src > $out";
-    dontInstall = true;
-  };
+  inherit (lib) mkOption types;
+  cfg = config.local.neovim;
+  enabled = lib.filterAttrs (_: f: f.enable) cfg.features;
+  enabledList = lib.attrValues enabled;
 
-  # Neovim プラグインが必要とする外部ツール (Neovim 実行時の PATH のみに注入)
-  # for: 依存元プラグイン/機能を明記。プラグイン削除時はここも消すこと。
-  nvimPluginDeps = [
-    { pkg = pkgs.deno;             for = "denols / 各種 deno ベースのプラグイン"; }
-    { pkg = pkgs.ripgrep;          for = "telescope (live_grep)"; }
-    { pkg = pkgs.nil;              for = "nil_ls (LSP 本体)"; }
-    { pkg = pkgs.nixfmt; for = "nil_ls の formatter"; }
-    { pkg = pkgs.vscode-extensions.vadimcn.vscode-lldb;
-                                   for = "rustaceanvim DAP (codelldb)"; }
-    { pkg = pkgs.mermaid-cli;      for = "diagram.nvim (mermaid → PNG レンダリング, mmdc)"; }
-    { pkg = pkgs.imagemagick;      for = "image.nvim (画像リサイズ/変換, magick CLI backend)"; }
-    { pkg = pkgs.python3Packages.pylatexenc;
-                                   for = "render-markdown.nvim (latex2text による数式 → Unicode 近似変換)"; }
-    { pkg = pkgs.tree-sitter;      for = "nvim-treesitter main ブランチ (全 parser の導入が `tree-sitter build` 経由。0.26.1 以上が要る)"; }
-    { pkg = pkgs.websocat;         for = "typst-preview.nvim (プレビューサーバとの WebSocket 中継)"; }
-  ] ++ lib.optionals pkgs.stdenv.isLinux [
-    { pkg = pkgs.xclip;        for = "system clipboard 連携 (X11)"; }
-    { pkg = pkgs.wl-clipboard; for = "img-clip.nvim (Wayland 画像貼付)"; }
-  ];
+  # 機能の Lua spec は lua/features/<名前>.lua に置き、lua/plugins/ の一括 import には含めない。
+  # 定義と spec が片方だけ残ると、機能を消したときに依存か読み込みのどちらかが取り残される。
+  specNames = map (lib.removeSuffix ".lua") (
+    lib.attrNames (
+      lib.filterAttrs (name: type: type == "regular" && lib.hasSuffix ".lua" name) (
+        builtins.readDir ./config/lua/features
+      )
+    )
+  );
+  definedNames = lib.attrNames cfg.features;
 
   # nvim 実行ファイルのフルパス。home.shellAliases から参照することで
   # 「programs.neovim が有効でないと eval エラー」という形で依存を強制する。
   nvimExe = lib.getExe config.programs.neovim.finalPackage;
 in
 {
-  programs.neovim = {
-    enable = true;
-    vimAlias = true;
-    defaultEditor = true;
-    withNodeJs = true;
-    # home.stateVersion が 26.05 未満のあいだ、Home Manager は従来の既定（true）を使うので明示する。
-    # Python と Ruby の provider を使うプラグインはない。全ユーザーの home.stateVersion が 26.05 以上に
-    # なったら既定と同じになるので、この 2 行を消す。
-    withRuby = false;
-    withPython3 = false;
-    # Home Manager 26.05 は Lua のパスや provider の設定を ~/.config/nvim/init.lua に書き出すが、
-    # ~/.config/nvim は checkout への symlink なのでその中に置けない。ラッパーの引数で読み込ませる。
-    sideloadInitLua = true;
-    extraPackages = map (d: d.pkg) nvimPluginDeps;
-    # image.nvim が必要とする ImageMagick の Lua バインディング (magick luarock)。
-    # nixpkgs 経由で注入することで luarocks をユーザ環境に出さずに済む。
-    extraLuaPackages = ps: [ ps.magick ];
-    plugins = with pkgs.vimPlugins; [
-      lazy-nvim
-    ];
+  imports = [ ./features.nix ];
+
+  options.local.neovim.features = mkOption {
+    type = types.attrsOf (
+      types.submodule {
+        options = {
+          enable = mkOption {
+            type = types.bool;
+            default = true;
+            description = "Load lua/features/<name>.lua and provide the tools it needs.";
+          };
+          packages = mkOption {
+            type = types.listOf types.package;
+            default = [ ];
+            description = "Commands the feature runs. They are added to Neovim's PATH only.";
+          };
+          luaPackages = mkOption {
+            type = types.functionTo (types.listOf types.package);
+            default = _: [ ];
+            description = "Lua modules the feature needs, chosen from Neovim's Lua package set.";
+          };
+          data = mkOption {
+            type = types.attrsOf types.anything;
+            default = { };
+            description = ''Values the feature's spec reads as require("config.nix").data.<name>.'';
+          };
+        };
+      }
+    );
+    default = { };
+    description = "Neovim features. Removing one drops its spec, its tools and its data together.";
   };
 
-  # Neovim の設定ディレクトリを out-of-store symlink で配置する。
-  # ~/.config/nvim → ${flakeRoot}/modules/home-manager/dev/neovim/config への symlink。
-  # これにより lua の編集が rebuild なしで反映され、lazy-lock.json もリポジトリ内に
-  # 書き戻されるため git で追跡できる。
-  xdg.configFile."nvim".source =
-    config.lib.file.mkOutOfStoreSymlink
-      "${config.local.profile.flakeRoot}/modules/home-manager/dev/neovim/config";
+  config = {
+    assertions = [
+      {
+        assertion = lib.sort lib.lessThan definedNames == lib.sort lib.lessThan specNames;
+        message = "local.neovim.features must match lua/features/*.lua. Only defined: ${
+          toString (lib.subtractLists specNames definedNames)
+        }; only a spec: ${toString (lib.subtractLists definedNames specNames)}.";
+      }
+    ];
 
-  # Neovim が dofile で読む Nix 生成ファイル。Home Manager の適用で更新する。
-  # ~/.config/nvim 全体が mkOutOfStoreSymlink でリポジトリへの symlink になっているため、
-  # 配下に追加ファイルを置けない。代わりに ~/.local/share/nvim/nix/ (stdpath("data")) に配置する。
-  # 参照元: modules/home-manager/dev/neovim/config/lua/plugins/skkeleton.lua
-  xdg.dataFile."nvim/nix/skk-dict-path.lua".text =
-    ''return "${skk-dict}"'';
-  # 参照元: modules/home-manager/dev/neovim/config/lua/plugins/lang/rust.lua
-  xdg.dataFile."nvim/nix/codelldb-path.lua".text =
-    ''return "${pkgs.vscode-extensions.vadimcn.vscode-lldb}/share/vscode/extensions/vadimcn.vscode-lldb/adapter/codelldb"'';
+    programs.neovim = {
+      enable = true;
+      vimAlias = true;
+      defaultEditor = true;
+      withNodeJs = true;
+      # home.stateVersion が 26.05 未満のあいだ、Home Manager は従来の既定（true）を使うので明示する。
+      # Python と Ruby の provider を使うプラグインはない。全ユーザーの home.stateVersion が 26.05 以上に
+      # なったら既定と同じになるので、この 2 行を消す。
+      withRuby = false;
+      withPython3 = false;
+      # Home Manager 26.05 は Lua のパスや provider の設定を ~/.config/nvim/init.lua に書き出すが、
+      # ~/.config/nvim は checkout への symlink なのでその中に置けない。ラッパーの引数で読み込ませる。
+      sideloadInitLua = true;
+      extraPackages = lib.unique (lib.concatMap (f: f.packages) enabledList);
+      # luarocks をユーザー環境に出さず、nixpkgs の Lua モジュールを渡す。
+      extraLuaPackages = ps: lib.unique (lib.concatMap (f: f.luaPackages ps) enabledList);
+      plugins = with pkgs.vimPlugins; [
+        lazy-nvim
+      ];
+    };
 
-  # 一時 markdown draft を nvim で開く。Claude への返信下書きなどに使う。
-  # /tmp は systemd-tmpfiles が 10 日経過で自動削除するためメンテ不要。
-  # nvim 本体への依存は let の nvimExe で構造的に表現済み。
-  home.shellAliases.draft = ''${nvimExe} "$(mktemp --suffix=.md)"'';
+    # Neovim の設定ディレクトリを out-of-store symlink で配置する。
+    # ~/.config/nvim → ${flakeRoot}/modules/home-manager/dev/neovim/config への symlink。
+    # これにより lua の編集が rebuild なしで反映され、lazy-lock.json もリポジトリ内に
+    # 書き戻されるため git で追跡できる。
+    xdg.configFile."nvim".source =
+      config.lib.file.mkOutOfStoreSymlink
+        "${config.local.profile.flakeRoot}/modules/home-manager/dev/neovim/config";
+
+    # 有効な機能の一覧と値。lua/config/lazy.lua と各機能の spec が lua/config/nix.lua 経由で読む。
+    # ~/.config/nvim は checkout への symlink なので、生成物は stdpath("data") に置く。
+    xdg.dataFile."nvim/nix/features.lua".text = "return " + lib.generators.toLua { } {
+      features = lib.attrNames enabled;
+      data = lib.mapAttrs (_: f: f.data) enabled;
+    };
+
+    # 一時 markdown draft を nvim で開く。Claude への返信下書きなどに使う。
+    # /tmp は systemd-tmpfiles が 10 日経過で自動削除するためメンテ不要。
+    home.shellAliases.draft = ''${nvimExe} "$(mktemp --suffix=.md)"'';
+  };
 }

@@ -6,7 +6,7 @@ return {
   cmd = { "TypstPreview", "TypstPreviewToggle" },
   opts = {
     -- 既定では :TypstPreviewUpdate が Nix store の外にバイナリを落とすため、
-    -- nixpkgs 版を PATH 経由で指す (供給元: dev/lsp.nix と dev/neovim/default.nix)。
+    -- nixpkgs 版を PATH 経由で指す (供給元: dev/neovim/features.nix)。
     dependencies_bin = { tinymist = "tinymist", websocat = "websocat" },
     get_main_file = require("plugins.lang.typst.main_file").resolve,
   },

@@ -2,7 +2,7 @@
 
 Rust 専用の LSP 拡張とデバッグ、所有権可視化。
 
-- 設定ファイル: `lua/plugins/lang/rust.lua`, `lua/plugins/lang/rustowl-hover.lua`
+- 設定ファイル: `lua/features/rust.lua`, `lua/features/rustowl.lua`, `lua/plugins/lang/rustowl-hover.lua`
 
 ## プラグイン
 

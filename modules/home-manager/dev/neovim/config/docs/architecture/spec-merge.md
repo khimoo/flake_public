@@ -12,7 +12,7 @@
 - `nvim-lspconfig` の override (現状は marksman はデフォルトで使うが、将来カスタマイズの可能性)
 - 他プラグインとの連携 (skkeleton ↔ autolist の bridge 等)
 
-これを「トピック中心」のディレクトリにまとめたい。しかし `nvim-treesitter` の spec は元々 `plugins/treesitter.lua` で集中管理されており、`ensure_installed` を言語ごとに追記するには「同じプラグインの設定を複数箇所で書く」必要が出てくる。
+これを「トピック中心」のディレクトリにまとめたい。しかし `nvim-treesitter` の spec は元々 `features/treesitter.lua` で集中管理されており、`ensure_installed` を言語ごとに追記するには「同じプラグインの設定を複数箇所で書く」必要が出てくる。
 
 ## 採用方針 (case-F): lazy.nvim の spec マージ
 
@@ -32,7 +32,7 @@ return {
 }
 ```
 
-`plugins/treesitter.lua` のベース spec も関数形式にし、未設定の場合だけ一覧を初期化する。
+`features/treesitter.lua` のベース spec も関数形式にし、未設定の場合だけ一覧を初期化する。
 各言語モジュールは list_extend で追加する。
 
 ```lua
@@ -53,7 +53,7 @@ lazy.nvim 2025-11-06 の `lua/lazy/core/plugin.lua` の `values` / `_values` で
 
 ### 具体例: LSP override の追加
 
-`plugins/lsp/init.lua` で `opts.servers` を table として宣言:
+`features/lsp.lua` で `opts.servers` を table として宣言:
 
 ```lua
 opts = {
@@ -116,8 +116,8 @@ return {
 
 | ベース spec | 拡張側 | 形式 |
 |------------|--------|------|
-| `plugins/treesitter.lua` (nvim-treesitter) | `lang/markdown/treesitter.lua` | function 形式で `ensure_installed` を list_extend |
-| `plugins/lsp/init.lua` (nvim-lspconfig) | (現状は同ファイル内に集約; 将来 `lang/<x>/lsp.lua` から拡張する余地) | table 形式で `opts.servers.<name>` を deep-merge |
+| `features/treesitter.lua` (nvim-treesitter) | `lang/markdown/treesitter.lua` | function 形式で `ensure_installed` を list_extend |
+| `features/lsp.lua` (nvim-lspconfig) | (現状は同ファイル内に集約; 将来 `lang/<x>/lsp.lua` から拡張する余地) | table 形式で `opts.servers.<name>` を deep-merge |
 
 ## 参考
 

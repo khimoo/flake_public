@@ -1,3 +1,5 @@
+local data = require("config.nix").data.skkeleton
+
 return {
     { 'delphinus/skkeleton_indicator.nvim', opts = {} }, -- skkeletonのdependenciesに書くと一番最初だけ表示されない(おそらくlazy読み込みが考慮されていない)
     {
@@ -7,8 +9,7 @@ return {
         config = function()
             local function skkeleton_init()
                 vim.fn['skkeleton#config']({
-                    -- 生成元: modules/home-manager/core.nix
-                    globalDictionaries = {{dofile(vim.fn.stdpath("data") .. "/nix/skk-dict-path.lua"), 'euc-jp'}},
+                    globalDictionaries = {{data.dictionary, 'euc-jp'}},
                     eggLikeNewline = true,
                     keepMode = true,
                     keepState = true,

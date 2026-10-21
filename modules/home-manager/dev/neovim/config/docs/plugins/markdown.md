@@ -3,9 +3,10 @@
 Markdown ファイル編集に関わるプラグインと設定をひとまとめにしたドキュメント。
 
 > 設定: `modules/home-manager/dev/neovim/config/lua/plugins/lang/markdown/` 配下に
-> サブモジュール (filetype / render / autolist / img-clip / treesitter / skk-bridge) で分割。
-> LSP (marksman) は `modules/home-manager/dev/lsp.nix` の `lspServers` 経由で導入され、
-> `lua/plugins/lsp/init.lua` が自動で有効化する。サーバー固有の override が必要に
+> サブモジュール (filetype / autolist / treesitter / skk-bridge) と、
+> `lua/features/render_markdown.lua`、`lua/features/img_clip.lua`、`lua/features/diagram.lua` に分割。
+> LSP (marksman) は `modules/home-manager/dev/neovim/features.nix` の `lspServers` 経由で導入され、
+> `lua/features/lsp.lua` が自動で有効化する。サーバー固有の override が必要に
 > なった際は、本ディレクトリに `lsp.lua` を追加して `nvim-lspconfig` の
 > `opts.servers.marksman` を spec マージで宣言する想定。
 
@@ -71,7 +72,7 @@ LaTeX 風の数式を Unicode 文字列に変換して inline 表示する。
 - 利点: ターミナル要件なし (Kitty graphics protocol 不要)、依存軽量
 - 制約: 行列・複雑な分数・integral with limits などは粗くなる
 
-依存 (`modules/home-manager/dev/neovim/default.nix` の `nvimPluginDeps` で注入):
+依存 (`modules/home-manager/dev/neovim/features.nix` の機能ごとに注入):
 
 | パッケージ | 提供 | 用途 |
 |-----------|------|------|
@@ -132,23 +133,23 @@ skkeleton 有効中は insert-mode の `<CR>` が skkeleton に横取りされ�
 
 スクリーンショットをクリップボードに保持した状態で `<leader>p`:
 
-1. **zettelkasten vault の `attachments/`**（`~/sagyo/zettelkasten/attachments`）に画像を保存
+1. **zettelkasten vault の `attachments/`**（`local.profile.zettelkastenRoot` 配下）に画像を保存
 2. ファイル名は `YYYY-MM-DD-HH-MM-SS.png`
 3. カーソル位置に現在ファイルからの相対パスで `![](.../attachments/...)` の Markdown リンクを挿入
 
-> 保存先は暫定でハードコード。**将来 neovim 設定を独立モジュール化する際に option 化**する予定
-> （TODO は `img-clip.lua` に記載）。現状は zettelkasten 以外の vault で貼っても保存先がここに固定される。
+> 保存先は `features.nix` が `local.profile.zettelkastenRoot` から生成する
+> `require("config.nix").data.img_clip.dir` を使う。vault が未設定なら img_clip 機能は読み込まない。
 
 | キー | 動作 |
 |------|------|
 | `<leader>p` | クリップボード画像を貼り付け |
 
 保存先は Obsidian の `attachmentFolderPath="attachments"` と物理的に一致し、rclone bisync で
-Google Drive に同期される単一フォルダ（`~/sagyo/zettelkasten/attachments`）へ集約される。
+Google Drive に同期される単一フォルダ（設定した vault の `attachments/`）へ集約される。
 同期の仕組みは [zettelkasten 添付同期のドキュメント](../../../../../../../docs/howtouse/zettelkasten-attachments-sync.md)を参照。
 
 **依存ツール**: Wayland 環境では `wl-clipboard`、X11 環境では `xclip` が必要。
-両方とも `modules/home-manager/dev/neovim/default.nix` の `nvimPluginDeps` で導入される。
+`modules/home-manager/dev/neovim/features.nix` の clipboard 機能が両方を、img_clip 機能が wl-clipboard を導入する。
 不在時は起動時に WARN が出る。
 
 ## diagram.nvim + image.nvim — Mermaid プレビュー
@@ -189,7 +190,7 @@ typst 統合は image.nvim 側で既定有効なため、markdown と同じ設�
 
 ### 再描画のタイミング
 
-`diagram.lua` の `opts.events.render_buffer` で再描画トリガを
+`features/diagram.lua` の `opts.events.render_buffer` で再描画トリガを
 `{ "InsertLeave", "BufWinEnter", "BufWritePost" }` に絞っている。
 
 - `BufWinEnter` — ファイルを開いた／ウィンドウに表示した時
@@ -210,7 +211,7 @@ mermaid ブロックを複数持つ .md では初回描画や編集中に Chromi
 トリガを間引いても、**複数図を含む .md を初回に開いた瞬間**は全図が一斉にキャッシュ
 ミスし、mmdc が同時に大量起動する問題が残る（8 図同時起動で Chromium 系 466 プロセス／
 ピーク RSS 数十 GB を実測）。diagram.nvim には同時実行数の制限機能が無いため、
-`diagram.lua` で mermaid renderer の `render` を**上限付きキュー**でラップしている。
+`features/diagram.lua` で mermaid renderer の `render` を**上限付きキュー**でラップしている。
 
 - 同時に走る `mmdc` は `MAX_CONCURRENT`（既定 2）個まで。残りはキューで待機。
 - 図は 2 個ずつ順次レンダリングされ、完了ごとにバッファを再描画して表示される
@@ -232,7 +233,7 @@ require したテーブル。ドット記法だと `package.loaded` 上で別モ
                  └─ magick (luarock) 画像処理
 ```
 
-外部ツール (すべて `modules/home-manager/dev/neovim/default.nix` で注入済み):
+外部ツール (`modules/home-manager/dev/neovim/features.nix` の diagram / treesitter で注入済み):
 
 | 依存 | 用途 |
 |------|------|
@@ -249,11 +250,11 @@ lazy.nvim の **luarocks 統合は無効化**してある (`lua/config/lazy.lua`
   Nix で読み取り専用な `/nix/store` 配下では組めないため無効化
 - `pkg.sources = { "lazy", "packspec" }`: image.nvim の `.rockspec` を読まないようにする。
   読むと「magick 依存が未解決」とみなされ "Too many rounds of missing plugins" エラーになる
-- 代わりに `programs.neovim.extraLuaPackages = ps: [ ps.magick ];` で nixpkgs 側から
+- 代わりに `features.nix` の `diagram.luaPackages = ps: [ ps.magick ];` で nixpkgs 側から
   magick luarock を `package.path` に注入している
 
 将来 image.nvim 以外で luarock 依存のプラグインを追加するときも、同じく
-`extraLuaPackages` に追記すれば動く。
+対応する機能の `luaPackages` に追記すれば動く。
 
 ### コマンド
 

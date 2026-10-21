@@ -2,7 +2,6 @@
 
 {
   imports = [
-    ./lsp.nix
     ./neovim
     ./uv-mode.nix
     ./rustowl.nix

@@ -2,7 +2,7 @@
 
 Neovim 内でデバッグ実行。ブレークポイント、ステップ実行、変数ウォッチ。
 
-- 設定ファイル: `lua/plugins/dap/init.lua`, `lua/plugins/dap/view.lua`, `lua/config/dap/python.lua`
+- 設定ファイル: `lua/features/dap.lua`, `lua/config/dap/python.lua`
 
 ## プラグイン
 

@@ -250,7 +250,7 @@ lib.genAttrs systems (
       assert !(home.config.home.activation ? rustowl);
       assert (builtins.any (p: (p.pname or "") == "rustowl") home.config.home.packages) == (system == "x86_64-linux");
       assert (hasLauncher home.config "uv-mode") == (lib.hasSuffix "-linux" system);
-      assert (mkTestHome system [{ local.rustowl.enable = false; }]).config.xdg.dataFile."nvim/nix/rustowl.lua".text == "return nil";
+      assert !(mkTestHome system [{ local.rustowl.enable = false; }]).config.local.neovim.features.rustowl.enable;
       assert !(hasLauncher home.config "cargo-remote-run");
       assert hasLauncher (mkTestHome system [
         {

@@ -4,7 +4,7 @@ local root = vim.fn.getcwd() .. "/modules/home-manager/dev/neovim/config"
 vim.opt.rtp:prepend(root)
 
 local Plugin = require("lazy.core.plugin")
-local base = dofile(root .. "/lua/plugins/treesitter.lua")[1]
+local base = dofile(root .. "/lua/features/treesitter.lua")[1]
 local markdown = dofile(root .. "/lua/plugins/lang/markdown/treesitter.lua")
 local required = { "markdown", "markdown_inline", "mermaid", "latex" }
 

@@ -9,8 +9,8 @@ lazy.nvim 本体は nixpkgs の `vimPlugins.lazy-nvim` を `programs.neovim.plug
 | 対象 | 持ち主 | 固定の仕組み |
 |------|--------|--------------|
 | lazy.nvim 本体 | nixpkgs (`programs.neovim.plugins`) | `flake.lock` の nixpkgs |
-| プラグイン本体 | lazy.nvim (git clone) | `lazy-lock.json` (リポジトリ内で git 追跡) |
-| Nix 側で組むもの (rustowl プラグイン、codelldb、LSP 一覧、SKK 辞書) | Home Manager | `~/.local/share/nvim/nix/*.lua` のブリッジファイルを `dofile` で読む |
+| プラグイン本体 (RustOwl・smart-splits を除く) | lazy.nvim (git clone) | `lazy-lock.json` (リポジトリ内で git 追跡) |
+| Nix 側で組むもの (RustOwl・smart-splits プラグイン、codelldb、LSP 一覧、SKK 辞書) | Home Manager | `features.nix` 等で定義し、`~/.local/share/nvim/nix/features.lua` を `config.nix` 経由で読む |
 
 Nix のラッパが lazy.nvim を packpath に載せるので、git clone によるブートストラップは要らない。
 その代わり `performance.reset_packpath = false` と `performance.rtp.reset = false` が必要で、

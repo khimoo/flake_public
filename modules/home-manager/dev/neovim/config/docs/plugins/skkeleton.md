@@ -2,7 +2,7 @@
 
 SKK 方式の日本語入力と fcitx5 の自動切り替え。
 
-- 設定ファイル: `lua/plugins/skkeleton.lua`, `init.lua` (fcitx5 連携部分)
+- 設定ファイル: `lua/features/skkeleton.lua`, `init.lua` (fcitx5 連携部分)
 
 ## プラグイン
 

@@ -2,7 +2,7 @@
 
 構文解析ベースのハイライト、テキストオブジェクト、コード整形。
 
-- 設定ファイル: `lua/plugins/treesitter.lua`
+- 設定ファイル: `lua/features/treesitter.lua`
 - ノード単位の選択キー: `lua/config/keymaps.lua`
 
 ## プラグイン

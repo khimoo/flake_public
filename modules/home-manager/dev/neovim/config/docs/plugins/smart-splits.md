@@ -2,7 +2,7 @@
 
 Neovim のウィンドウ分割と kitty のペインをシームレスに行き来・リサイズできるプラグイン。
 
-- 設定ファイル (nvim): `lua/plugins/smart-splits.lua`
+- 設定ファイル (nvim): `lua/features/smart_splits.lua`
 - 設定ファイル (kitty): `modules/home-manager/gui/kitty/kitty.conf`
 
 ## 仕組み

@@ -2,7 +2,7 @@
 
 ファジーファインダー。ファイル検索、テキスト検索、LSP 連携など Neovim の検索の中核。
 
-- 設定ファイル: `lua/plugins/telescope.lua`
+- 設定ファイル: `lua/features/telescope.lua`
 - 依存: plenary.nvim, ripgrep, telescope-media-files.nvim, project.nvim
 
 ## プラグイン

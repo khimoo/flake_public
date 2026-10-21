@@ -36,8 +36,8 @@ return {
       local capabilities = require('blink.cmp').get_lsp_capabilities()
 
       -- Nix 生成ファイルから有効化対象のサーバー一覧を取得
-      -- (生成元・リスト定義: modules/home-manager/dev/lsp.nix)
-      local servers = dofile(vim.fn.stdpath("data") .. "/nix/lsp-servers.lua")
+      -- (生成元・リスト定義: modules/home-manager/dev/neovim/features.nix)
+      local servers = require("config.nix").data.lsp.servers
       local overrides = opts.servers or {}
 
       for _, name in ipairs(servers) do

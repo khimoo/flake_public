@@ -5,7 +5,6 @@ return {
         dependencies = {
             "nvim-lua/plenary.nvim",
             'nvim-telescope/telescope-media-files.nvim',
-            "BurntSushi/ripgrep",
             "ahmedkhalf/project.nvim", -- どこにいてもgitのrootにcdしてくれるplugin
         },
         config = function()

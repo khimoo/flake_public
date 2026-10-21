@@ -3,8 +3,8 @@
 tinymist (LSP) と typst-preview.nvim を組み合わせる。
 Typst + Neovim の界隈で標準的な構成で、言語機能とプレビューを別プロセスに分ける。
 
-> 設定: `lua/plugins/lang/typst/`
-> パッケージ: tinymist は `modules/home-manager/dev/lsp.nix`、websocat は `modules/home-manager/dev/neovim/default.nix`
+> 設定: `lua/plugins/lang/typst/`、`lua/features/typst_preview.lua`
+> パッケージ: tinymist は `modules/home-manager/dev/neovim/features.nix`、websocat も同ファイルの typst_preview 機能
 
 ## プレビューの二系統
 

@@ -2,25 +2,25 @@
 
 コードの定義ジャンプ、補完、診断、リネーム等を提供する。
 
-- 設定ファイル: `lua/plugins/lsp/init.lua`, `lua/config/lsp/keymaps.lua`, `lua/config/lsp/diagnostics.lua`
+- 設定ファイル: `lua/features/lsp.lua`, `lua/config/lsp/keymaps.lua`, `lua/config/lsp/diagnostics.lua`
 - 依存: nvim-lspconfig, blink.cmp
 
 ## サーバーの設定方法
 
 ### サーバー一覧 (どの LSP を有効化するか)
 
-`modules/home-manager/dev/lsp.nix` の `lspServers` に nixpkgs パッケージと LSP 識別子のペアを書く。同じモジュールがパッケージを導入し、`~/.local/share/nvim/nix/lsp-servers.lua` に識別子の Lua 配列を生成する。`plugins/lsp/init.lua` が `dofile` で読み込んでループ有効化する。factory や `dev/neovim/default.nix` に一覧を中継する引数は不要。
+`modules/home-manager/dev/neovim/features.nix` の `lspServers` に nixpkgs パッケージと LSP 識別子のペアを書く。lsp 機能の packages がパッケージを Neovim の PATH に追加し、識別子の配列は `~/.local/share/nvim/nix/features.lua` の data.lsp.servers に生成する。`features/lsp.lua` が `require("config.nix").data.lsp.servers` を読み込んでループ有効化する。factory や `dev/neovim/default.nix` に一覧を中継する引数は不要。
 
 新しい LSP を追加する手順:
-1. `dev/lsp.nix` の `lspServers` に `{ pkg = pkgs.foo; lsp = "foo_ls"; }` を追加
+1. `dev/neovim/features.nix` の `lspServers` に `{ pkg = pkgs.foo; lsp = "foo_ls"; }` を追加
 2. rebuild
 3. 自動で `vim.lsp.enable("foo_ls")` まで走る
 
-この設計の利点: LSP サーバーバイナリの導入 (`home.packages`) と nvim 側での有効化が **同じリストの 1 行から両方派生する** ので、片方を書き忘れない。
+この設計の利点: LSP サーバーバイナリの導入 (lsp 機能の `packages`) と nvim 側での有効化が **同じリストの 1 行から両方派生する** ので、片方を書き忘れない。
 
 ### サーバー固有の設定 (capabilities 以外の override)
 
-`plugins/lsp/init.lua` の `opts.servers` テーブルで設定する。例:
+`features/lsp.lua` の `opts.servers` テーブルで設定する。例:
 
 ```lua
 opts = {
@@ -35,7 +35,7 @@ opts = {
 このテーブルは **lazy.nvim の spec マージで言語モジュールから拡張可能**。例えば `lang/markdown/lsp.lua` で `opts.servers.marksman = { ... }` を返す spec を書けば、`nvim-lspconfig` の opts に deep-merge される。詳細は [架構ドキュメント (spec マージ)](../architecture/spec-merge.md) を参照。
 
 現状の override:
-- `nil_ls`: Nix 用。`nixfmt` でフォーマット。`plugins/lsp/init.lua` に直接書いている
+- `nil_ls`: Nix 用。`nixfmt` でフォーマット。`features/lsp.lua` に直接書いている
 - `tinymist`: Typst 用。spec マージを使って `lang/typst/lsp.lua` から差し込む。詳細は [lang-typst.md](./lang-typst.md)
 
 ## キーバインド

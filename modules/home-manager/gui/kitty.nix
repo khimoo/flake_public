@@ -4,6 +4,7 @@ let
   # smart-splits.nvim の kitty backend が kitty @ kitten で呼ぶスクリプト。plugin 同梱の
   # install-kittens.bash は ~/.config/kitty/ へ命令的にコピーする作りだが、nixpkgs の
   # vimPlugins が同じファイルを持っているので宣言的に置ける。
+  # Neovim 側（dev/neovim/features.nix の smart_splits）と同じパッケージを使う。
   smartSplitsKittens = "${pkgs.vimPlugins.smart-splits-nvim}/kitty";
 in
 lib.mkIf config.local.profile.features.gui {

@@ -5,6 +5,14 @@
 --
 -- ~/.config/nvim は mkOutOfStoreSymlink でリポジトリ実体を指す symlink のため、
 -- lockfile (lazy-lock.json) はデフォルト位置 (config dir 直下) のまま git で追跡できる。
+--
+-- 外部コマンドや Nix の生成物を使うプラグインは lua/features/ に置き、Home Manager が
+-- 有効にした機能だけを読み込む。lua/plugins/ の一括 import はそれらを拾わない。
+local spec = { { import = "plugins" } }
+for _, name in ipairs(require("config.nix").features) do
+  spec[#spec + 1] = { import = "features." .. name }
+end
+
 require("lazy").setup({
   performance = {
     -- Nix のラッパが packpath/rtp に載せた lazy.nvim 本体を見失わないよう、
@@ -14,10 +22,7 @@ require("lazy").setup({
       reset = false,
     }
   },
-  spec = {
-    -- import your plugins
-    { import = "plugins" },
-  },
+  spec = spec,
   install = {
       missing = true,
   },
