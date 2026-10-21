@@ -396,6 +396,12 @@ lib.genAttrs systems (
       # @mimikopi は手で作る subvol なので、作る前の switch や再起動で起動を止めないよう nofail を外さない。
       assert builtins.elem "nofail"
         inputs.self.nixosConfigurations.nixos-desktop.config.fileSystems."/home/pomu/.local/share/mimikopi".options;
+      assert hasLauncher desktopUser "xlikes";
+      assert builtins.elem "nofail"
+        inputs.self.nixosConfigurations.nixos-desktop.config.fileSystems.${desktopUser.local.xLikes.dataDir}.options;
+      # xlikes が接続するデータベースを、OS 側の Postgres が作る。
+      assert builtins.elem desktopUser.local.xLikes.database
+        inputs.self.nixosConfigurations.nixos-desktop.config.services.postgresql.ensureDatabases;
       # sdl-freerdp は右 Alt（AltGr）の単独押しで、次のショートカット一回だけキーボードを掴む。右 Alt が AltGr に
       # なる配列を既定にし、keyd は普段の右 Alt を書き換えず、ターボの連打は ◇ + 右 Alt で入れるレイヤーに置く
       # （docs/architecture/windows-vm.md）。

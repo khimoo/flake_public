@@ -1,6 +1,10 @@
 { config, pkgs, lib, ... }:
 
 let
+  # PyTorch の ROCm wheel に Navi 23 (gfx1032) 向けカーネルがないため、
+  # gfx1030 として扱わせる（docs/architecture/mimikopi-env.md）。
+  hsaOverrideGfxVersion = "10.3.0";
+
   extraGnomeExtensionsList = with pkgs.gnomeExtensions; [
     display-configuration-switcher
   ];
@@ -30,13 +34,20 @@ in {
     archiveDir = "/mnt/backup/quaderno";
   };
 
-  # PyTorch の ROCm wheel に Navi 23 (gfx1032) 向けカーネルがないため、
-  # gfx1030 として扱わせる（docs/architecture/mimikopi-env.md）。
   # data-disk.nix がこの保存先に @mimikopi をマウントする。
   local.mimikopi = {
     enable = true;
     dataDir = "/home/pomu/.local/share/mimikopi";
-    hsaOverrideGfxVersion = "10.3.0";
+    inherit hsaOverrideGfxVersion;
+  };
+
+  # X のいいねの保存と意味検索。data-disk.nix がこの保存先に @x-likes をマウントし、
+  # modules/nixos/x-likes.nix が Postgres のデータベースを用意する。
+  local.xLikes = {
+    enable = true;
+    dataDir = "/home/pomu/.local/share/x-likes";
+    projectDir = "/home/pomu/sagyo/x-likes-archive";
+    inherit hsaOverrideGfxVersion;
   };
 
   home.packages = with pkgs; [

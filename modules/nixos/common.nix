@@ -18,5 +18,6 @@
     ./audio.nix
     ./sns-block.nix
     ./gnome-transparent-fullscreen.nix
+    ./x-likes.nix
   ];
 }

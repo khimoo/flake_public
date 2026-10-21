@@ -34,6 +34,7 @@
 | 写真の仕分け | Google Photos から引き上げた写真の仕分け | [photo-triage.md](./photo-triage.md) |
 | Minecraft バックアップ | インスタンスのバックアップと復元 | [minecraft-backup.md](./minecraft-backup.md) |
 | Quaderno の取り込み | 手書き PDF の取り込み | [quaderno.md](./quaderno.md) |
+| X のいいねの保存 | いいねの保存と意味検索、定期実行 | [x-likes.md](./x-likes.md) |
 
 ## 関連
 

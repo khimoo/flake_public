@@ -40,7 +40,11 @@ let
     # 再起動をしても起動を止めないよう nofail にする。マウントに失敗したときにルートへ書き込ませない
     # 確認は mimikopi-env が受け持つ（docs/architecture/mimikopi-env.md）。
   ] ++ lib.optional hm.local.mimikopi.enable
-    { subvol = "@mimikopi"; path = hm.local.mimikopi.dataDir; opts = dataOpts ++ [ "nofail" ]; };
+    { subvol = "@mimikopi"; path = hm.local.mimikopi.dataDir; opts = dataOpts ++ [ "nofail" ]; }
+    # X のいいねの保存。@mimikopi と同じく手で作る subvol なので nofail にし、マウントの確認は
+    # x-likes-env が受け持つ（docs/architecture/x-likes.md）。
+    ++ lib.optional hm.local.xLikes.enable
+    { subvol = "@x-likes"; path = hm.local.xLikes.dataDir; opts = dataOpts ++ [ "nofail" ]; };
 in
 {
   fileSystems = builtins.listToAttrs (map (m: {

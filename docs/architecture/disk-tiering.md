@@ -23,6 +23,7 @@ NVMe (Samsung 980, 466G) = ホット層          SATA (Samsung 860, 233G) = コ�
                                                  @vm        → /var/lib/libvirt/images (NOCOW)
                                                  @backup    → /mnt/backup
                                                  @mimikopi  → ~/.local/share/mimikopi (ML モデル)
+                                                 @x-likes   → ~/.local/share/x-likes (いいねの保存)
 ```
 
 判断の軸は「SSD かどうか」ではなく **そのワークロードの IO パターン**。SATA が NVMe に
@@ -146,4 +147,6 @@ SATA を転用するにあたり、旧 Windows のブート設定が残ってい
 サイレント障害になる。内蔵ディスクで常時存在する前提なので、失敗時はむしろ loud に
 気づける既定（required）のままにしている。
 
-アプリの保存先は primaryUser の Home Manager 設定から読む。`local.mimikopi.enable` のときだけ `dataDir` に `@mimikopi` をマウントする。Minecraft の所有者設定は `local.minecraftBackup.repoDir` の親、Quaderno は `local.quaderno.archiveDir` を使い、それぞれ有効なときだけ tmpfiles で用意する。実装は [data-disk.nix](../../hosts/nixos-desktop/data-disk.nix)。
+例外は、アプリを有効にしてから手で作る subvol（`@mimikopi`、`@x-likes`）で、作る前の switch や再起動で起動を止めないよう `nofail` を付ける。その代わり、使う側の環境（`mimikopi-env`、`x-likes-env`）が起動時にマウントを確かめ、マウントされていなければ止まる。
+
+アプリの保存先は primaryUser の Home Manager 設定から読む。`local.mimikopi.enable` のときだけ `local.mimikopi.dataDir` に `@mimikopi` を、`local.xLikes.enable` のときだけ `local.xLikes.dataDir` に `@x-likes` をマウントする。Minecraft の所有者設定は `local.minecraftBackup.repoDir` の親、Quaderno は `local.quaderno.archiveDir` を使い、それぞれ有効なときだけ tmpfiles で用意する。実装は [data-disk.nix](../../hosts/nixos-desktop/data-disk.nix)。

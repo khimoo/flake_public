@@ -20,6 +20,7 @@ let
     ../modules/home-manager/minecraft-backup.nix
     ../modules/home-manager/windows-vm.nix
     ../modules/home-manager/mimikopi.nix
+    ../modules/home-manager/x-likes.nix
     ../modules/home-manager/quaderno.nix
     ../modules/home-manager/dev
     ../modules/home-manager/gui
