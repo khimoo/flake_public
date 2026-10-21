@@ -135,6 +135,8 @@ rebuild で消えるのは、Home Manager が張ったリンク（`~/.claude/ski
 - `~/.claude/settings.json` は Claude Code が書く live ファイルで、repo で追跡しない。
   `/model` や `/config`、`/plugin` で試したプラグインはここに入る。常用すると決めたプラグインは
   `claude/settings.json` に移す
+- プラグインのフックとコマンドは Claude Code の PATH で実行される。Node.js はシェルに入れていないので、
+  Claude Code のラッパーが PATH の末尾に足している（[claude-code-node.nix](../../overlays/claude-code-node.nix)）
 - 全プロジェクト共通の指示は `shared/AGENTS.md` に書く。Claude Code だけに効かせたい指示は
   `claude/CLAUDE.md` の import の下に書く
 - skills は Claude Code と Codex で同じ `SKILL.md` 形式。片方だけが解釈する frontmatter の

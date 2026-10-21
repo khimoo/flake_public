@@ -93,7 +93,8 @@ nix-index の handler は `.bashrc` で定義されるので、対話シェル�
 コマンドを非対話の bash で実行し、`.bashrc` を読まない（2026-10-21 に Claude Code のシェルで
 `command_not_found_handle` が未定義であることを確認した）。グローバルの Node.js・gcc を外したので、
 エージェントが `node` や `gcc` を探して止まる場面に案内を出したい。Python 3 は agents-private のスキルと
-`scripts/check.sh` が直接呼ぶため残している。
+`scripts/check.sh` が直接呼ぶため残している。Claude Code の中ではプラグインのために `node` が PATH にある
+（[claude-code-node.nix](../../../overlays/claude-code-node.nix)）ので、`node` の案内が出るのはそれ以外から実行したときになる。
 
 非対話の bash は、ログインシェルとして起動されても環境変数 `BASH_ENV` のファイルを読む。そこで
 `command_not_found_handle` を定義するファイルを [nix-index.nix](../../../modules/home-manager/nix-index.nix) で作り、
