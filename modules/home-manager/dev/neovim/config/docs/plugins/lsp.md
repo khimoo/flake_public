@@ -9,7 +9,7 @@
 
 ### サーバー一覧 (どの LSP を有効化するか)
 
-`modules/home-manager/dev/lsp.nix` の `lspServers` に nixpkgs パッケージと LSP 識別子のペアを書く。Nix が `~/.local/share/nvim/nix/lsp-servers.lua` に識別子の Lua 配列を生成し、`plugins/lsp/init.lua` が `dofile` で読み込んでループ有効化する。
+`modules/home-manager/dev/lsp.nix` の `lspServers` に nixpkgs パッケージと LSP 識別子のペアを書く。同じモジュールがパッケージを導入し、`~/.local/share/nvim/nix/lsp-servers.lua` に識別子の Lua 配列を生成する。`plugins/lsp/init.lua` が `dofile` で読み込んでループ有効化する。factory や `dev/neovim/default.nix` に一覧を中継する引数は不要。
 
 新しい LSP を追加する手順:
 1. `dev/lsp.nix` の `lspServers` に `{ pkg = pkgs.foo; lsp = "foo_ls"; }` を追加

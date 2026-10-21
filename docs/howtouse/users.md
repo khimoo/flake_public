@@ -103,9 +103,11 @@ nix flake update && sudo nixos-rebuild switch --flake .#hostname
 共通モジュール（`modules/home-manager/` 以下）は全ユーザーに自動で適用される。
 
 ```
-modules/home-manager/   ← 全ユーザー共通（flake.nix の homeModules で定義）
+modules/home-manager/   ← 全ユーザー共通（lib/configurations.nix の homeModules が入口）
 hosts/<hostname>/home-manager-<username>.nix  ← ユーザー固有（homeFile で指定）
 ```
+
+`dev/`・`gui/`・`audio/` の子モジュールは、それぞれの `default.nix` が読み込みます。共通モジュールを読み込んでも、GUI などの任意機能は本人の `local.profile.features` で選択した場合だけ有効になります。[GUI アプリの管理](gui-apps.md)も参照してください。
 
 ## 反映
 

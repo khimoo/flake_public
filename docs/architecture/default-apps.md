@@ -1,5 +1,7 @@
 # デフォルトアプリケーション設定
 
+使い方: [GUI アプリの管理](../howtouse/gui-apps.md)
+
 ## 概要
 
 MIME タイプに対するデフォルトアプリケーションは `xdg.mimeApps.defaultApplications` で管理している。

@@ -1,7 +1,6 @@
 {
   config,
   pkgs,
-  kiro,
   inputs,
   lib,
   ...
@@ -10,14 +9,8 @@
 let
   waylandFlags = "--enable-features=UseOzonePlatform --ozone-platform=wayland --enable-wayland-ime --wayland-text-input-version=3";
 
-  cursorConfig = {
-    appImage = "${config.home.homeDirectory}/.local/bin/cursor.AppImage";
-    icon = "${config.home.homeDirectory}/.local/share/icons/cursor.png";
-    url = "https://api2.cursor.sh/updates/download/golden/linux-x64/cursor/latest";
-    iconUrl = "https://framerusercontent.com/images/lfSBU4EhKcMg3iGg98L2F1ESfA.jpg";
-  };
-
-  # ---- アプリ定義（追加・削除はここだけ） ----
+  # ---- 一般アプリの定義（導入・Wayland・自動起動・MIME をまとめる） ----
+  # 専用モジュールやスキーム登録の変更箇所: docs/howtouse/gui-apps.md
 
   guiApps = [
     # -- 常駐系（自動起動） --
@@ -97,22 +90,11 @@ let
     { pkg = pkgs.typst; }
     { pkg = pkgs.yt-dlp; }
     { pkg = pkgs.transcribe; }
-    { pkg = pkgs.appimage-run; }
     { pkg = pkgs.tdf; }
     { pkg = pkgs.vmpk; }
     { pkg = pkgs.showmethekey; }
     { pkg = pkgs.zoom-us; }
   ];
-
-  # -- 特殊アプリ（外部 flake / AppImage） --
-  # guiApps のリストには収まらないが、同じファイルで管理する
-
-  kiroApp = {
-    pkg = kiro.packages.${pkgs.stdenv.hostPlatform.system}.default;
-    desktopName = "kiro.desktop";
-    binName = "kiro";
-    wayland = true;
-  };
 
   # ---- 導出ロジック ----
 
@@ -175,33 +157,6 @@ let
     ) withWayland
   );
 
-  kiroDesktopEntry = {
-    ".local/share/applications/${kiroApp.desktopName}" = {
-      source = createWaylandDesktopEntry {
-        pkg = kiroApp.pkg;
-        desktopName = kiroApp.desktopName;
-        execArgs = waylandFlags;
-        binName = kiroApp.binName;
-      };
-    };
-  };
-
-  cursorDesktopEntry = {
-    ".local/share/applications/cursor.desktop" = {
-      text = ''
-        [Desktop Entry]
-        Name=Cursor AI
-        Comment=AI-first code editor
-        Exec=${pkgs.appimage-run}/bin/appimage-run ${cursorConfig.appImage} --enable-features=UseOzonePlatform --ozone-platform=wayland --enable-wayland-ime %U
-        Icon=${cursorConfig.icon}
-        Type=Application
-        Categories=Development;IDE;
-        Terminal=false
-        StartupWMClass=Cursor
-      '';
-    };
-  };
-
   autostartServices = builtins.listToAttrs (
     map (
       app:
@@ -251,9 +206,9 @@ in
   };
 
   config = lib.mkIf config.local.profile.features.gui (lib.mkMerge [{
-    home.packages = map (a: a.pkg) guiApps ++ [ kiroApp.pkg ];
+    home.packages = map (a: a.pkg) guiApps;
 
-    home.file = waylandDesktopEntries // kiroDesktopEntry // cursorDesktopEntry;
+    home.file = waylandDesktopEntries;
 
     xdg.mimeApps = {
       enable = true;
@@ -263,35 +218,6 @@ in
     systemd.user.services = autostartServices;
 
     local.insecurePackages = permittedInsecure;
-
-    home.activation.installCursor = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    echo "Checking for Cursor AI updates..."
-
-    $DRY_RUN_CMD mkdir -p "$(dirname ${cursorConfig.appImage})"
-    $DRY_RUN_CMD mkdir -p "$(dirname ${cursorConfig.icon})"
-
-    if [ ! -f "${cursorConfig.icon}" ]; then
-      echo "Downloading Cursor icon..."
-      if ! $DRY_RUN_CMD ${pkgs.curl}/bin/curl -fL "${cursorConfig.iconUrl}" -o "${cursorConfig.icon}"; then
-        echo "WARNING: Failed to download Cursor icon from ${cursorConfig.iconUrl}" >&2
-      fi
-    fi
-
-    if [ -f "${cursorConfig.appImage}" ]; then
-      echo "Existing Cursor found. Checking for updates..."
-      if ! $DRY_RUN_CMD ${pkgs.curl}/bin/curl -fz "${cursorConfig.appImage}" -L "${cursorConfig.url}" -o "${cursorConfig.appImage}"; then
-        echo "WARNING: Failed to check for Cursor updates. Keeping existing version." >&2
-      fi
-    else
-      echo "Installing Cursor for the first time..."
-      if ! $DRY_RUN_CMD ${pkgs.curl}/bin/curl -fL "${cursorConfig.url}" -o "${cursorConfig.appImage}"; then
-        echo "ERROR: Failed to download Cursor AppImage from ${cursorConfig.url}" >&2
-        exit 1
-      fi
-    fi
-
-    $DRY_RUN_CMD chmod +x "${cursorConfig.appImage}"
-  '';
   } (lib.mkIf config.local.profile.standalone {
     # standalone home-manager (mkHome 経由) の場合のみ、自分で nixpkgs.config を設定する。
     # NixOS 統合時 (useGlobalPkgs = true) は home-manager から nixpkgs.config を

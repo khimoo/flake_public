@@ -1,4 +1,4 @@
-{ config, inputs, kiro, pkgs, lib, ... }:
+{ config, inputs, pkgs, lib, ... }:
 
 let
   claude-history-pkg =
@@ -35,7 +35,5 @@ in
     vscode
     jetbrains.idea
     android-tools
-  ] ++ lib.optionals (pkgs.stdenv.isLinux && config.local.profile.features.gui) [
-    kiro.packages.${pkgs.stdenv.hostPlatform.system}.default
   ];
 }

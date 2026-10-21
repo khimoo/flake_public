@@ -15,7 +15,6 @@
       url = "https://skk-dev.github.io/dict/SKK-JISYO.L.gz";
       flake = false;
     };
-    kiro.url = "github:johnkferguson/kiro-linux-flake";
     musnix.url = "github:musnix/musnix"; # https://github.com/musnix/musnix
     winapps = {
       url = "github:winapps-org/winapps";

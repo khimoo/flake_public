@@ -1,6 +1,16 @@
-{ lspServers, config, pkgs, lib, ... }:
+{ inputs, config, pkgs, lib, ... }:
 
 let
+  # skkeleton 専用の辞書。従来どおり overlay を通さない nixpkgs で展開する。
+  dictionaryPkgs = inputs.nixpkgs.legacyPackages.${pkgs.stdenv.hostPlatform.system};
+  skk-dict = dictionaryPkgs.stdenv.mkDerivation {
+    name = "skk-jisyo-dict";
+    src = inputs.skk-jisyo;
+    nativeBuildInputs = [ dictionaryPkgs.gzip ];
+    unpackPhase = "gzip -d < $src > $out";
+    dontInstall = true;
+  };
+
   # Neovim プラグインが必要とする外部ツール (Neovim 実行時の PATH のみに注入)
   # for: 依存元プラグイン/機能を明記。プラグイン削除時はここも消すこと。
   nvimPluginDeps = [
@@ -56,12 +66,12 @@ in
     config.lib.file.mkOutOfStoreSymlink
       "${config.local.profile.flakeRoot}/modules/home-manager/dev/neovim/config";
 
-  # Neovim が dofile で読む Nix 生成ファイル (環境変数と違い rebuild 即反映)。
+  # Neovim が dofile で読む Nix 生成ファイル。Home Manager の適用で更新する。
   # ~/.config/nvim 全体が mkOutOfStoreSymlink でリポジトリへの symlink になっているため、
   # 配下に追加ファイルを置けない。代わりに ~/.local/share/nvim/nix/ (stdpath("data")) に配置する。
-  # 参照元: modules/home-manager/dev/neovim/config/lua/plugins/lsp/init.lua
-  xdg.dataFile."nvim/nix/lsp-servers.lua".text =
-    "return {${builtins.concatStringsSep ", " (map (s: ''"${s.lsp}"'') lspServers)}}";
+  # 参照元: modules/home-manager/dev/neovim/config/lua/plugins/skkeleton.lua
+  xdg.dataFile."nvim/nix/skk-dict-path.lua".text =
+    ''return "${skk-dict}"'';
   # 参照元: modules/home-manager/dev/neovim/config/lua/plugins/lang/rust.lua
   xdg.dataFile."nvim/nix/codelldb-path.lua".text =
     ''return "${pkgs.vscode-extensions.vadimcn.vscode-lldb}/share/vscode/extensions/vadimcn.vscode-lldb/adapter/codelldb"'';

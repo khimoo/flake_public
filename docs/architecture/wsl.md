@@ -146,7 +146,7 @@ kitty と端末フォントだけを有効にする機能（`features.terminal`�
 Slack、Discord、Thunderbird などの自動起動は `graphical-session.target` に結び付いています。WSL にはデスクトップのセッションがなくこの target に到達しないので、自動では起動しません。
 `local.restrictedHost` の制限は変えません。kitty の remote control は `listen_on unix:${XDG_RUNTIME_DIR}/kitty.sock` というローカルのソケットだけを使い、外への接続経路にはなりません。
 
-[gui/apps.nix](../../modules/home-manager/gui/apps.nix) は switch のたびに Cursor の AppImage を `api2.cursor.sh` から取得し、初回の取得に失敗するとアクティベーションが `exit 1` で止まります。会社のネットワークがこの URL を通すかは、未確認です。
+2026-10-20 に Kiro と Cursor の導入設定を削除しました。[gui/apps.nix](../../modules/home-manager/gui/apps.nix) の Cursor 取得処理もなくなり、この取得先に対する会社ネットワークの到達性は適用の前提ではなくなりました。既存の AppImage の扱いは [GUI アプリの管理](../howtouse/gui-apps.md)を参照してください。
 描画は mesa のソフトウェア描画のままにし、遅いと感じたときだけ `wsl.useWindowsDriver` で Windows の GPU ドライバーを使います。
 
 
@@ -175,7 +175,6 @@ Slack、Discord、Thunderbird などの自動起動は `graphical-session.target
 - **WSLの利用環境が「会社PC」から「個人PC」に変更された場合**：制限を解除し、age暗号鍵や各種シークレット、Tailscaleネットワーク（tailnet）への接続設定を再構成します。
 - **社用の Claude や Codex のアカウントがある会社に移った場合**：上の「社用アカウントのある会社で戻すときの設計」で agents-private を戻します。その前に、自分用のプラグインやフック（コミット前に Gemini で校正するフックなど）を会社の作業で使ってよいかを、その会社の規程で確かめます。
 - **NixOS全体のシステムリリースをアップデートする場合**：NixOS-WSLのインプットソース（Flake input）も同期して対応するリリースブランチ（`release-YY.MM`）へ追従させます。
-- **会社のネットワークが Cursor の取得（`api2.cursor.sh`）を通さない場合**：switch が止まるので、制限付きのホストでは取得を飛ばすようにします。
 - **Neovim の外でも日本語を打つ必要が出た場合**：kitty を X11 で動かし、fcitx5-skk を IBus 互換の経路でつなぐ案を会社PCで試します。
 
 ## 参考資料・リンク

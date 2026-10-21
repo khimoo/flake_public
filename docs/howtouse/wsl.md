@@ -49,13 +49,7 @@ GUI アプリは Windows のスタートメニューに並びます。kitty は�
 
 日本語は、Neovim の中で skkeleton を使って入力します。Windows の IME は kitty には届かないので、シェルのプロンプトなど Neovim の外では日本語を打てません。
 
-`features.gui` を有効にした後の最初の switch の前に、Cursor の AppImage の取得先に届くかを確かめてください。switch のたびにここから取得しており、初回の取得に失敗するとアクティベーションが止まります。
-
-```sh
-curl -fsSI https://api2.cursor.sh/updates/download/golden/linux-x64/cursor/latest | head -1
-```
-
-`HTTP/2 200` などの応答が返れば問題ありません。エラーになる場合は switch せず、[docs/architecture/wsl.md](../architecture/wsl.md) の見直し契機に従って、制限付きのホストで取得を飛ばす変更を先に入れます。
+Kiro と Cursor の導入設定は削除したため、Cursor の取得先への接続確認は不要です。以前の設定を適用済みの場合は、[GUI アプリの管理](gui-apps.md)にある残存ファイルの扱いを参照してください。
 
 ## 更新手順
 

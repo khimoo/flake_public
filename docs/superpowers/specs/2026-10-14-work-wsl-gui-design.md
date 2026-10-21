@@ -4,6 +4,8 @@
 
 状態: 実装済み（2026-10-14）。「未確認」の項目は会社 PC での確認待ち。
 
+追記（2026-10-20）: Kiro・Cursor の導入設定を削除したため、以下に記録した Cursor の接続確認は不要になった。また、skkeleton の辞書生成は `core.nix` と factory から `dev/neovim/default.nix` へ移した。現在の手順は [WSL の使い方](../../howtouse/wsl.md)、残存ファイルの扱いは [GUI アプリの管理](../../howtouse/gui-apps.md)を参照。
+
 ## 目的
 
 会社 PC でも、自宅と同じ kitty（`Ctrl+a > 階層 > 動詞` のキー体系と、Neovim との smart-splits の連携）で作業できるようにする。

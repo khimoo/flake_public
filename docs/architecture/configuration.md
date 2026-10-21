@@ -11,11 +11,24 @@ Home Managerはユーザーごとに `config.local.profile` を評価する。�
 
 機構は共通モジュール、選択はprofile、ハードウェアはhostsに置く。imports は静的に保ち、`config` に依存する条件は `mkIf` に置く。`optionalAttrs config...` でモジュール構造を変えない。機能の有効化に型付きboolを使うことは正常なモジュール合成であり、一般的な「制御結合を避ける」という順位表で禁止しない。
 
+## 機能の実装をたどる
+
+factory の `homeModules` は共通機能の入口を列挙する。GUI の子モジュールは [gui/default.nix](../../modules/home-manager/gui/default.nix) がまとめて import し、factory 側には重ねて列挙しない。GUI 全体・GNOME・IME の有効化条件は各モジュールの `mkIf` に残し、WSLg のように GUI だけを使う構成を維持する。アプリの変更箇所は [GUI アプリの管理](../howtouse/gui-apps.md) を参照。
+
+Home Manager への `extraSpecialArgs` は `inputs` を渡す。アプリ専用の引数や derivation を factory で作らず、その機能のモジュールが必要な input を参照する。
+
+- [dev/neovim/default.nix](../../modules/home-manager/dev/neovim/default.nix) は skkeleton の辞書の展開と `nvim/nix/skk-dict-path.lua` の生成を持つ。辞書の取得元は `inputs.skk-jisyo`、展開用パッケージは従来の `inputs.nixpkgs.legacyPackages` のまま。
+- [dev/lsp.nix](../../modules/home-manager/dev/lsp.nix) は同じ `lspServers` からパッケージの導入と `nvim/nix/lsp-servers.lua` の生成を行う。Neovim モジュールへ一覧を引数で中継しない。
+
+生成した Lua は Home Manager の適用で XDG data 配下に配置する。Neovim の設定ディレクトリは live symlink なので、生成物をその中へ混ぜない。端末フォントの `terminalFont` は wezterm と kitty の双方が使うため、GUI 内での `_module.args` による共有を維持する。
+
 ## 型と制約
 
 `local.profile` は既定値・型・説明を持つNixオプション。変更可能な設定は型付き option と `mkEnableOption`、上書き可能な既定値は `mkDefault`、成立すべき制約は assertion で表す。誤字や型不一致は評価エラーにする。URLだけがありclone先がない設定、別ユーザーのhomeへのmutable checkout、重複clone先、vaultなしの同期、GUIなしのGNOME/IMEはassertionで拒否する。
 
 `flakeRoot` は共有の読み取り用checkoutにもできるのでhome内への制約は付けない。mutableなprivate checkoutはユーザーのhome配下に限定する。ディスク階層化はその配下へmountする。これはパス設定ミスを防ぐ契約であり、symlinkやOS権限を検証するセキュリティ境界ではない。
+
+名前付き checkout のパスと URL の対応は `profile.nix` の `pairs` にまとめ、clone 対象の生成、URL に対応するパスの必須判定、home 配下の制約に共用する。URL を省いた手動 clone 用のパスも home 配下の制約対象に含める。追加の `privateRepos` の宛先も同じ制約を受ける。
 
 `local.rustowl.enable` は対応するx86_64 Linuxで既定true、それ以外でfalse。未対応OSへの明示的有効化は拒否する。GUI等の現在のLinux専用プロファイルもDarwinでは拒否する。
 

@@ -10,6 +10,7 @@
 | 検証 | 変更範囲に応じた検証・CI・実機確認 | [validation.md](./validation.md) |
 | 音声 | WebRTC エコーキャンセルの仮想マイク選択・確認・無効化 | [audio-echo-cancel.md](./audio-echo-cancel.md) |
 | ユーザー管理 | ユーザーの追加・権限設定・home-manager 連携 | [users.md](./users.md) |
+| GUI アプリ | 導入・起動設定の変更箇所、Kiro・Cursor 削除後の残存ファイル | [gui-apps.md](./gui-apps.md) |
 | マシン間 SSH | flake 内のホストへ `ssh <短縮名>` で接続・マシン追加手順 | [machine-ssh.md](./machine-ssh.md) |
 | リモートビルド | ラップトップのビルドをデスクトップに自動で回す常設ビルダー、`--build-host` で明示的に回す運用、`cargo run` のビルドだけをデスクトップに回す `cargo remote-run` | [remote-build.md](./remote-build.md) |
 | Tailscale | LAN の外からデスクトップに `ssh desktop-ts` で入る。GUI の確認は RDP で画面ごと使う。出かける前の確認、ホストを tailnet に参加させる手順 | [tailscale.md](./tailscale.md) |

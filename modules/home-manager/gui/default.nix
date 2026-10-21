@@ -12,6 +12,12 @@ in
     ./wezterm.nix
     ./kitty.nix
     ./inkscape.nix
+    ./gnome.nix
+    ./ime.nix
+    ./apps.nix
+    ./firefox.nix
+    ./teams-dispatcher.nix
+    ./xdg-scheme-workaround.nix
   ];
 
   config = lib.mkMerge [

@@ -20,25 +20,8 @@ let
     ../modules/home-manager/quaderno.nix
     ../modules/home-manager/dev
     ../modules/home-manager/gui
-    ../modules/home-manager/gui/gnome.nix
-    ../modules/home-manager/gui/ime.nix
-    ../modules/home-manager/gui/apps.nix
-    ../modules/home-manager/gui/firefox.nix
-    ../modules/home-manager/gui/teams-dispatcher.nix
-    ../modules/home-manager/gui/xdg-scheme-workaround.nix
     ../modules/home-manager/audio
   ];
-  mkHomeArgs = system: {
-    inherit inputs;
-    inherit (inputs) kiro;
-    skk-dict = nixpkgs.legacyPackages.${system}.stdenv.mkDerivation {
-      name = "skk-jisyo-dict";
-      src = inputs.skk-jisyo;
-      nativeBuildInputs = [ nixpkgs.legacyPackages.${system}.gzip ];
-      unpackPhase = "gzip -d < $src > $out";
-      dontInstall = true;
-    };
-  };
 in
 {
   inherit overlays;
@@ -94,7 +77,7 @@ in
             backupFileExtension = "bak";
             useGlobalPkgs = true;
             useUserPackages = true;
-            extraSpecialArgs = mkHomeArgs system;
+            extraSpecialArgs = { inherit inputs; };
             users = builtins.listToAttrs (
               map (user: {
                 name = user.username;
@@ -125,7 +108,7 @@ in
     }:
     home-manager.lib.homeManagerConfiguration {
       pkgs = import nixpkgs { inherit system overlays; };
-      extraSpecialArgs = mkHomeArgs system;
+      extraSpecialArgs = { inherit inputs; };
       modules =
         homeModules
         ++ [

@@ -195,12 +195,7 @@ in
       }
       {
         assertion = builtins.all inHome (
-          [
-            cfg.zettelkastenRoot
-            cfg.agentConfigRoot
-            cfg.vaultSkeletonRepo
-            cfg.llmWikisRoot
-          ]
+          map (p: p.root) pairs
           ++ map (r: r.dest) cfg.privateRepos
         );
         message = "local.profile: mutable checkouts must belong to this user's home directory.";
