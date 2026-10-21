@@ -137,6 +137,12 @@ let
       stateVersion = "25.11";
     };
   allAssertions = home: builtins.all (a: a.assertion) home.config.assertions;
+  # activation の after / before が存在しないノードを指しても、Home Manager はエラーにせず順序も保証しない。
+  activationDepsExist =
+    activation:
+    builtins.all (
+      entry: builtins.all (dep: activation ? ${dep}) (entry.after ++ entry.before)
+    ) (builtins.attrValues activation);
   # Launchers are writeShellScriptBin outputs whose name is the executable name.
   hasLauncher = user: name: builtins.any (p: (p.name or "") == name) user.home.packages;
 in
@@ -155,8 +161,8 @@ lib.genAttrs systems (
     ];
     # These are shell-source tests using fake tools, not builds of the target
     # platform packages. Discard context only for these mocked script strings.
-    snippet =
-      name:
+    mockPaths =
+      text:
       builtins.unsafeDiscardStringContext (
         builtins.replaceStrings
           [
@@ -165,8 +171,16 @@ lib.genAttrs systems (
             (toString inputs.nixpkgs.legacyPackages.x86_64-linux.sops)
           ]
           [ "@test-home@" "@tools@" "@tools@" ]
-          activationHome.config.home.activation.${name}.data
+          text
       );
+    snippet = name: mockPaths activationHome.config.home.activation.${name}.data;
+    # コマンドの本文。道具は PATH から呼ぶので、テストが偽の道具を PATH の先頭に置く。
+    commandText =
+      name:
+      mockPaths
+        (lib.findFirst (p: (p.name or "") == name) (throw "${name} is not installed")
+          activationHome.config.home.packages
+        ).text;
     rejects =
       module:
       let
@@ -182,6 +196,8 @@ lib.genAttrs systems (
         (mkTestHome system [ { local.profile.features.typo = true; } ]).config.local.profile.features.gui;
     contracts =
       assert allAssertions home;
+      assert activationDepsExist desktopUser.home.activation;
+      assert activationDepsExist activationHome.config.home.activation;
       # /etc/nixos を checkout へのリンクにして、--flake なしの nixos-rebuild がこの flake を使うようにする。
       assert builtins.elem "L+ /etc/nixos - - - - /home/nixos/sagyo/flake_public" wsl.systemd.tmpfiles.rules;
       assert builtins.elem "L+ /etc/nixos - - - - /home/pomu/sagyo/flake_public"
@@ -194,7 +210,7 @@ lib.genAttrs systems (
       assert wsl.local.claudeManagedSettings == null;
       assert !(lib.hasInfix "IdentityFile" wslSshConfig);
       assert !(wslUser.home.activation ? secrets);
-      assert !(wslUser.home.activation ? privateRepos);
+      assert !(hasLauncher wslUser "clone-repos");
       # 会社 PC でも kitty を使うため、GUI アプリは WSLg で表示する（docs/architecture/wsl.md）。
       assert lib.attrNames (lib.filterAttrs (_: enabled: enabled) wslUser.local.profile.features) == [ "gui" ];
       assert builtins.any (p: (p.pname or "") == "kitty") wslUser.home.packages;
@@ -220,7 +236,8 @@ lib.genAttrs systems (
       assert users.bob.local.profile.sshKeys == [ ];
       assert users.bob.local.profile.agentConfigRoot == null;
       assert users.bob.local.profile.flakeRoot == "/home/bob/sagyo/flake_public";
-      assert !(users.bob.home.activation ? privateRepos);
+      assert !(hasLauncher users.bob "clone-repos");
+      assert hasLauncher users.alice "clone-repos";
       assert !(users.alice.home.file ? ".claude/settings.json");
       assert !(users ? unmanaged);
       assert builtins.length users.alice.local.profile.sshKeys == 2;
@@ -480,7 +497,7 @@ lib.genAttrs systems (
             pkgs.python3
             pkgs.bash
           ];
-          cloneScript = snippet "privateRepos";
+          cloneScript = commandText "clone-repos";
           secretsScript = snippet "secrets";
           passAsFile = [
             "cloneScript"
@@ -508,10 +525,31 @@ lib.genAttrs systems (
     # private repo を持たないユーザーでも pull-repos のビルド（shellcheck）が通ること。
     # standalone の Home Manager は評価しかしないので、ここでビルドしないと見つからない。
     pull-repos = lib.findFirst (p: (p.name or "") == "pull-repos") (throw "pull-repos is not installed") home.config.home.packages;
+    # clone-repos の shellcheck。本文の動作は activation の check が偽の git で確かめる。
+    clone-repos = lib.findFirst (p: (p.name or "") == "clone-repos") (throw "clone-repos is not installed") activationHome.config.home.packages;
     quaderno-plan = pkgs.runCommand "quaderno-plan" { nativeBuildInputs = [ pkgs.python3 ]; } ''
       cp ${../modules/home-manager/quaderno_plan.py} quaderno_plan.py
       cp ${./quaderno-plan.py} test_quaderno_plan.py
       python test_quaderno_plan.py
+      touch "$out"
+    '';
+    # 非対話の bash（エージェントのシェル）が、見つからないコマンドに入手方法を添え、127 のまま終わる。
+    # 実際の nix-locate と同梱の DB を使う。ビルド環境に node が無いことを前提にする。
+    command-not-found-hint =
+      if system != "x86_64-linux" then
+        pkgs.runCommand "command-not-found-hint-skipped" { } "touch $out"
+      else
+        pkgs.runCommand "command-not-found-hint" { hint = home.config.home.sessionVariables.BASH_ENV; } ''
+          status=0
+          BASH_ENV=$hint ${pkgs.bash}/bin/bash -c 'node --version' 2> err || status=$?
+          cat err
+          [ "$status" = 127 ]
+          grep -q 'nix shell nixpkgs#nodejs' err
+          touch "$out"
+        '';
+    # mc-setup-hooks が prismlauncher.cfg の [General] だけを書き換え、起動中は触らないこと。
+    minecraft-setup-hooks = pkgs.runCommand "minecraft-setup-hooks" { nativeBuildInputs = [ pkgs.python3 pkgs.gawk ]; } ''
+      python ${./minecraft-setup-hooks.py} ${../modules/home-manager/minecraft-setup-hooks.sh}
       touch "$out"
     '';
     # windows-vm の起動、待機、ロック、止め忘れの通知を、偽の virsh と FreeRDP で確かめる。

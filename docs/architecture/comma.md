@@ -29,6 +29,25 @@ comma と `nix-locate` のラッパーはどちらも `NIX_INDEX_DATABASE` で�
 
 代償として、`lib/` や `include/` にあるライブラリやヘッダの所属パッケージを `nix-locate` で引けない。
 
+## 非対話の bash にも案内を出す
+
+nix-index の handler は `.bashrc` で定義されるので、対話シェルにしか届かない。Claude Code や Codex は
+コマンドを非対話の bash で実行し、`.bashrc` を読まない（2026-10-21 に Claude Code のシェルで
+`command_not_found_handle` が未定義であることを確認した）。グローバルの Python・Node.js・gcc を外したので、
+エージェントが `python` や `node` を探して止まる場面に案内を出したい。
+
+非対話の bash は、ログインシェルとして起動されても環境変数 `BASH_ENV` のファイルを読む。そこで
+`command_not_found_handle` を定義するファイルを [nix-index.nix](../../modules/home-manager/nix-index.nix) で作り、
+`home.sessionVariables.BASH_ENV` に設定した。特定のエージェントの起動経路に依存せず、Happy や IDE から
+起動したエージェントにも届く。
+
+- 案内だけを出し、終了コードは 127 のまま。comma のように取得して実行すると、エージェントが意図しない
+  パッケージを使ったまま気づかない。
+- 候補の属性は同じ small データベースを `nix-locate` で引く。handler の中で PATH に無いコマンドを呼ぶと
+  handler が再帰するので、`nix-locate`、`sed`、`grep`、`paste` は絶対パスで呼ぶ。
+- 代償として、ユーザーのセッションで動く非対話の bash スクリプトは、すべてこのファイルを読む。定義するのは
+  関数一つなので、コマンドが見つからないときの表示が増えるほかに挙動は変わらない。
+
 ## データベースと nixpkgs の版のずれ
 
 データベースは nixos-unstable を索引しているが、この flake の nixpkgs は nixos-26.05 に固定している。

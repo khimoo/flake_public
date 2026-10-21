@@ -29,14 +29,14 @@ SATA SSD（`/dev/sda`）は btrfs 単一パーティション。subvol を最終
 （`~/sagyo/zettelkasten/.git` がある）のときだけマウントする**条件を付けている。無条件に
 マウントすると、clone より先に root 所有のディレクトリができて `git clone` が失敗する。
 
-そのため新しいマシンでは、初回 switch で vault が clone された**あと**に一度マウントを
-起こす必要がある:
+新しいマシンで `clone-repos` が vault を clone すると、`.git` の出現を見る path unit
+（`papis-references.path`）がマウントを始める。以降の boot では条件が真なので自動でマウントされる。
+マウントされていないときは、状態を確かめてから手で起こせる:
 
 ```sh
+systemctl status papis-references.path home-pomu-sagyo-zettelkasten-references.mount
 sudo systemctl start home-pomu-sagyo-zettelkasten-references.mount
 ```
-
-（再起動でも同じ。以降の boot では条件が真なので自動でマウントされる。）
 なぜ vault の中かつ SATA なのかは [../architecture/disk-tiering.md](../architecture/disk-tiering.md) を参照。
 
 ## Steam のゲーム置き場（@games）

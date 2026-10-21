@@ -1,4 +1,4 @@
-# private repo の宣言的 clone（設計判断）
+# private repo の clone（設計判断）
 
 使い方は [docs/howtouse/private-repo-clone.md](../howtouse/private-repo-clone.md) を参照。
 実装: [modules/home-manager/secrets.nix](../../modules/home-manager/secrets.nix)（鍵の書き出し）と
@@ -10,8 +10,8 @@
 
 ## 何を解決するか
 
-新しい環境へ flake を適用するとき、従来は private repo を手で `git clone` する必要がある。
-これを無くし、switch するだけで clone される状態にしたい。対象は NixOS だけでなく
+新しい環境へ flake を適用するとき、private repo を一つずつ手で `git clone` する手間を無くしたい。
+switch で鍵を置き、`clone-repos` 一回で必要な repo が揃う状態にする。対象は NixOS だけでなく
 非 NixOS（macOS）も含む（会社PCの nixos-work-wsl は age 鍵を置かないので対象外。[wsl.md](./wsl.md)）。対象 repo は 1 つに限定せず、Claude 設定と Obsidian
 workflow など複数の private repo を **同じ経路** で自動化する。
 
@@ -25,9 +25,9 @@ workflow など複数の private repo を **同じ経路** で自動化する。
 - 復号の種を「ユーザーが読める専用 age 鍵」にすれば root 不要になり、
   NixOS / 非 NixOS を同じ経路で扱える
 
-`home.activation`（`entryAfter [ "writeBoundary" ]`）は `home-manager switch` でも
+鍵の書き出しは `home.activation`（`entryAfter [ "writeBoundary" ]`）で行う。`home-manager switch` でも
 `nixos-rebuild switch`（統合された home-manager）でも走り、systemd に依存しないので
-Darwin でも動く。これで全環境を 1 実装に統一した。
+Darwin でも動く。clone は Home Manager が入れるコマンドなので、こちらも全環境で同じ実装になる。
 
 ## 認証の流れ
 
@@ -35,13 +35,12 @@ Darwin でも動く。これで全環境を 1 実装に統一した。
    （既存マシンから SSH 送信、または Bitwarden から取得）
 2. **暗号文 = SSH 秘密鍵**を sops で暗号化し `secrets/secrets.yaml` にコミット。
    `secrets.nix` の activation が age 鍵で復号し、まだ無いファイルだけ書き出す
-3. `private-repos.nix` が書き出された `~/.ssh/id_github` で clone する
+3. 利用者が `clone-repos`（`private-repos.nix`）を実行し、書き出された `~/.ssh/id_github` で clone する
 
 ## 復号と clone は別モジュールに分ける
 
 鍵の書き出し（`secrets.nix`）と clone（`private-repos.nix`）を分離した。
-clone は sops も age 鍵も知らず、`~/.ssh/id_github` が既に置かれている前提で動く。
-順序は `home.activation` の DAG（`entryAfter [ "sshKeys" ]`）が保証する。
+clone は sops も age 鍵も知らず、`~/.ssh/id_github` が置かれているかを実行時に確かめるだけにする。
 
 分けた理由は、`secrets.yaml` が配るものが GitHub 鍵だけではなくなったこと。
 LAN 共通鍵（`~/.ssh/id_lan`, [machine-ssh.md](./machine-ssh.md) 参照）は clone とは
@@ -67,12 +66,22 @@ LAN 共通鍵（`~/.ssh/id_lan`, [machine-ssh.md](./machine-ssh.md) 参照）は
 Bitwarden 保管 + 漏洩時の rotate（age 鍵を作り直し `sops updatekeys` で全体を再暗号化）で
 実用上妥当と判断した。台数・共有者が増えるなら per-machine 受信者へ戻す。
 
+## 初回 clone を switch から分ける
+
+clone は以前 activation で行っていた。次の理由で、switch の後に実行するコマンドへ移した。
+
+- switch にネットワークからの取得が混ざると、環境の適用が GitHub への到達や認証の状態に左右される。
+- 鍵の書き出しとの順序を DAG の依存名で表していたが、指していたノード名（`sshKeys`）は存在せず、Home Manager は存在しない依存名をエラーにしないので、順序は保証されていなかった。コマンドにすれば、鍵の有無を実行時に確かめられる。
+- clone が要るのは新しい環境を用意するときの一度だけで、毎回の switch で確認する意味が薄い。
+
+代償は、新しい環境の手順が「age 鍵を置く → switch → `clone-repos`」の 3 手になること。activation の依存名が実在するノードを指していることは、`tests/default.nix` の契約で確かめる。
+
 ## clone-if-absent（冪等・非破壊）
 
 各 `{ url, dest }` について `dest` が存在しないときだけ clone する。SSH 鍵も
 同名のファイルが無いときだけ書き出す。
 
-- 既に clone / 鍵設置済みなら何もしない（毎 switch で pull・上書きしない）
+- 既に clone / 鍵設置済みなら何もしない（`clone-repos` も switch も pull・上書きしない）
 - live に編集する working tree・既存の鍵を Nix が破壊しない
 
 「初回だけ面倒を見て、以降の pull/push はユーザーに委ねる」割り切り。mutable な状態を
@@ -100,8 +109,8 @@ clone 対象が無い環境でも flake 1 つを対象にコマンドは生え�
 
 `git pull --ff-only` なので、ローカルにコミットがあって分岐した repo は git が拒否して止まる
 （merge commit を勝手に作らない）。1 つ失敗しても残りは回し、最後に非ゼロで終わる。
-未 clone の dest は「switch すれば clone される」と報告するだけで、ここでは clone しない
-（clone の経路を activation に一本化し、鍵の前提を二重に持たないため）。
+未 clone の dest は `clone-repos` を案内するだけで、ここでは clone しない
+（clone の経路を `clone-repos` に一本化するため）。
 
 ## fail-fast（age 鍵が無ければ switch を失敗させる）
 
@@ -120,7 +129,7 @@ switch できないと回復もできないという循環は起きない——a
 
 ## 複数 repo へ汎用化
 
-`private-repos.nix` は `local.profile.privateRepos = [{ url; dest; }]` を回して clone する。
+`clone-repos` は `local.profile.privateRepos = [{ url; dest; }]` を回して clone する。
 リストは `modules/home-manager/profile.nix` がユーザーごとの高レベル設定（`agentConfigRepo` / `vaultSkeletonRepoUrl` などの
 URL 側と、`agentConfigRoot` / `vaultSkeletonRepo` などの dest 側）から自動で組み立てる。
 新しいprivate repoはユーザーの `local.profile.privateRepos` に `{ url; dest; }` を追加する。clone機構やfactoryの変更は不要。
@@ -154,12 +163,12 @@ Obsidian vault（ノート本文の private repo）もこのリストに載せ�
 
 同じ理由で、vault の中へ mount する btrfs subvol（papis ライブラリ）も clone より先に
 mount 先を作ってはいけない。これは `fileSystems` ではなく条件付き `systemd.mounts` で
-表現している（[disk-tiering.md](./disk-tiering.md) 参照）。
+表現し、clone 後は vault の `.git` の出現を見る path unit が mount を始める（[disk-tiering.md](./disk-tiering.md) 参照）。
 
 ## 抜き差し可能性
 
 URL 側（`agentConfigRepo` / `vaultSkeletonRepoUrl` 等）が `null`（既定）ならその repo は
-リストに入らず、全 URL が null なら clone の activation は生えない。
+リストに入らず、全 URL が null なら `clone-repos` は入らない。
 dest 側とは別軸で持つことで「symlink（あるいは mirror-vault）だけ欲しい（手動 clone）」と
 「clone も自動化したい」を repo ごとに独立に選べる。
 
@@ -180,6 +189,7 @@ OS種別ではなく本人の `local.profile.lanSsh` でLAN鍵の配布を選ぶ
 - **専用 age 鍵 1 本を `~/.config/sops/age/keys.txt` に置く**（既存マシンから SSH 送信、または
   Bitwarden から取得）
 - 公開 flake を clone して switch する
+- `clone-repos` を実行する
 
 だけでゼロから復元できる。SSH 鍵（`~/.ssh/id_github` と `~/.ssh/id_lan`）は switch 中の
 activation が `secrets.yaml` を age 鍵で復号して書き出すので、事前に置かなくてよい。

@@ -81,7 +81,7 @@ flake の input の `nixos-wsl` は、上流の NixOS-WSL プロジェクトの�
 有効にすると、次のどれかが入った構成は、理由を示す assertion で評価が止まります。
 
 - 外からの SSH 接続（`services.openssh`）、tailnet への参加（`services.tailscale`）、リモートビルド（`nix.buildMachines`、`nix.distributedBuilds`）
-- Home Manager のユーザーの secret の復号（`local.profile.secrets`、`local.profile.sshKeys`）、LAN の共通鍵（`lanSsh`）、private repo の自動 clone（`privateRepos`）
+- Home Manager のユーザーの secret の復号（`local.profile.secrets`、`local.profile.sshKeys`）、LAN の共通鍵（`lanSsh`）、private repo の clone（`privateRepos` と `clone-repos`）
 - Home Manager のユーザーの git の identity（`gitUsername`、`gitUserEmail`）
 
 `ssh.nix` などを import しないだけでは、設定を読んでも制限していることが分からず、後からうっかり足しても評価が通ってしまいます。オプションにすると、`local.restrictedHost.enable = true` の一行で制限していることが読み取れ、破る構成は評価の時点で止まります。

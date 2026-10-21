@@ -1,19 +1,13 @@
-# private repo を home-manager だけで宣言的に clone する。NixOS でも非 NixOS(macOS)でも
-# 同じ経路で動くよう systemd ではなく home.activation を使う(nixos-rebuild switch でも
-# home-manager switch でも走り、Darwin でも動く)。
+# private repo の初回 clone（clone-repos）と、その後の更新（pull-repos）のコマンド。
+# 環境の適用（switch）にはネットワークの取得を含めない。新しいマシンでは switch で鍵が置かれた後に
+# clone-repos を一度実行する。NixOS でも macOS の Home Manager でも同じコマンドを使う。
 #
 # 認証に使う ~/.ssh/id_github は secrets.nix が secrets.yaml から書き出す。このモジュールは
-# 復号を知らず、鍵が既に置かれている前提で clone だけを担う。
-# privateRepos が非空なら profile.nix は必ずGitHub鍵も配り、secrets.nix は書き出せなければ
-# activation を止める。よって鍵の存在確認はここでは行わない(到達しない分岐を作らない)。
+# 復号を知らず、鍵が置かれているかを clone の前に確かめるだけにする。
 #
-# 対象 repo は config.local.profile.privateRepos = [{ url, dest }] で受ける。空リスト(既定)なら activation
-# 自体が生えない。公開 flake をそのまま使う人・自前 repo を手動 clone したい人には無影響。
-# 個々の (url, dest) は profile.nix 側で agentConfig* / vaultSkeletonRepo* 等の高レベル設定から
-# 組み立てる (dest だけ指定・URL 未指定は手動 clone のまま = 抜き差し可能)。
-#
-# clone は初回だけなので、以降の更新は pull-repos コマンドで手動で走らせる
-# (flake 自身 + private repo 群をまとめて git pull --ff-only)。
+# 対象 repo は config.local.profile.privateRepos = [{ url, dest }] で受ける。空リスト(既定)なら
+# clone-repos は入らない。個々の (url, dest) は profile.nix 側で agentConfig* / vaultSkeletonRepo* 等の
+# 高レベル設定から組み立てる (dest だけ指定・URL 未指定は手動 clone のまま = 抜き差し可能)。
 {
   config,
   lib,
@@ -23,44 +17,72 @@
 
 let
   repos = config.local.profile.privateRepos;
-  enable = repos != [ ];
 
   home = config.home.homeDirectory;
   sshKey = "${home}/.ssh/id_github";
 
-  # git/ssh を絶対パスで呼ぶのは、NixOS では activation が systemd unit として走り
-  # PATH に coreutils 等しか入らないため(裸の ssh は対話シェル経由でしか解決できない)。
+  # git/ssh を絶対パスで呼ぶのは、GIT_SSH_COMMAND が PATH と無関係に解釈されるため。
   gitSshCommand = "${pkgs.openssh}/bin/ssh -i ${sshKey} -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new";
 
   # 完成したcloneだけをdestへ移す。失敗した一時cloneを次回の成功判定に使わない。
-  cloneRepoSnippet =
-    { url, dest }:
-    ''
-      repo=${lib.escapeShellArg url}
-      dest=${lib.escapeShellArg dest}
+  # 1 つ失敗しても残りは回し、最後にまとめて非ゼロを返す。
+  cloneText = ''
+    dry_run=0
+    if [ "''${1:-}" = "--dry-run" ]; then
+      dry_run=1
+    fi
+
+    clone() {
+      local repo=$1 dest=$2 parent clone_tmp
       if [ -e "$dest" ] || [ -L "$dest" ]; then
         if [ ! -e "$dest/.git" ]; then
-          echo "private-repos: $dest exists but is not a Git checkout; inspect it before retrying" >&2
-          exit 1
+          echo "clone-repos: $dest exists but is not a Git checkout; inspect it before retrying" >&2
+          return 1
         fi
-      else
-        parent=$(dirname "$dest")
-        mkdir -p "$parent"
-        clone_tmp=$(mktemp -d "$parent/.private-clone.XXXXXX")
-        trap 'rm -rf -- "$clone_tmp"' EXIT
-        GIT_SSH_COMMAND=${lib.escapeShellArg gitSshCommand} \
-          ${pkgs.git}/bin/git clone "$repo" "$clone_tmp/repo"
-        if [ -e "$dest" ] || [ -L "$dest" ]; then
-          echo "private-repos: $dest appeared during clone; refusing to overwrite" >&2
-          exit 1
-        fi
-        mv "$clone_tmp/repo" "$dest"
+        return 0
       fi
-    '';
+      if [ "$dry_run" = 1 ]; then
+        echo "clone-repos: (dry-run) $repo を $dest へ clone する予定" >&2
+        return 0
+      fi
+      parent=$(dirname "$dest")
+      mkdir -p "$parent"
+      clone_tmp=$(mktemp -d "$parent/.private-clone.XXXXXX")
+      if ! GIT_SSH_COMMAND=${lib.escapeShellArg gitSshCommand} git clone "$repo" "$clone_tmp/repo"; then
+        rm -rf -- "$clone_tmp"
+        return 1
+      fi
+      if [ -e "$dest" ] || [ -L "$dest" ]; then
+        rm -rf -- "$clone_tmp"
+        echo "clone-repos: $dest appeared during clone; refusing to overwrite" >&2
+        return 1
+      fi
+      mv "$clone_tmp/repo" "$dest"
+      rm -rf -- "$clone_tmp"
+    }
 
-  dryRunListSnippet =
-    { url, dest }:
-    "echo ${lib.escapeShellArg "private-repos: (dry-run) ${url} を ${dest} へ clone する予定"} >&2";
+    if [ "$dry_run" = 0 ] && [ ! -f ${lib.escapeShellArg sshKey} ]; then
+      echo "clone-repos: ${sshKey} がない。switch で secrets が配置されたか確認する" >&2
+      exit 1
+    fi
+
+    status=0
+    ${lib.concatMapStringsSep "\n" (
+      r: "clone ${lib.escapeShellArg r.url} ${lib.escapeShellArg r.dest} || status=1"
+    ) repos}
+    exit "$status"
+  '';
+
+  cloneRepos = pkgs.writeShellApplication {
+    name = "clone-repos";
+    runtimeInputs = [
+      pkgs.git
+      pkgs.coreutils
+    ];
+    text = cloneText;
+    # tests/default.nix が偽の git で本文を実行する。
+    passthru.text = cloneText;
+  };
 
   # flake 自身も同じ GitHub 鍵で更新するので、clone 対象と一緒に並べる。
   pullTargets = lib.unique ([ config.local.profile.flakeRoot ] ++ map (r: r.dest) repos);
@@ -83,7 +105,7 @@ let
       targets=(${lib.escapeShellArgs pullTargets})
       for dest in "''${targets[@]}"; do
         if [ ! -e "$dest/.git" ]; then
-          echo "pull-repos: $dest は clone されていない (switch すれば clone される)" >&2
+          echo "pull-repos: $dest は clone されていない (clone-repos で clone する)" >&2
           status=1
           continue
         fi
@@ -95,20 +117,5 @@ let
   };
 in
 {
-  config = lib.mkMerge [
-    { home.packages = [ pullRepos ]; }
-
-    (lib.mkIf enable {
-      home.activation.privateRepos = lib.hm.dag.entryAfter [ "sshKeys" ] ''
-        if [ -n "''${DRY_RUN_CMD:-}" ]; then
-          ${lib.concatMapStringsSep "\n          " dryRunListSnippet repos}
-        else
-          # 各 repo を dest 未存在時のみ clone(既存 working tree は触らない・pull もしない)。
-          ${lib.concatMapStringsSep "\n\n          " (
-            r: "(\n            ${cloneRepoSnippet r}\n          )"
-          ) repos}
-        fi
-      '';
-    })
-  ];
+  home.packages = [ pullRepos ] ++ lib.optional (repos != [ ]) cloneRepos;
 }

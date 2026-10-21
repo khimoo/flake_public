@@ -1,4 +1,4 @@
-"""Run generated activation snippets with fake network/secret tools in a temp tree."""
+"""Run generated activation snippets and commands with fake network/secret tools in a temp tree."""
 import os
 import subprocess
 import sys
@@ -35,25 +35,40 @@ if os.environ.get('FAIL_TOOL'): raise SystemExit(18)
                             "with open(os.environ['CALL_LOG'], 'a') as log: log.write('call\\n')\n" + body)
             path.chmod(0o755)
 
-    def run_activation(self, name, **overrides):
+    def run_activation(self, name, *args, **overrides):
         script = Path(os.environ[name + "ScriptPath"]).read_text()
         script = (script.replace("@test-home@", str(self.home))
                   .replace("@tools@", str(self.tools.parent)))
         # Isolate the snippet's home without modifying the runner's HOME.
         script = script.replace("$HOME", "${TEST_HOME}")
-        env = os.environ | {"TEST_HOME": str(self.home), "CALL_LOG": str(self.log), "DRY_RUN_CMD": ""} | overrides
-        return subprocess.run(["bash", "-euo", "pipefail", "-c", script], env=env,
+        # Commands call their tools through PATH; activation snippets use the replaced store paths.
+        env = os.environ | {"TEST_HOME": str(self.home), "CALL_LOG": str(self.log), "DRY_RUN_CMD": "",
+                            "PATH": f"{self.tools}:{os.environ['PATH']}"} | overrides
+        return subprocess.run(["bash", "-euo", "pipefail", "-c", script, name, *args], env=env,
                               capture_output=True, text=True)
 
+    def place_github_key(self):
+        key = self.home / ".ssh/id_github"
+        key.parent.mkdir(parents=True, exist_ok=True)
+        key.write_text("fake-key")
+
     def test_dry_run_has_no_side_effects(self):
-        for name in ["clone", "secrets"]:
+        for name, args, env in [("clone", ["--dry-run"], {}), ("secrets", [], {"DRY_RUN_CMD": "echo"})]:
             with self.subTest(name=name):
-                result = self.run_activation(name, DRY_RUN_CMD="echo")
+                result = self.run_activation(name, *args, **env)
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertFalse(self.home.exists())
                 self.assertFalse(self.log.exists())
 
+    def test_clone_without_key_fails_before_git(self):
+        result = self.run_activation("clone")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("id_github", result.stderr)
+        self.assertFalse(self.log.exists())
+        self.assertFalse((self.home / "config").exists())
+
     def test_clone_failure_can_retry_and_existing_checkout_is_untouched(self):
+        self.place_github_key()
         result = self.run_activation("clone", FAIL_TOOL="1")
         self.assertNotEqual(result.returncode, 0)
         self.assertFalse((self.home / "config").exists())
@@ -66,6 +81,7 @@ if os.environ.get('FAIL_TOOL'): raise SystemExit(18)
         self.assertEqual(self.log.read_text(), calls)
 
     def test_existing_non_checkout_is_rejected(self):
+        self.place_github_key()
         (self.home / "config").mkdir(parents=True)
         marker = self.home / "config" / "user-file"
         marker.write_text("keep")

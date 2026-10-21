@@ -33,17 +33,16 @@ ID を省くと全インスタンスが対象。
 
 ## セットアップ（新しいマシンで一度だけ）
 
-`prismlauncher.cfg` は Nix 管理下に無いので、GUI で設定する。
+PrismLauncher を終了してから、フックを設定するコマンドを実行する。
 
-1. PrismLauncher → Settings → Custom Commands
-2. Pre-launch command:
-   ```
-   mc-check "$INST_ID"
-   ```
-3. Post-exit command:
-   ```
-   mc-backup "$INST_ID"
-   ```
+```sh
+mc-setup-hooks --dry-run   # 変更前と変更後の行を表示するだけ
+mc-setup-hooks
+```
+
+`~/.local/share/PrismLauncher/prismlauncher.cfg` の `[General]` に、Settings → Custom Commands の
+Pre-launch command（`mc-check "$INST_ID"`）と Post-exit command（`mc-backup "$INST_ID"`）を書く。
+ほかの設定は変えない。起動中の PrismLauncher は終了時に設定を書き戻すので、起動中なら何もせずに止まる。
 
 インスタンス単位の Settings にも同じ欄があるが、そちらは `Override commands` を有効にした
 インスタンスだけに効く。全インスタンスに効かせたいのでグローバル側に入れる。

@@ -117,7 +117,7 @@ root 所有の中間ディレクトリができる。すると
 そこで `@papis` だけ `fileSystems` から外し、`systemd.mounts` に
 `ConditionPathExists = "${zettelkastenRoot}/.git"` を付けて表現している。vault が実在するとき
 だけマウントする、という順序制約を条件として書けるのが `systemd.mounts` を選ぶ理由。
-新マシンでは初回 clone の後に一度 reboot（または `systemctl start`）してマウントを有効にする。
+初回 clone の後は、vault の `.git` の出現を見る path unit（`papis-references.path`）がマウントを始める。再起動は要らない。
 
 条件が偽の間 `references/` は NVMe 上の（存在しないか空の）ディレクトリになる。ここは
 `nofail` によるサイレント障害（後述）とは別で、「vault がまだ無いのだから papis ライブラリも

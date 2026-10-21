@@ -9,7 +9,7 @@
 #   - ここが注入するのは純粋に環境固有の配線だけ: vault の clone 位置(zettelkastenRoot)、
 #     feature toggle、骨格ミラー先の checkout 位置(vaultSkeletonRepo → mirrorRepo)。
 #
-# vault フォルダ自体は private-repos.nix の clone が用意するので、モジュール側の
+# vault フォルダ自体は clone-repos（private-repos.nix）の clone が用意するので、モジュール側の
 # initializeVault は既定(false)のまま。有効にすると clone より先に空フォルダを作ってしまう。
 { config, inputs, lib, ... }:
 
@@ -34,7 +34,7 @@ in
       lib.mkIf obsidianOn "obsidian.desktop";
     services.zettelkasten = {
       enable = true;
-      # private-repos.nix が clone するため、骨格の初期化・補充は行わない。
+      # clone-repos が clone するため、骨格の初期化・補充は行わない。
       initializeVault = false;
       vaultDir = config.local.profile.zettelkastenRoot;
       attachments.enable = attachmentsOn;

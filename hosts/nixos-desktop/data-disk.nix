@@ -13,7 +13,7 @@
 #
 # 設計判断: docs/architecture/disk-tiering.md
 # 使い方:   docs/howtouse/disk-tiering.md
-{ config, pkgs, lib, settings, ... }:
+{ config, pkgs, lib, settings, utils, ... }:
 let
   hm = config.home-manager.users.${settings.primaryUser};
   vaultRoot = hm.local.profile.zettelkastenRoot;
@@ -58,9 +58,9 @@ in
   #
   # ここだけ fileSystems ではなく systemd.mounts なのは、mount 先の親が vault の clone だから。
   # 無条件に mount すると systemd が clone より先に root 所有の中間ディレクトリを作り、
-  # private-repos.nix の git clone が「空でない」「書けない」で失敗する。vault が実在するとき
+  # clone-repos の git clone が「空でない」「書けない」で失敗する。vault が実在するとき
   # (= .git がある)だけ mount することで、clone → mount の順序を条件で表現する。
-  # 新マシンでは初回 clone の後に一度 reboot(または systemctl start)して mount を有効にする。
+  # 初回 clone の後は、下の path unit が .git の出現を見て mount を始める。
   systemd.mounts = [{
     what = device;
     where = "${vaultRoot}/references";
@@ -69,6 +69,13 @@ in
     unitConfig.ConditionPathExists = "${vaultRoot}/.git";
     wantedBy = [ "local-fs.target" ];
   }];
+  systemd.paths.papis-references = {
+    wantedBy = [ "multi-user.target" ];
+    pathConfig = {
+      PathExists = "${vaultRoot}/.git";
+      Unit = "${utils.escapeSystemdPath "${vaultRoot}/references"}.mount";
+    };
+  };
 
   # @backup subvol は root 所有なので、そのままではユーザーのバックアップ処理が書き込めない。
   # 用途ごとのディレクトリを primaryUser 所有で用意する（/mnt/backup 直下は root のまま残し、

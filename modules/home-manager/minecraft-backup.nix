@@ -4,6 +4,7 @@
 #   mc-check    他のマシンが新しい状態を持っていないか確かめる (pre-launch フック)
 #   mc-restore  別のマシンが Drive に置いた状態をこのマシンへ取り込む (手動)
 #   mc-sync     世代の刈り込みと、失敗した転送の取り直し (毎日のタイマー)
+#   mc-setup-hooks  上の 2 つのフックを PrismLauncher に設定する (新しいマシンで一度)
 #
 # 使い方:   docs/howtouse/minecraft-backup.md
 # 設計判断: docs/architecture/minecraft-backup.md
@@ -30,6 +31,14 @@ let
   mcCheck = mkCommand "mc-check" ./minecraft-check.sh;
   mcRestore = mkCommand "mc-restore" ./minecraft-restore.sh;
   mcSync = mkCommand "mc-sync" ./minecraft-sync.sh;
+
+  # restic を使わないので共通部分を連結しない。
+  mcSetupHooks = pkgs.writeShellApplication {
+    name = "mc-setup-hooks";
+    runtimeInputs = with pkgs; [ procps coreutils gnugrep gawk ];
+    runtimeEnv.MC_PRISM_CFG = "${config.xdg.dataHome}/PrismLauncher/prismlauncher.cfg";
+    text = builtins.readFile ./minecraft-setup-hooks.sh;
+  };
 in
 {
   options.local.minecraftBackup = {
@@ -76,7 +85,7 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    home.packages = [ mcBackup mcCheck mcRestore mcSync ];
+    home.packages = [ mcBackup mcCheck mcRestore mcSync mcSetupHooks ];
 
     systemd.user.services.mc-sync = {
       Unit.Description = "Minecraft バックアップの刈り込みと Drive への同期";

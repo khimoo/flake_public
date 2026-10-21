@@ -51,7 +51,7 @@ steady state に持ってくる導線が silent skip の温床**になってい�
 - **USB 経路**: 物理媒体から `cp /media/.../keys.txt ~/.config/sops/age/keys.txt`
 
 いずれも標準 NixOS installer で入れた直後の user shell から実行。以降 `nixos-rebuild switch`
-で activation が走り、SSH 鍵復号 → private-repos clone まで一気に完了する。
+で activation が SSH 鍵を復号し、続けて `clone-repos` で private repo を clone する。
 
 このマシンが以降「既存機」となり、次からは N 台目フローが使える。
 
@@ -70,7 +70,7 @@ sagyo-install pomu@<new-ip> nixos-<newhost>
 3. `nixos-install` で system 適用
 4. **age 鍵 (`~/.config/sops/age/keys.txt`) を `--extra-files` 経由で新機の
    `/home/pomu/.config/sops/age/keys.txt` に配置**
-5. 再起動 → 初回 activation で SSH 鍵復号 + private-repos clone
+5. 再起動 → 初回 activation で SSH 鍵を復号し、`clone-repos` で private repo を clone
 
 新機側で対話は不要。新機は installer ISO 起動 + SSH 待ち受け状態にしておくだけ
 （nixos-anywhere が kexec で installer に切り替えてくれるので、汎用 Linux LiveCD
@@ -107,8 +107,8 @@ Bitwarden 自体もアクセス不能なら？ → 物理バックアップ（US
    将来自分で読み直したときにどちらが正解か迷わなくなる
 4. **DR パニック時の実行可能性** — 家焼失時に「どうやるんだっけ」のパニック下でも
    new-machine.md の「最初の 1 台目」節を上から読むだけで復元できる。手順の暗記が不要
-5. **bootstrap 挙動の予測可能性** — 今は「rebuild すると activation が clone するかも
-   しれないししないかもしれない」という条件付き挙動。strict 化後は「rebuild が成功した
+5. **bootstrap 挙動の予測可能性** — 今は「rebuild すると activation が鍵を置くかも
+   しれないし置かないかもしれない」という条件付き挙動。strict 化後は「rebuild が成功した
    = bootstrap 済み」と一意に決まる。他人（未来の自分含む）がコードを読むときの認知
    負荷が下がる
 6. **新マシンの disk layout の宣言化（副次的）** — Phase 3 で新機に disko を導入する

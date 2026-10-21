@@ -35,6 +35,11 @@ several packages. You can install it by typing one of the following:
 
 表示される `nix-env -iA` は Home Manager の管理の外に入れるので使わない。一度だけ使うなら `, cowsay` で実行する。
 
+Claude Code や Codex などのエージェントが実行する非対話の bash では、`BASH_ENV` で読み込む別の handler が、
+devShell を使うことと、`nix shell nixpkgs#<パッケージ> -c <コマンド>` で一度だけ実行する方法を標準エラーに出す。
+終了コードは 127 のままで、取得も実行もしない。`BASH_ENV` は Home Manager のセッション変数なので、
+設定の適用後に開いたログインセッションから有効になる。
+
 ## nix-locate
 
 `nix-locate` も comma と同じデータベースを引く。

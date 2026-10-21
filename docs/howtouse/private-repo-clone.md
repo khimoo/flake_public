@@ -1,9 +1,9 @@
-# SSH 鍵の配布と private repo の宣言的 clone（home-manager・age 鍵 1 本）
+# SSH 鍵の配布と private repo の clone（home-manager・age 鍵 1 本）
 
-新しい環境に flake を適用したとき、**手作業を age 鍵 1 本の設置だけ**にする運用。
+新しい環境に flake を適用したとき、**手作業を age 鍵 1 本の設置と `clone-repos` の実行だけ**にする運用。
 SSH 鍵（GitHub 認証用と LAN 用）は switch が書き出し、private repo（ノート本文・
-Claude 設定・Obsidian workflow）も switch が clone する。NixOS でも 非 NixOS
-（macOS）でも同じ経路（home-manager の `home.activation`）で動く。会社PCの nixos-work-wsl は
+Claude 設定・Obsidian workflow）は switch の後に `clone-repos` が clone する。switch はネットワークから
+取得しない。NixOS でも 非 NixOS（macOS）でも同じ経路（home-manager の `home.activation` とコマンド）で動く。会社PCの nixos-work-wsl は
 age 鍵を置かないので、この仕組みを使わない（[wsl.md](./wsl.md)）。
 
 設計判断は [docs/architecture/private-repo-clone.md](../architecture/private-repo-clone.md) を参照。
@@ -22,14 +22,14 @@ age 鍵を置かないので、この仕組みを使わない（[wsl.md](./wsl.m
   | `git_ssh_key` | `~/.ssh/id_github` | GitHub 認証（clone / push） |
   | `lan_ssh_key` | `~/.ssh/id_lan` | LAN 内 machine-to-machine（[machine-ssh.md](./machine-ssh.md)） |
 
-- `home.activation` が switch のたびに:
-  1. `secrets.yaml` を age 鍵で復号し、まだ無い鍵ファイルだけ書き出す
-  2. `local.profile.privateRepos` の各 `{ url, dest }` について、`dest` が無ければ
-     `id_github` で clone する
-
-  既存Git checkoutは触らない（上書き・pullしない）。Git checkoutでないdestが既にある場合は停止する。中身を確認し、手動で移すか正しいcheckoutを指定して再実行する。新規cloneの途中失敗は一時領域を掃除するため、そのまま再実行できる。
+- `home.activation` が switch のたびに、`secrets.yaml` を age 鍵で復号し、まだ無い鍵ファイルだけ書き出す。
   **age 鍵が無い / 復号に失敗した場合は警告ではなく error で停止する**（switch が失敗する）。
   「switch は成功したのに鍵が無い」状態を作らないため。
+- `clone-repos` が、`local.profile.privateRepos` の各 `{ url, dest }` について、`dest` が無ければ
+  `id_github` で clone する。`id_github` が無ければ git を呼ばずに止まる。`clone-repos --dry-run` は
+  clone する予定の repo を表示するだけにする。
+
+  既存Git checkoutは触らない（上書き・pullしない）。Git checkoutでないdestが既にある場合はその repo を失敗として報告し、残りは続ける。中身を確認し、手動で移すか正しいcheckoutを指定して再実行する。新規cloneの途中失敗は一時領域を掃除するため、そのまま再実行できる。
 
 鍵配布はユーザーごとに決まる。clone対象があれば `id_github`、`local.profile.lanSsh = true` なら `id_lan` を配る。既存2台のpomuは両方を選んでいる。新規ユーザーには既定でどちらも配らない。
 
@@ -98,7 +98,7 @@ shred -u "$tmp"
 grep -c 'BEGIN OPENSSH' secrets/secrets.yaml   # 0 なら OK
 ```
 
-## clone 元 URL を指定して switch
+## clone 元 URL を指定して clone する
 
 対象ユーザーのhomeモジュールの `local.profile` に各repoのURLとパスを足す。既存2台では `profiles/home/pomu-workstation.nix` に定義する（`agentConfigRoot` だけは `profiles/home/pomu-agents.nix` にあり、`pomu-workstation.nix` がそれを import する）。以下は `local.profile = { ... };` の内部に置く。
 現在自動 clone に対応しているのは以下 4 種類の repo:
@@ -121,9 +121,10 @@ llmWikisRoot    = "/home/pomu/sagyo/llm-wikis";
 llmWikisRepoUrl = "git@github.com:khimoo/llm-wikis.git";
 ```
 
-switch すると、それぞれ dest が無い環境で clone される。その後 `dev/claude.nix` の
-symlink（Claude 側）、`services.zettelkasten` の骨格配置と同期（vault 側）、
-`mirror-vault`（workflow repo 側）がそれぞれ配線される。
+switch した後に `clone-repos` を実行すると、dest が無い repo が clone される。`dev/claude.nix` の
+symlink（Claude 側）、`services.zettelkasten` の同期（vault 側）、`mirror-vault`（workflow repo 側）は
+switch で配線済みで、clone した時点から使える。デスクトップの papis の mount は、vault の `.git` が
+現れた時点で path unit が始める（[disk-tiering.md](./disk-tiering.md)）。
 
 vault は `services.zettelkasten.initializeVault` でも作れるが、この repo では使わない。
 clone より先に空フォルダができると clone が失敗するため、vault の用意は clone 側に一本化する。
@@ -142,7 +143,7 @@ pull-repos
 
 各 repo で `git pull --ff-only` を走らせる。ローカルにコミットがあって分岐している repo は
 git が拒否するので、そこだけ手で rebase / merge する。1 つ失敗しても残りは処理し、
-最後に非ゼロで終わる。まだ clone されていない dest は報告のみで、clone は switch に任せる。
+最後に非ゼロで終わる。まだ clone されていない dest は報告のみで、clone は `clone-repos` で行う。
 
 ## SSH 鍵以外の秘密を配る
 
@@ -173,7 +174,8 @@ SSH 鍵は `local.profile.sshKeys = [{ secret, name }]` のままでよい。
 
 1. 専用 age 鍵を新環境の `~/.config/sops/age/keys.txt` に置く
    （既存マシンから SSH 送信、または Bitwarden から取得）
-2. switch する
+2. switch する（鍵が書き出される）
+3. `clone-repos` を実行する
 
 age 鍵 1 本を全環境で共有するため、マシンごとの受信者追加・再暗号化（`sops updatekeys`）は
 不要。SSH 鍵の生成も登録も要らない。
@@ -219,7 +221,7 @@ LAN 鍵も同様に作り直す。
 ## 無効化する
 
 本人の `local.profile` の URL 側（`zettelkastenRepoUrl` / `agentConfigRepo` / `vaultSkeletonRepoUrl`）を
-消す（既定 `null`）とその repo の自動 clone は止まる。dest 側（`zettelkastenRoot` /
+消す（既定 `null`）とその repo は `clone-repos` の対象から外れる。dest 側（`zettelkastenRoot` /
 `agentConfigRoot` / `vaultSkeletonRepo`）だけ残せば、同期や symlink、`mirror-vault` は
 効くので、clone を手動運用に戻せる。
 
@@ -229,7 +231,7 @@ LAN 鍵も同様に作り直す。
 ## 注意
 
 - `secrets/secrets.yaml` は暗号文。**平文の秘密鍵・age 鍵を repo に置かないこと**
-- 新しい環境の switch に **事前の SSH 鍵は不要**。`inputs.zettelkasten` を
+- 新しい環境の switch に **事前の SSH 鍵は不要**（clone は switch の後の `clone-repos` で行う）。`inputs.zettelkasten` を
   `github:`（public repo）で取得するようになり eval が SSH 鍵を要求しなくなったため、
   専用 age 鍵 1 本だけで switch でき、SSH 鍵は activation が `secrets.yaml` から書き出す
   （経緯は [architecture ドキュメント](../architecture/private-repo-clone.md#ゼロからの復元eval-時の鍵依存は解消済み)を参照）
