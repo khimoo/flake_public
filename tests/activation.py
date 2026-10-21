@@ -1,5 +1,4 @@
 """Run generated activation snippets and commands with fake network/secret tools in a temp tree."""
-import hashlib
 import os
 import shutil
 import subprocess
@@ -120,178 +119,197 @@ if os.environ.get('FAIL_TOOL'): raise SystemExit(18)
 
     @property
     def state(self):
-        return self.home / ".local/state/flake-secrets/managed"
+        return self.home / ".local/state/flake-secrets/placed"
 
     def records(self):
-        if not self.state.exists():
-            return {}
-        return {path: digest for digest, path in
-                (line.split("\t") for line in self.state.read_text().splitlines())}
+        return set(self.state.read_text().splitlines()) if self.state.exists() else set()
 
-    @staticmethod
-    def digest(text):
-        return hashlib.sha256((text + "\n").encode()).hexdigest()
+    def sync(self, secret="v2", **env):
+        return self.run_activation("secrets", FAKE_SECRET=secret, **env)
 
-    def update(self, secret="v2", *args, **env):
-        return self.run_activation("update", *args, FAKE_SECRET=secret, **env)
+    def assert_no_temps(self):
+        self.assertEqual(list(self.key.parent.glob("id_github.*")), [])
+        self.assertEqual(list(self.state.parent.glob("placed.*")), [])
 
-    def test_activation_records_the_files_it_places(self):
+    def test_activation_places_and_records_files(self):
         self.place_age_key()
-        self.assertEqual(self.run_activation("secrets", FAKE_SECRET="v1").returncode, 0)
-        self.assertEqual(self.key.read_text(), "v1\n")
-        self.assertEqual(self.records(), {str(self.key): self.digest("v1")})
-
-    def test_activation_does_not_record_existing_files(self):
-        self.place_age_key()
-        self.key.parent.mkdir(parents=True)
-        self.key.write_text("manual\n")
-        self.assertEqual(self.run_activation("secrets").returncode, 0)
-        self.assertEqual(self.key.read_text(), "manual\n")
-        self.assertEqual(self.records(), {})
-
-    def test_update_replaces_a_managed_file(self):
-        self.place_age_key()
-        self.run_activation("secrets", FAKE_SECRET="v1")
-        result = self.update("v2")
+        result = self.sync()
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.key.read_text(), "v2\n")
         self.assertEqual(self.key.stat().st_mode & 0o777, 0o600)
-        self.assertEqual(self.records(), {str(self.key): self.digest("v2")})
-        self.assertEqual(list(self.key.parent.glob("id_github.*")), [])
+        self.assertEqual(self.records(), {str(self.key)})
+        self.assertEqual(self.state.stat().st_mode & 0o777, 0o600)
+        self.assert_no_temps()
 
-    def test_update_places_a_missing_file(self):
-        self.place_age_key()
-        result = self.update("v2")
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(self.key.read_text(), "v2\n")
-        self.assertEqual(self.records(), {str(self.key): self.digest("v2")})
-
-    def test_update_leaves_an_unchanged_file_alone(self):
-        self.place_age_key()
-        self.run_activation("secrets", FAKE_SECRET="v2")
-        before = self.state.read_text()
-        result = self.update("v2")
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(self.key.read_text(), "v2\n")
-        self.assertEqual(self.state.read_text(), before)
-
-    def test_update_keeps_a_hand_edited_file(self):
-        self.place_age_key()
-        self.run_activation("secrets", FAKE_SECRET="v1")
-        self.key.write_text("manual\n")
-        result = self.update("v2")
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(self.key.read_text(), "manual\n")
-        self.assertIn("変更されている", result.stderr)
-        self.assertEqual(self.records(), {str(self.key): self.digest("v1")})
-
-    def test_update_records_a_file_already_matching(self):
-        self.place_age_key()
-        self.run_activation("secrets", FAKE_SECRET="v1")
-        self.key.write_text("v2\n")
-        self.assertEqual(self.update("v2").returncode, 0)
-        self.assertEqual(self.records(), {str(self.key): self.digest("v2")})
-
-    def test_update_adopts_an_unrecorded_identical_file(self):
-        self.place_age_key()
-        self.key.parent.mkdir(parents=True)
-        self.key.write_text("v2\n")
-        self.assertEqual(self.update("v2").returncode, 0)
-        self.assertEqual(self.records(), {str(self.key): self.digest("v2")})
-
-    def test_update_ignores_an_unrecorded_different_file(self):
+    def test_activation_replaces_existing_files_and_corrects_mode(self):
         self.place_age_key()
         self.key.parent.mkdir(parents=True)
         self.key.write_text("manual\n")
-        result = self.update("v2")
+        self.key.chmod(0o644)
+        result = self.sync()
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(self.key.read_text(), "manual\n")
-        self.assertEqual(self.records(), {})
+        self.assertEqual(self.key.read_text(), "v2\n")
+        self.assertEqual(self.key.stat().st_mode & 0o777, 0o600)
+        self.assertEqual(self.records(), {str(self.key)})
 
-    def test_update_ignores_a_symlink(self):
+    def test_activation_preserves_identical_file_but_corrects_mode(self):
         self.place_age_key()
-        target = self.root / "elsewhere"
-        target.write_text("v1\n")
-        self.key.parent.mkdir(parents=True)
-        self.key.symlink_to(target)
-        result = self.update("v2")
+        self.assertEqual(self.sync().returncode, 0)
+        self.key.chmod(0o644)
+        before = self.key.stat()
+        result = self.sync()
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertTrue(self.key.is_symlink())
-        self.assertEqual(target.read_text(), "v1\n")
+        after = self.key.stat()
+        self.assertEqual((after.st_ino, after.st_mtime_ns), (before.st_ino, before.st_mtime_ns))
+        self.assertEqual(after.st_mode & 0o777, 0o600)
 
-    def write_undeclared(self, name, content, recorded):
+    def test_activation_restores_hand_edited_file(self):
+        self.place_age_key()
+        self.assertEqual(self.sync("v1").returncode, 0)
+        self.key.write_text("manual\n")
+        result = self.sync()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.key.read_text(), "v2\n")
+
+    def test_activation_leaves_non_regular_destinations_and_warns(self):
+        self.place_age_key()
+        self.key.parent.mkdir(parents=True)
+        target = self.root / "target"
+        target.write_text("keep\n")
+        for kind in ("symlink", "dangling", "directory", "fifo"):
+            with self.subTest(kind=kind):
+                if kind in ("symlink", "dangling"):
+                    self.key.symlink_to(target if kind == "symlink" else self.root / "missing")
+                elif kind == "directory":
+                    self.key.mkdir()
+                else:
+                    os.mkfifo(self.key)
+                result = self.sync()
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn("通常のファイルでない", result.stderr)
+                self.assertTrue(self.key.exists() or self.key.is_symlink())
+                self.assertEqual(target.read_text(), "keep\n")
+                self.assertEqual(self.records(), set())
+                self.assertFalse(self.log.exists())
+                if kind == "directory":
+                    self.key.rmdir()
+                else:
+                    self.key.unlink()
+
+    def record_undeclared(self, name):
         path = self.home / ".ssh" / name
         path.parent.mkdir(parents=True, exist_ok=True)
-        if content is not None:
-            path.write_text(content)
         self.state.parent.mkdir(parents=True, exist_ok=True)
         with self.state.open("a") as state:
-            state.write(f"{self.digest(recorded)}\t{path}\n")
+            state.write(f"{path}\n")
         return path
 
-    def test_update_removes_unchanged_undeclared_files_only(self):
+    def test_activation_removes_undeclared_files_even_if_edited(self):
         self.place_age_key()
-        stale = self.write_undeclared("id_old", "old\n", "old")
-        edited = self.write_undeclared("id_edited", "edited\n", "original")
-        gone = self.write_undeclared("id_gone", None, "gone")
-        result = self.update("v2")
+        stale = self.record_undeclared("old key with spaces")
+        stale.write_text("manually edited\n")
+        gone = self.record_undeclared("gone")
+        result = self.sync()
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertFalse(stale.exists())
-        self.assertEqual(edited.read_text(), "edited\n")
-        self.assertEqual(self.records(), {str(self.key): self.digest("v2")})
-        self.assertNotIn(str(gone), self.records())
+        self.assertFalse(gone.exists())
+        self.assertEqual(self.records(), {str(self.key)})
 
-    def test_update_dry_run_changes_nothing(self):
+    def test_activation_does_not_remove_undeclared_non_regular_files(self):
         self.place_age_key()
-        self.run_activation("secrets", FAKE_SECRET="v1")
-        stale = self.write_undeclared("id_old", "old\n", "old")
-        before = self.state.read_text()
-        result = self.update("v2", "--dry-run")
+        target = self.root / "target"
+        target.write_text("keep\n")
+        link = self.record_undeclared("old_link")
+        link.symlink_to(target)
+        dangling = self.record_undeclared("old_dangling")
+        dangling.symlink_to(self.root / "missing")
+        directory = self.record_undeclared("old_directory")
+        directory.mkdir()
+        fifo = self.record_undeclared("old_fifo")
+        os.mkfifo(fifo)
+        result = self.sync()
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("更新", result.stdout)
+        self.assertIn("削除せず記録から外す", result.stderr)
+        self.assertTrue(link.is_symlink())
+        self.assertTrue(dangling.is_symlink())
+        self.assertTrue(directory.is_dir())
+        self.assertTrue(fifo.exists())
+        self.assertEqual(target.read_text(), "keep\n")
+        self.assertEqual(self.records(), {str(self.key)})
+
+    def test_dry_run_reports_sync_and_removal_without_decryption(self):
+        self.place_age_key()
+        self.assertEqual(self.sync("v1").returncode, 0)
+        stale = self.record_undeclared("old")
+        stale.write_text("old\n")
+        before = self.state.read_text()
+        calls = self.log.read_text()
+        (self.home / ".config/sops/age/keys.txt").unlink()
+        result = self.sync(DRY_RUN_CMD="echo")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(str(self.key), result.stderr)
+        self.assertIn(f"{stale}: 宣言から外れたので削除予定", result.stderr)
         self.assertEqual(self.key.read_text(), "v1\n")
         self.assertTrue(stale.exists())
         self.assertEqual(self.state.read_text(), before)
-
-    def test_update_decryption_failure_changes_nothing(self):
-        self.place_age_key()
-        self.run_activation("secrets", FAKE_SECRET="v1")
-        before = self.state.read_text()
-        result = self.update("v2", FAIL_TOOL="1")
-        self.assertNotEqual(result.returncode, 0)
-        self.assertEqual(self.key.read_text(), "v1\n")
-        self.assertEqual(self.state.read_text(), before)
-        self.assertEqual(list(self.key.parent.glob("id_github.*")), [])
-
-    def test_update_chmod_failure_cleans_up_and_changes_nothing(self):
-        self.place_age_key()
-        self.assertEqual(self.run_activation("secrets", FAKE_SECRET="v1").returncode, 0)
-        before = self.state.read_text()
-        result = self.update("v2", FAIL_CHMOD="1")
-        self.assertNotEqual(result.returncode, 0)
-        self.assertEqual(self.key.read_text(), "v1\n")
-        self.assertEqual(self.state.read_text(), before)
-        self.assertEqual(list(self.key.parent.glob("id_github.*")), [])
-
-    def test_update_without_age_key_fails(self):
-        result = self.update("v2")
-        self.assertNotEqual(result.returncode, 0)
-        self.assertFalse(self.key.exists())
-
-    def test_key_failure_does_not_leave_empty_destination(self):
-        age = self.home / ".config/sops/age/keys.txt"
-        age.parent.mkdir(parents=True)
-        age.write_text("fake-age-key")
-        self.assertNotEqual(self.run_activation("secrets", FAIL_TOOL="1").returncode, 0)
-        self.assertFalse((self.home / ".ssh/id_github").exists())
-        self.assertEqual(list((self.home / ".ssh").glob("*.tmp.*")), [])
-        result = self.run_activation("secrets")
-        self.assertEqual(result.returncode, 0, result.stderr)
-        key = self.home / ".ssh/id_github"
-        self.assertEqual(key.stat().st_mode & 0o777, 0o600)
-        calls = self.log.read_text()
-        self.assertEqual(self.run_activation("secrets").returncode, 0)
         self.assertEqual(self.log.read_text(), calls)
+        self.assert_no_temps()
+
+    def test_failure_preserves_destination_and_cleans_temps(self):
+        self.place_age_key()
+        self.assertEqual(self.sync("v1").returncode, 0)
+        before = self.state.read_text()
+        for failure in ("FAIL_TOOL", "FAIL_CHMOD", "FAIL_MV"):
+            with self.subTest(failure=failure):
+                result = self.sync(**{failure: "1"})
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(self.key.read_text(), "v1\n")
+                self.assertEqual(self.state.read_text(), before)
+                self.assert_no_temps()
+
+    def test_without_age_key_fails_before_decryption(self):
+        result = self.sync()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("age 復号鍵", result.stderr)
+        self.assertFalse(self.key.exists())
+        self.assertFalse(self.log.exists())
+        self.assertFalse(self.state.exists())
+
+    def test_key_failure_does_not_leave_empty_destination_and_can_retry(self):
+        self.place_age_key()
+        self.assertNotEqual(self.sync(FAIL_TOOL="1").returncode, 0)
+        self.assertFalse(self.key.exists())
+        self.assert_no_temps()
+        result = self.sync()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.key.read_text(), "v2\n")
+
+    def test_empty_declarations_remove_records_without_age_key(self):
+        stale = self.record_undeclared("old")
+        stale.write_text("old\n")
+        result = self.run_activation("emptySecrets")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse(stale.exists())
+        self.assertEqual(self.records(), set())
+        self.assertFalse(self.log.exists())
+        self.assert_no_temps()
+
+    def test_empty_declarations_without_records_do_nothing(self):
+        result = self.run_activation("emptySecrets")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse(self.home.exists())
+        self.assertFalse(self.log.exists())
+
+    def test_empty_declarations_dry_run_preserves_recorded_files(self):
+        stale = self.record_undeclared("old")
+        stale.write_text("old\n")
+        before = self.state.read_text()
+        result = self.run_activation("emptySecrets", DRY_RUN_CMD="echo")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("削除予定", result.stderr)
+        self.assertEqual(stale.read_text(), "old\n")
+        self.assertEqual(self.state.read_text(), before)
+        self.assertFalse(self.log.exists())
 
 
 if __name__ == "__main__":

@@ -34,7 +34,7 @@ Darwin でも動く。clone は Home Manager が入れるコマンドなので�
 1. **復号の種 = 専用 age 鍵 1 本**。`~/.config/sops/age/keys.txt` に out-of-band で置く
    （既存マシンから SSH 送信、または Bitwarden から取得）
 2. **暗号文 = SSH 秘密鍵**を sops で暗号化し `secrets/secrets.yaml` にコミット。
-   `secrets.nix` の activation が age 鍵で復号し、まだ無いファイルだけ書き出す
+   `secrets.nix` の activation が age 鍵で復号し、宣言したファイルを暗号文の内容に揃える
 3. 利用者が `clone-repos`（`private-repos.nix`）を実行し、書き出された `~/.ssh/id_github` で clone する
 
 ## 復号と clone は別モジュールに分ける
@@ -78,49 +78,44 @@ clone は以前 activation で行っていた。次の理由で、switch の後�
 
 ## clone-if-absent（冪等・非破壊）
 
-各 `{ url, dest }` について `dest` が存在しないときだけ clone する。SSH 鍵も
-同名のファイルが無いときだけ書き出す。
+各 `{ url, dest }` について `dest` が存在しないときだけ clone する。
+既存の checkout は pull・上書きせず、live に編集する working tree を保つ。
+「初回だけ面倒を見て、以降の pull/push はユーザーに委ねる」割り切りで、
+mutable な状態を immutable に管理しようとしない
+（[agent-config.md](./agent-config.md) の out-of-store symlink と同じ思想）。
 
-- 既に clone / 鍵設置済みなら何もしない（`clone-repos` も switch も pull・上書きしない）
-- live に編集する working tree・既存の鍵を Nix が破壊しない
+## 秘密の更新と削除は switch が行う
 
-「初回だけ面倒を見て、以降の pull/push はユーザーに委ねる」割り切り。mutable な状態を
-immutable に管理しようとしない（[agent-config.md](./agent-config.md) の out-of-store
-symlink と同じ思想）。
+[secrets.nix](../../modules/home-manager/secrets.nix) の activation は、宣言した秘密を毎回復号し、
+通常のファイルを暗号文の内容と mode に揃える。手で置いた・書き換えたファイルも対象になる。
+鍵を変えるときは `secrets/secrets.yaml` を直す。
 
-switch が上書きしないので、暗号文の鍵を差し替えても既存のマシンには古い鍵が残る。
-switch のたびに上書きすると「手元で置き換えた鍵が Nix に戻される」事故が起きるので、
-更新は別のコマンド `update-secrets` に分けた（次節）。
-
-## 管理している秘密の更新と削除は `update-secrets` に分ける
-
-activation は新しく置いたファイルの内容の sha256 を `~/.local/state/flake-secrets/managed` に記録する。
-`update-secrets` は、記録と現在の内容が一致する（置いた後に変更されていない）ファイルだけを、
-暗号文の新しい内容に置き換える。宣言から外れたファイルも、記録と一致するものだけを消す。
-
-| 状態 | `update-secrets` の動作 |
+| 状態 | switch の動作 |
 |---|---|
-| ファイルがない | 置いて記録する |
-| 記録と一致し、暗号文と違う | 置き換える |
-| 内容が暗号文と同じ | 記録だけを合わせる（記録のない既存のファイルも管理に入れる） |
-| 記録と違い、暗号文とも違う | 手で変えたものとして触らない |
-| 記録がなく、暗号文と違う | 手で置いたものとして触らない |
-| 宣言から外れ、記録と一致する | 消す |
-| 宣言から外れ、記録と違う | 残し、記録から外す |
+| ファイルがない | 置いてパスを記録する |
+| 通常のファイルで内容が違う | 置き換えてパスを記録する |
+| 内容が同じ | ファイルは置き換えず mode を揃え、パスを記録する |
+| symlink・ディレクトリなど | 警告して触らず、記録に載せない |
+| 記録にあり宣言から外れた通常のファイル | 手編集の有無にかかわらず消し、記録から外す |
+| 記録にあり宣言から外れた通常のファイル以外 | 警告して残し、記録から外す |
 
-- 自動で追随させず、利用者が実行するコマンドにした。鍵の差し替えは稀で、そのたびに GitHub への登録や
-  他のマシンとの順序を人が見る必要があるから。switch に組み込むと、暗号文を差し替えた commit を pull して
-  switch しただけで鍵が入れ替わる。
-- 記録と秘密のファイルを書き換える間は lock（`flock`）を取る。置き換えは宛先と同じディレクトリの
-  一時ファイルからの `mv` なので、途中で止まっても古い鍵か新しい鍵のどちらかが残る。
-- `--dry-run` は復号と比較だけを行い、ファイルも記録も変えない。
-- 暗号文は、その世代に入っている flake のソースのものを使う。暗号文を差し替えたら、先に switch する。
-- GitHub への公開鍵の登録・失効や、他のマシンの `authorized_keys` は扱わない。手順は
-  [howtouse 側](../howtouse/private-repo-clone.md#ssh-鍵を差し替えたとき)。
+記録は `${config.xdg.stateHome}/flake-secrets/placed`（通常は `~/.local/state/flake-secrets/placed`）に
+1 行 1 パスで保存し、中身やハッシュは書かない。記録も一時ファイルから `mv` で置き換える。
+宣言が空でも削除用 activation は残るが、復号しないので age 鍵は要求しない。
+宣言も記録も無ければ何もしない。
 
-復号は一時ファイルへ書いてから `mv` する。`> "$dest"` と直接リダイレクトすると、sops が
-失敗してもシェルが先に空の `$dest` を作ってしまい、以降の switch が clone-if-absent の
-判定で「もうある」と見なして二度と復号し直さない。壊れた鍵が固定される経路なので塞いだ。
+復号先は宛先と同じディレクトリの一時ファイルで、umask 077 を使う。
+内容が違うときだけ mode を付けて `mv -f` するので、途中で失敗しても宛先には元のファイルが残る。
+同じなら宛先の mode だけを直す。一時ファイルは失敗時も trap で消す。
+直接宛先へリダイレクトすると、復号失敗時に空の秘密を残すので避ける。
+dry-run は復号も書き込みもせず、揃える予定と削除予定のパスだけを表示する。
+
+退けた案は「あれば触らない」配置と、内容のハッシュで手編集を保護する別の更新コマンド。
+以前は手で差し替えた鍵を switch が戻す事故を避けるために分けていた。
+しかし手で差し替えたまま使う運用はなく、鍵は `secrets.yaml` を直して変えるため、
+switch で宣言に揃える方針にした。
+GitHub への公開鍵の登録・失効は扱わない。登録と switch の順序は
+[使い方](../howtouse/private-repo-clone.md#ssh-鍵を差し替えたとき)に従う。
 
 ## 更新は switch から切り離して `pull-repos` に置く
 
@@ -168,7 +163,7 @@ URL 側と、`agentConfigRoot` / `vaultSkeletonRepo` などの dest 側）から
 
 入口を分けたのは、SSH 鍵には置き場所とモードの選択肢が実質無く、毎回 `path` と `mode` を
 書かせると呼び出し側が冗長になるため。復号の手順（一時ファイル経由、失敗時に空ファイルを
-残さない、既存ファイルを上書きしない）を二重に持たないことのほうが、入口の数を 1 つに
+残さない、暗号文に揃える）を二重に持たないことのほうが、入口の数を 1 つに
 絞ることより優先度が高い。
 
 最初の利用者は Gemini の API キー（`~/.config/gemini/api-key`）。無料枠のキーで課金
@@ -198,7 +193,7 @@ URL 側（`agentConfigRepo` / `vaultSkeletonRepoUrl` 等）が `null`（既定�
 dest 側とは別軸で持つことで「symlink（あるいは mirror-vault）だけ欲しい（手動 clone）」と
 「clone も自動化したい」を repo ごとに独立に選べる。
 
-clone対象が無ければGitHub鍵は自動配布しない。LAN鍵も選択せず、追加の `local.profile.sshKeys` も無ければ鍵のactivationごと消える。
+clone対象が無ければGitHub鍵は自動配布しない。LAN鍵も選択せず、追加の `local.profile.sshKeys` も無ければ鍵の復号はなくなり、配置記録に残る秘密を消すactivationだけが残る（追加の `secrets` も空の場合）。
 OS種別ではなく本人の `local.profile.lanSsh` でLAN鍵の配布を選ぶ。既存2台のpomuはtrueだが、新規ユーザーはfalse。
 
 ## ゼロからの復元（eval 時の鍵依存は解消済み）
@@ -227,11 +222,10 @@ activation が `secrets.yaml` を age 鍵で復号して書き出すので、事
   `secrets.yaml` をコミットするまで eval が通らない
 - standalone（`homeConfigurations`）は URL 側を全て未指定にすれば `secrets.yaml` を
   参照しないので、age 鍵も暗号文も無しで switch できる
-- activation は暗号文を flake のソース内のパス（`toString secretsFile`）で参照する。文字列に依存関係が
-  付かないので、そのソースはシステムの closure に入らない（2026-10-03、desktop の 26.05 の toplevel で確認）。
-  GC でソースが消えたあとに、まだ書き出していない secret がある状態で起動時の activation
-  （`home-manager-<user>.service`）が走ると、復号に失敗する可能性がある（未確認）。書き出し済みの secret は
-  読み直さないので、鍵を置いて一度 switch したあとは起きにくい
+- activation は秘密の宣言があるとき、起動時の activation（`home-manager-<user>.service`）を含めて毎回復号する。
+  暗号文は `"${secretsFile}"` で単独で store にコピーし、世代の closure に入れる。flake のソースは closure に
+  入らない（2026-10-03、desktop の 26.05 の toplevel で確認）ので、ソース内のパスを参照すると、GC でソースが消えた後の
+  起動で復号に失敗する。store の暗号文は誰でも読めるが、同じファイルは公開 repo にある
 
 ## clone失敗後の再実行
 

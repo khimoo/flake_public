@@ -22,7 +22,7 @@ age 鍵を置かないので、この仕組みを使わない（[wsl.md](./wsl.m
   | `git_ssh_key` | `~/.ssh/id_github` | GitHub 認証（clone / push） |
   | `lan_ssh_key` | `~/.ssh/id_lan` | LAN 内 machine-to-machine（[machine-ssh.md](./machine-ssh.md)） |
 
-- `home.activation` が switch のたびに、`secrets.yaml` を age 鍵で復号し、まだ無い鍵ファイルだけ書き出す。
+- `home.activation` が switch のたびに、`secrets.yaml` を age 鍵で復号し、宣言した鍵ファイルを暗号文の内容に揃える。
   **age 鍵が無い / 復号に失敗した場合は警告ではなく error で停止する**（switch が失敗する）。
   「switch は成功したのに鍵が無い」状態を作らないため。
 - `clone-repos` が、`local.profile.privateRepos` の各 `{ url, dest }` について、`dest` が無ければ
@@ -165,7 +165,7 @@ local.profile.secrets = [
 ```
 
 `mode` は省略すると `600`。書き出し先が home の外だと評価時に弾かれる。
-switch は既存ファイルを上書きしない。暗号文を差し替えたら、switch してから `update-secrets` で反映する（[SSH 鍵を差し替えたとき](#ssh-鍵を差し替えたとき)）。宣言から外した秘密も、置いたまま変更していなければ `update-secrets` が消す。
+switch のたびに、宣言した通常のファイルを暗号文の内容と mode に揃える。手で置いた・書き換えたファイルも戻るので、秘密を変えるときは `secrets/secrets.yaml` を直す（[SSH 鍵を差し替えたとき](#ssh-鍵を差し替えたとき)）。宣言から外した秘密は、配置記録にある通常のファイルなら switch が消す。symlink やディレクトリは警告して触らない。
 
 SSH 鍵は `local.profile.sshKeys = [{ secret, name }]` のままでよい。
 `~/.ssh` へ `600` で置く場合は、そちらのほうが短く書ける。
@@ -182,21 +182,19 @@ age 鍵 1 本を全環境で共有するため、マシンごとの受信者追�
 
 ## SSH 鍵を差し替えたとき
 
-switch は**既にあるファイルを書き出さない**（非破壊）。各マシンの鍵の置き換えは `update-secrets` が行う。
-`update-secrets` はこの flake が置いたまま変更されていないファイルだけを置き換え、手で置いた・手で変えた
-ファイルは警告して残す。GitHub やほかのマシンは操作しない。
-
-GitHub の鍵は次の順で差し替える。古い鍵を失効させるまでは、どのマシンも古い鍵で GitHub に届く。
+switch は既存の鍵も暗号文の内容に揃える。GitHub やほかのマシンは操作しない。
+GitHub の鍵は次の順で差し替える。
 
 1. 新しい鍵を作り、`secrets/secrets.yaml` の `git_ssh_key` を作り直して commit する。手順は
    [初回セットアップの 4.](#4-両方を暗号化してコミット) と同じで、差し替えたほうの鍵ファイルを新しいものにしてから
    両方まとめて再暗号化する。
-2. GitHub に新しい公開鍵を登録する（`gh ssh-key add`）。
-3. 各マシンで switch してから `update-secrets` を実行し、`ssh -T git@github.com` で確かめる:
+2. GitHub に新しい公開鍵を登録する（`gh ssh-key add`）。登録前に switch すると、秘密鍵だけが新しくなり、
+   その時点から GitHub に繋がらなくなる。
+3. 各マシンで pull して switch し、`ssh -T git@github.com` で確かめる:
    ```sh
+   git pull --ff-only
    sudo nixos-rebuild switch --flake .#<host>
-   update-secrets --dry-run   # 置き換える予定のファイルを確かめる
-   update-secrets
+   ssh -T git@github.com
    ```
 4. 全マシンで確かめてから、GitHub の古い鍵を失効させる。失効させた後は、Nix の世代を戻しても
    古い鍵での認証は戻らない。
@@ -232,7 +230,7 @@ LAN 鍵も同様に作り直す。
 `agentConfigRoot` / `vaultSkeletonRepo`）だけ残せば、同期や symlink、`mirror-vault` は
 効くので、clone を手動運用に戻せる。
 
-全clone URL・追加の `privateRepos` / `sshKeys` を外し、`lanSsh = false` にすれば、NixOSでもstandaloneでも鍵の書き出しは無くなりage鍵は不要になる。
+全clone URL・追加の `privateRepos` / `sshKeys` を外し、`lanSsh = false` にすれば、NixOSでもstandaloneでも鍵の書き出しは無くなりage鍵は不要になる。配置記録にある通常のファイルは、次の switch で削除される。追加の `secrets` も空であることが条件になる。
 既存2台のpomuは `lanSsh = true` なので、自動cloneだけ外してもage鍵が必要。[fail-fastの設計判断](../architecture/private-repo-clone.md#fail-fastage-鍵が無ければ-switch-を失敗させる)も参照。
 
 ## 注意

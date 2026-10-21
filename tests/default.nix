@@ -214,8 +214,14 @@ lib.genAttrs systems (
       assert !(users ? unmanaged);
       assert builtins.length users.alice.local.profile.sshKeys == 2;
       assert users.bob.local.profile.secrets == [ ];
-      assert !(users.bob.home.activation ? secrets);
+      assert users.bob.home.activation ? secrets;
+      assert !(lib.hasInfix "SOPS_AGE_KEY_FILE" users.bob.home.activation.secrets.data);
+      assert !(lib.hasInfix "age_key=" users.bob.home.activation.secrets.data);
       assert users.alice.home.activation ? secrets;
+      # 暗号文が世代の closure に入る（GC 後の起動時の activation でも復号できる）。
+      assert lib.any (lib.hasSuffix "-secrets.yaml") (
+        lib.attrNames (builtins.getContext users.alice.home.activation.secrets.data)
+      );
       assert rejects {
         local.profile.secrets = [
           {
@@ -366,7 +372,9 @@ lib.genAttrs systems (
       assert wslUser.local.profile.agentConfigRoot == null;
       assert !(wsl.environment.etc ? "claude-code/managed-settings.json");
       assert !(lib.hasInfix "IdentityFile" wslSshConfig);
-      assert !(wslUser.home.activation ? secrets);
+      assert wslUser.home.activation ? secrets;
+      assert !(lib.hasInfix "SOPS_AGE_KEY_FILE" wslUser.home.activation.secrets.data);
+      assert !(lib.hasInfix "age_key=" wslUser.home.activation.secrets.data);
       assert !(hasLauncher wslUser "clone-repos");
       # 会社 PC でも kitty を使うため、GUI アプリは WSLg で表示する（docs/architecture/wsl.md）。
       assert lib.attrNames (lib.filterAttrs (_: enabled: enabled) wslUser.local.profile.features) == [ "gui" ];
@@ -421,16 +429,14 @@ lib.genAttrs systems (
           nativeBuildInputs = [
             pkgs.python3
             pkgs.bash
-            pkgs.gawk
-            pkgs.flock
           ];
           cloneScript = commandText "clone-repos";
           secretsScript = snippet "secrets";
-          updateScript = commandText "update-secrets";
+          emptySecretsScript = mockPaths (mkTestHome "x86_64-linux" [ ]).config.home.activation.secrets.data;
           passAsFile = [
             "cloneScript"
             "secretsScript"
-            "updateScript"
+            "emptySecretsScript"
           ];
         }
         ''
@@ -458,7 +464,6 @@ lib.genAttrs systems (
     pull-repos = lib.findFirst (p: (p.name or "") == "pull-repos") (throw "pull-repos is not installed") home.config.home.packages;
     # clone-repos の shellcheck。本文の動作は activation の check が偽の git で確かめる。
     clone-repos = lib.findFirst (p: (p.name or "") == "clone-repos") (throw "clone-repos is not installed") activationHome.config.home.packages;
-    update-secrets = lib.findFirst (p: (p.name or "") == "update-secrets") (throw "update-secrets is not installed") activationHome.config.home.packages;
     # 非対話の bash（エージェントのシェル）が、見つからないコマンドに入手方法を添え、127 のまま終わる。
     # 実際の nix-locate と同梱の DB を使う。ビルド環境に node が無いことを前提にする。
     command-not-found-hint =
