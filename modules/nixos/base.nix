@@ -11,7 +11,6 @@ in
     ./nix-settings.nix
     ./codex.nix
     ./agent-instructions.nix
-    ./claude-managed-settings.nix
     ./restricted-host.nix
   ];
 

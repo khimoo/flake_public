@@ -21,10 +21,6 @@ let
               gitUserEmail = "alice@example.org";
               agentConfigRoot = "/home/alice/claude-config";
               agentConfigRepo = "git@example.org:alice/config.git";
-              agentProfiles = {
-                claude = [ "opus" ];
-                codex = [ "astra" ];
-              };
               lanSsh = true;
             };
           }
@@ -92,12 +88,6 @@ let
         ../modules/nixos/agent-instructions.nix
       ];
       local.agentInstructions = instructions;
-    };
-  managedHost =
-    path:
-    nixosHost "example" {
-      imports = [ ../modules/nixos/claude-managed-settings.nix ];
-      local.claudeManagedSettings = path;
     };
   # 会社 PC 向けの制限（modules/nixos/restricted-host.nix）を立てた架空のホスト。
   restrictedHost =
@@ -263,27 +253,12 @@ lib.genAttrs systems (
       # ~/.config/nvim は checkout への live symlink なので、その下に置くファイルは home-manager-files の
       # ビルドで "outside $HOME" になる。評価だけでは見つからないので、ここで止める。
       assert !(builtins.any (f: f.enable && lib.hasPrefix ".config/nvim/" f.target) (builtins.attrValues home.config.home.file));
-      assert hasLauncher users.alice "claude-opus";
-      assert hasLauncher users.alice "codex-astra";
-      assert users.alice.home.file ? ".codex/astra.config.toml";
-      assert !(hasLauncher users.bob "claude-opus");
-      assert !(users.bob.home.file ? ".codex/astra.config.toml");
-      assert rejects { local.profile.agentProfiles.codex = [ "astra" ]; };
-      assert rejects {
-        local.profile = {
-          agentConfigRoot = "/home/test/config";
-          agentProfiles.claude = [
-            "opus"
-            "opus"
-          ];
-        };
-      };
-      assert rejects {
-        local.profile = {
-          agentConfigRoot = "/home/test/config";
-          agentProfiles.claude = [ "opus; rm -rf /" ];
-        };
-      };
+      # プロファイルの起動コマンドは agent-sync が実行時に作る。設定 repo のないユーザーには入れない。
+      assert hasLauncher users.alice "agent-sync";
+      assert users.alice.home.activation ? agentSync;
+      assert !(hasLauncher users.bob "agent-sync");
+      assert !(users.bob.home.activation ? agentSync);
+      assert !(users.alice.home.file ? ".codex/astra.config.toml");
       assert rejects { local.profile.agentConfigRepo = "git@example.org:test/config.git"; };
       assert rejects { local.profile.agentConfigRoot = "/home/another-user/config"; };
       assert rejects { local.profile.features.zettelkastenSync = true; };
@@ -378,12 +353,6 @@ lib.genAttrs systems (
         && (codexConfig host).agents.enabled == false
         && host.environment.etc."claude-code/CLAUDE.md".text == instructions;
       assert !((agentHost "").environment.etc ? "claude-code/CLAUDE.md");
-      # managed settings は checkout のファイルへ直接リンクし、Nix store に写さない。
-      assert
-        toString (managedHost "/home/alice/config/claude/managed-settings.json")
-          .environment.etc."claude-code/managed-settings.json".source
-        == "/home/alice/config/claude/managed-settings.json";
-      assert !((managedHost null).environment.etc ? "claude-code/managed-settings.json");
       assert !(codexConfig (agentHost "") ? developer_instructions);
       "module contracts passed";
     # 会社 PC（nixos-work-wsl）の実際の構成に固有の確認（docs/architecture/wsl.md）。
@@ -395,7 +364,7 @@ lib.genAttrs systems (
       assert wsl.wsl.enable && wsl.wsl.defaultUser == "nixos";
       # 社用の AI アカウントがない会社の PC なので、自分用のエージェントの設定（agents-private）を置かない。
       assert wslUser.local.profile.agentConfigRoot == null;
-      assert wsl.local.claudeManagedSettings == null;
+      assert !(wsl.environment.etc ? "claude-code/managed-settings.json");
       assert !(lib.hasInfix "IdentityFile" wslSshConfig);
       assert !(wslUser.home.activation ? secrets);
       assert !(hasLauncher wslUser "clone-repos");
@@ -403,7 +372,7 @@ lib.genAttrs systems (
       assert lib.attrNames (lib.filterAttrs (_: enabled: enabled) wslUser.local.profile.features) == [ "gui" ];
       assert builtins.any (p: (p.pname or "") == "kitty") wslUser.home.packages;
       assert wsl.wsl.startMenuLaunchers;
-      assert !(hasLauncher wslUser "codex-astra");
+      assert !(hasLauncher wslUser "agent-sync");
       assert hasLauncher wslUser "uv-mode";
       "nixos-work-wsl contracts passed";
     # デスクトップ（nixos-desktop）の実際の構成に固有の確認。
@@ -468,6 +437,22 @@ lib.genAttrs systems (
           python ${./activation.py}
           touch "$out"
         '';
+    # 設定 repo のファイルから起動コマンドと Claude Code の設定を作る agent-sync の動作。
+    agent-sync =
+      pkgs.runCommand "agent-sync"
+        {
+          nativeBuildInputs = [
+            pkgs.python3
+            pkgs.bash
+            pkgs.jq
+          ];
+        }
+        ''
+          python ${./agent-sync.py} ${pkgs.writeText "agent-sync.sh" (commandText "agent-sync")}
+          touch "$out"
+        '';
+    # agent-sync の shellcheck。
+    agent-sync-package = lib.findFirst (p: (p.name or "") == "agent-sync") (throw "agent-sync is not installed") activationHome.config.home.packages;
     # private repo を持たないユーザーでも pull-repos のビルド（shellcheck）が通ること。
     # standalone の Home Manager は評価しかしないので、ここでビルドしないと見つからない。
     pull-repos = lib.findFirst (p: (p.name or "") == "pull-repos") (throw "pull-repos is not installed") home.config.home.packages;

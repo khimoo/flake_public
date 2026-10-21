@@ -41,7 +41,7 @@ flake_public 側が設定 repo について知るのはレイアウト規約（`
   Claude は `~/.claude/skills` から直接参照する。Codex は `~/.agents/skills` を
   `codex/skills/` に向け、そこから共有スキルへ相対リンクを張る。Codex 専用スキルは
   `codex/skills/` のみに置くため、Claude には公開されない
-- `claude/`: Claude Code だけが読むもの。`managed-settings.json`（方針）と `hooks/` `output-styles/` `agents/` `commands/`
+- `claude/`: Claude Code だけが読むもの。`settings.json`（方針）と `hooks/` `output-styles/` `agents/` `commands/`
 - `codex/rules/base.rules`: Codex だけが読むもの
 
 共通指示を repo 直下に置かないのは、Codex が cwd から上の `AGENTS.md` を project 指示としても
@@ -71,11 +71,28 @@ Claude Code は `--settings <file>` をコマンドライン層としてユー�
 model と reasoning effort で、どちらも設定値なのでこの層に収まる。指示文はモデルで分けない。
 分ける必要がいまのところ無く、分けると同じ規約を二重に持つことになるため。
 
-起動は alias ではなく `writeShellScriptBin` で作る PATH 上の実行ファイルにする。alias と
-シェル関数は対話シェルの外（IDE や他ツールからの起動）で効かない。名前は
-`local.profile.agentProfiles` で宣言する。Codex のプロファイルは `CODEX_HOME` 直下の
-ファイルとして探されるため名前ごとに symlink が要り、その列挙から起動ファイルも機械的に
-出せる。宣言は空が既定で、名前の重複と shell のメタ文字は型と assertion で弾く。
+起動は alias ではなく PATH 上の実行ファイルにする。alias とシェル関数は対話シェルの外
+（IDE や他ツールからの起動）で効かない。Codex のプロファイルは `CODEX_HOME` 直下の
+ファイルとして探されるため名前ごとに symlink が要る。
+
+## プロファイルの名簿は設定 repo のファイルから導く
+
+以前はプロファイル名を flake_public の `local.profile.agentProfiles` に並べ、Nix で起動コマンドを作っていた。
+名簿は設定 repo にファイルを足すたびに変わるのに、flake_public にも同じ名前を手で書き足す必要があった。
+評価時に設定 repo を読む案（flake input にする）は、評価と lock の更新に SSH 鍵が要るので退けた（下記）。
+
+そこで、名簿は設定 repo の `claude/profiles/*.json` と `codex/*.config.toml` そのものとし、
+[agent-sync.nix](../../modules/home-manager/dev/agent-sync.nix) の `agent-sync` が実行時に読んで、
+`~/.local/share/agent-launchers/bin` の起動コマンドと Codex のリンクを作る。switch のたびと、Linux では
+設定 repo のディレクトリの変更を見る systemd の path unit から走るので、プロファイルの追加・削除に switch は要らない。
+一方、何をどこへ張るか（`claude.nix`、`codex.nix` の配線）は Claude Code と Codex が読む場所の約束で、
+ツールの仕様が変わったときにしか変わらないので、Nix の `home.file` に残す。
+
+- 起動コマンドは Nix の世代の外に置くので、世代を戻しても戻らない（設定 repo の Git 履歴と `agent-sync` で戻す）。
+  起動コマンドが指す `claude` と `codex` の store パスは switch のたびに書き直す
+- 起動コマンドには生成した印の行を入れ、印のあるファイルだけを後始末で消す。Codex のリンクは、設定 repo の `codex/` を
+  指すものだけを消す。手で置いたファイルには触らない
+- 名前に使えるのは英数字と `_` `-` だけ。shell のメタ文字を含む名前のファイルは飛ばす
 
 `--profile` は一回しか渡せない（`cannot be used multiple times`）ので、モデル非依存で
 private な Codex 設定を base プロファイルに置く案は成立しない。
@@ -144,7 +161,7 @@ Claude Code がユーザー設定を読むカテゴリ（`skills` `agents` `comm
 ### `settings.json` を `--settings` で毎回重ねる（live を追跡しない）
 
 `claude --settings <file>` はコマンドライン層としてユーザー設定の上に重なるが、ラッパーを
-通さない起動（IDE、他ツールからの呼び出し）には効かない。managed settings なら起動の経路に
+通さない起動（IDE、他ツールからの呼び出し）には効かない。ユーザー設定へ反映すれば起動の経路に
 よらず掛かる。
 
 ### home-manager が生成した読み取り専用の `settings.json` / `config.toml`
@@ -184,7 +201,7 @@ global の配線で全プロジェクトに効いているので不要。同じ 
   あるかは人が見て移す。自動化はしない
 - プロファイルは既定を選ぶだけで、モデルを固定しない。`claude --resume` は transcript のモデルを
   優先し、Codex は project 層と `-c` フラグがプロファイルより優先される
-- プロファイル名の追加・削除は switch を要する（中身の編集は要しない）
+- プロファイル名の追加・削除は、Linux では path unit が反映する。macOS の Home Manager では switch か `agent-sync` の実行が要る
 
 ## 見直す条件
 
@@ -194,20 +211,26 @@ global の配線で全プロジェクトに効いているので不要。同じ 
   private 設定を repo に置けるようになる
 - `--profile` を複数回渡せるようになったら `base` プロファイル案を再検討する
 
-## Claude の方針は managed settings に置き、live 設定は追跡しない
+## Claude の方針は設定 repo からユーザー設定へ反映する
 
 `~/.claude/settings.json` は Claude Code が `/model`、`/config`、`/plugin` のたびに書き込む。
-以前は設定 repo の `claude/settings.json` へ直接リンクし、アプリの書き込みを diff で選別していたが、
-コミットのたびに選別する手間が残った。Codex の `config.toml` と同じく、live ファイルは追跡しない。
+以前は設定 repo へ直接リンクし、アプリの書き込みを diff で選別していたが、コミットのたびに選別する手間が残った。
+Codex の `config.toml` と同じく、live ファイルは追跡しない。
 
-残したい方針（フック、`enabledPlugins`、`extraKnownMarketplaces`、`outputStyle`、`language`）は、
-設定 repo の `claude/managed-settings.json` に置く。NixOS の `local.claudeManagedSettings` が
-`/etc/claude-code/managed-settings.json` をこのファイルへの直接リンクにする（Nix store に写さない）。
-managed settings はユーザー設定より優先され、一覧の項目（フックなど）はユーザー設定の分と合わさる。
+残したい方針（フック、`enabledPlugins`、`extraKnownMarketplaces`、`outputStyle`、`language`、`env`）は、
+設定 repo の `claude/settings.json` に置き、`agent-sync` が `~/.claude/settings.json` の同じキーへ反映する。
 
-- マシンの全ユーザーに掛かる。フックのファイルが無いユーザーでも Bash を止めないよう、フックの
-  コマンドはファイルが無ければ何もせずに終える形にする
-- JSON が壊れていると Claude Code は起動しない。設定 repo のテストで、JSON として読めることを確かめる
-- managed に置いた `outputStyle` などは、セッションの中から変えられない
+以前は NixOS の `/etc/claude-code/managed-settings.json` を設定 repo のファイルへのリンクにしていた。
+managed settings はマシンの全ユーザーに掛かる組織向けの層で、個人の設定を置く場所ではない
+（[Claude Code の設定スコープ](https://code.claude.com/docs/en/settings)）。個人の checkout をマシン全体から参照する構成もやめるため、
+ユーザー設定へ反映する形にした。
 
-未確定: `/etc` のリンク先が無いとき（設定 repo を clone する前など）に Claude Code が起動を拒むか。
+- 設定 repo にあるキーは設定 repo の値を優先する（ユーザーの判断）。前回の反映の後にアプリの中で変わっていたキーは、警告してから上書きする
+- 値がオブジェクトのキーは一段下のキーごとに管理する。`/plugin` で試しているプラグインのように、利用者が足したキーを残すため。
+  配列は一段下に分けず、値ごと置き換える
+- 前回反映したキーとパスを `~/.local/state/agent-sync/` に記録し、設定 repo から消えたものだけを消す
+- どちらかの JSON が壊れていれば反映を止める。switch は止めない（Claude Code は古い設定のまま動く）
+- ユーザー設定は project 設定や `--settings` より優先度が低い。managed settings のように、プロジェクト側の設定で上書きされない保証はない
+
+公開されている dotfiles では、chezmoi の `modify_` などで既存の JSON に管理するキーだけを取り込む方式が複数ある。
+アプリの書き込みと宣言を両立させる方法に Claude Code の標準はないので、この形はこのリポジトリの判断である。

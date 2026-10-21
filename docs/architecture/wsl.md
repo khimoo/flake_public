@@ -95,7 +95,7 @@ Home Managerのモジュール群は、すべてのパスを `home.homeDirectory
 ### 5. 共通設定を `base.nix` に分離する
 
 [base.nix](../../modules/nixos/base.nix) には、どのホストでも共通して必要となる最小限の設定を集約しています。
-このファイルで [locale.nix](../../modules/nixos/locale.nix)、[users.nix](../../modules/nixos/users.nix)、nix-settings.nix（GUI関連を除く）、[codex.nix](../../modules/nixos/codex.nix)、[agent-instructions.nix](../../modules/nixos/agent-instructions.nix)、[claude-managed-settings.nix](../../modules/nixos/claude-managed-settings.nix) をインポートし、`networking.hostName` や `system.stateVersion` もこの `base.nix` で設定します。
+このファイルで [locale.nix](../../modules/nixos/locale.nix)、[users.nix](../../modules/nixos/users.nix)、nix-settings.nix（GUI関連を除く）、[codex.nix](../../modules/nixos/codex.nix)、[agent-instructions.nix](../../modules/nixos/agent-instructions.nix) をインポートし、`networking.hostName` や `system.stateVersion` もこの `base.nix` で設定します。
 Codexのサブエージェント無効化設定（`codex.nix`）を `base.nix` に含めるのは、WSL環境にもCodexを導入するためです。
 
 [common.nix](../../modules/nixos/common.nix) は `base.nix` をインポートした上で、デスクトップ環境（desktop）向けの残りの設定を保持します。具体的には、boot、networking（NetworkManagerやKDE Connect用のポート）、desktop、printing、ssh、tailscale、remote-builders、Bluetooth、vm、music、audio（エコーキャンセル）、sns-block、gnome-transparent-fullscreenがこれに該当します。
@@ -118,7 +118,7 @@ NixOS-WSLは、`wheel` グループに属する全ユーザーに対し、パス
 
 ### 6. Home Manager の個人設定を読まない
 
-[pomu-agents.nix](../../profiles/home/pomu-agents.nix) には、`agentConfigRoot`（`~/sagyo/agents-private`）、`agentProfiles`（Claudeのopus・fable、Codexのastra）、`agentCompression` の設定を置いています。なお、`agentConfigRepo` はこの共通ファイルには含めません。
+[pomu-agents.nix](../../profiles/home/pomu-agents.nix) には、`agentConfigRoot`（`~/sagyo/agents-private`）と `agentCompression` の設定を置いています。プロファイルの起動コマンドは agents-private のファイルから `agent-sync` が作ります。なお、`agentConfigRepo` はこの共通ファイルには含めません。
 [pomu-workstation.nix](../../profiles/home/pomu-workstation.nix) は `pomu.nix` と `pomu-agents.nix` をインポートし、`agentConfigRepo` などの固有設定のみを保持します。
 
 `nixos-work-wsl` の `nixos` ユーザーは、`pomu.nix` も `pomu-agents.nix` も読み込みません。そのため、`khimoo` のGit ID情報、Geminiのシークレット、`antigravity-cli`、agents-private の設定は導入されません。
@@ -164,7 +164,7 @@ Slack、Discord、Thunderbird などの自動起動は `graphical-session.target
 
 - 実際の `inputs.self.nixosConfigurations.nixos-work-wsl` が `local.restrictedHost.enable` を有効にしていて、assertion がすべて成り立つこと。
 - 制限を破る構成（sshd を有効にしたホストと、`lanSsh` を有効にした Home Manager のユーザーを持つホスト）では、assertion が成り立たないこと。テスト用の架空のホストで確かめます。
-- assertion では表せない設定：自分用のエージェントの設定がないこと（`agentConfigRoot` と `local.claudeManagedSettings` が null で、`claude-opus` などの起動用のコマンドがなく、`/etc/ssh/ssh_config` に `IdentityFile` がない）。`secrets` と `privateRepos` の activation がないこと。
+- assertion では表せない設定：自分用のエージェントの設定がないこと（`agentConfigRoot` が null で、`agent-sync` と `/etc/claude-code/managed-settings.json` がなく、`/etc/ssh/ssh_config` に `IdentityFile` がない）。`secrets` の activation と `clone-repos` がないこと。
 - 有効な機能フラグが `gui` だけで、kitty が入り、`wsl.startMenuLaunchers` が有効なこと。
 
 共通モジュールの構成とユーザーごとのHome Manager設定の分離（設計方針文書『AGENTS.md』における「profile/user isolation」の原則）の双方を変更するため、ローカル開発環境（desktop）で事前に `bash scripts/check.sh` によるテストを実行します。なお、`check.sh` はトップレベルの `drvPath` を評価するのみであるため、WSL用のトップレベルビルドはデスクトップPC上で別途実行して検証します。

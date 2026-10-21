@@ -18,7 +18,7 @@ symlink して管理する。
 │       └── <skill-name>/SKILL.md
 ├── claude/
 │   ├── CLAUDE.md          # ~/.claude/CLAUDE.md になる。先頭で `@../shared/AGENTS.md` を import する
-│   ├── managed-settings.json # 方針。NixOS で /etc/claude-code/managed-settings.json になる（全ユーザーに掛かる）
+│   ├── settings.json      # 方針。agent-sync が ~/.claude/settings.json の同じキーへ反映する
 │   ├── profiles/
 │   │   └── <name>.json    # モデル別プロファイル。`claude-<name>` が `--settings` で重ねる
 │   ├── hooks/             # hook スクリプト（任意）
@@ -43,20 +43,20 @@ symlink して管理する。
 ## モデル別プロファイル
 
 モデルごとに変える値（model、reasoning effort）は指示文ではなくプロファイルに置き、
-起動コマンドで選ぶ。名前は home モジュールで宣言する:
+起動コマンドで選ぶ。名簿は設定 repo のファイルそのもので、flake_public には書かない:
 
-```nix
-local.profile.agentProfiles = {
-  claude = [ "opus" "fable" ];   # <root>/claude/profiles/opus.json, fable.json
-  codex = [ "astra" ];           # <root>/codex/astra.config.toml
-};
-```
+- `<root>/claude/profiles/<name>.json` を置くと、起動コマンド `claude-<name>`（`claude --settings <root>/claude/profiles/<name>.json "$@"`）ができる
+- `<root>/codex/<name>.config.toml` を置くと、`~/.codex/<name>.config.toml` へのリンクと起動コマンド `codex-<name>`（`codex --profile <name> "$@"`）ができる
 
-宣言した名前ごとに PATH 上の実行ファイル `claude-<name>`（`claude --settings <root>/claude/profiles/<name>.json "$@"`）と
-`codex-<name>`（`codex --profile <name> "$@"`）ができる。素の `claude` `codex` はそのまま残り、
-プロファイル無しの起動では `~/.claude/settings.json`（アプリが書く live ファイル）の `model` と Codex の live 設定が使われる。
+作るのは `agent-sync`（[agent-sync.nix](../../modules/home-manager/dev/agent-sync.nix)）で、switch のたびと、
+Linux では設定 repo の `claude/profiles/`・`claude/settings.json`・`codex/` が変わったとき（systemd の path unit）に走る。
+手で走らせるときは `agent-sync`（`--dry-run` で予定だけを表示）。起動コマンドは
+`~/.local/share/agent-launchers/bin` に置き、Home Manager のセッション変数で PATH に足す
+（設定の適用後に開いたログインセッションから PATH に入る）。ファイルを消すと、対応する起動コマンドとリンクも消える。
+名前に使えるのは英数字と `_` `-` だけで、それ以外の名前のファイルは警告して飛ばす。
+素の `claude` `codex` はそのまま残り、プロファイル無しの起動では `~/.claude/settings.json`（アプリが書く live ファイル）の `model` と Codex の live 設定が使われる。
 
-- プロファイルの中身は起動時に読まれるので、編集に switch は要らない。**名前の追加・削除は switch が要る**
+- プロファイルの中身は起動時に読まれるので、編集に switch は要らない。名前の追加・削除も switch は要らない（Linux）
 - `claude-<name> --resume` は transcript のモデルを優先する。再開時にモデルを変えるなら `--model` を足す
 - セッション内の `/model` は `~/.claude/settings.json` に書き戻す。このファイルは repo で追跡しない。プロファイルで起動している間はコマンドライン層が勝つので、保存した値は次回のプロファイル無し起動で効く
 - Codex の `--profile` は一回しか渡せず、`codex features` などの管理系サブコマンドには効かない。プロファイルは既定の `~/.codex` にだけ張るので `CODEX_HOME` を変えた起動には効かない。**存在しないプロファイル名を渡しても Codex は黙って無視する**（0.153.4 で exit 0、警告なし）ので、効いているかは TUI の表示モデルか `codex-<name> exec --json` の出力で確かめる
@@ -102,21 +102,18 @@ local.profile.agentProfiles = {
   out-of-store symlink なので **rebuild 不要で即反映**される
 - 各カテゴリディレクトリ全体が repo への symlink のため、中身は必ず repo 側で作る
   （`~/.claude/skills/` 直下に手でディレクトリを作ると repo に入る）
-- switch が要るのは、プロファイル名を足す・消すときと、Claude Code か Codex が**全く新しい
-  カテゴリ**を導入してそれを使い始めるとき（`claude.nix` の `claudeDirs` か `codex.nix` の
-  `home.file` に 1 行足す）
-- 方針（フック、`enabledPlugins`、`extraKnownMarketplaces`、`outputStyle`、`language`）は
-  `claude/managed-settings.json` に書く。NixOS では `local.claudeManagedSettings` で
-  `/etc/claude-code/managed-settings.json` から直接リンクされ、マシンの全ユーザーに掛かる。
-  repo を直せば次のセッションから効く。JSON が壊れていると Claude Code が起動しない
+- switch が要るのは、Claude Code か Codex が**全く新しいカテゴリ**を導入してそれを使い始めるとき
+  （`claude.nix` の `claudeDirs` か `codex.nix` の `home.file` に 1 行足す）
+- 方針（フック、`enabledPlugins`、`extraKnownMarketplaces`、`outputStyle`、`language`、`env`）は
+  `claude/settings.json` に書く。`agent-sync` が `~/.claude/settings.json` の同じキーへ反映する（[下記](#claude-の方針)）
 - `~/.claude/settings.json` は Claude Code が書く live ファイルで、repo で追跡しない。
   `/model` や `/config`、`/plugin` で試したプラグインはここに入る。常用すると決めたプラグインは
-  `claude/managed-settings.json` に移す
+  `claude/settings.json` に移す
 - 全プロジェクト共通の指示は `shared/AGENTS.md` に書く。Claude Code だけに効かせたい指示は
   `claude/CLAUDE.md` の import の下に書く
 - skills は Claude Code と Codex で同じ `SKILL.md` 形式。片方だけが解釈する frontmatter の
   キーは、もう片方には無視される
-- マシン固有値は `managed-settings.json` と `base.rules` に入れない。マシン固有の指示は[下記](#マシン固有の指示)のホスト設定に書く。プロジェクト固有のローカル値は
+- マシン固有値は `claude/settings.json` と `base.rules` に入れない。マシン固有の指示は[下記](#マシン固有の指示)のホスト設定に書く。プロジェクト固有のローカル値は
   各プロジェクトの `.claude/settings.local.json` や `.codex/`、一時的な変更は起動引数を使う
 - live な設定は Nix 世代のロールバックでは戻らない。設定 repo の Git 履歴で復元する
 
@@ -148,19 +145,16 @@ switch 後の確認:
 
 設計判断は [../architecture/agent-config.md](../architecture/agent-config.md#マシン固有の指示はシステム層に置く) を参照。
 
-## Claude の方針（managed settings）
+## Claude の方針
 
-NixOS のホストで `local.claudeManagedSettings` に設定 repo の `claude/managed-settings.json` の
-絶対パスを渡すと、`/etc/claude-code/managed-settings.json` がそのファイルへの直接リンクになる。
+設定 repo の `claude/settings.json` のキーを、`agent-sync` が `~/.claude/settings.json` へ反映する。
+`agentConfigRoot` を設定したユーザーだけに掛かる。
 
-```nix
-local.claudeManagedSettings = "/home/pomu/sagyo/agents-private/claude/managed-settings.json";
-```
+- 設定 repo にあるキーは設定 repo の値になる。値がオブジェクトのキー（`enabledPlugins`、`env`、`hooks` など）は
+  一段下のキーごとに反映するので、`/plugin` で試しているプラグインのように設定 repo にないキーは残る
+- 設定 repo から消したキーは、`~/.claude/settings.json` からも消える。それ以外のキー（`model`、`theme` など）は触らない
+- 設定 repo にあるキーをアプリの中で変えると、次の反映で設定 repo の値に戻る。前回の反映の後に変わっていたキーは警告する
+- どちらかの JSON が壊れていると反映を止め、`~/.claude/settings.json` を変えない（switch は止めない）
+- Linux では設定 repo の `claude/settings.json` を保存すると反映される。反映は次のセッションから効く
 
-- 効いているかは、セッションの `/status` の **Setting sources** に managed settings が出るかで確かめる
-- マシンの全ユーザーに掛かる。フックのコマンドは、フックのファイルが無いユーザーでは何もせずに終える形にする
-- 以前 `~/.claude/settings.json` を設定 repo へリンクしていたマシンでは、最初の activation が
-  リンクを普通のファイルに一度だけ移し替える（方針の項目は除く）。`agentConfigRoot` を無効化しても、
-  `~/.claude/settings.json` は普通のファイルとして残る
-
-設計判断は [../architecture/agent-config.md](../architecture/agent-config.md#claude-の方針は-managed-settings-に置きlive-設定は追跡しない) を参照。
+設計判断は [../architecture/agent-config.md](../architecture/agent-config.md#claude-の方針は設定-repo-からユーザー設定へ反映する) を参照。

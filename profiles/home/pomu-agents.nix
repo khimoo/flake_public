@@ -4,14 +4,8 @@
 { config, ... }:
 {
   local.profile = {
+    # プロファイル（claude-opus などの起動コマンド）は設定 repo のファイルから agent-sync が作る。
     agentConfigRoot = "${config.home.homeDirectory}/sagyo/agents-private";
-    agentProfiles = {
-      claude = [
-        "opus"
-        "fable"
-      ];
-      codex = [ "astra" ];
-    };
   };
 
   # 日本語のセッションを既定にする。英語でコメントや文書を書くときだけ /caveman で切り替える。

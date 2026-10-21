@@ -10,6 +10,7 @@
     ./apps.nix
     ./claude.nix
     ./codex.nix
+    ./agent-sync.nix
   ];
 
   home.packages = with pkgs; [
