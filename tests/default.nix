@@ -467,10 +467,19 @@ lib.genAttrs systems (
       else
         pkgs.runCommand "command-not-found-hint" { hint = home.config.home.sessionVariables.BASH_ENV; } ''
           status=0
-          BASH_ENV=$hint ${pkgs.bash}/bin/bash -c 'node --version' 2> err || status=$?
+          BASH_ENV=$hint ${pkgs.bash}/bin/bash -euo pipefail -c 'node --version' 2> err || status=$?
           cat err
           [ "$status" = 127 ]
           grep -q 'nix shell nixpkgs#nodejs' err
+          # This pinned small database has exactly one executable candidate for figlet.
+          candidates=$(${home.config.programs.nix-index.package}/bin/nix-locate \
+            --minimal --no-group --type x --type s --whole-name --at-root /bin/figlet)
+          [ "$candidates" = figlet.out ]
+          status=0
+          BASH_ENV=$hint ${pkgs.bash}/bin/bash -euo pipefail -c 'figlet --version' 2> err || status=$?
+          cat err
+          [ "$status" = 127 ]
+          grep -q 'nix shell nixpkgs#figlet' err
           touch "$out"
         '';
   }

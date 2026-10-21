@@ -27,10 +27,14 @@ python3 scripts/check-docs.py .
 
 # system.path and the assertions do not go through the mutter patch's system.replaceDependencies,
 # so they evaluate without building the patched mutter (import-from-derivation).
-nix_eval .#nixosConfigurations --apply 'hosts: builtins.mapAttrs (_: h: {
-  failed = map (a: a.message) (builtins.filter (a: !a.assertion) h.config.assertions);
-  path = h.config.system.path.drvPath;
-}) hosts'
+nix_eval .#nixosConfigurations --apply 'hosts: builtins.mapAttrs (name: h:
+  let
+    failed = map (a: a.message) (builtins.filter (a: !a.assertion) h.config.assertions);
+  in
+    if failed != [] then
+      throw ("Host " + name + " failed assertions:\n" + builtins.concatStringsSep "\n" failed)
+    else { path = h.config.system.path.drvPath; }
+) hosts'
 # homeConfigurations are not covered by the standard flake output schema.
 nix_eval .#homeConfigurations --apply 'homes: builtins.mapAttrs (_: h: h.activationPackage.drvPath) homes'
 

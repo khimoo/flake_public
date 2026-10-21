@@ -91,8 +91,9 @@ comma と `nix-locate` のラッパーはどちらも `NIX_INDEX_DATABASE` で�
 
 nix-index の handler は `.bashrc` で定義されるので、対話シェルにしか届かない。Claude Code や Codex は
 コマンドを非対話の bash で実行し、`.bashrc` を読まない（2026-10-21 に Claude Code のシェルで
-`command_not_found_handle` が未定義であることを確認した）。グローバルの Python・Node.js・gcc を外したので、
-エージェントが `python` や `node` を探して止まる場面に案内を出したい。
+`command_not_found_handle` が未定義であることを確認した）。グローバルの Node.js・gcc を外したので、
+エージェントが `node` や `gcc` を探して止まる場面に案内を出したい。Python 3 は agents-private のスキルと
+`scripts/check.sh` が直接呼ぶため残している。
 
 非対話の bash は、ログインシェルとして起動されても環境変数 `BASH_ENV` のファイルを読む。そこで
 `command_not_found_handle` を定義するファイルを [nix-index.nix](../../../modules/home-manager/nix-index.nix) で作り、

@@ -46,8 +46,12 @@ let
         return 0
       fi
       parent=$(dirname "$dest")
-      mkdir -p "$parent"
-      clone_tmp=$(mktemp -d "$parent/.private-clone.XXXXXX")
+      if ! mkdir -p "$parent"; then
+        return 1
+      fi
+      if ! clone_tmp=$(mktemp -d "$parent/.private-clone.XXXXXX"); then
+        return 1
+      fi
       if ! GIT_SSH_COMMAND=${lib.escapeShellArg gitSshCommand} git clone "$repo" "$clone_tmp/repo"; then
         rm -rf -- "$clone_tmp"
         return 1
@@ -57,7 +61,11 @@ let
         echo "clone-repos: $dest appeared during clone; refusing to overwrite" >&2
         return 1
       fi
-      mv "$clone_tmp/repo" "$dest"
+      if ! mv "$clone_tmp/repo" "$dest"; then
+        echo "clone-repos: failed to move checkout to $dest" >&2
+        rm -rf -- "$clone_tmp"
+        return 1
+      fi
       rm -rf -- "$clone_tmp"
     }
 

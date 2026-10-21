@@ -1,6 +1,7 @@
 """Run generated activation snippets and commands with fake network/secret tools in a temp tree."""
 import hashlib
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -17,6 +18,16 @@ class Activation(unittest.TestCase):
         self.tools = self.root / "tools" / "bin"
         self.tools.mkdir(parents=True)
         self.log = self.root / "calls"
+        for name in ("mv", "chmod"):
+            real_tool = shutil.which(name)
+            self.assertIsNotNone(real_tool)
+            path = self.tools / name
+            path.write_text(
+                f"#!{sys.executable}\nimport os, sys\n"
+                f"if os.environ.get('FAIL_{name.upper()}'): raise SystemExit(19)\n"
+                f"os.execv({real_tool!r}, [{name!r}, *sys.argv[1:]])\n"
+            )
+            path.chmod(0o755)
         for name, body in {
             "git": """
 if sys.argv[1] != 'clone': raise SystemExit(2)
@@ -80,6 +91,14 @@ if os.environ.get('FAIL_TOOL'): raise SystemExit(18)
         calls = self.log.read_text()
         self.assertEqual(self.run_activation("clone").returncode, 0)
         self.assertEqual(self.log.read_text(), calls)
+
+    def test_clone_move_failure_cleans_up(self):
+        self.place_github_key()
+        result = self.run_activation("clone", FAIL_MV="1")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("failed to move checkout", result.stderr)
+        self.assertFalse((self.home / "config").exists())
+        self.assertEqual(list(self.home.glob(".private-clone.*")), [])
 
     def test_existing_non_checkout_is_rejected(self):
         self.place_github_key()
@@ -239,6 +258,16 @@ if os.environ.get('FAIL_TOOL'): raise SystemExit(18)
         self.run_activation("secrets", FAKE_SECRET="v1")
         before = self.state.read_text()
         result = self.update("v2", FAIL_TOOL="1")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(self.key.read_text(), "v1\n")
+        self.assertEqual(self.state.read_text(), before)
+        self.assertEqual(list(self.key.parent.glob("id_github.*")), [])
+
+    def test_update_chmod_failure_cleans_up_and_changes_nothing(self):
+        self.place_age_key()
+        self.assertEqual(self.run_activation("secrets", FAKE_SECRET="v1").returncode, 0)
+        before = self.state.read_text()
+        result = self.update("v2", FAIL_CHMOD="1")
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(self.key.read_text(), "v1\n")
         self.assertEqual(self.state.read_text(), before)

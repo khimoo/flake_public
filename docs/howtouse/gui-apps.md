@@ -19,7 +19,7 @@ GUI は Linux の本人用 home モジュールで `local.profile.features.gui =
 
 2026-10-20 に Kiro と Cursor の導入設定を削除しました。Kiro の flake input・専用依存、両アプリの起動項目、Cursor の AppImage の自動取得・更新処理を削除し、Cursor の起動に使っていた `appimage-run` の明示導入も外しました。
 
-`flake.lock` から除いたのは root の Kiro 参照と、Kiro 専用だった `kiro`・`flake-utils_2`・`systems_3`・`nixpkgs` の各ノードです。root の `nixpkgs` input が参照する `nixpkgs_3` は残しています。他の依存の revision・hash・ノード名は変更していません。
+Kiro の input と、Kiro だけが使っていた依存を `flake.lock` から除きました。
 
 変更の適用は利用者が行います。適用後に Kiro のパッケージと両アプリの管理対象の起動項目が外れていることを確認してください。この変更時点では評価・build・activation・実機確認を行っていません。
 

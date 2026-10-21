@@ -22,13 +22,13 @@ let
       printf '%s: command not found\n' "$cmd" >&2
       # nix-locate の出力を head へ直接つなぐと、閉じたパイプへの書き込みで nix-locate が落ちる。
       found=$(${nixLocate} --minimal --no-group --type x --type s --whole-name --at-root "/bin/$cmd" 2>/dev/null \
-        | ${sed} -e 's/\.out$//' -e '/^tests\./d')
+        | ${sed} -e 's/\.out$//' -e '/^tests\./d' || true)
       {
         echo "この環境は NixOS で、多くのコマンドはシステム全体には入っていない。"
         echo "プロジェクトに flake.nix や .envrc があれば、その devShell の中で実行する（nix develop / direnv）。"
         if [ -n "$found" ]; then
-          best=$(printf '%s\n' "$found" | ${grep} -x -m1 -F -- "$cmd" || printf '%s\n' "$found" | ${sed} -n 1p)
-          candidates=$( { printf '%s\n' "$best"; printf '%s\n' "$found" | ${grep} -v -x -F -- "$best"; } | ${sed} -n 1,3p | ${paste} -sd ' ')
+          best=$(printf '%s\n' "$found" | ${grep} -x -m1 -F -- "$cmd" || printf '%s\n' "$found" | ${sed} -n 1p || true)
+          candidates=$( { printf '%s\n' "$best"; printf '%s\n' "$found" | ${grep} -v -x -F -- "$best"; } | ${sed} -n 1,3p | ${paste} -sd ' ' || true)
           echo "単発で使うなら: nix shell nixpkgs#$best -c $cmd ...（候補: $candidates）"
         fi
         case $cmd in

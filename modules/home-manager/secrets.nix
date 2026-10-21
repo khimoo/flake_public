@@ -126,7 +126,8 @@ let
     flock 9
 
     work=$(mktemp -d)
-    trap 'rm -rf -- "$work"' EXIT
+    pending_tmp=
+    trap 'rm -f -- "$pending_tmp"; rm -rf -- "$work"' EXIT
     status=0
     declared=$work/declared
     : > "$declared"
@@ -159,9 +160,11 @@ let
         mkdir -p "$(dirname "$dest")"
         tmp=$(mktemp "$dest.XXXXXX")
       fi
+      pending_tmp=$tmp
       if ! ( umask 077
              SOPS_AGE_KEY_FILE="$age_key" sops --decrypt --extract "[\"$secret\"]" "$secrets" < /dev/null > "$tmp" ); then
         rm -f "$tmp"
+        pending_tmp=
         warn "$secret の復号に失敗した。$age_key がこの暗号文の受信者か確認する"
         status=1
         return 0
@@ -174,9 +177,11 @@ let
         if [ "$dry_run" = 0 ]; then
           chmod "$mode" "$tmp"
           mv "$tmp" "$dest"
+          pending_tmp=
         fi
         write_record "$dest" "$new"
         rm -f "$tmp"
+        pending_tmp=
         return 0
       fi
 
@@ -186,6 +191,7 @@ let
         if [ "$dry_run" = 0 ]; then
           chmod "$mode" "$tmp"
           mv -f "$tmp" "$dest"
+          pending_tmp=
         fi
         write_record "$dest" "$new"
       elif [ "$current" = "$new" ]; then
@@ -203,6 +209,7 @@ let
         warn "$dest: この flake が置いたファイルではないので触らない"
       fi
       rm -f "$tmp"
+      pending_tmp=
     }
 
     while IFS="$(printf '\t')" read -r secret dest mode; do
