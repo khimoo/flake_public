@@ -57,7 +57,7 @@ primaryUser に Home Manager のユーザー設定がないホストでは `flak
 
 ## 外部状態と検証
 
-Nix評価はcheckoutの実在やage鍵を要求しない。秘密鍵の復元はactivation、初回のcloneは `clone-repos` で実施し、switchにネットワークからの取得を含めない。既存の鍵は上書きせず、更新は手動のローテーション手順に委ねる。既存cloneもpullせず、更新は `pull-repos` に分ける。
+Nix評価はcheckoutの実在やage鍵を要求しない。秘密鍵の復元はactivation、初回のcloneは `clone-repos` で実施し、switchにネットワークからの取得を含めない。既存の鍵はswitchで上書きせず、更新と削除は `update-secrets` で明示的に行う。既存cloneもpullせず、更新は `pull-repos` に分ける。
 
 activation を変更するときは、対応 OS、dry-run、再実行、中断・失敗後の回復を扱う。途中の結果を完了済みと判定しない。
 

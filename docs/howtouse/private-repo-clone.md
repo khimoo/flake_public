@@ -165,7 +165,7 @@ local.profile.secrets = [
 ```
 
 `mode` は省略すると `600`。書き出し先が home の外だと評価時に弾かれる。
-既存ファイルは上書きしないので、差し替えるときは先に消してから switch する。
+switch は既存ファイルを上書きしない。暗号文を差し替えたら、switch してから `update-secrets` で反映する（[SSH 鍵を差し替えたとき](#ssh-鍵を差し替えたとき)）。宣言から外した秘密も、置いたまま変更していなければ `update-secrets` が消す。
 
 SSH 鍵は `local.profile.sshKeys = [{ secret, name }]` のままでよい。
 `~/.ssh` へ `600` で置く場合は、そちらのほうが短く書ける。
@@ -182,20 +182,27 @@ age 鍵 1 本を全環境で共有するため、マシンごとの受信者追�
 
 ## SSH 鍵を差し替えたとき
 
-GitHub 側の鍵を作り直した（または LAN 共通鍵を rotate した）ら、`secrets/secrets.yaml` も
-作り直す。手順は[初回セットアップの 4.](#4-両方を暗号化してコミット) と同じ——差し替えた
-ほうの鍵ファイルを新しいものにしてから、同じコマンドで両方まとめて再暗号化する。
+switch は**既にあるファイルを書き出さない**（非破壊）。各マシンの鍵の置き換えは `update-secrets` が行う。
+`update-secrets` はこの flake が置いたまま変更されていないファイルだけを置き換え、手で置いた・手で変えた
+ファイルは警告して残す。GitHub やほかのマシンは操作しない。
 
-activation は **既にあるファイルを書き出さない**（非破壊）。つまり他の既存マシンには旧鍵が
-残ったままなので、そちらは手で消してから switch する:
+GitHub の鍵は次の順で差し替える。古い鍵を失効させるまでは、どのマシンも古い鍵で GitHub に届く。
 
-```sh
-rm ~/.ssh/id_github          # 差し替えたほうだけ
-sudo nixos-rebuild switch --flake .#<host>
-```
+1. 新しい鍵を作り、`secrets/secrets.yaml` の `git_ssh_key` を作り直して commit する。手順は
+   [初回セットアップの 4.](#4-両方を暗号化してコミット) と同じで、差し替えたほうの鍵ファイルを新しいものにしてから
+   両方まとめて再暗号化する。
+2. GitHub に新しい公開鍵を登録する（`gh ssh-key add`）。
+3. 各マシンで switch してから `update-secrets` を実行し、`ssh -T git@github.com` で確かめる:
+   ```sh
+   sudo nixos-rebuild switch --flake .#<host>
+   update-secrets --dry-run   # 置き換える予定のファイルを確かめる
+   update-secrets
+   ```
+4. 全マシンで確かめてから、GitHub の古い鍵を失効させる。失効させた後は、Nix の世代を戻しても
+   古い鍵での認証は戻らない。
 
-LAN 鍵を差し替えるときは全機を回りきるまで一部の組み合わせで SSH が通らない。
-手順の詳細は [machine-ssh.md の「LAN 共通鍵を作り直すとき」](./machine-ssh.md#lan-共通鍵を作り直すとき)。
+LAN 鍵は `lanPublicKey`（`authorized_keys`）も同時に変えるので、全機を回りきるまで一部の組み合わせで
+SSH が通らない。手順は [machine-ssh.md の「LAN 共通鍵を作り直すとき」](./machine-ssh.md#lan-共通鍵を作り直すとき)。
 
 ## age 鍵を作り直す
 

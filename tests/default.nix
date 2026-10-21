@@ -496,12 +496,16 @@ lib.genAttrs systems (
           nativeBuildInputs = [
             pkgs.python3
             pkgs.bash
+            pkgs.gawk
+            pkgs.flock
           ];
           cloneScript = commandText "clone-repos";
           secretsScript = snippet "secrets";
+          updateScript = commandText "update-secrets";
           passAsFile = [
             "cloneScript"
             "secretsScript"
+            "updateScript"
           ];
         }
         ''
@@ -527,6 +531,7 @@ lib.genAttrs systems (
     pull-repos = lib.findFirst (p: (p.name or "") == "pull-repos") (throw "pull-repos is not installed") home.config.home.packages;
     # clone-repos の shellcheck。本文の動作は activation の check が偽の git で確かめる。
     clone-repos = lib.findFirst (p: (p.name or "") == "clone-repos") (throw "clone-repos is not installed") activationHome.config.home.packages;
+    update-secrets = lib.findFirst (p: (p.name or "") == "update-secrets") (throw "update-secrets is not installed") activationHome.config.home.packages;
     quaderno-plan = pkgs.runCommand "quaderno-plan" { nativeBuildInputs = [ pkgs.python3 ]; } ''
       cp ${../modules/home-manager/quaderno_plan.py} quaderno_plan.py
       cp ${./quaderno-plan.py} test_quaderno_plan.py

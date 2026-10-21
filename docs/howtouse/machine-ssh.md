@@ -70,14 +70,17 @@ switch のたびに書き出される（[private-repo-clone.md](./private-repo-c
 3. `secrets/secrets.yaml` の `lan_ssh_key` を新しい秘密鍵で作り直す
    （[private-repo-clone.md の「SSH 鍵を差し替えたとき」](./private-repo-clone.md#ssh-鍵を差し替えたとき)）
 4. commit / push
-5. **各マシンで**古い鍵を退けてから switch する。activation は既存ファイルを上書きしない:
+5. **各マシンで** switch してから `update-secrets` を実行する。switch は既存の `~/.ssh/id_lan` を
+   上書きしないが、`update-secrets` はこの flake が置いたまま変更されていない鍵を新しい鍵に置き換える:
    ```sh
-   rm ~/.ssh/id_lan
    sudo nixos-rebuild switch --flake .#<host>
+   update-secrets --dry-run   # 置き換える予定のファイルを確かめる
+   update-secrets
    ```
 
-最後に switch した機が古い鍵のままの機を締め出すので、全機を回りきるまで一部の
-組み合わせで SSH が通らない時間がある。手元に残しておく機から順に進める。
+`lanPublicKey`（各機の `authorized_keys`）と秘密鍵を同時に変えるので、switch した機から順に、
+古い鍵のままの機からの接続が通らなくなる。全機を回りきるまで一部の組み合わせで SSH が通らない。
+各マシンを手元で操作できるときに、手元に残しておく機から順に進める。
 
 ## 注意
 
