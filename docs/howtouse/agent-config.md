@@ -96,6 +96,32 @@ Linux では設定 repo の `claude/profiles/`・`claude/settings.json`・`codex
 指定を両方外して rebuild する（既定 null）。URL だけ残す設定は評価時に拒否される。
 設定 repo を持たない環境・他人の利用では何も起きない。
 
+rebuild で消えるのは、Home Manager が張ったリンク（`~/.claude/skills` など）と、`agent-sync` のコマンドと path unit だけ。
+`agent-sync` が作ったファイルと `~/.claude/settings.json` に書き込んだキーは残る。起動コマンドは、次のログインから PATH に入らなくなる。
+残したくなければ、rebuild の後に Claude Code と Codex を閉じてから次を消す（`<root>` は外した `agentConfigRoot`）。
+
+1. 起動コマンド:
+
+   ```sh
+   rm -r ~/.local/share/agent-launchers
+   ```
+
+2. Codex のプロファイルへのリンク。一つめのコマンドで対象を確かめてから消す:
+
+   ```sh
+   find ~/.codex -maxdepth 1 -type l -name '*.config.toml' -lname '<root>/codex/*'
+   find ~/.codex -maxdepth 1 -type l -name '*.config.toml' -lname '<root>/codex/*' -delete
+   ```
+
+3. `~/.claude/settings.json` に反映したキー。反映したキーの一覧は `~/.local/state/agent-sync/claude-managed-paths.json` にある:
+
+   ```sh
+   (umask 077; jq --slurpfile p ~/.local/state/agent-sync/claude-managed-paths.json 'delpaths($p[0])' \
+     ~/.claude/settings.json > ~/.claude/settings.json.new)
+   mv ~/.claude/settings.json.new ~/.claude/settings.json
+   rm -r ~/.local/state/agent-sync
+   ```
+
 ## 日常運用
 
 - skill / agent / command / output-style / 指示の追加・編集は設定 repo 側で直接行う。
