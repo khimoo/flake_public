@@ -20,7 +20,7 @@ Home Manager への `extraSpecialArgs` は `inputs` を渡す。アプリ専用�
 - [dev/neovim/default.nix](../../modules/home-manager/dev/neovim/default.nix) は skkeleton の辞書の展開と `nvim/nix/skk-dict-path.lua` の生成を持つ。辞書の取得元は `inputs.skk-jisyo`、展開用パッケージは従来の `inputs.nixpkgs.legacyPackages` のまま。
 - [dev/lsp.nix](../../modules/home-manager/dev/lsp.nix) は同じ `lspServers` からパッケージの導入と `nvim/nix/lsp-servers.lua` の生成を行う。Neovim モジュールへ一覧を引数で中継しない。
 
-生成した Lua は Home Manager の適用で XDG data 配下に配置する。Neovim の設定ディレクトリは live symlink なので、生成物をその中へ混ぜない。端末フォントの `terminalFont` は wezterm と kitty の双方が使うため、GUI 内での `_module.args` による共有を維持する。
+生成した Lua は Home Manager の適用で XDG data 配下に配置する。Neovim の設定ディレクトリは live symlink なので、生成物をその中へ混ぜない。端末フォントの `terminalFont` は GUI 内の `_module.args` から kitty に渡す。GUI 無効時も kitty モジュールが引数として受け取るため、この定義は `mkIf` の外に置く。
 
 ## 型と制約
 
@@ -34,7 +34,7 @@ Home Manager への `extraSpecialArgs` は `inputs` を渡す。アプリ専用�
 
 ## OSとの接点
 
-デスクトップのpapis用mountは、primaryUserの `local.profile.zettelkastenRoot` を参照する。アプリのinsecure許可は従来どおりHome ManagerからOSへ集約する。これらの境界をホスト固有モジュールと専用adapterに限定する。
+デスクトップのpapis用mountは、ホスト固有モジュールで primaryUser の `local.profile.zettelkastenRoot` を参照する。
 
 SSHクライアントのIdentityFileは `~/.ssh/` を使い、全ユーザーへprimaryUserの絶対パスを配らない。LAN接続先のユーザー名はprimaryUserで、鍵配布は `local.profile.lanSsh` を選んだユーザーだけ。例外は常設のリモートビルドで、nix-daemon（root）だけがprimaryUserの `id_lan` を絶対パスで読む（[remote-build.md](./remote-build.md)）。`--build-host` はrootを使わず、実行ユーザーのままSSHする。
 

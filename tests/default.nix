@@ -163,9 +163,8 @@ lib.genAttrs systems (
             "/home/test"
             (toString inputs.nixpkgs.legacyPackages.x86_64-linux.git)
             (toString inputs.nixpkgs.legacyPackages.x86_64-linux.sops)
-            (toString activationHome.pkgs.jq)
           ]
-          [ "@test-home@" "@tools@" "@tools@" "@jq@" ]
+          [ "@test-home@" "@tools@" "@tools@" ]
           activationHome.config.home.activation.${name}.data
       );
     rejects =
@@ -222,8 +221,6 @@ lib.genAttrs systems (
       assert users.bob.local.profile.agentConfigRoot == null;
       assert users.bob.local.profile.flakeRoot == "/home/bob/sagyo/flake_public";
       assert !(users.bob.home.activation ? privateRepos);
-      assert !(users.bob.home.activation ? claudeSettings);
-      assert users.alice.home.activation ? claudeSettings;
       assert !(users.alice.home.file ? ".claude/settings.json");
       assert !(users ? unmanaged);
       assert builtins.length users.alice.local.profile.sshKeys == 2;
@@ -482,15 +479,12 @@ lib.genAttrs systems (
           nativeBuildInputs = [
             pkgs.python3
             pkgs.bash
-            pkgs.jq
           ];
           cloneScript = snippet "privateRepos";
           secretsScript = snippet "secrets";
-          settingsScript = snippet "claudeSettings";
           passAsFile = [
             "cloneScript"
             "secretsScript"
-            "settingsScript"
           ];
         }
         ''

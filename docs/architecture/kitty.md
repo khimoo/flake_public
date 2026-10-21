@@ -125,22 +125,20 @@ kitty はスクロールバックの検索も vi 風の選択も持たない。`
 
 ## 設定の置き方
 
-`kitty.conf` は `mkOutOfStoreSymlink` でリポジトリを直接指す。wezterm と同じ形で、キー割当ての
+`kitty.conf` は `mkOutOfStoreSymlink` でリポジトリを直接指す。キー割当ての
 調整が rebuild なしで試せる。
 
 フォント名は Nix 側が `font.conf` を生成し、`kitty.conf` から `include font.conf` で取り込む。
 kitty の `include` は symlink の指す先ではなく、設定ファイルが置かれた場所（`~/.config/kitty/`）を
 基準に解決するので、リポジトリへの symlink と Nix の生成物を同じディレクトリに共存させられる。
-wezterm 側の `font.lua` と同じ手口。
 
 フォント定義（`plemoljp-nf` / "PlemolJP Console NF"）と `TERMINAL_TRANSPARENT` は
-`modules/home-manager/gui/default.nix` へ引き上げた。前者は両方の端末が同じものを使うため
-`_module.args` で配り、後者は端末の種類を問わず Neovim の背景透過 autocmd が読む値だから。
+`modules/home-manager/gui/default.nix` で定義する。前者は `_module.args` で kitty に渡し、
+後者は Neovim の背景透過 autocmd が読む。
 
-## 移行の段取り
+## 導入
 
-既定端末はまだ切り替えず、wezterm と並走させる。両方入っている状態で kitty を日常的に使い、
-不足が出ないと確かめてから既定を移す。切替は別の判断として残す。
+GUI 環境の端末は kitty を導入する。
 
 ## 関連
 

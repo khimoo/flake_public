@@ -105,5 +105,5 @@ keyd を強制終了させて素のキーボードに戻す。
 
 ## 関連
 
-- [wezterm のキーバインド](./cli-tools/wezterm.md)
+- [kitty のキーバインド](./cli-tools/kitty.md)
 - [Neovim のキーバインド](../../modules/home-manager/dev/neovim/config/docs/README.md)

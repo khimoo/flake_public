@@ -210,9 +210,4 @@ managed settings はユーザー設定より優先され、一覧の項目（フ
 - JSON が壊れていると Claude Code は起動しない。設定 repo のテストで、JSON として読めることを確かめる
 - managed に置いた `outputStyle` などは、セッションの中から変えられない
 
-移行は Home Manager の `claudeSettings` activation が一度だけ行う。`~/.claude/settings.json` が
-`<agentConfigRoot>/claude/settings.json` へのリンクなら、方針の項目を jq で除いた写しを普通のファイルと
-して書く（残すとフックが2回ずつ動く）。リンク先が無ければ `{}` を書く。それ以外のファイルやリンクには
-触らない。dry run では書かず、2回目以降は何もしない。JSON が読めなければリンクを残して失敗する。
-
 未確定: `/etc` のリンク先が無いとき（設定 repo を clone する前など）に Claude Code が起動を拒むか。

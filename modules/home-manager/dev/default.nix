@@ -4,6 +4,7 @@
   imports = [
     ./lsp.nix
     ./neovim
+    ./uv-mode.nix
     ./rustowl.nix
     ./cargo-remote-run.nix
     ./agent-compression.nix

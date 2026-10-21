@@ -14,7 +14,6 @@
     after = [ "nix.mount" "nix-daemon.service" ];
     requires = [ "nix.mount" ];
   };
-  programs.niri.enable = true;
   local.gnome.transparentFullscreen.enable = true;
 
   local.audio.echoCancel = {

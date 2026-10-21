@@ -26,7 +26,7 @@
 Inkscape の SVG 保存は `fopen(filename, "w")` でパスを直接開いて書き込み、一時ファイルから
 置き換える処理を持たない（`src/xml/repr-io.cpp`、`src/extension/internal/svg.cpp`）。
 `fopen` は symlink を辿るので、`mkOutOfStoreSymlink` でリポジトリを指せば GUI からの保存が
-リンクを壊さずにリポジトリ側へ書き込まれる。kitty・wezterm と同じ形にした。
+リンクを壊さずにリポジトリ側へ書き込まれる。kitty と同じ形にした。
 
 **この書き込み経路は実機では確かめていない。** コードからの判断である。
 

@@ -56,10 +56,6 @@ let
     # 足すと同じ実行ファイルが二重に PATH へ載る。
     {
       pkg = pkgs.bitwarden-desktop;
-      # bitwarden-desktop が依存している electron 39 は EOL のため insecure 扱い。
-      # 上流が electron を新しいバージョンに上げたら、insecurePackages 行を削除する。
-      # 関連: https://github.com/NixOS/nixpkgs/issues/529107
-      insecurePackages = [ "electron-39.8.10" ];
     }
 
     # -- メディア・クリエイティブ --
@@ -187,25 +183,9 @@ let
     ) withAutostart
   );
 
-  # guiApps 内で宣言された insecurePackages を集約。
-  # NixOS 統合時は modules/nixos/permit-insecure.nix がこれを読み取り
-  # nixpkgs.config.permittedInsecurePackages に転記する。
-  # standalone home-manager 時は下の config で直接 nixpkgs.config に設定する。
-  permittedInsecure = lib.unique (lib.concatMap (a: a.insecurePackages or [ ]) guiApps);
-
 in
 {
-  options.local.insecurePackages = lib.mkOption {
-    type = lib.types.listOf lib.types.str;
-    default = [ ];
-    description = ''
-      home-manager 側で宣言された、nixpkgs.config.permittedInsecurePackages
-      への追加が必要なパッケージ名のリスト。NixOS 側 (modules/nixos/permit-insecure.nix)
-      が集約して OS 側の nixpkgs.config に転記する。
-    '';
-  };
-
-  config = lib.mkIf config.local.profile.features.gui (lib.mkMerge [{
+  config = lib.mkIf config.local.profile.features.gui {
     home.packages = map (a: a.pkg) guiApps;
 
     home.file = waylandDesktopEntries;
@@ -216,12 +196,5 @@ in
     };
 
     systemd.user.services = autostartServices;
-
-    local.insecurePackages = permittedInsecure;
-  } (lib.mkIf config.local.profile.standalone {
-    # standalone home-manager (mkHome 経由) の場合のみ、自分で nixpkgs.config を設定する。
-    # NixOS 統合時 (useGlobalPkgs = true) は home-manager から nixpkgs.config を
-    # 触れないため、modules/nixos/permit-insecure.nix が代わりに集約する。
-    nixpkgs.config.permittedInsecurePackages = permittedInsecure;
-  })]);
+  };
 }

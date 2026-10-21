@@ -16,10 +16,6 @@
       flake = false;
     };
     musnix.url = "github:musnix/musnix"; # https://github.com/musnix/musnix
-    winapps = {
-      url = "github:winapps-org/winapps";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
     claude-history = {
       url = "github:raine/claude-history";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -70,23 +66,9 @@
       inherit (configurations) mkSystem mkHome overlays;
     in
     {
-      packages =
-        nixpkgs.lib.genAttrs [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" "x86_64-darwin" ]
-          (system: {
-            happy = nixpkgs.legacyPackages.${system}.callPackage ./packages/happy { };
-            dpt-rp1-py = nixpkgs.legacyPackages.${system}.callPackage ./packages/dpt-rp1-py { };
-          } // nixpkgs.lib.optionalAttrs (system != "x86_64-darwin") {
-            graphify = inputs.nixpkgs-unstable.legacyPackages.${system}.graphify;
-          } // nixpkgs.lib.optionalAttrs (nixpkgs.lib.hasSuffix "-linux" system) {
-            uv-mode = nixpkgs.legacyPackages.${system}.callPackage ./packages/uv-mode { };
-          } // nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
-            inherit (inputs.rustowl.packages.${system}) rustowl rustowl-nvim;
-            # legacyPackages は allowUnfree を持たないので、unfree の agy だけ設定付きで評価する。
-            antigravity-cli =
-              (import nixpkgs { inherit system; config.allowUnfree = true; }).callPackage
-                ./packages/antigravity-cli
-                { };
-          });
+      packages.x86_64-linux = {
+        inherit (inputs.rustowl.packages.x86_64-linux) rustowl rustowl-nvim;
+      };
 
       nixosConfigurations = {
         nixos-spin713 = mkSystem {

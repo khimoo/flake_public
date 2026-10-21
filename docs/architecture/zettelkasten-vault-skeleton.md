@@ -119,7 +119,7 @@ workflowの作業ツリー、lockされた版、適用済み世代は別の状�
 2 つ検討して退けた。
 
 - **symlink 方式**: vault の `.obsidian` を public repo のローカル checkout へ out-of-store symlink で張り
-  （nvim/wezterm/Claude 設定と同じ発想。[agent-config.md](./agent-config.md)）、Obsidian の書き込みを直接
+  （nvim/kitty/Claude 設定と同じ発想。[agent-config.md](./agent-config.md)）、Obsidian の書き込みを直接
   public の working tree に落とす。しかしこれは `obsidian-git` が設定も込みで**自動同期している現状の
   利点を捨てる**ことになる。source を public（手編集の flake repo）へ移すと、マシン間の同期が
   手動 commit/pull へ退行する。加えて各マシンに public checkout が必須になり、clone→symlink の順序依存、

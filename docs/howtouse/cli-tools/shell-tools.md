@@ -325,7 +325,7 @@ gh api /repos/:owner/:repo     # GitHub API を直接叩く
 
 ## tdf
 
-端末内で PDF を表示するビューア。wezterm では kitty graphics protocol で画像として描画される。
+端末内で PDF を表示するビューア。kitty では kitty graphics protocol で画像として描画される。
 
 > パッケージ: `modules/home-manager/gui/apps.nix`
 

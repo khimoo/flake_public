@@ -32,6 +32,6 @@ agy -p /quota
    ```
 
 2. `packages/antigravity-cli/default.nix` の `version`、`url`、`sha512` を、マニフェストの値に書き換える。
-3. `nix build .#antigravity-cli` を実行し、インストール時の確認（`agy --version` が `version` と一致すること）が通るのを確かめる。
+3. [検証ガイドの単体 build](../validation.md#対象別の確認手順) を実行し、インストール時の確認（`agy --version` が `version` と一致すること）が通るのを確かめる。
 
 agy は自分で自分を更新しようとするが、Nix store には書き込めないので失敗する。版はここで固定した値から変わらない。

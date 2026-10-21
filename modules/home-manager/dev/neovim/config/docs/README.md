@@ -203,7 +203,7 @@ ih              テキストオブジェクト: hunk 選択 (dih, yih 等)
 ## 9. ウィンドウ・ペイン管理
 
 ```
-Ctrl+h/j/k/l    ウィンドウ/ペイン間を移動 (nvim ↔ wezterm シームレス)
+Ctrl+h/j/k/l    ウィンドウ/ペイン間を移動 (nvim ↔ kitty シームレス)
 Alt+h/j/k/l     ウィンドウ/ペインをリサイズ
 <leader><leader>h/j/k/l  バッファをスワップ (nvim 内)
 gt / gT         harpoon リスト内の次/前のファイル

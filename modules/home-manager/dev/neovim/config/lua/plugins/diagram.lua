@@ -1,6 +1,6 @@
 -- Mermaid 等の図をバッファ内にインラインプレビューする。
 -- 構成: diagram.nvim が mermaid ソースを抽出 → mmdc で PNG 化 →
---       image.nvim が WezTerm の Kitty graphics protocol 経由で表示。
+--       image.nvim が kitty の graphics protocol 経由で表示。
 --
 -- 依存 (Nix 側で注入済み):
 --   - mermaid-cli (mmdc):       modules/home-manager/dev/neovim/default.nix
@@ -125,7 +125,7 @@ return {
         -- mode は既定の "popup" だとフロート窓表示になるため "inline" を明示する。
         -- typst 統合は image.nvim 側で既定有効なので、markdown と同じ設定を明示的に入れる。
         opts = {
-            backend = "kitty", -- WezTerm は Kitty graphics protocol 互換
+            backend = "kitty", -- kitty の graphics protocol を使う
             processor = "magick_cli",
             integrations = {
                 markdown = {

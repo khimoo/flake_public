@@ -54,32 +54,6 @@ in
       name = ".claude/${d}";
       value.source = mkLink "claude/${d}";
     }) claudeDirs);
-    # ~/.claude/settings.json は Claude Code が書く live ファイルで、repo では追跡しない。
-    # 方針（フック、プラグイン、output style、language）は managed settings にある
-    # （docs/architecture/agent-config.md）。以前は repo の claude/settings.json へ直接
-    # リンクしていたので、そのリンクが残っていれば一度だけ普通のファイルに移し替える。
-    # 方針の項目は除く。残すと managed settings のフックと合わさって2回ずつ動く。
-    # リンク先が無ければ {} から始める。それ以外のファイルやリンクには触らない。
-    home.activation.claudeSettings = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
-      settings_source=${lib.escapeShellArg "${root}/claude/settings.json"}
-      settings_file=${lib.escapeShellArg "${config.home.homeDirectory}/.claude/settings.json"}
-      if [ -L "$settings_file" ] && [ "$(readlink "$settings_file")" = "$settings_source" ]; then
-        if [ -n "''${DRY_RUN_CMD:-}" ]; then
-          echo "Would replace $settings_file with a copy of $settings_source without the managed keys"
-        else
-          settings_tmp=$(mktemp "$settings_file.XXXXXX")
-          if [ ! -e "$settings_source" ]; then
-            echo '{}' > "$settings_tmp"
-          elif ! ${pkgs.jq}/bin/jq 'del(.hooks, .enabledPlugins, .extraKnownMarketplaces, .outputStyle, .language)' \
-              "$settings_source" > "$settings_tmp"; then
-            rm -f "$settings_tmp"
-            echo "Could not read $settings_source as JSON; left the link in place" >&2
-            exit 1
-          fi
-          mv -f "$settings_tmp" "$settings_file"
-        fi
-      fi
-    '';
     home.packages = map mkLauncher profiles;
   };
 }

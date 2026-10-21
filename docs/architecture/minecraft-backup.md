@@ -118,8 +118,7 @@ pre-launch フックは非ゼロで返すと起動を止める。ネットが無
 
 ## リポジトリ位置と送り先はモジュールに直書きせず注入する
 
-`options.local.minecraftBackup` を宣言し、`repoDir` と `remote` はホスト側で設定する
-（`modules/home-manager/gui/apps.nix` の `options.local.insecurePackages` と同じ形）。
+`options.local.minecraftBackup` を宣言し、`repoDir` と `remote` はホスト側で設定する。
 空き容量のあるパーティションはホストごとに違い、`/mnt/backup` は nixos-desktop にしか無い。
 
 `repoDir` と `remote` には既定値を置いていない。既定を置くと、書けない場所や存在しない

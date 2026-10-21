@@ -34,7 +34,7 @@
 内蔵入力は AVS DMIC（2 チャンネル、`alsa_input.platform-avs_dmic.19.auto.stereo-fallback`）、内蔵出力は AVS I2S MAX98357A（`alsa_output.platform-avs_max98357a.20.auto.stereo-fallback`）だった。
 調査時は両者が既定として表示され、ミュートされていなかった。ただし保存済みの既定機器には Bluetooth の入出力名が残っていたので、再接続後の出力選択は確認が必要。
 録音・再生・サービス再起動は行っておらず、実マイクの収音品質や AEC の負荷・除去性能は未測定。
-既存の Chromebook UCM 上書きと旧 Lua 設定は今回変更せず、実機で列挙された DMIC を使う。
+AEC の入力には実機で列挙された DMIC を使う。
 
 - [PipeWire 公式説明](https://docs.pipewire.org/page_module_echo_cancel.html): 仮想 source、再生音参照、monitor.mode の役割。
 - [1.6.6 のモジュール実装](https://github.com/PipeWire/pipewire/blob/1.6.6/src/modules/module-echo-cancel.c): monitor モードでは仮想 sink / playback を作らず、入力ストリームが出力 monitor を参照する。

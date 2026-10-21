@@ -1,6 +1,6 @@
 # ナビゲーション (バッファ・ウィンドウ・ペイン管理)
 
-ファイル間の高速移動と、Neovim ウィンドウ / wezterm ペインの統合操作。
+ファイル間の高速移動と、Neovim ウィンドウ / kitty ペインの統合操作。
 
 - 設定ファイル: `lua/plugins/harpoon.lua`, `lua/plugins/smart-splits.lua`
 
@@ -12,7 +12,7 @@
 
 ### smart-splits.nvim
 
-Neovim のウィンドウと wezterm のペインをシームレスに操作する。
+Neovim のウィンドウと kitty のペインをシームレスに操作する。
 詳細は [smart-splits.md](./smart-splits.md) を参照。
 
 ## キーバインド

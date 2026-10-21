@@ -51,9 +51,8 @@ mutter の依存（glib や mesa など）は nixpkgs を更新するたびに�
 依存する側は store パスの文字列置換でコピーする。
 置換前の spin713 で、対象は 30 パス、NAR で合計 71.5 MiB だった。
 
-spin713 は `hosts/nixos-spin713/chrome-audio.nix` ですでに `replaceDependencies` を使っている。
-評価のたびに元のシステム closure を実体化する IFD の負担は、もう払っている。
-デスクトップでも全画面の半透明ウィンドウを使うため、この評価負担を受け入れて有効にした。
+desktop と spin713 は全画面の半透明ウィンドウを使うため、
+`replaceDependencies` が評価のたびに元のシステム closure を実体化する IFD の負担を受け入れる。
 
 ## 代償
 
@@ -69,7 +68,7 @@ spin713 は `hosts/nixos-spin713/chrome-audio.nix` ですでに `replaceDependen
 2026-09-26、nixpkgs b6018f8、mutter 49.4 で確かめた。
 
 - パッチを当てた mutter のビルドが通る。
-- spin713 の `system.build.toplevel` をビルドし、closure にある mutter が、パッチ版を置換したもの 1 つだけであることを確認した。`pkgs.mutter` と、音声回避策の置換を経た元の mutter は含まれていない。gnome-shell が参照する mutter もそれだけだった。
+- spin713 の `system.build.toplevel` をビルドし、closure にある mutter が、パッチ版を置換したもの 1 つだけであることを確認した。元の `pkgs.mutter` は含まれていない。gnome-shell が参照する mutter もそれだけだった。
 - デスクトップで gnome-shell を `--headless --virtual-monitor 800x600` で起動し、赤い不透明の kitty の上に `background_opacity 0.5` の青い kitty を全画面で重ねて撮影した。元の gnome-shell では画面全体が暗い青（青 50% を黒に重ねた色）になり、置換後の gnome-shell では緑の壁紙と赤い kitty が透けた。
 
 撮影には gnome-shell の `org.gnome.Shell.Screenshot` を使った。
@@ -86,7 +85,7 @@ D-Bus から起動される dconf-service などはデーモンの環境を引�
 
 2026-10-01、nixos-26.05（nixpkgs 7fc6f2c）の mutter 50.4 でも確かめた。
 nixpkgs 側のパッチを当てたソースに、このパッチはずれなく当たり（`patch --dry-run`）、パッチ版のビルドが通った。
-desktop と spin713 の `system.build.toplevel` をビルドし、closure にある mutter がパッチ版 1 つだけであることを確認した。spin713 では、音声回避策の置換で参照を書き換えたパッチ版になる。
+desktop と spin713 の `system.build.toplevel` をビルドし、closure にある mutter がパッチ版 1 つだけであることを確認した。
 26.05 での実機の表示は、世代切替と再ログイン後に確認する。
 
 ## 見直しの契機
@@ -100,7 +99,7 @@ desktop と spin713 の `system.build.toplevel` をビルドし、closure にあ
 - 最大化で済ませる: パッチは要らないが、上部バーが残る。
 - kitty を XWayland で動かす（`linux_display_server x11`）: 設定 1 行で済む。ただし kitty の X11 版は IBus の D-Bus プロトコルでしか IME とやり取りしないので、fcitx5-skk で入力できるかを確かめ直す必要があり、分数スケーリングでは文字がぼやける。
 - overlay で mutter を上書きする: 上の再ビルドの負担がある。
-- 別のコンポジタに移る: sway と niri も全画面で黒を敷き、メンテナは意図した動作としている。Hyprland v0.56.2 は壁紙を描くが、全画面の下のウィンドウを透明度 0 にして隠すので、下のウィンドウは見えない。KWin はこの規定を強制していない（wayland-protocols #116、2022 年時点）。
+- 別のコンポジタに移る: sway も全画面で黒を敷き、メンテナは意図した動作としている。Hyprland v0.56.2 は壁紙を描くが、全画面の下のウィンドウを透明度 0 にして隠すので、下のウィンドウは見えない。KWin はこの規定を強制していない（wayland-protocols #116、2022 年時点）。
 
 ## 参考
 
@@ -109,4 +108,4 @@ desktop と spin713 の `system.build.toplevel` をビルドし、closure にあ
 - [wayland-protocols #116: Transparent fullscreen surfaces](https://gitlab.freedesktop.org/wayland/wayland-protocols/-/issues/116)
 - [mutter MR !2338](https://gitlab.gnome.org/GNOME/mutter/-/merge_requests/2338)、[mutter #2084](https://gitlab.gnome.org/GNOME/mutter/-/issues/2084)、[mutter #2520](https://gitlab.gnome.org/GNOME/mutter/-/work_items/2520)
 - [mutter 49.4 `meta-window-actor-wayland.c`](https://gitlab.gnome.org/GNOME/mutter/-/blob/49.4/src/compositor/meta-window-actor-wayland.c)
-- [sway #4040](https://github.com/swaywm/sway/issues/4040)、[niri discussion #1399](https://github.com/niri-wm/niri/discussions/1399)、[kitty #7338](https://github.com/kovidgoyal/kitty/issues/7338)
+- [sway #4040](https://github.com/swaywm/sway/issues/4040)、[kitty #7338](https://github.com/kovidgoyal/kitty/issues/7338)

@@ -43,11 +43,26 @@ Git flakeは未追跡ファイルを読みません。新しいファイルは `
 
 Darwin構成はLinuxから評価できますが、macOSバイナリのbuild・activation・GUI動作を検証したことにはなりません。外部リンクの到達性、Markdownの見出しanchor、文書内容の正しさも自動リンク検証の対象外です。
 
-spin713の音声回避策と、desktopとspin713の全画面を透かすmutterのパッチは `system.replaceDependencies` を使い、評価中にシステムclosureの参照を生成するimport-from-derivation（IFD）が発生します。評価の途中でパッチを当てたmutterもビルドするので、binary cacheに無い間はCIでもmutterのビルドを待ちます。未生成の `references.nix.drv` に対して `nix flake check` が失敗するため、一括検証では先に全NixOSホストを明示評価します。freshなCIではGUI・音楽制作を含む多数のstore依存を取得・buildするので、十分なディスク容量と時間が必要です。`--no-build` はこの評価依存をなくす指定ではありません。NixOSの世代切替は行いません。
+desktopとspin713の全画面を透かすmutterのパッチは `system.replaceDependencies` を使い、評価中にシステムclosureの参照を生成するimport-from-derivation（IFD）が発生します。評価の途中でパッチを当てたmutterもビルドするので、binary cacheに無い間はCIでもmutterのビルドを待ちます。未生成の `references.nix.drv` に対して `nix flake check` が失敗するため、一括検証では先に全NixOSホストを明示評価します。freshなCIではGUI・音楽制作を含む多数のstore依存を取得・buildするので、十分なディスク容量と時間が必要です。`--no-build` はこの評価依存をなくす指定ではありません。NixOSの世代切替は行いません。
 
 ## 対象別の確認手順
 
-- パッケージ: `nix build --no-link .#happy` などで変更したパッケージのinstallCheckまで実行。
+パッケージ更新時はリポジトリのルートで対象を単体 build し、installCheck まで実行します。
+Happy の例:
+
+```sh
+nix build --impure --expr '(builtins.getFlake (toString ./.)).nixosConfigurations.nixos-desktop.pkgs.callPackage ./packages/happy { }'
+```
+
+`happy` を `dpt-rp1-py`、`uv-mode`、`antigravity-cli` に置き換えると各定義を確認できます。
+overlay 済みの Graphify は次を使います。
+
+```sh
+nix build --impure --expr '(builtins.getFlake (toString ./.)).nixosConfigurations.nixos-desktop.pkgs.graphify'
+```
+
+コマンドの確認は build 結果の `result/bin/<コマンド>` で行います。
+
 - activation: dry-runと失敗後の再実行を確認。実際の鍵復元・cloneはユーザーが対象環境で確認。
 - Neovim: Luaの構文と対象機能を実機で確認。live checkoutの変更はrebuildを待たず反映されます。
 

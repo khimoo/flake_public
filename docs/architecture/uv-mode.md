@@ -15,9 +15,10 @@ nixpkgs 26.05 には Python 3.8 がないので、3.8 の確認には uv が取�
 [packages/uv-mode](../../packages/uv-mode/default.nix) は buildFHSEnv で、uv と wheel が使うライブラリ（zlib、libstdc++）を FHS の配置に並べた環境を作る。
 一般的な Linux 向けのバイナリが動くのは、`uv-mode` で入った環境の中だけになる。
 環境の中では `UV_PYTHON_PREFERENCE=only-managed` を設定し、uv が Nix の `python3` を選ばないようにする。
-あわせて `IN_UV_MODE=1` を設定し、[core.nix](../../modules/home-manager/core.nix) の starship の `env_var.IN_UV_MODE` でプロンプトに `uv-mode` と表示する。モードの外で `uv sync` を実行し、ビルド用の一時環境の Python を起動できずに失敗したことがあったため、中にいるかを見分けられるようにした。変数名に `UV_` を付けないのは、uv が `UV_` で始まる環境変数を自分の設定として読むからで、Nix の `IN_NIX_SHELL` と同じ付け方にした。
-Linux のホストでは [core.nix](../../modules/home-manager/core.nix) が Home Manager で入れるので、プロジェクト側には何も置かず、`nix develop` のような評価も毎回は走らない。
-導入元は [flake.nix](../../flake.nix) の公開属性 `packages.${system}.uv-mode` に揃え、Home Manager からは `inputs.self.packages.${system}.uv-mode` で参照する。公開側の `nixpkgs.legacyPackages.${system}` で組み立てた成果物をそのまま使い、公開属性を削除して導入参照が残ると評価エラーになる。利用側の Home Manager の `pkgs` に適用した overlay はこの成果物へ反映されない。利用側の overlay を反映する要件が生じたら、この組み立て方を再検討する。
+あわせて `IN_UV_MODE=1` を設定し、[dev/uv-mode.nix](../../modules/home-manager/dev/uv-mode.nix) の starship の `env_var.IN_UV_MODE` でプロンプトに `uv-mode` と表示する。モードの外で `uv sync` を実行し、ビルド用の一時環境の Python を起動できずに失敗したことがあったため、中にいるかを見分けられるようにした。変数名に `UV_` を付けないのは、uv が `UV_` で始まる環境変数を自分の設定として読むからで、Nix の `IN_NIX_SHELL` と同じ付け方にした。
+Linux のホストでは [dev/uv-mode.nix](../../modules/home-manager/dev/uv-mode.nix) が Home Manager で入れるので、プロジェクト側には何も置かず、`nix develop` のような評価も毎回は走らない。
+Home Manager の `pkgs.callPackage` でパッケージを組み立て、導入と Starship の表示を同じモジュールにまとめる。
+パッケージ更新時は [検証ガイドの単体 build](../howtouse/validation.md#対象別の確認手順) を使う。
 buildFHSEnv は Linux でしか作れないので、macOS の Home Manager には入れない。
 
 2026-10-14 に nixos-desktop で確かめた結果:

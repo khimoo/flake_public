@@ -1,7 +1,7 @@
 { config, pkgs, lib, ... }:
 
 let
-  # wezterm と kitty で同じフォントを使う。両モジュールへは _module.args で渡す。
+  # kitty のフォントを _module.args で渡す。
   terminalFont = {
     package = pkgs.plemoljp-nf;
     name = "PlemolJP Console NF";
@@ -9,7 +9,6 @@ let
 in
 {
   imports = [
-    ./wezterm.nix
     ./kitty.nix
     ./inkscape.nix
     ./gnome.nix
@@ -21,7 +20,7 @@ in
   ];
 
   config = lib.mkMerge [
-    # features.gui が false でも wezterm.nix / kitty.nix は関数の引数として受け取るため、
+    # features.gui が false でも kitty.nix は関数の引数として受け取るため、
     # この定義だけは mkIf の外に置く。
     { _module.args.terminalFont = terminalFont; }
 
@@ -36,8 +35,7 @@ in
 
       fonts.fontconfig = { enable = true; };
 
-      # 端末の背景透過と nvim の背景透過 autocmd を連携させる。wezterm も kitty も透過する
-      # ので、個々の端末モジュールではなくここに置く。
+      # kitty の背景透過と nvim の背景透過 autocmd を連携させる。
       # 参照元: modules/home-manager/dev/neovim/config/
       home.sessionVariables.TERMINAL_TRANSPARENT = "1";
 

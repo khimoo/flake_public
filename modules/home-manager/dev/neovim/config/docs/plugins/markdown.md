@@ -154,7 +154,7 @@ Google Drive に同期される単一フォルダ（`~/sagyo/zettelkasten/attach
 ## diagram.nvim + image.nvim — Mermaid プレビュー
 
 Markdown 内の mermaid コードブロックを、ブラウザを開かずに **バッファ内インラインで**
-PNG プレビュー表示する。WezTerm の Kitty graphics protocol を使うため、
+PNG プレビュー表示する。kitty の graphics protocol を使うため、
 ターミナル内で完結する。
 
 ### 使い方
@@ -228,7 +228,7 @@ require したテーブル。ドット記法だと `package.loaded` 上で別モ
 .md バッファ
   └─ diagram.nvim         mermaid ブロックを treesitter で抽出
        └─ mmdc            PNG にレンダリング (内部で Chromium ヘッドレス使用)
-            └─ image.nvim WezTerm の Kitty graphics protocol で画像表示
+            └─ image.nvim kitty の graphics protocol で画像表示
                  └─ magick (luarock) 画像処理
 ```
 
@@ -265,7 +265,7 @@ lazy.nvim の **luarocks 統合は無効化**してある (`lua/config/lazy.lua`
 
 ### ペイン分割時の挙動
 
-WezTerm の画像はペインの境界を越えて表示されない。大きな図でも他のペインにはみ出さない。
+kitty の画像はペインの境界を越えて表示されない。大きな図でも他のペインにはみ出さない。
 スプリット直後に画像が消えることがあるが、`:redraw!` で復活する。
 `<C-l>` は smart-splits のペイン移動に割り当てているので再描画には使えない。
 

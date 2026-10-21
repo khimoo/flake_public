@@ -12,7 +12,6 @@ in
     ./codex.nix
     ./agent-instructions.nix
     ./claude-managed-settings.nix
-    ./permit-insecure.nix
     ./restricted-host.nix
   ];
 

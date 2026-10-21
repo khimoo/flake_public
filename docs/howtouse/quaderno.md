@@ -8,7 +8,7 @@ Fujitsu Quaderno A4 Gen2 で手書きした PDF を、同じ LAN にいるとき
 設定ファイル:
 - [`modules/home-manager/quaderno.nix`](../../modules/home-manager/quaderno.nix)（`local.quaderno` オプションと `quaderno-pull` コマンド、systemd timer）
 - [`modules/home-manager/quaderno_pull.py`](../../modules/home-manager/quaderno_pull.py) / [`quaderno_plan.py`](../../modules/home-manager/quaderno_plan.py)（本体と選別ロジック）
-- [`packages/dpt-rp1-py/`](../../packages/dpt-rp1-py/)（デバイス操作 CLI）
+- [`packages/dpt-rp1-py/`](../../packages/dpt-rp1-py/)（デバイス操作 CLI。更新時は [単体 build](validation.md#対象別の確認手順) で確認）
 - [`profiles/home/pomu-workstation.nix`](../../profiles/home/pomu-workstation.nix)（この環境の設定）
 
 ## 初回のペアリング
@@ -30,11 +30,6 @@ dptrp1 --addr <IP> register
 ```
 
 `dptrp1` は `local.quaderno.enable` を有効にした home-manager 世代で PATH に入る。
-まだ `home-manager switch` していない場合は、代わりに次のコマンドが使える。
-
-```sh
-nix run .#dpt-rp1-py -- --addr <IP> register
-```
 
 実行すると本体の画面に PIN が出る。それを端末に打つと成功する。
 

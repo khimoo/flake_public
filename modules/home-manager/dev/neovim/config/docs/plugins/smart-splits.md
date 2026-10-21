@@ -1,19 +1,19 @@
 # smart-splits.nvim — ウィンドウ/ペイン統合操作
 
-Neovim のウィンドウ分割と wezterm のペインをシームレスに行き来・リサイズできるプラグイン。
+Neovim のウィンドウ分割と kitty のペインをシームレスに行き来・リサイズできるプラグイン。
 
 - 設定ファイル (nvim): `lua/plugins/smart-splits.lua`
-- 設定ファイル (wezterm): `modules/home-manager/gui/wezterm/wezterm.lua`
+- 設定ファイル (kitty): `modules/home-manager/gui/kitty/kitty.conf`
 
 ## 仕組み
 
-wezterm 側に smart-splits のプラグインを読み込み、`apply_to_config` でキーバインドを登録する。
-キーが押されると wezterm はフォーカス中のペインが Neovim かどうかを判定し:
+kitty 側でペイン移動とリサイズのキーを登録する。
+Neovim が設定する `IS_NVIM` user var でフォーカス中のペインを判定し:
 
 - **Neovim の場合**: キーを Neovim に転送 → smart-splits.nvim がウィンドウ間を移動/リサイズ
-- **Neovim 以外の場合**: wezterm がペイン間を移動/リサイズ
+- **Neovim 以外の場合**: kitty がペイン間を移動/リサイズ
 
-この仕組みにより、同じキーバインドで Neovim のウィンドウも wezterm のペインも区別なく操作できる。
+この仕組みにより、同じキーバインドで Neovim のウィンドウも kitty のペインも区別なく操作できる。
 
 ## キーバインド
 
@@ -49,14 +49,14 @@ wezterm 側に smart-splits のプラグインを読み込み、`apply_to_config
 | `<leader><leader>k` | 上のウィンドウとバッファを交換 |
 | `<leader><leader>l` | 右のウィンドウとバッファを交換 |
 
-バッファスワップは Neovim のウィンドウ間でのみ動作する（wezterm ペインとは交換しない）。
+バッファスワップは Neovim のウィンドウ間でのみ動作する（kitty ペインとは交換しない）。
 
 ## ユースケース
 
 ### 1. コードを読みながらターミナルで確認
 
 ```
-Ctrl+a v          wezterm で横ペイン分割（Leader+v）
+Ctrl+a v          kitty で横ペイン分割（Leader+v）
                    → 右ペインでシェルが開く
 (左ペインで nvim、右ペインでシェル)
 Ctrl+l            nvim → シェルにフォーカス移動
@@ -74,8 +74,8 @@ Alt+h / Alt+l      分割の幅を調整
 ### 3. 複数ペインのレイアウト調整
 
 ```
-Ctrl+a s          wezterm で縦ペイン分割（Leader+s）
-Ctrl+a v          wezterm で横ペイン分割（Leader+v）
+Ctrl+a s          kitty で縦ペイン分割（Leader+s）
+Ctrl+a v          kitty で横ペイン分割（Leader+v）
 Alt+h/j/k/l       各ペインのサイズを調整
 Ctrl+h/j/k/l      ペイン間を自由に移動
 ```
@@ -87,25 +87,12 @@ Ctrl+h/j/k/l      ペイン間を自由に移動
 <leader><leader>l  左右のバッファを交換（参照と実装の位置を入れ替え等）
 ```
 
-## wezterm 側の設定
+## kitty 側の設定
 
-`wezterm.lua` の末尾で以下を記述：
-
-```lua
-local smart_splits = wezterm.plugin.require('https://github.com/mrjones2014/smart-splits.nvim')
-smart_splits.apply_to_config(config, {
-  direction_keys = { 'h', 'j', 'k', 'l' },
-  modifiers = {
-    move = 'CTRL',
-    resize = 'META',
-  },
-})
-```
-
-`apply_to_config` は `config.keys` にキーバインドを追加するため、`config.keys` の定義より後に呼ぶこと。
+[kitty.nix](../../../../../../../modules/home-manager/gui/kitty.nix) が smart-splits 同梱の kitten を配置する。
+接続とキー割当ては [kitty の使い方](../../../../../../../docs/howtouse/cli-tools/kitty.md) を参照。
 
 ## 注意事項
 
-- wezterm の `wezterm.plugin.require()` が必要（比較的新しい機能）
 - ペインがズーム状態のとき、クロスペインナビゲーションは無効（`disable_multiplexer_nav_when_zoomed = true`）
-- `Ctrl+h/j/k/l` は wezterm 側でも設定されるため、wezterm の既存キーバインドと競合しないか注意
+- `Ctrl+h/j/k/l` は kitty 側でも設定されるため、既存キーバインドとの競合に注意

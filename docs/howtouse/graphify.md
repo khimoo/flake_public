@@ -2,12 +2,7 @@
 
 設計: [採用理由と管理境界](../architecture/graphify.md)。
 Graphify は dev 環境の home.packages に入る任意の探索ツール。
-通常の環境適用は利用者が行う。適用前は次の経路で同じ固定版を試せる。
-
-```sh
-nix build .#graphify --out-link /tmp/graphify-result
-/tmp/graphify-result/bin/graphify --version
-```
+通常の環境適用は利用者が行う。導入後は `graphify --version` で版を確認する。
 
 プロジェクト側の対象・除外・更新方針を確認して実行する。
 
@@ -28,13 +23,13 @@ API SDK、MCP サーバー、グローバル Git hook は今回追加しない�
 ## 更新・除去
 
 flake.lock の nixpkgs-unstable 更新時に package version とスキルの呼出しを照合する。
-[検証ガイド](validation.md)の一括検証に加え、Graphify の smoke check を実行する。
+[検証ガイドの単体 build](validation.md#対象別の確認手順) と一括検証に加え、Graphify の smoke check を実行する。
 
 ```sh
-nix build .#graphify .#checks.x86_64-linux.graphify-smoke
+nix build .#checks.x86_64-linux.graphify-smoke
 ```
 
 除去するときは [dev apps](../../modules/home-manager/dev/apps.nix) の Graphify と、
-[overlay](../../overlays/unstable-packages.nix)、[flake 出力](../../flake.nix)、
+[overlay](../../overlays/unstable-packages.nix)、
 [smoke check](../../tests/default.nix) の対応を戻し、利用者が通常の環境適用を行う。
 個人認証や既存のエージェント設定は削除しない。

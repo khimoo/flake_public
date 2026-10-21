@@ -1,34 +1,6 @@
-# chrome-device.nix
-{ config, pkgs, lib, ... }:
+{ pkgs, ... }:
 
-let
-  cb-ucm-conf = with pkgs;
-    alsa-ucm-conf.overrideAttrs {
-      # wttsrc は取得しているが、unpackPhase と installPhase は $src（本家の alsa-ucm-conf）を使っている。
-      # この上書きが入れる ucm2 は Chromebook 用のものではない。音声の不具合を調べるときはここを疑う。
-      wttsrc = fetchFromGitHub {
-        owner = "WeirdTreeThing";
-        repo = "alsa-ucm-conf-cros";
-        rev = "7b1470d9261674f7eeb29d18eb9b5375bde80ebb";
-        hash = "sha256-coYSt+Jhbeb/wBvtFTOApxNI89Dw2/wI4r1iOKZUplE=";
-      };
-      # この unpackPhase は展開先のディレクトリに入らないので、nixpkgs が alsa-ucm-conf に当てるパッチ
-      # （26.05 では USB-Audio の Volt2 の typo 修正）が当たらずにビルドが止まる。spin713 には関係しない。
-      patches = [ ];
-      unpackPhase = ''
-        runHook preUnpack
-        tar xf "$src"
-        runHook postUnpack
-      '';
-
-      installPhase = ''
-        runHook preInstall
-        mkdir -p $out/share/alsa
-        cp -r alsa-ucm*/ucm2 $out/share/alsa
-        runHook postInstall
-      '';
-    };
-in {
+{
   boot = {
     extraModprobeConfig = ''
       options snd-intel-dspcfg dsp_driver=4
@@ -129,32 +101,8 @@ in {
 
   environment = {
     systemPackages = with pkgs; [ sof-firmware alsa-utils ];
-    sessionVariables.ALSA_CONFIG_UCM2 = "${cb-ucm-conf}/share/alsa/ucm2";
-    # AUDIO SETUP FOR < 23.11 AND UNSTABLE
   };
 
   services.pulseaudio.enable = false;
   security.rtkit.enable = true;
-  # AUDIO SETUP FOR > 24.05
-  services.pipewire.wireplumber.configPackages = [
-    (pkgs.writeTextDir "share/wireplumber/main.lua.d/51-avs-dmic.lua" ''
-      rule = {
-        matches = {
-          {
-            { "node.nick", "equals", "Internal Microphone" },
-          },
-        },
-        apply_properties = {
-          ["audio.format"] = "S16LE",
-        },
-      }
-
-      table.insert(alsa_monitor.rules, rule)
-    '')
-  ];
-
-  system.replaceDependencies.replacements = [({
-    original = pkgs.alsa-ucm-conf;
-    replacement = cb-ucm-conf;
-  })];
 }

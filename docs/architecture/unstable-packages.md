@@ -59,7 +59,7 @@ neovim がこれに当たる。
 | nixos-25.11 | 0.11.7 |
 | nixos-unstable | 0.12.5 |
 
-kitty は wezterm と違ってスクロールバックの検索も vi 風の選択も持たず、`scrollback_pager` で
+kitty はスクロールバックの検索も vi 風の選択も持たず、`scrollback_pager` で
 外部ページャに委ねる。ページャを Neovim に向けるとこの2つが同時に埋まるので、端末移行の設計は
 それを前提にしている。kitty のドキュメントが載せている設定行は `nvim_open_term(0, {})` で
 バッファを端末に変えて ANSI を描画させるが、0.11 の `nvim_open_term` はチャンネルを開くだけで、
@@ -129,7 +129,7 @@ nixos-26.05 は tree-sitter 0.26.8 を持つので、neovim と同時に差し�
 別途乗ること。
 
 全体を unstable に上げる案は見送った。home-manager が安定版の release ブランチ（判断した時点では `release-25.11`）に固定されていて `master` へ
-道連れになること、`follows` している小規模な input (winapps / claude-history / zettelkasten) が
+道連れになること、`follows` している小規模な input (claude-history / zettelkasten) が
 nixpkgs の破壊的変更に追随できるか読めないこと、musnix がリアルタイムオーディオでカーネル設定に
 踏み込んでいることが理由。この数パッケージのために動かす範囲としては大きい。
 

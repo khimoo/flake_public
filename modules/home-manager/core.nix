@@ -1,6 +1,4 @@
 {
-  inputs,
-  lib,
   pkgs,
   ...
 }:
@@ -8,9 +6,8 @@
 {
   home.packages = with pkgs; [
     curl
-    gcc
     fastfetch
-    python3
+    python3 # agents-private のスキルと scripts/check.sh が直接呼ぶ。
     gh
     uv
     ghostscript
@@ -20,11 +17,6 @@
     ripgrep
     jq
     xh
-    nodejs_22
-  ]
-  # buildFHSEnv は Linux でしか作れない（docs/architecture/uv-mode.md）。
-  ++ lib.optionals pkgs.stdenv.isLinux [
-    inputs.self.packages.${pkgs.stdenv.hostPlatform.system}.uv-mode
   ];
 
   home.sessionVariables = {
@@ -75,12 +67,6 @@
         package.disabled = true;
         aws.disabled = true;
         gcloud.disabled = true;
-        # packages/uv-mode が設定する目印。モードの外では uv が取得した Python を起動できないので、
-        # 中にいるかをプロンプトで見分けられるようにする。
-        env_var.IN_UV_MODE = {
-          format = "[uv-mode]($style) ";
-          style = "bold yellow";
-        };
       };
     };
 

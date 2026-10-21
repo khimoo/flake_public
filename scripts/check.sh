@@ -3,8 +3,8 @@
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 python3 scripts/check-docs.py .
-# Spin713's audio workaround uses system.replaceDependencies (IFD). Generate
-# its reference derivations before flake check's read-only evaluation.
+# Desktop and Spin713's mutter patches use system.replaceDependencies (IFD).
+# Generate their reference derivations before flake check's read-only evaluation.
 nix eval --option eval-cache false --json --no-update-lock-file .#nixosConfigurations \
   --apply 'hosts: builtins.mapAttrs (_: h: h.config.system.build.toplevel.drvPath) hosts'
 printf '\n'

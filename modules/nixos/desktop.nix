@@ -11,6 +11,5 @@
 
   environment.systemPackages = with pkgs; [
     gparted
-    gnomeExtensions.gsconnect
   ];
 }

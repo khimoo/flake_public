@@ -7,8 +7,7 @@
 | カテゴリ | ツール | 説明 | ドキュメント |
 |----------|--------|------|-------------|
 | ファイルマネージャ | yazi | TUI ファイルマネージャ (プラグイン多数) | [yazi.md](./yazi.md) |
-| ターミナル | wezterm | GPU 加速ターミナル (Leader キー体系) | [wezterm.md](./wezterm.md) |
-| ターミナル | kitty | 移行先。`Ctrl+a > 階層 > 動詞` のキー体系、タブ内ウィンドウ／タブの移動、Neovim をページャにしたスクロールバック | [kitty.md](./kitty.md) |
+| ターミナル | kitty | `Ctrl+a > 階層 > 動詞` のキー体系、タブ内ウィンドウ／タブの移動、Neovim をページャにしたスクロールバック | [kitty.md](./kitty.md) |
 | Git UI | lazygit | Git TUI クライアント (delta 連携) | [lazygit.md](./lazygit.md) |
 | AI リモート操作 | Happy | スマホから Codex を操作 | [happy.md](./happy.md) |
 | AI エージェント | Antigravity CLI (agy) | Gemini 3.8 Flash を使うエージェント CLI。日本語の校正の予備の経路 | [antigravity-cli.md](./antigravity-cli.md) |

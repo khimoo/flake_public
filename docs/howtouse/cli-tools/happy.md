@@ -6,10 +6,10 @@ Home Manager の `modules/home-manager/dev/apps.nix` から導入する。
 
 ## 試す
 
-このリポジトリで次を実行する。システム設定の適用前でも同じパッケージを試せる。
+導入済みのコマンドで認証する。
 
 ```bash
-nix run .#happy -- auth login
+happy auth login
 ```
 
 スマホに [Happy](https://happy.engineering/) の iOS / Android アプリを入れ、
@@ -17,12 +17,6 @@ nix run .#happy -- auth login
 認証情報と機器情報は `~/.happy/` に保存される。Nix ストアや Git には入れない。
 
 ペアリング後、作業したいプロジェクトで起動する。
-
-```bash
-nix run /home/pomu/sagyo/flake_public#happy -- codex
-```
-
-Home Manager / NixOS の設定を適用した後は、直接実行できる。
 
 ```bash
 happy codex
@@ -41,16 +35,14 @@ happy daemon status
 happy daemon stop
 ```
 
-設定の適用前は `happy` を `nix run .#happy --` に置き換える。
-
 ## パッケージを更新する
 
 1. `packages/happy/package.json` のバージョンと `dependencies.happy`、
    `default.nix` の `version` と起動チェックを更新する。
 2. `packages/happy` で `npm install --package-lock-only --ignore-scripts` を実行する。
-3. `npmDepsHash` を一時的に `lib.fakeHash` にして `nix build .#happy` を実行し、
+3. `npmDepsHash` を一時的に `lib.fakeHash` にして [検証ガイドの単体 build](../validation.md#対象別の確認手順) を実行し、
    表示された正しいハッシュを設定する。
-4. `nix build .#happy` と `nix run .#happy -- --version` を確認する。
+4. 同じ単体 build と `result/bin/happy --version` を確認する。
 
 依存パッケージのスクリプトは一括実行せず、Happy の同梱ツール展開だけをビルド時に行う。
 Linux の同梱 ELF / ネイティブモジュールは `autoPatchelfHook` で Nix のライブラリに接続する。
