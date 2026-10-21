@@ -37,8 +37,8 @@ happy daemon stop
 
 ## パッケージを更新する
 
-1. `packages/happy/package.json` のバージョンと `dependencies.happy`、
-   `default.nix` の `version` と起動チェックを更新する。
+1. `packages/happy/package.json` の `version` と `dependencies.happy` を更新する。
+   `default.nix` の版と起動チェックの期待値は `dependencies.happy` から決まる。
 2. `packages/happy` で `npm install --package-lock-only --ignore-scripts` を実行する。
 3. `npmDepsHash` を一時的に `lib.fakeHash` にして [検証ガイドの単体 build](../validation.md#対象別の確認手順) を実行し、
    表示された正しいハッシュを設定する。

@@ -2,9 +2,13 @@
 
 # npm の配布物と全依存を package-lock.json / npmDepsHash で固定する。
 # nixpkgs-unstable の happy-coder は 0.11.2 のため、現行 CLI をここで管理する。
+let
+  # 導入する版は package.json の依存が決める。ここで重ねて書かない。
+  version = (lib.importJSON ./package.json).dependencies.happy;
+in
 buildNpmPackage {
   pname = "happy-coder";
-  version = "1.2.3";
+  inherit version;
   src = lib.fileset.toSource {
     root = ./.;
     fileset = lib.fileset.unions [ ./package.json ./package-lock.json ];
@@ -58,7 +62,7 @@ buildNpmPackage {
   installCheckPhase = ''
     runHook preInstallCheck
     versionOutput=$(HAPPY_HOME_DIR="$TMPDIR/happy-check" "$out/bin/happy" --version)
-    test "$versionOutput" = 'happy version: 1.2.3'
+    test "$versionOutput" = 'happy version: ${version}'
     # --version では読み込まれない画像処理 / PTY / DB のネイティブ依存も確認。
     cd "$out/lib/happy"
     node - <<'JS'
