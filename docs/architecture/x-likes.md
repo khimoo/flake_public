@@ -38,6 +38,8 @@ subvol を分ければスナップショットやバックアップの単位を�
 バックアップを作るときは `tweets/` だけを対象にする。
 
 マウントの扱いは `@mimikopi` と同じで、作る前の switch や再起動で起動を止めないよう `nofail` を付け、`x-likes-env` が起動時に `mountpoint -q` で確かめて、マウントされていなければ止まる。
+この確認は、NixOS 側の `fileSystems` が `local.xLikes.dataDir` のマウントを定義しているときだけ入れる。
+確認の目的は、nofail のマウントに失敗したときにルート側を埋めないことで、マウントを定義していないホストやユーザーには守るものがない。そうした構成では、データはホームの下にそのまま置かれる。
 [tests/default.nix](../../tests/default.nix) は `nofail` が付いていることを確かめる。
 
 ## Postgres を OS のサービスで動かす
@@ -51,11 +53,27 @@ subvol を分ければスナップショットやバックアップの単位を�
 nixpkgs の `ensureDBOwnership` はユーザーと同じ名前のデータベースにしか使えないので、所有者は `postgresql-setup` の最後に `ALTER DATABASE` で付ける。
 拡張は所有者には作れないので、同じ所で superuser として作る。x-likes-archive の migrate の `CREATE EXTENSION IF NOT EXISTS` は、作成済みなら何もしない。
 
+拡張を作るには superuser が要るので、Home Manager だけではデータベースを用意できない。
+`local.xLikes` は NixOS の Home Manager モジュールとして使うときだけ有効にでき、Home Manager を単独で使う構成では assertion で止まる。
+
 Postgres のメジャー版は 17 に固定する。既定値は `system.stateVersion` で決まり、メジャー版が変わるとデータディレクトリの移行が要るからである。
 
 データディレクトリは既定の `/var/lib/postgresql/17`（NVMe）のままにする。
 データベースに入るのは本文、メタデータ、OCR の文字、ベクトル（ツイート 1 件あたり ruri が 3KB と Qwen が 8KB、画像 1 枚あたり 8KB）で、メディアは入らない。
 検索はランダム読みになるので、disk-tiering.md の分け方ではホット層に当たる。
+
+## GPU を使う計算はロックで順番にする
+
+二つの実行が同時に埋め込みのモデルを VRAM に載せると、どちらかが足りなくなる。
+夜間の `xlikes-process` と手で始めた `xlikes embed` が重なったときや、同じホストのほかのユーザーが使ったときに起きる。
+[modules/nixos/x-likes.nix](../../modules/nixos/x-likes.nix) が、ロックファイル `/run/x-likes-gpu.lock` を tmpfiles で作り、`x-likes-env` が `XLIKES_GPU_LOCK` でその場所を渡す。
+`xlikes embed` は、計算の前にこのファイルの排他ロックを取り、ほかの実行が終わるまで待つ。
+
+ロックファイルは root が持つ 0644 のファイルにする。flock は読み取りで開いたファイルにも掛けられるので、どのユーザーも使え、消したり書き換えたりはできない。
+検索はロックを取らない。夜間の画像の埋め込みは数時間かかるので、検索を待たせると使えなくなる。検索と夜間の処理が重なると、VRAM が足りなくなることがある。
+
+ほかのユーザーは、データベースの名前を別にすれば、同じホストで使える。
+[tests/default.nix](../../tests/default.nix) は、二人のユーザーがマウントのないホストで使う構成が評価を通ることを確かめる。
 
 ## アカウント名をリポジトリに書かない
 

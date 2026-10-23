@@ -104,6 +104,7 @@ systemctl --user start xlikes-process   # すぐに続きを計算する
 | `XLIKES_DATABASE_URL` | `host=/run/postgresql dbname=xlikes` | Postgres のデータベース |
 | `XLIKES_GALLERY_DL` | Nix の gallery-dl | いいね欄の取得に使う gallery-dl |
 | `XLIKES_X_USER` | `<データディレクトリ>/x-user` の中身 | いいね欄を取得するアカウント。外で設定済みならそちらを使う |
+| `XLIKES_GPU_LOCK` | `/run/x-likes-gpu.lock` | `xlikes embed` が排他ロックを取るファイル。ほかの `xlikes embed` と順番に GPU を使う |
 | `HSA_OVERRIDE_GFX_VERSION` | `10.3.0` | ROCm に GPU を gfx1030 として扱わせる |
 
 ## うまく動かないとき
@@ -120,3 +121,6 @@ subvol があるのにマウントされていなければ、上の `systemctl s
 `XLIKES_X_USER is not set` で止まったら、`x-user` を書く。
 
 データベースに接続できなければ、`systemctl status postgresql postgresql-setup` で Postgres と、データベースと拡張を作る処理の状態を確かめる。
+
+`xlikes embed` が `waiting for the GPU lock /run/x-likes-gpu.lock` と出して止まっているときは、ほかの `xlikes embed`（夜間の `xlikes-process` や、ほかのユーザーの実行）が終わるのを待っている。
+`systemctl --user status xlikes-process` で、夜間の処理が動いていないか確かめる。

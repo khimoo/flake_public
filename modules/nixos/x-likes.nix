@@ -1,5 +1,6 @@
 # X のいいねの保存（Home Manager の local.xLikes）を有効にしたユーザーに、Postgres のデータベースを用意する。
 # データベースはそのユーザーが所有し、Unix socket の peer 認証で接続する。
+# GPU を使う計算は、全ユーザーで共有するロックファイルで順番にする。
 # 設計判断: docs/architecture/x-likes.md
 {
   config,
@@ -14,6 +15,16 @@ let
   }) (lib.filterAttrs (_: hm: hm.local.xLikes.enable) config.home-manager.users);
 in
 {
+  options.local.xLikes.gpuLock = lib.mkOption {
+    type = lib.types.str;
+    readOnly = true;
+    default = "/run/x-likes-gpu.lock";
+    description = ''
+      xlikes embed が排他ロックを取るファイル。local.xLikes を有効にしたユーザー全員が同じファイルを使い、
+      GPU を使う計算を順番にする。
+    '';
+  };
+
   config = lib.mkIf (databases != [ ]) {
     assertions = [
       {
@@ -33,6 +44,9 @@ in
       ensureDatabases = map (db: db.name) databases;
       ensureUsers = map (db: { name = db.owner; }) databases;
     };
+
+    # flock は読み取りで開いたファイルにも掛けられるので、root が持つ 0644 のファイルで全ユーザーが使える。
+    systemd.tmpfiles.rules = [ "f ${config.local.xLikes.gpuLock} 0644 root root -" ];
 
     # ensureDBOwnership はユーザーと同じ名前のデータベースにしか使えないので、所有者はここで付ける。
     # 二つの拡張は trusted ではなく、所有者（superuser でないロール）には作れないので、ここで作っておく。

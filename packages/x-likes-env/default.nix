@@ -8,6 +8,10 @@
   gallery-dl,
   dataDir,
   database,
+  # dataDir が nofail でマウントする subvol のときだけ、マウントを確かめる。
+  checkMount ? true,
+  # GPU を使う計算を、ほかの実行と順番にするためのロックファイル（ホストで共有する）。
+  gpuLock ? null,
   hsaOverrideGfxVersion ? null,
 }:
 
@@ -28,12 +32,14 @@ buildFHSEnv {
       util-linux
     ];
   runScript = writeShellScript "x-likes-env-run" ''
-    # dataDir の subvol は nofail でマウントする。マウントに失敗したまま続けると、ルート側の
-    # 同じパスへ torch とメディアを書き込んでルートを埋めるので、ここで止める。
-    if ! mountpoint -q ${lib.escapeShellArg dataDir}; then
-      echo "x-likes-env: ${dataDir} がマウントされていません。手順: docs/howtouse/x-likes.md" >&2
-      exit 1
-    fi
+    ${lib.optionalString checkMount ''
+      # dataDir の subvol は nofail でマウントする。マウントに失敗したまま続けると、ルート側の
+      # 同じパスへ torch とメディアを書き込んでルートを埋めるので、ここで止める。
+      if ! mountpoint -q ${lib.escapeShellArg dataDir}; then
+        echo "x-likes-env: ${dataDir} がマウントされていません。手順: docs/howtouse/x-likes.md" >&2
+        exit 1
+      fi
+    ''}
     export UV_PYTHON_PREFERENCE=only-managed
     export UV_CACHE_DIR=${lib.escapeShellArg "${dataDir}/uv-cache"}
     export UV_PYTHON_INSTALL_DIR=${lib.escapeShellArg "${dataDir}/python"}
@@ -42,6 +48,7 @@ buildFHSEnv {
     export XLIKES_DATA_DIR=${lib.escapeShellArg "${dataDir}/tweets"}
     export XLIKES_DATABASE_URL=${lib.escapeShellArg "host=/run/postgresql dbname=${database}"}
     export XLIKES_GALLERY_DL=${lib.escapeShellArg (lib.getExe gallery-dl)}
+    ${lib.optionalString (gpuLock != null) "export XLIKES_GPU_LOCK=${lib.escapeShellArg gpuLock}"}
     # アカウント名は公開リポジトリに書かないので、データディレクトリのファイルから読む。
     if [ -z "''${XLIKES_X_USER:-}" ] && [ -r ${lib.escapeShellArg "${dataDir}/x-user"} ]; then
       XLIKES_X_USER=$(< ${lib.escapeShellArg "${dataDir}/x-user"})

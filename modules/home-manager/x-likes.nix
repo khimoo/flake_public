@@ -5,21 +5,27 @@
 #   xlikes-sync     いいね欄と引用元を取得して登録する（毎時）
 #   xlikes-process  OCR と埋め込みの計算（毎晩）
 #
-# データベースは modules/nixos/x-likes.nix が、保存先のマウントはホストが用意する。
+# データベースと GPU のロックファイルは modules/nixos/x-likes.nix が用意する。保存先を subvol に
+# するかはホストが決め、マウントを定義したときだけ x-likes-env がマウントを確かめる。
 # 設計判断: docs/architecture/x-likes.md
 # 使い方:   docs/howtouse/x-likes.md
 {
   config,
   lib,
+  osConfig,
   pkgs,
   ...
 }:
 let
   cfg = config.local.xLikes;
   absolutePath = lib.types.strMatching "/.*";
+  # osConfig は NixOS のモジュールとして使うときだけある。単独で使う構成では assertion で止める。
+  onNixos = config.submoduleSupport.enable;
 
   env = pkgs.callPackage ../../packages/x-likes-env {
     inherit (cfg) dataDir database hsaOverrideGfxVersion;
+    checkMount = onNixos && osConfig.fileSystems ? ${cfg.dataDir};
+    gpuLock = if onNixos then osConfig.local.xLikes.gpuLock else null;
   };
 
   xlikes = pkgs.writeShellApplication {
@@ -53,8 +59,8 @@ in
     dataDir = lib.mkOption {
       type = absolutePath;
       description = ''
-        マウント済みの保存先。取得したツイート、uv の環境、モデルのチェックポイントを置く。
-        マウントされていない間、x-likes-env は何も実行せずに止まる。
+        保存先。取得したツイート、uv の環境、モデルのチェックポイントを置く。
+        NixOS 側でこのパスのマウントを定義したときは、マウントされていない間、x-likes-env は何も実行せずに止まる。
       '';
     };
 
@@ -83,6 +89,13 @@ in
       {
         assertion = pkgs.stdenv.isLinux;
         message = "local.xLikes は systemd user timer と ROCm を使うので Linux でのみ動く。";
+      }
+      {
+        assertion = onNixos;
+        message = ''
+          local.xLikes は NixOS の Home Manager モジュールとして使うときだけ有効にできる。
+          拡張を作るには superuser が要るので、データベースは NixOS 側（modules/nixos/x-likes.nix）が作る。
+        '';
       }
     ]
     ++ map (name: {

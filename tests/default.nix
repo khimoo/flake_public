@@ -117,6 +117,31 @@ let
       failed = map (a: a.message) (builtins.filter (a: !a.assertion) config.assertions);
     in
     failed != [ ] && builtins.all (lib.hasPrefix "local.restrictedHost:") failed;
+  # 二人のユーザーが X のいいねの保存を使う架空のホスト。どちらにもデータ用のマウントはない。
+  xLikesHost =
+    (configurations.mkSystem {
+      hostname = "example";
+      system = "x86_64-linux";
+      timezone = "Asia/Tokyo";
+      stateVersion = "25.11";
+      hostModule.imports = [
+        ../examples/new-host.nix
+        ../modules/nixos/x-likes.nix
+      ];
+      users = map (username: {
+        inherit username;
+        homeModules = [
+          {
+            local.xLikes = {
+              enable = true;
+              dataDir = "/home/${username}/.local/share/x-likes";
+              projectDir = "/home/${username}/x-likes-archive";
+              database = "xlikes_${username}";
+            };
+          }
+        ];
+      }) [ "alice" "bob" ];
+    }).config;
   codexConfig = host: builtins.fromTOML host.environment.etc."codex/config.toml".text;
   systemAssertionsHold = config: builtins.all (a: a.assertion) config.assertions;
   mkTestHome =
@@ -360,6 +385,18 @@ lib.genAttrs systems (
         && (codexConfig host).agents.enabled == false
         && host.environment.etc."claude-code/CLAUDE.md".text == instructions;
       assert !((agentHost "").environment.etc ? "claude-code/CLAUDE.md");
+      # 複数のユーザーとマウントのないホストでも使える。GPU は共有のロックファイルで順番にする。
+      assert systemAssertionsHold xLikesHost;
+      assert xLikesHost.services.postgresql.ensureDatabases == [ "xlikes_alice" "xlikes_bob" ];
+      assert builtins.elem "f ${xLikesHost.local.xLikes.gpuLock} 0644 root root -" xLikesHost.systemd.tmpfiles.rules;
+      # データベースは NixOS 側が作るので、Home Manager 単独では有効にできない。
+      assert rejects {
+        local.xLikes = {
+          enable = true;
+          dataDir = "/home/test/.local/share/x-likes";
+          projectDir = "/home/test/x-likes-archive";
+        };
+      };
       assert !(codexConfig (agentHost "") ? developer_instructions);
       "module contracts passed";
     # 会社 PC（nixos-work-wsl）の実際の構成に固有の確認（docs/architecture/wsl.md）。
