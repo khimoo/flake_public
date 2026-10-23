@@ -6,7 +6,7 @@
 
 RustOwl は `rustc_private` を使うため専用の nightly sysroot を必要とし、nixpkgs には収録されていない。
 
-以前は GitHub Releases のプリビルドバイナリを `home.activation` で展開し、sysroot を `rustowl toolchain install` で実行時ダウンロードしていた。この方式は switch のたびにネットワークへ出るため、`home-manager-<user>.service` の起動タイムアウト（5分）に当たって switch 全体を失敗させた。sysroot 約568MBのダウンロードが間に合わないため。marker に Nix store のパスを含めていたので、nixpkgs 更新のたびに再ダウンロードが走る構造でもあった。
+GitHub Releases のビルド済みバイナリを `home.activation` で展開し、sysroot を `rustowl toolchain install` で実行時に取得する方式は退けた。switch のたびにネットワークへ出て、sysroot（約 568MB）の取得が `home-manager-<user>.service` の起動のタイムアウト（5 分）に間に合わず、switch 全体を失敗させた。marker に Nix store のパスを含めていたので、nixpkgs を更新するたびに取得し直す作りでもあった。
 
 ## 仕組み
 

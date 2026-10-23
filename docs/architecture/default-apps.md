@@ -30,29 +30,14 @@ MIME タイプに対するデフォルトアプリケーションは `xdg.mimeAp
 
 ## apps.nix の仕組み
 
-各アプリ定義に `mimeTypes` 属性を持たせ、`foldl'` で `defaultApplications` attrset を導出する。
-アプリを `guiApps` から削除すると MIME 設定も自動的に消える。
-
-```nix
-# アプリ定義
-{ pkg = pkgs.pdfarranger; mimeTypes = { "application/pdf" = true; }; }
-
-# 導出（getDesktopName で .desktop ファイル名を解決）
-defaultApplications = lib.foldl' (acc: app:
-  if app ? mimeTypes then
-    acc // (lib.mapAttrs (_: _: getDesktopName app) app.mimeTypes)
-  else acc
-) {} guiApps;
-```
-
-同一 MIME を複数アプリに設定した場合、リスト後方のアプリが優先される（`//` の挙動）。
+各アプリの定義に `mimeTypes` を持たせ、そこから `defaultApplications` を作る。アプリを `guiApps` から消すと、MIME の設定も一緒に消える。
+同じ MIME を複数のアプリに設定すると、リストの後ろのアプリが優先される（`//` で重ねるため）。
 
 ## Firefox
 
 - **インストール + 設定**: `gui/firefox.nix` の `programs.firefox.enable = true`（home-manager モジュール）
 - **MIME 設定**: 同ファイル内で `text/html` 等を直接設定
 - **HTTP/HTTPS**: `teams-dispatcher.nix` がディスパッチャ経由で制御（Firefox に直接割り当てない）
-- 将来 `programs.firefox.profiles` でプロファイル・拡張機能等を宣言的に管理可能
 
 ## 変更ガイド
 

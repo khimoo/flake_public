@@ -69,4 +69,4 @@ live symlinkの内容はNix世代のロールバックでは戻らない。Git�
 
 ## 共通文書と作業の入口
 
-人とエージェントは [文書整備](../howtouse/documentation.md) と [検証ガイド](../howtouse/validation.md)、既存のコマンドを共通に使う。Claude Code の `/workflow` は文書整備の入口であり、別の規約や検証方針を持たない。常時読む指示は入口と安全境界に絞り、詳細は対象文書で扱う。今回の整理では効果測定を行わず、運用で分かった問題に応じて調整する。
+人とエージェントは [文書整備](../howtouse/documentation.md) と [検証ガイド](../howtouse/validation.md)、既存のコマンドを共通に使う。Claude Code の `/workflow` は文書整備の入口であり、別の規約や検証方針を持たない。常時読む指示は入口と安全境界に絞り、詳細は対象文書で扱う。
