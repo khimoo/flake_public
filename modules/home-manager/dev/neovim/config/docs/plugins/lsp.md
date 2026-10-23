@@ -32,7 +32,7 @@ opts = {
 },
 ```
 
-このテーブルは **lazy.nvim の spec マージで言語モジュールから拡張可能**。例えば `lang/markdown/lsp.lua` で `opts.servers.marksman = { ... }` を返す spec を書けば、`nvim-lspconfig` の opts に deep-merge される。詳細は [架構ドキュメント (spec マージ)](../architecture/spec-merge.md) を参照。
+このテーブルは **lazy.nvim の spec マージで言語モジュールから拡張可能**。例えば `lang/markdown/lsp.lua` で `opts.servers.marksman = { ... }` を返す spec を書けば、`nvim-lspconfig` の opts に deep-merge される。詳細は [spec マージの設計](../architecture/spec-merge.md) を参照。
 
 現状の override:
 - `nil_ls`: Nix 用。`nixfmt` でフォーマット。`features/lsp.lua` に直接書いている
@@ -89,4 +89,3 @@ LSP がアタッチされたバッファでのみ有効。
 
 - `gd` → `<C-o>` で戻る → `gd` → `<C-o>` のループがコードリーディングの基本
 - `<C-o>` は何回でも遡れる。逆方向は `<C-i>`
-- `grr` と `<leader>fr` (Telescope 版) は同じ機能。Telescope 版のほうがプレビュー付き

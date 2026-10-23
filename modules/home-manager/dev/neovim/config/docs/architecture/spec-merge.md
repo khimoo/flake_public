@@ -14,7 +14,7 @@
 
 これを「トピック中心」のディレクトリにまとめたい。しかし `nvim-treesitter` の spec は元々 `features/treesitter.lua` で集中管理されており、`ensure_installed` を言語ごとに追記するには「同じプラグインの設定を複数箇所で書く」必要が出てくる。
 
-## 採用方針 (case-F): lazy.nvim の spec マージ
+## 採用方針: lazy.nvim の spec マージ
 
 lazy.nvim は **同じプラグイン名で複数 spec が存在すると自動で deep-merge** する。これを使い、`lang/<name>/<sub>.lua` から共通プラグインの opts を追記する。
 
@@ -84,7 +84,7 @@ return {
 
 ## 設計上のトレードオフ
 
-### 採用したもの (case-F)
+### 採用したもの
 
 - 凝集度: 言語/トピック単位で関連設定を 1 ディレクトリに集約できる
 - 結合度: 共通プラグイン側が言語を知らない (一方向の依存)
@@ -92,21 +92,21 @@ return {
 
 ### 採用しなかった案
 
-#### 案 A: 単純なファイル分割
+#### 単純なファイル分割
 
 `lang/markdown.lua` を `lang/markdown/{filetype,render,autolist,...}.lua` に分割するだけ。
 
 - 短所: `ensure_installed` や LSP override は中央 (`treesitter.lua`, `lsp/init.lua`) に書く必要があり、「markdown 関連の設定」が物理的に複数箇所に散る
-- 「半分集約」止まりで、case-F より中途半端
+- 「半分集約」止まりで、spec マージより中途半端
 
-#### 案 D: トピックレジストリ (LazyVim の extras に近い)
+#### トピックレジストリ (LazyVim の extras に近い)
 
 `config/topics.lua` のようなレジストリを作り、各トピックモジュールが `topics.register("markdown", { ftplugin = ..., treesitter = ..., lsp = ... })` を呼ぶ。各プラグイン spec はレジストリから設定を集める。
 
 - 短所: 抽象化が過剰。個人 dotfiles の規模感では機構コストが見合わない
 - 短所: デバッグ時に「どの設定がどこから来たか」の追跡性が下がる
 
-## トレードオフ (case-F の弱点)
+## トレードオフ (spec マージの弱点)
 
 - **`:Lazy` のデバッグ感**: 「marksman の最終 opts は何か」を知るには、関連 spec を grep して spec マージの結果を頭で再現する必要がある (LazyVim 経験者なら慣れた手順)
 - **lazy.nvim 固有**: packer.nvim や mini.deps、rocks.nvim では同じ機構が無い (または挙動が違う)。パッケージマネージャを乗り換える際に再設計が要る

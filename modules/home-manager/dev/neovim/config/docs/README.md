@@ -1,6 +1,6 @@
 # Neovim 設定ガイド
 
-この Neovim 設定の使いこなしドキュメント。
+この Neovim の設定で使うプラグインとキー操作の案内。
 
 ## プラグイン一覧
 
@@ -16,7 +16,7 @@
 | 編集支援 | Comment, surround, dial, hlslens, undotree, guess-indent | [editing.md](./plugins/editing.md) |
 | 診断・quickfix | trouble.nvim | [trouble.md](./plugins/trouble.md) |
 | 補完 | blink.cmp | [completion.md](./plugins/completion.md) |
-| 日本語入力 | skkeleton, fcitx5 連携 | [skkeleton.md](./plugins/skkeleton.md) |
+| 日本語入力 | skkeleton | [skkeleton.md](./plugins/skkeleton.md) |
 | ナビゲーション | harpoon2, smart-splits | [navigation.md](./plugins/navigation.md), [smart-splits.md](./plugins/smart-splits.md) |
 | 外観 | lualine, hlchunk, fidget, which-key | [appearance.md](./plugins/appearance.md) |
 | Markdown | render-markdown.nvim, autolist.nvim, img-clip.nvim, marksman, diagram.nvim, image.nvim | [markdown.md](./plugins/markdown.md) |
@@ -25,14 +25,13 @@
 
 ## リファレンス
 
-- [キーバインド分類チートシート](./cheatsheet.md) — 「覚える必要があるもの」と「which-key に任せられるもの」の分類一覧
-- [キーバインド変更メモ](./keybindings-memo.md) — デファクトスタンダードに合わせた修正の記録
+- [キーバインド分類チートシート](./cheatsheet.md): 覚える必要があるキーと、which-key に任せられるキーの一覧。このリポジトリで変えたキーもここにある
 
 ## 設計方針 (architecture/)
 
-- [lazy.nvim spec マージ前提のディレクトリ設計](./architecture/spec-merge.md) — `lang/<name>/` から共通プラグインの opts を後付け差し込みする設計の根拠
-- [プラグインと外部ツールを機能として組にする](./architecture/features.md) — `lua/features/` の spec と Nix の依存を組にし、機能を外せば両方が外れる仕組み
-- [lazy.nvim 本体だけを nixpkgs から取る構成](./architecture/plugin-manager.md) — 本体は nixpkgs、プラグインは lazy-lock.json で固定する役割分担と、採用しなかった案
+- [lazy.nvim spec マージ前提のディレクトリ設計](./architecture/spec-merge.md): `lang/<name>/` から共通プラグインの opts を後付け差し込みする設計の根拠
+- [プラグインと外部ツールを機能として組にする](./architecture/features.md): `lua/features/` の spec と Nix の依存を組にし、機能を外せば両方が外れる仕組み
+- [lazy.nvim 本体だけを nixpkgs から取る構成](./architecture/plugin-manager.md): 本体は nixpkgs、プラグインは lazy-lock.json で固定する役割分担と、採用しなかった案
 
 ---
 
@@ -115,7 +114,7 @@ yiw             単語をコピー
 ciw             単語を書き換え (削除+挿入モード)
 ci"             引用符の中身を書き換え
 da(             括弧ごと削除
-<C-a> / <C-x>  数値やboolのインクリ��ント/デクリメント (dial.nvim)
+<C-a> / <C-x>  数値やboolのインクリメント/デクリメント (dial.nvim)
 v → an          親ノードを選択 (連打で範囲拡大, 組み込み)
 v → in          子ノードを選択 (縮める, 組み込み)
 v → . / ;       an の別名
@@ -171,7 +170,7 @@ ih              テキストオブジェクト: hunk 選択 (dih, yih 等)
 <leader>dc      デバッグ開始/続行
 <leader>do      ステップオーバー
 <leader>di      ステップイン
-<leader>dO      ステップ��ウト
+<leader>dO      ステップアウト
 <leader>dr      REPL を開く
 ```
 
@@ -196,7 +195,6 @@ ih              テキストオブジェクト: hunk 選択 (dih, yih 等)
 
 ```
 <C-j>           insert/command モードで SKK を ON/OFF
-<C-f>           Esc (ノーマルモードに戻る + fcitx5 自動 OFF)
 ```
 
 → [skkeleton.md](./plugins/skkeleton.md)
@@ -213,21 +211,3 @@ gt / gT         harpoon リスト内の次/前のファイル
 ```
 
 → [navigation.md](./plugins/navigation.md), [smart-splits.md](./plugins/smart-splits.md)
-
-## 10. カスタムキーバインド (keymaps.lua)
-
-Vim 標準の動作を変更しているもの。
-
-| キー | モード | 機能 |
-|------|--------|------|
-| `<C-f>` | i, c, n | Esc の代わり |
-| `j` / `k` | n | 表示行で移動 (`gj`/`gk` と入れ替え) |
-| `x` モードの `d` | x | ブラックホールレジスタに削除 (レジスタを汚さない) |
-| `x` モードの `p` | x | ペースト時にレジスタを上書きしない |
-| `<Esc><Esc>` | n | 検索ハイライト解除 |
-
-### ユーザーコマンド
-
-| コマンド | 機能 |
-|----------|------|
-| `:Redir <cmd>` | Ex コマンドの出力を新しいバッファに表示 |

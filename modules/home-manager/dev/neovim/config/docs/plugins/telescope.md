@@ -33,7 +33,7 @@ Git リポジトリのルートに自動で `cd` してくれる。`find_files` 
 | `<leader>fs` | lsp_document_symbols | 現在ファイル内の関数・型・変数の一覧 |
 | `<leader>fS` | lsp_workspace_symbols | ワークスペース全体からシンボルを検索 |
 
-diagnostics と references は [trouble.nvim](./trouble.md) に移行済み（`<leader>xx`, `<leader>xr`）。
+diagnostics と references は [trouble.nvim](./trouble.md) で見る（`<leader>xx`、`<leader>xr`）。
 
 ### その他
 
@@ -49,7 +49,6 @@ diagnostics と references は [trouble.nvim](./trouble.md) に移行済み（`<
 |------|------|
 | `<C-n>` / `<C-p>` | 候補を上下に移動 |
 | `<CR>` | 選択して開く |
-| `<C-f>` | キャンセル (Esc) |
 | `<C-x>` | 水平分割で開く |
 | `<C-v>` | 垂直分割で開く |
 | `<C-t>` | 結果を trouble に送る |
@@ -66,6 +65,4 @@ diagnostics と references は [trouble.nvim](./trouble.md) に移行済み（`<
 
 `<C-h>` / `<C-l>` を oil に取られると、oil バッファでだけ左右のペイン移動ができなくなるため。
 
-## 設定のポイント
-
-- ファイラーは oil.nvim に移行済み（`lua/plugins/oil.lua` を参照）
+ファイラーは oil.nvim（`lua/plugins/oil.lua`）。

@@ -1,8 +1,6 @@
 # Git 連携
 
-変更の可視化、hunk 操作、diff 表示。
-
-- 設定ファイル: `lua/plugins/git.lua`
+変更の可視化、hunk の操作、diff の表示。設定: `lua/plugins/git.lua`
 
 ## プラグイン
 

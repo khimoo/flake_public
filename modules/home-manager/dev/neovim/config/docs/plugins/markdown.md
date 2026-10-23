@@ -2,13 +2,7 @@
 
 Markdown ファイル編集に関わるプラグインと設定をひとまとめにしたドキュメント。
 
-> 設定: `modules/home-manager/dev/neovim/config/lua/plugins/lang/markdown/` 配下に
-> サブモジュール (filetype / autolist / treesitter / skk-bridge) と、
-> `lua/features/render_markdown.lua`、`lua/features/img_clip.lua`、`lua/features/diagram.lua` に分割。
-> LSP (marksman) は `modules/home-manager/dev/neovim/features.nix` の `lspServers` 経由で導入され、
-> `lua/features/lsp.lua` が自動で有効化する。サーバー固有の override が必要に
-> なった際は、本ディレクトリに `lsp.lua` を追加して `nvim-lspconfig` の
-> `opts.servers.marksman` を spec マージで宣言する想定。
+設定は `lua/plugins/lang/markdown/`（filetype、autolist、treesitter、skk-bridge）と、`lua/features/` の `render_markdown.lua`、`img_clip.lua`、`diagram.lua` にある。marksman は `features.nix` の `lspServers` で入り、`lua/features/lsp.lua` が有効にする。
 
 ## 構成プラグイン
 
@@ -21,35 +15,11 @@ Markdown ファイル編集に関わるプラグインと設定をひとまと�
 | `diagram.nvim` | Mermaid 等の図ブロックを抽出してインラインプレビュー |
 | `image.nvim` | バッファ内に画像を表示する基盤 (diagram.nvim の依存) |
 
-## filetype オプション (ftplugin 相当)
-
-Markdown ファイルを開くと自動適用:
-
-| オプション | 値 | 効果 |
-|-----------|-----|------|
-| `wrap` | true | 長い行を画面端で視覚的に折り返し |
-| `linebreak` | true | 単語の途中で折らない (英文向け) |
-| `breakindent` | true | 折り返し行をインデント揃え |
-| `spell` | true | スペルチェック有効化 |
-| `spelllang` | en, cjk | 日本語を誤検知しない |
-| `conceallevel` | 2 | render-markdown の装飾を効かせる |
-
-なお `j`/`k` の表示行移動は `keymaps.lua` でグローバル設定済み。
+Markdown を開くと、折り返し（`wrap`、`linebreak`、`breakindent`）、スペルチェック（`spelllang` は `en,cjk` で日本語を誤検知しない）、`conceallevel = 2` が設定される。
 
 ## render-markdown.nvim
 
-ノーマルモードでは装飾表示、挿入モードでは生の Markdown に戻る (編集を邪魔しない)。
-
-| 要素 | 装飾 |
-|------|------|
-| `# 見出し` | レベルに応じた背景色 + アイコン |
-| テーブル | Unicode 罫線で整形表示 |
-| `- [x]` チェックボックス | アイコン化 |
-| コードブロック | 背景色 + 言語ラベル |
-| `[link](url)` | リンクアイコン |
-| `**太字**`, `*斜体*` | フォント装飾 |
-| `---` 水平線 | 全幅の罫線 |
-| `> 引用` | 左ボーダー + 背景色 |
+ノーマルモードでは装飾して表示し、挿入モードでは生の Markdown に戻す。
 
 | コマンド | 操作 |
 |---------|------|
@@ -98,12 +68,6 @@ treesitter parser として `latex` が `lang/markdown/treesitter.lua` の `ensu
 | AMS 記法 block | `\[...\]` | ✗ 同上 |
 
 `\[...\]` 形式の数式は通常 markdown のテキストとしてしか表示されない。`$...$` 系で書くこと。
-
-### 高品質レンダリングへの拡張余地
-
-真の PDF 品質で表示したい場合は、`diagram.nvim` の renderer に LaTeX → PNG 変換を
-プラグインする (texlive + dvipng or matplotlib.mathtext 等) 余地がある。現状は
-mermaid のみが diagram.nvim で画像化されている。
 
 ## autolist.nvim — 箇条書きの outline 操作
 
@@ -179,11 +143,7 @@ PNG プレビュー表示する。kitty の graphics protocol を使うため、
 両統合に設定しており、**カーソルが乗っている図/画像だけ**が表示される。カーソルを
 外すと消える。
 
-**なぜ全部表示しないか**: WezTerm はペイン分割などのリサイズが起きると、表示中の
-画像を全枚数まとめて Kitty graphics protocol で再送する。この再送で WezTerm の GUI
-スレッドが CPU 100% ＋メモリ増加のまま無限ループに入り、ウィンドウごとフリーズする
-（[wezterm#7400](https://github.com/wezterm/wezterm/issues/7400)、未修正）。転送枚数を
-1 枚に絞って発生確率を下げている。
+この設定は、WezTerm がリサイズのたびに表示中の画像を全部送り直してフリーズする問題（[wezterm#7400](https://github.com/wezterm/wezterm/issues/7400)）を避けるために入れた。端末は kitty に移ったので、この理由は今は当たらない。全部を表示するように戻すかは、kitty で確かめてから決める。
 
 typst 統合は image.nvim 側で既定有効なため、markdown と同じ設定を明示的に入れてある
 （未指定だと typst バッファだけ全画像表示のままになる）。

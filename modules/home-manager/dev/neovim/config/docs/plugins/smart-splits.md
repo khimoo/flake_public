@@ -51,42 +51,6 @@ Neovim が設定する `IS_NVIM` user var でフォーカス中のペインを�
 
 バッファスワップは Neovim のウィンドウ間でのみ動作する（kitty ペインとは交換しない）。
 
-## ユースケース
-
-### 1. コードを読みながらターミナルで確認
-
-```
-Ctrl+a v          kitty で横ペイン分割（Leader+v）
-                   → 右ペインでシェルが開く
-(左ペインで nvim、右ペインでシェル)
-Ctrl+l            nvim → シェルにフォーカス移動
-Ctrl+h            シェル → nvim にフォーカス移動
-```
-
-### 2. Neovim 内で複数ファイルを並べて編集
-
-```
-:vsplit            Neovim 内で縦分割
-Ctrl+l / Ctrl+h   分割間を移動
-Alt+h / Alt+l      分割の幅を調整
-```
-
-### 3. 複数ペインのレイアウト調整
-
-```
-Ctrl+a s          kitty で縦ペイン分割（Leader+s）
-Ctrl+a v          kitty で横ペイン分割（Leader+v）
-Alt+h/j/k/l       各ペインのサイズを調整
-Ctrl+h/j/k/l      ペイン間を自由に移動
-```
-
-### 4. ウィンドウの内容を入れ替える
-
-```
-:vsplit other.rs   横に別ファイルを開く
-<leader><leader>l  左右のバッファを交換（参照と実装の位置を入れ替え等）
-```
-
 ## kitty 側の設定
 
 [kitty.nix](../../../../../../../modules/home-manager/gui/kitty.nix) が smart-splits 同梱の kitten を配置する。
