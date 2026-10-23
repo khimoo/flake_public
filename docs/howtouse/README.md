@@ -32,7 +32,6 @@
 | papis の使い方 | 文献の追加と書き出し | [papis-gdrive-sync.md](./papis-gdrive-sync.md) |
 | Zettelkasten の Drive 同期 | 添付と papis ライブラリの同期の設定と運用 | [zettelkasten-attachments-sync.md](./zettelkasten-attachments-sync.md) |
 | vault 骨格の配布・ミラー | vault の骨格を公開 repo へ写す手順 | [zettelkasten-vault-skeleton.md](./zettelkasten-vault-skeleton.md) |
-| 写真の仕分け | Google Photos から引き上げた写真の仕分け | [photo-triage.md](./photo-triage.md) |
 | Minecraft バックアップ | インスタンスのバックアップと復元 | [minecraft-backup.md](./minecraft-backup.md) |
 | Quaderno の取り込み | 手書き PDF の取り込み | [quaderno.md](./quaderno.md) |
 | X のいいねの保存 | いいねの保存と意味検索、定期実行 | [x-likes.md](./x-likes.md) |
