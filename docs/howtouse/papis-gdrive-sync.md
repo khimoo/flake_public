@@ -58,4 +58,4 @@ papis export --all --format bibtex > references.bib
 - **nixos-desktop では `references/` に SATA subvol を被せている**（実体をコールド層に置く）。
   vault が clone 済みのときだけマウントする条件付き unit なので、新マシンでは初回 clone の
   あとに一度マウントを起こす必要がある
-  （[disk-tiering.md](./disk-tiering.md#レイアウト)）。
+  （[disk-tiering.md](./disk-tiering.md#ディスクレイアウト)）。

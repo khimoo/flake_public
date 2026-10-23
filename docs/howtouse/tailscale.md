@@ -1,143 +1,137 @@
-# Tailscale（LAN の外からデスクトップを使う）
+# Tailscale（LAN 外からのデスクトップ利用）
 
-自宅 LAN の外から、tailnet 経由でデスクトップに SSH したり、ビルドをデスクトップに任せたりする。
-設計判断は [../architecture/tailscale.md](../architecture/tailscale.md) を参照。
+自宅 LAN の外から tailnet 経由でデスクトップに SSH 接続したり、ビルド処理をデスクトップに委任したりするための設定です。
+`tailscaled` は、`common.nix` が [tailscale.nix](../../modules/nixos/tailscale.nix) を読み込むホストで有効になります。
 
-## 出先からデスクトップに入る
+設計ドキュメント: [Tailscale の設計](../architecture/tailscale.md)
 
-接続名の末尾に `-ts` を付ける:
+## 外出先からデスクトップに接続する
+
+接続用ホスト名の末尾に `-ts` を付けて接続します：
 
 ```sh
 ssh desktop-ts      # = pomu@nixos-desktop（MagicDNS）
-ssh spin713-ts      # デスクトップからラップトップへ
+ssh spin713-ts      # デスクトップからラップトップへ接続
 ```
 
-認証は LAN 内と同じ `~/.ssh/id_lan` を使う（[machine-ssh.md](./machine-ssh.md)）。
-LAN 内では従来どおり `ssh desktop`（mDNS）を使える。tailnet に入っていれば LAN 内でも `desktop-ts` で繋がる。
+認証には LAN 内と同様に `~/.ssh/id_lan` を使用します（[machine-ssh.md](./machine-ssh.md) を参照）。
+LAN 内であれば `ssh desktop`（mDNS）も使用可能です。tailnet に参加していれば、LAN 内からでも `desktop-ts` で接続できます。
 
-重い作業は、デスクトップに入ってからそこで Neovim や cargo を動かす。
+負荷の大きい作業を行う際は、デスクトップに SSH 接続した上で Neovim や cargo などを実行してください。
 
-ラップトップのビルドは、出先でも tailnet 経由で自動的にデスクトップへ回る（[remote-build.md](./remote-build.md)）。`--build-host` で回すときは [remote-build.md の「LAN の外からビルドする」](./remote-build.md#lan-の外からビルドする) を参照。
+ラップトップでのビルドは、外出先からでも tailnet 経由で自動的にデスクトップへ分散されます（[remote-build.md](./remote-build.md)）。`--build-host` で個別に指定する場合は、[remote-build.md の「LAN の外からビルドする」](./remote-build.md#lan-の外からビルドする) を参照してください。
 
-## 出先からデスクトップの画面を使う（RDP）
+## 外出先からデスクトップの画面を使う（RDP）
 
-ゲームの試遊のようにウィンドウを開く確認は、SSH では表示されない。RDP でデスクトップの画面ごと手元に出す。
-描画はデスクトップの GPU で行われ、手元には映像だけが届く。
+ゲームの動作確認など、ウィンドウ描画を伴う作業は SSH では表示できません。RDP を使用してデスクトップの画面をそのまま手元に転送します。
+描画処理自体はデスクトップの GPU で行われ、手元には映像のみが送信されます。
 
-デスクトップ側で、GNOME の設定から一度だけ有効にしておく（LAN 内で行う）:
+あらかじめ LAN 内でデスクトップ側の GNOME 設定から有効化しておきます（一度だけ設定すれば完了です）：
 
-1. 設定 → システム → リモートデスクトップを開く
-2. 使う方式を有効にする
-   - デスクトップ共有: ログイン中のセッションをそのまま共有する。クリックやキー入力もするなら、リモート操作も有効にする
-   - リモートログイン: ログイン画面から新しいセッションを始める。誰もログインしていないときに使う
-3. RDP 用のユーザー名とパスワードを決める。これは Linux のログインパスワードとは別物で、repo には書かない
+1. 「設定」→「システム」→「リモートデスクトップ」を開く
+2. 利用する方式を有効にする：
+   - デスクトップ共有: ログイン中のセッションをそのまま共有。リモート操作（クリックやキー入力）も行う場合はそちらも有効化する
+   - リモートログイン: ログイン画面から新しいセッションを開始。誰もログインしていない場合に使用する
+3. RDP 用のユーザー名とパスワードを設定する（Linux のログインパスワードとは別のものを設定。リポジトリには保存しない）
 
-ラップトップ側では「接続」（`gnome-connections`）を開き、接続先に `nixos-desktop` を入れて RDP で繋ぐ。
-設定画面に別のポートが表示されている場合は `nixos-desktop:3390` のように付ける。
+ラップトップ側では「接続」（`gnome-connections`）を開き、接続先に `nixos-desktop` を指定して RDP 接続します。
+設定画面で標準と異なるポートが表示されている場合は、`nixos-desktop:3390` のように指定してください。
 
-ポートは tailnet 側（`tailscale0`）だけに開けてある。LAN 内から `nixos-desktop.local` で RDP しても繋がらない。
+※ ポートは tailnet 側（`tailscale0`）に対してのみ開放されています。LAN 内から `nixos-desktop.local` 指定で RDP 接続することはできません。
 
-画面をロックした状態と、再起動して誰もログインしていない状態で繋がるかは、まだ確かめていない。出かける前に、次の「出かける前に確かめる」の 4 で試しておく。
+※ 画面ロック時や、再起動後に誰もログインしていない状態での RDP 接続の挙動は未検証です。外出前に、後述の「出かける前の確認事項」の手順 4 でテストしておいてください。
 
-## 出かける前に確かめる
+## 出かける前の確認事項
 
-1. デスクトップの電源が入っていて、tailnet に参加している:
+1. デスクトップの電源が入っており、tailnet に参加していることを確認する：
    ```sh
    ssh desktop 'tailscale status'
    ```
-   一覧に `nixos-desktop` と `nixos-spin713` が出る。
-2. デスクトップの鍵の期限が無効になっている（admin console の Machines ページで確かめる。手順は次節の 4）
-3. ラップトップを LAN 以外の回線（スマホのテザリングなど）につなぎ、tailnet 経由で入れる:
+   一覧に `nixos-desktop` と `nixos-spin713` が表示されているはずです。
+2. デスクトップのキー期限切れ（Key Expiry）が無効化されていることを確認する（Admin Console の Machines ページで確認。手順は次節の 4 を参照）。
+3. ラップトップを LAN 以外の回線（スマホのテザリングなど）に接続し、tailnet 経由で接続できるかテストする：
    ```sh
    ssh desktop-ts 'echo ok'
    tailscale ping nixos-desktop
    ```
-   `tailscale ping` の応答に `via DERP` と出るなら中継を経由している。繋がるが遅い。
-4. RDP を使うなら、デスクトップの画面をロックしてから、同じ回線のラップトップで「接続」から `nixos-desktop` に RDP で入れる
+   `tailscale ping` の応答に `via DERP` と表示される場合は中継サーバー経由です。接続は可能ですが低速になります。
+4. RDP を利用する場合は、デスクトップの画面をロックした状態で、外部回線につないだラップトップから「接続」アプリで `nixos-desktop` へ RDP 接続できるか試す。
 
-外出中にデスクトップの世代を切り替えると、ネットワークや sshd、tailscaled を壊す変更だった場合に、帰宅するまで直せない。
-外出中はデスクトップで `switch` しない。
+外出中にデスクトップの NixOS 世代（generation）を切り替えると、ネットワークや sshd、tailscaled を破損する変更が含まれていた場合、帰宅するまで復旧できなくなります。
+**外出中はデスクトップ上で `switch` を実行しないでください。**
 
 ## ホストを tailnet に参加させる
 
-新しいホストを足したときや、OS を入れ直したときに行う。1 ホストにつき一度でよく、認証の状態は `/var/lib/tailscale` に残るので再起動しても続く。
+新しいホストを追加した際や、OS を再インストールした際に実行します。1 ホストにつき最初の 1 回のみ行えばよく、認証状態は `/var/lib/tailscale` に保存されるため再起動後も保持されます。
 
-1. そのホストを switch する（`tailscale.nix` は `common.nix` が読むので、ホスト側の設定は要らない）
-2. そのホストで実行する（LAN 内なら `ssh desktop` 越しでもよい）:
+1. 対象ホストで `switch` を実行する（`tailscale.nix` は `common.nix` 経由で読み込まれるため、ホスト個別の追加設定は不要です）
+2. 対象ホスト上で以下を実行する（LAN 内であれば `ssh desktop` 経由でも可）：
    ```sh
    sudo tailscale up
    ```
-   表示された URL を、どの端末のブラウザでもよいので開き、Tailscale アカウントでログインする。
-3. 参加を確かめる:
+   表示された URL を任意の端末のブラウザで開き、Tailscale アカウントでログインして認証します。
+3. 参加状態を確認する：
    ```sh
-   tailscale status                 # 自分と相手の両方が出る
-   getent ahostsv4 nixos-desktop    # 相手のホスト名を引く。100. で始まるアドレスが返る
+   tailscale status                 # 自ホストと接続対象の両方が表示されるか確認
+   getent ahostsv4 nixos-desktop    # 相手のホスト名を名前解決。100. で始まる IP アドレスが返れば OK
    ```
-   自分のホスト名はローカルのアドレスで答えが返るので、確認には相手のホスト名を使う。
-4. 常時稼働させるホスト（デスクトップ）は、admin console の Machines ページで行末のメニューから Disable Key Expiry を選ぶ。期限は既定で 180 日で、切れると再認証するまで tailnet から外れる
+   ※自ホストの名前解決を試すとローカル IP アドレスが返ってしまうため、確認には必ず相手のホスト名を使用してください。
+4. 常時稼働させるホスト（デスクトップ）は、Admin Console の Machines ページにある各行右端のメニューから「Disable Key Expiry」を選択します。デフォルトの有効期限は 180 日であり、期限が切れると再認証するまで tailnet から除外されます。
 
-外出先からデスクトップに入る経路は tailnet しかないので、デスクトップの `tailscale up` は出かける前に LAN 内で済ませる。
+外出先からデスクトップへアクセスする経路は tailnet のみとなるため、デスクトップの `tailscale up` は必ず出かける前に LAN 内で済ませておいてください。
 
-## ラップトップで tailnet から一時的に抜ける
+## ラップトップで tailnet から一時的に切断する
 
 ```sh
-sudo tailscale down   # 抜ける
-sudo tailscale up     # 戻る。認証済みならブラウザは開かない
+sudo tailscale down   # 一時切断
+sudo tailscale up     # 再接続（認証済みであればブラウザは開きません）
 ```
 
-抜けている間は `-ts` の接続名が使えない。LAN 内の `ssh desktop` は影響を受けない。
+切断中は `-ts` の接続名は使用できません。ただし、LAN 内での `ssh desktop` などには影響しません。
 
 ## トラブルシューティング
 
 ### `Could not resolve hostname nixos-desktop`
 
-手元のホストが tailnet に入っていないか、MagicDNS の設定が resolv.conf に入っていない。
+手元のホストが tailnet に参加していないか、MagicDNS の設定が `resolv.conf` に反映されていません。
 
 ```sh
-tailscale status             # Logged out / Stopped なら sudo tailscale up
-cat /etc/resolv.conf         # nameserver 100.100.100.100 と search <tailnet 名>.ts.net があるか
+tailscale status             # Logged out や Stopped の場合は sudo tailscale up を実行
+cat /etc/resolv.conf         # nameserver 100.100.100.100 および search <tailnet名>.ts.net が存在するか確認
 ```
 
-`tailscale status` が正常なのに resolv.conf に入っていないなら、`journalctl -u tailscaled` で `dns:` から始まる行を見る。
-admin console の DNS ページで MagicDNS が無効になっている場合も、短縮名は引けない。
+`tailscale status` が正常なのに `resolv.conf` に反映されていない場合は、`journalctl -u tailscaled` で `dns:` から始まるログを確認してください。
+また、Admin Console の DNS ページで MagicDNS が無効になっている場合も短縮ホスト名は解決できません。
 
-### `tailscale status` に `nixos-desktop-1` のような名前で出る
+### `tailscale status` に `nixos-desktop-1` のような名前で表示される
 
-同じ名前の古い端末が tailnet に残っていて、新しい端末に連番が付いた。
-admin console の Machines ページで古い端末を削除し、新しい端末の名前を `nixos-desktop` に直す。接続名 `desktop-ts` はホスト名 `nixos-desktop` を引くので、名前がずれると繋がらない。
+同じホスト名の古い端末が tailnet 上に残っており、新規端末に連番が付与されています。
+Admin Console の Machines ページから古い端末を削除し、新しい端末のホスト名を `nixos-desktop` に修正してください。接続用ホスト名 `desktop-ts` は `nixos-desktop` を名前解決するため、不一致があると接続できません。
 
-### 設定 → システムに「リモートデスクトップ」が出ない
+### 「設定」→「システム」に「リモートデスクトップ」が表示されない
 
-システム側の `gnome-remote-desktop.service` が `enabled` になっていない。GNOME の設定は、それ以外の状態だと項目を隠す。
+システム側の `gnome-remote-desktop.service` が `enabled` になっていません。GNOME の設定画面は、同サービスが `enabled` 以外の状態では項目を非表示にします。
 
 ```sh
-systemctl show gnome-remote-desktop.service -p UnitFileState   # enabled になっているか
+systemctl show gnome-remote-desktop.service -p UnitFileState   # enabled かどうか確認
 ```
 
-`linked` なら、デスクトップが `hosts/nixos-desktop/default.nix` の `wantedBy` を含む世代に switch されていない。switch してから GNOME の設定を開き直す（理由は [../architecture/tailscale.md](../architecture/tailscale.md#gui-の確認は-rdp-でデスクトップの画面ごと使う)）。
+`linked` と表示される場合は、デスクトップが `hosts/nixos-desktop/default.nix` の `wantedBy` を含む世代に `switch` されていません。`switch` を実行してから再度 GNOME 設定を開き直してください（詳細は [../architecture/tailscale.md](../architecture/tailscale.md#gui-の確認は-rdp-でデスクトップの画面ごと使う) を参照）。
 
-### RDP で繋がらない
+### RDP で接続できない
 
-先に `ssh desktop-ts` が通るか確かめる。通らないなら次項を見る。
-SSH が通るなら、デスクトップで RDP のサーバがどのポートで待ち受けているかを見る:
+まず `ssh desktop-ts` で SSH 接続が通るか確認してください。通らない場合は後述の項目を確認します。
+SSH が通る場合は、デスクトップ側で RDP サーバーが待機しているポートを確認します：
 
 ```sh
 ssh desktop-ts 'ss -ltn | grep -E ":33(89|9[0-9])"'
 ```
 
-何も出なければ、GNOME の設定でリモートデスクトップが無効になっている。
-3389〜3399 の外で待ち受けているなら、ファイアウォールで開けた範囲に入っていない。`gsettings get org.gnome.desktop.remote-desktop.rdp port` で設定値を確かめ、範囲内に戻すか、`hosts/nixos-desktop/default.nix` の範囲を広げる。
+何も表示されない場合は、GNOME の設定でリモートデスクトップが無効化されています。
+3389〜3399 以外のポートで待機している場合は、ファイアウォールの許可範囲外になっています。`gsettings get org.gnome.desktop.remote-desktop.rdp port` で設定値を確認し、許可範囲内に変更するか、`hosts/nixos-desktop/default.nix` で設定範囲を広げてくだい。
 
 ### `ssh desktop-ts` がタイムアウトする
 
-`tailscale status` でデスクトップの行を見る。`offline` なら、デスクトップが止まっているか、サスペンドしているか、ネットワークから外れている。
-tailnet からは起こせないので、帰宅するか自宅の人に電源を入れてもらうしかない。
-デスクトップは無操作でサスペンドしない設定にしてある（[../architecture/tailscale.md](../architecture/tailscale.md)）。手動でサスペンドした場合と、停電で落ちた場合は戻らない。
-
-## 関連ファイル
-
-- [modules/nixos/tailscale.nix](../../modules/nixos/tailscale.nix) — tailscaled の有効化
-- [modules/nixos/ssh.nix](../../modules/nixos/ssh.nix) — `-ts` の接続名の生成
-- [hosts/nixos-desktop/default.nix](../../hosts/nixos-desktop/default.nix) — デスクトップの自動サスペンドの無効化と、tailnet 側だけの RDP のポート
-- マシン間 SSH: [machine-ssh.md](./machine-ssh.md)
-- リモートビルド: [remote-build.md](./remote-build.md)
+`tailscale status` でデスクトップの状態を確認してください。`offline` になっている場合、デスクトップの電源が切れているか、サスペンド状態になっているか、ネットワークから切断されています。
+tailnet 経由でサスペンドから復帰させることはできないため、帰宅するか、自宅にいる人に電源を入れてもらう必要があります。
+なお、デスクトップは無操作で自動サスペンドしないよう設定されています（[../architecture/tailscale.md](../architecture/tailscale.md)）。手動でサスペンドした場合や、停電などで終了した場合は自動復帰しません。

@@ -8,7 +8,7 @@ nixos-desktop だけに入る。
 ## 初回の準備
 
 データは SATA SSD の subvol `@mimikopi` に置く。
-subvol は自動では作られないので、[disk-tiering.md の「新しい subvol を足す」](../disk-tiering.md#新しい-subvol-を足す)の手順で一度だけ作る。
+subvol は自動では作られないので、[disk-tiering.md の「新しい subvol の追加手順」](../disk-tiering.md#新しい-subvol-の追加手順)の手順で一度だけ作る。
 `@mimikopi` に固有のコマンドは次のとおり。
 
 ```sh

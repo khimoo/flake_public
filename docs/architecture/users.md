@@ -1,8 +1,7 @@
 # ユーザー管理の設計
 
-設定ファイル: `modules/nixos/users.nix`
-
-> 使い方は [docs/howtouse/users.md](../howtouse/users.md) を参照
+使い方: [ユーザー管理](../howtouse/users.md)
+実装: [users.nix](../../modules/nixos/users.nix)
 
 ## 設計方針
 
@@ -29,21 +28,11 @@ hosts/machines.nix (nixos.users)  →  users.nix (users.users / sudo を導出)
 
 ### nixos-rebuild の NOPASSWD
 
-```nix
-security.sudo.extraRules = let
-  adminUsers = builtins.filter (user: user.isAdmin or false) users;
-in map (user: {
-  users = [ user.username ];
-  commands = [{
-    command = "/run/current-system/sw/bin/nixos-rebuild";
-    options = [ "NOPASSWD" ];
-  }];
-}) adminUsers;
-```
+admin のユーザーは、`/run/current-system/sw/bin/nixos-rebuild` をパスワードなしで実行できる。
 
-**導入の動機**: `nix flake update && sudo nixos-rebuild switch` を一連で実行する際、
-`nix flake update` の所要時間が sudo のタイムスタンプキャッシュ（デフォルト15分）を超えると
-再度パスワードを求められる問題の解消。
+**動機**: `nix flake update && sudo nixos-rebuild switch` を続けて実行するとき、
+`nix flake update` が sudo のタイムスタンプキャッシュ（既定 15 分）より長くかかると、
+もう一度パスワードを求められる。
 
 **セキュリティ上の判断**: NOPASSWD の対象を `/run/current-system/sw/bin/nixos-rebuild` に限定。
 ユーザーが指定したflakeにはrootで実行されるactivation処理を含められるため、これは実質的にroot権限を委ねる設定。
@@ -62,5 +51,5 @@ in map (user: {
 
 ## 個人設定の分離
 
-Home Manager全員へ共通の個人settingsを渡す方式を廃止した。`local.profile` の既定は個人情報も鍵配布も持たず、pomuのprofileはpomuのhomeFileだけがimportする。
+Home Manager の全ユーザーに共通の個人設定を渡さない。`local.profile` の既定は個人情報も鍵配布も持たず、pomuのprofileはpomuのhomeFileだけがimportする。
 新規ユーザーを追加してもage鍵の設置やpomuのcheckoutへのアクセスは要求されない。制約と検証は[構成の境界](./configuration.md)を参照。

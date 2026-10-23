@@ -1,13 +1,9 @@
-# Tailscale で LAN の外からマシン間 SSH とリモートビルドを通す
+# Tailscale の設計
 
-自宅 LAN の外にいるラップトップから、デスクトップへの SSH 作業とリモートビルド（常設ビルダーと `--build-host`）を通すための構成。
-使い方は [../howtouse/tailscale.md](../howtouse/tailscale.md) を参照。
+使い方: [Tailscale](../howtouse/tailscale.md)
+実装: [tailscale.nix](../../modules/nixos/tailscale.nix)、[ssh.nix](../../modules/nixos/ssh.nix)（`-ts` の接続名）、[hosts/nixos-desktop/default.nix](../../hosts/nixos-desktop/default.nix)（サスペンド、linger、RDP のポート）
 
-設定ファイル:
-
-- `modules/nixos/tailscale.nix` — `common.nix` を読むホストで tailscaled を有効にする（会社PCの nixos-work-wsl は読まない）
-- `modules/nixos/ssh.nix` — tailnet 経由の接続名 `<短縮名>-ts` を生成する
-- `hosts/nixos-desktop/default.nix` — デスクトップを無操作でサスペンドさせない。pomu を linger にする。RDP のポートを tailnet 側だけに開ける
+自宅 LAN の外にいるラップトップから、デスクトップへの SSH とリモートビルドを通すための構成。
 
 ## `.local` の接続名は LAN の外で使えない
 
@@ -60,8 +56,8 @@ known_hosts には `nixos-desktop.local` と `nixos-desktop` が別の行とし�
 tailnet 外の名前は、tailscaled が元の上流（ルータの `192.168.11.1` など）へ転送する。
 これが問題になったら `sudo tailscale set --accept-dns=false` で書き換えを止める。代わりに短縮名が引けなくなるので、`ssh.nix` の `-ts` の `HostName` を `<ホスト名>.<tailnet 名>.ts.net` にする必要がある。tailnet 名はアカウントごとに違う値なので、そのときは設定から注入する。
 
-nixos-desktop で `tailscale up` した後、resolv.conf が `search <tailnet 名>.ts.net` と `nameserver 100.100.100.100` だけになったことを確認した（2026-09-23）。
-同じ日に、別のホストからも短縮名を引けた（spin713 で `getent ahostsv4 nixos-desktop`、nixos-desktop で `getent ahostsv4 nixos-spin713` がどちらも `100.` で始まるアドレスを返し、`ssh spin713-ts` が通った）。spin713 をテザリングにつないだ状態（LAN の外）からも、`ssh desktop-ts` と `tailscale ping nixos-desktop` が通った。自分のホスト名は nss-myhostname がローカルのアドレスで答えるので、確認には相手のホスト名を `getent ahostsv4` で引く。`getent hosts` は IPv6 を先に引くので、tailnet の IPv6 アドレス（`fd7a:115c:a1e0:` で始まる）が表示される。
+2026-09-23 に、`tailscale up` の後の resolv.conf が `search <tailnet 名>.ts.net` と `nameserver 100.100.100.100` だけになり、両ホストから相手の短縮名を引けること、テザリング（LAN の外）から `ssh desktop-ts` が通ることを確かめた。
+自分のホスト名は nss-myhostname がローカルのアドレスで答えるので、確認には相手のホスト名を `getent ahostsv4` で引く。`getent hosts` は IPv6 を先に引くので、tailnet の IPv6 アドレス（`fd7a:115c:a1e0:` で始まる）が表示される。
 
 ## SSH は openssh と `id_lan` のまま使う
 
@@ -144,10 +140,3 @@ tailnet に参加したホストの sshd は、tailnet 内の全ノードから�
 - resolv.conf の書き換えが問題になったら、前述の `--accept-dns=false` と FQDN の組み合わせに移る
 - DNS を systemd-resolved に移したら、tailscaled は resolved 方式を選ぶ。`getent hosts nixos-desktop` で短縮名が引けるかを確かめ直す
 - tailnet に自分以外の端末を入れるなら、ACL を先に設計する。RDP はパスワード認証なので、tailnet 内の端末すべてから届く状態のままにしない
-
-## 参考
-
-- nixpkgs の tailscale モジュール: `nixos/modules/services/networking/tailscale.nix`（nixpkgs `b6018f8`）
-- tailscale の DNS 方式の判定: [net/dns/manager_linux.go（v1.90.9）](https://github.com/tailscale/tailscale/blob/v1.90.9/net/dns/manager_linux.go)
-- リモートビルドの設計（常設ビルダーが tailnet の接続名を使う理由を含む）: [remote-build.md](./remote-build.md)
-- マシン間 SSH の設計: [machine-ssh.md](./machine-ssh.md)

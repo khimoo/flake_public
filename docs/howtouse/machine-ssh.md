@@ -1,38 +1,31 @@
-# マシン間 SSH（使い方）
+# マシン間 SSH
 
-flake 内の NixOS ホスト同士が `ssh <短縮名>` で相互に接続できる。
-設計判断は [../architecture/machine-ssh.md](../architecture/machine-ssh.md) を参照。
+flake で管理されている NixOS ホスト同士は、`ssh <短縮名>`（`nixos-` を除いたホスト名）で相互に接続できます。
+接続先および公開鍵の設定は [hosts/machines.nix](../../hosts/machines.nix) で管理されています。
 
-## 接続
+設計ドキュメント: [マシン間 SSH の設計](../architecture/machine-ssh.md)
 
-どのホストからでも短縮名（`nixos-` を除いた名前）で繋がる:
+## 接続方法
 
 ```sh
-ssh desktop     # = pomu@nixos-desktop.local
-ssh spin713     # = pomu@nixos-spin713.local
+ssh desktop     # pomu@nixos-desktop.local
+ssh spin713     # pomu@nixos-spin713.local
 ```
 
-フルネーム（`ssh nixos-desktop.local`）でも可。初回のホスト鍵は自動受理される（accept-new）。
+`ssh nixos-desktop.local` のように完全修飾名で接続することも可能です。初回のホスト鍵は自動的に承認されます（accept-new）。
+短縮名は mDNS で名前解決されるため、同じ LAN 内でのみ有効です。LAN 外から接続する場合は、`ssh desktop-ts` のように `-ts` を付けて tailnet 経由で接続します（詳細は [tailscale.md](./tailscale.md) を参照）。
 
-LAN の外からは、末尾に `-ts` を付けた接続名（`ssh desktop-ts`）で tailnet 経由で繋ぐ（[tailscale.md](./tailscale.md)）。
+認証には `~/.ssh/id_lan` を使用します。この鍵は全マシン共通の 1 本であり、`local.profile.lanSsh = true` に設定されているユーザーに対してのみ、`switch` 実行時に `secrets/secrets.yaml` から生成・配置されます（[private-repo-clone.md](./private-repo-clone.md) を参照）。
+`pomu` ユーザーは [pomu-workstation.nix](../../profiles/home/pomu-workstation.nix) で有効化しています。共通鍵を所持するユーザーは接続先の `sshUser` として認証されるため、鍵を配布するユーザーは明示的に選定してください。
+なお、GitHub 用には別の鍵 `~/.ssh/id_github` を使用します。
 
-## 鍵の構成
+スタンドアロンの home-manager（macOS）および会社用 PC の nixos-work-wsl（[wsl.md](./wsl.md)）には `id_lan` を配布しません。
 
-用途ごとにファイルを分けてある。どちらも `secrets/secrets.yaml` から
-switch のたびに書き出される（[private-repo-clone.md](./private-repo-clone.md) 参照）。
+## マシンの追加手順
 
-| ファイル | 用途 | 対になる公開鍵 |
-|---|---|---|
-| `~/.ssh/id_lan` | LAN 内 machine-to-machine | `hosts/machines.nix` の `lanPublicKey` |
-| `~/.ssh/id_github` | GitHub 認証（clone / push） | GitHub アカウントの SSH keys |
+1. 新しいマシンの `~/.config/sops/age/keys.txt` に age 鍵を配置します（既存マシンから SSH 経由で転送するか、Bitwarden から取得）。
+2. `hosts/machines.nix` の `machines` に新しい項目の設定を追加します。NixOS の構成定義も同じ項目内に記述します。
 
-`id_lan` は**全マシン共通の 1 本**。マシンごとに別の鍵は作らない。
-
-## マシンを追加するとき
-
-1. 新マシンの `~/.config/sops/age/keys.txt` に age 鍵を置く
-   （既存マシンから SSH 送信、または Bitwarden から取得）
-2. `hosts/machines.nix` の `machines` に一項目を足す（NixOS 構成も同じ項目に定義する）:
    ```nix
    machines.nixos-newhost = {
      system = "x86_64-linux";
@@ -44,51 +37,26 @@ switch のたびに書き出される（[private-repo-clone.md](./private-repo-c
      };
    };
    ```
-3. 新マシンで rebuild:
-   ```sh
-   sudo nixos-rebuild switch --flake .#nixos-newhost
-   ```
 
-新ユーザーの home で `local.profile.lanSsh = true` を選択すると、switch 中に `id_lan` / `id_github` が書き出され、その時点で新マシンは既存全機と
-相互に SSH できる。`authorized_keys` は変わらないので**既存機の rebuild は不要**
-（`ssh <新短縮名>` エイリアスを既存機でも使いたいときだけ rebuild する）。
+3. 新しいマシン上で `sudo nixos-rebuild switch --flake .#nixos-newhost` を実行します。
 
-## マシンを廃棄するとき
+新規ユーザーの home 設定で `local.profile.lanSsh = true` に設定されていれば、`switch` 時に `secrets/secrets.yaml` から `id_lan` が復号されて配置され、その時点で既存の全マシンと相互に SSH 接続できるようになります。
+既存マシンの `authorized_keys` は変更されないため、既存マシン側で `switch` を実行する必要はありません（既存マシンから `ssh <新しい短縮名>` で接続したい場合のみ `switch` を実行してください）。
 
-`hosts/machines.nix` の `machines` からその項目を削除する。SSH 接続先だけから外すなら `sshUser` を外す。ただし共通鍵方式なので、
-**行を消しても廃棄機からのログインは止まらない**。締め出したいなら LAN 鍵ごと作り直す（次節）。
+## マシンの削除手順
 
-## LAN 共通鍵を作り直すとき
+`hosts/machines.nix` から該当する項目を削除します。SSH の接続対象から外すだけであれば `sshUser` の指定を削除します。
+鍵自体は共通鍵であるため、設定項目を削除しても除外したマシンからのログインを遮断することはできません。完全に締め出す場合は LAN 共通鍵を再生成する必要があります。
 
-紛失・侵害・単なる rotate のいずれでも手順は同じ。
+## LAN 共通鍵の再生成手順
 
-1. 新しい鍵ペアを作る:
-   ```sh
-   ssh-keygen -t ed25519 -C pomu@lan -f ~/.ssh/id_lan.new -N ''
-   ```
-2. `hosts/machines.nix` の `lanPublicKey` を `~/.ssh/id_lan.new.pub` の内容に差し替える
-3. `secrets/secrets.yaml` の `lan_ssh_key` を新しい秘密鍵で作り直す
-   （[private-repo-clone.md の「SSH 鍵を差し替える手順」](./private-repo-clone.md#ssh-鍵を差し替える手順)）
-4. commit / push
-5. **各マシンで** pull して switch する。既存の `~/.ssh/id_lan` も暗号文の新しい鍵に揃う:
-   ```sh
-   git pull --ff-only
-   sudo nixos-rebuild switch --flake .#<host>
-   ```
+鍵の紛失や漏洩時、あるいは定期的な鍵更新の際も同様の手順で行います。
 
-`lanPublicKey`（各機の `authorized_keys`）と秘密鍵を同時に変えるので、switch した機から順に、
-古い鍵のままの機からの接続が通らなくなる。全機を回りきるまで一部の組み合わせで SSH が通らない。
-各マシンを手元で操作できるときに、手元に残しておく機から順に進める。
+1. 端末で `ssh-keygen -t ed25519 -C pomu@lan -f ~/.ssh/id_lan.new -N ''` を実行し、新しい鍵対を作成します。
+2. `hosts/machines.nix` 内の `lanPublicKey` を `~/.ssh/id_lan.new.pub` の内容に更新します。
+3. `secrets/secrets.yaml` の `lan_ssh_key` を新しい秘密鍵で差し替えます（[private-repo-clone.md](./private-repo-clone.md#ssh-鍵を差し替える手順) を参照）。
+4. 変更をコミットして push します。
+5. 各マシンで `git pull --ff-only` および `sudo nixos-rebuild switch --flake .#<host>` を実行します。既存の `~/.ssh/id_lan` も新しい鍵に更新されます。
 
-## 注意
-
-- 対象は `ssh.nix` を読む NixOS ホストのみ。standalone home-manager（macOS）と、
-  会社PCの nixos-work-wsl（[wsl.md](./wsl.md)）は LAN の一員とみなさず `id_lan` を配らない
-- `PasswordAuthentication = false` なので鍵認証必須。age 鍵を置かずに switch すると
-  `id_lan` を書き出せないので activation が error で停止する（[private-repo-clone.md](./private-repo-clone.md) 参照）
-- 短縮名（`ssh desktop`）は同一 LAN（mDNS が届く範囲）が前提。LAN の外では `-ts` の接続名を使う（[tailscale.md](./tailscale.md)）
-
-## ユーザープロファイル
-
-既存2台のpomuは `profiles/home/pomu-workstation.nix` で `local.profile.lanSsh = true` を選択しています。新規ユーザーには既定でLAN秘密鍵は配布しません。共有鍵を持つユーザーは接続先の `sshUser` として認証できるため、共有対象を明示的に選んでください。
-IdentityFileはログインユーザー自身の `~/.ssh/id_lan`（GitHubは `~/.ssh/id_github`）を参照します。rootは `id_lan` を持たないので、`--build-host` のremote buildは `sudo` を付けずに `--sudo` で実行します。常設のリモートビルド（`local.remoteBuilders`）だけは、nix-daemonがprimaryUserの `id_lan` を絶対パスで読みます（[remote-build.md](./remote-build.md)）。
+※公開鍵と秘密鍵を同時に差し替えるため、`switch` を実行したマシンから順次、古い鍵のままのマシンからのアクセスが拒否されるようになります。
+各マシンを手元で直接操作できる環境で作業し、手元操作に残す優先度が高いマシンから順に作業を進めてください。

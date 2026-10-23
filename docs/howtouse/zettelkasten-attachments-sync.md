@@ -1,133 +1,89 @@
-# Zettelkasten の Google Drive 同期（使い方）
+# Zettelkasten の Google Drive 同期
 
-Vault 直下の `attachments/`（添付ファイル）と `references/`（papis ライブラリ）を Google Drive と双方向同期します。実体ファイルはローカル側にも保持したまま、rclone bisync を用いてミラーリングします。なお、Git にはバイナリ（blob）を含めないよう、Vault の `.gitignore` で両フォルダを除外しています。
+vault 配下の `attachments/`（添付ファイル）、`references/`（papis ライブラリ）、`Originals/`（原本データ）を、`rclone bisync` を用いて Google Drive と双方向で同期します。ファイルの実体はローカル端末上にも保持し、Git リポジトリ管理からは除外しています（vault の `.gitignore` で設定済み）。
 
-同期の実行コマンドは `zettelkasten-sync` に一本化されています。どの項目を同期するかは home-manager の options で設定します。
-papis 固有の使い方については [papis-gdrive-sync.md](./papis-gdrive-sync.md) を、設計上の判断については [../architecture/zettelkasten-attachments-sync.md](../architecture/zettelkasten-attachments-sync.md) を参照してください。
+- `attachments/` ↔ `gdrive:zettelkasten-attachments`（機能フラグ `zettelkastenSync`）
+- `references/` ↔ `gdrive:papis-library`（機能フラグ `referenceSync`、使用方法は [papis-gdrive-sync.md](./papis-gdrive-sync.md) を参照）
+- `Originals/` ↔ `gdrive:zettelkasten-originals`（`zettelkastenSync` 有効時）
 
-## 対応環境
+`nixos-desktop` および `nixos-spin713` では両機能が有効化されています。スタンドアロンの home-manager 環境では、ユーザーごとの home モジュールで `local.profile.features` と `local.profile.zettelkastenRoot` を設定してください。なお、現在の vault プロファイルは Linux 環境にのみ対応しています。
 
-| feature | 同期対象 | Drive 側 |
-|---|---|---|
-| `zettelkastenSync` | `<vault>/attachments` | `gdrive:zettelkasten-attachments` |
-| `referenceSync` | `<vault>/references` | `gdrive:papis-library` |
+設計ドキュメント: [Zettelkasten の Google Drive 同期の設計](../architecture/zettelkasten-attachments-sync.md)
 
-NixOS ホスト（`nixos-desktop`、`nixos-spin713`）では両方の機能が有効になっています。standalone home-manager では、個人の home モジュール側で `local.profile.features` と `local.profile.zettelkastenRoot` を指定してください。デフォルトでは同期サービスは有効になりません。なお、現在の Vault プロファイルは Linux 限定です。
+## 新しいマシンでの初期設定手順
 
-## 認証（rclone）
+1. `switch` を実行します（vault がクローンされ、同期用の systemd unit が登録されます）。
+2. `zettelkasten-setup` を実行します。
 
-Google Drive の OAuth トークンは宣言的には生成できないため、**各マシンの `~/.config/rclone/rclone.conf` で個別に管理します**。flake_public や workflow repo には認証情報を持たせません（以前は sops で暗号化した rclone.conf を workflow repo に配置していましたが、現在は廃止されています）。
+`zettelkasten-setup` は、リモート設定 `gdrive` に接続できない場合に自動で `rclone config` を立ち上げ、その後に初回同期を実行します。途中で処理を中断しても、再実行すれば完了している工程はスキップされます。
+`rclone config` の設定では、リモート名を `gdrive`、`Storage` を `drive` に指定します。新規に設定を開始する場合は、`scope` を `drive.file` に指定し、本アプリが作成したファイルのみにアクセス制限することを推奨します。
+Google Drive の認証情報は各マシンの `~/.config/rclone/rclone.conf` に保存され、本リポジトリや workflow 用リポジトリには含まれません。
 
-リモート名は `gdrive` です（`services.zettelkasten.rcloneRemote` のデフォルト値）。
+### rclone の共有 OAuth クライアントから移行する場合
 
-## 新しいマシンのセットアップ
+rclone の共有 OAuth クライアントは 2026 年中に廃止予定のため、個人の client_id と client_secret を取得して使用してください（詳細は [rclone 公式手順](https://rclone.org/drive/#making-your-own-client-id) を参照）。
+共有クライアントで作成した既存ファイルは、新しいクライアントで `scope` を `drive.file` に設定した場合、見えなくなることがあります。そのため、移行後の新しいクライアントでは `scope` を `drive`（Drive 全体の読み書き・削除権限）に指定して認可を行ってください。
+本番接続とは別接続で既存の添付ファイルや文献のハッシュを照合し、本番用の認証情報を退避してから切り替えます。リモート名、同期先ディレクトリ、同期履歴（baseline）に変更がない場合、認証情報の変更だけで再同期（resync）を行う必要はありません。
+なお、OAuth 同意画面の設定が「Testing」のままだと認可の有効期限が 7 日間で切れてしまうため、継続利用する場合は公開ステータス（In production）になっているか確認してください。
 
-```sh
-# 1. switch する（vault が clone され、Obsidian 設定が配置され、同期の unit が入る）
-sudo nixos-rebuild switch --flake .#<hostname>
+### 初回同期について
 
-# 2. 残りを対話で片付ける
-zettelkasten-setup
-```
+同期履歴が存在しない初回実行時に限り、`bisync` に `--resync` オプションが必要です。スクリプトは以下の通り状況に応じて自動分岐します：
 
-`zettelkasten-setup` で確認される項目は以下の2点のみです:
+- Drive 側が空または未存在: Drive 側にフォルダを作成して `--resync` を実行
+- ローカル側が空で Drive 側にデータが存在: Drive 側のデータを取り込む
+- ローカルと Drive の両方にデータが存在: 誤って異なる内容を混合・上書きするのを防ぐため処理を停止
 
-1. **Google Drive との接続確認** — リモート `gdrive` に接続できない場合は `rclone config` を起動します。リモート名は必ず `gdrive` にしてください（options の設定と一致していないと正しく動作しません）。`Storage` には `drive` を指定します。新規運用の場合は `scope` を **`drive.file`** に設定し、このアプリが作成したファイルのみにアクセス権限を絞り込みます。既存の共有クライアントから専用クライアントへ移行する場合は、後述の「専用OAuthへの移行」を参照してください。
-2. **初回同期** — そのまま `zettelkasten-sync` を実行します。
-
-途中で処理を中断した場合でも、再実行すれば処理済みの箇所は自動的にスキップされます。個別の進捗ファイルは保持せず、実態（rclone リモートや bisync の同期履歴）を直接参照して状態を判断します。
-
-### 専用OAuthへの移行
-
-rclone の共有 OAuth クライアントは 2026 年中に提供終了予定のため、専用の client_id / client_secret を使用します。
-既存の共有アプリで作成したファイルは、新規アプリの `drive.file` スコープからは認識できない場合があります。
-そのため、今回の移行では `scope = drive` を指定し、利用者が **Drive 全体の読み書き・削除権限** を付与・認可します。
-本番環境とは別の接続を用いて既存の添付ファイルや文献リストのハッシュ値を照合し、本番の認証情報をバックアップした上で切り替えを行います。
-リモート名、同期先、および baseline（同期履歴）はそのまま維持し、認証情報の変更だけを理由とした再同期（resync）は行いません。
-なお、同意画面のステータスを「Testing」のままにしておくと認可が通常7日で失効してしまうため、継続して運用する場合は公開状態も併せて確認してください。
-[rclone公式手順](https://rclone.org/drive/#making-your-own-client-id)
-
-### 初回同期の挙動
-
-bisync では、同期履歴（baseline）が存在しない初回のみ `--resync` が必要です。履歴が存在しない場合の処理分岐は自動的に行われるため、手動で `--resync` を指定する必要はありません:
-
-| ローカル | Drive | 挙動 |
-|---|---|---|
-| 空、またはファイルが存在する | 空 / 未作成 | Drive 側にフォルダを作成して resync を実行 |
-| 空 | データあり | Drive の内容を取り込む（ローカル側のデータ消失リスクがないため自動処理） |
-| データあり | データあり | **処理を停止**。内容の異なる2つのデータソースを誤って統合するのを防ぐため |
-
-上記の表は attachments および papis の挙動です。最後のケース（双方にデータが存在する場合）のみ、エラーとなった対象の Drive とローカルの内容を確認した上で、対象を限定して対応します。以下は添付ファイルの場合の例です（文献の場合は `--only papis`）:
+両方にデータが存在して停止した場合は、該当する Drive 側とローカル側の双方の中身を確認した上で、対象を絞って明示的に実行してください（文献データのみの場合は `--only papis`）。
 
 ```sh
 ZK_FORCE_RESYNC=1 zettelkasten-sync --only attachments --resync
 ```
 
-## 日常運用
+## 日常的な運用
 
-同期は自動的に実行されます。ローカルの変更を検知して即座に同期する仕組みと、同期漏れを防止する定期実行（デフォルトは15分間隔）の2系統で構成されています。他のマシンで追加されたファイルは、自身の次回同期時に pull されます（リアルタイム反映ではありません）。
-
-手動で実行する場合:
+ファイル変更検知による自動同期と 15 分ごとの定期実行により、バックグラウンドで自動同期されます。他のマシンで追加されたファイルは、次の同期タイミングで自動的に取り込まれます。
 
 ```sh
-zettelkasten-sync                 # 設定どおり全部
-zettelkasten-sync --only papis    # papis だけ
-zettelkasten-sync --dry-run       # 以降の引数は rclone bisync へ素通し
+zettelkasten-sync                 # 設定済みの全対象を同期
+zettelkasten-sync --only papis    # papis のみを同期
+zettelkasten-sync --dry-run       # 以降の引数は rclone bisync にそのまま渡される（テスト実行）
+journalctl --user -u zettelkasten-sync -f
+journalctl --user -u papis-sync -f
+journalctl --user -u originals-sync -f
 ```
 
-同期先は options 側で固定設定されているため、コマンドの引数で変更することはできません。
+※同期先は設定ファイルで定義されているため、コマンド引数で変更することはできません。
+ファイルの削除も双方向に反映されます。誤削除防止として、Google Drive のごみ箱（30 日間保持）および `bisync` の `--max-delete` オプション（デフォルトでは 50% を超える大量削除で安全停止）により保護されています。
 
-ログの確認:
-
-```sh
-journalctl --user -u zettelkasten-sync -f     # 添付（Linux）
-journalctl --user -u papis-sync -f            # papis（Linux）
-# macOS: ~/Library/Logs/{zettelkasten-sync,papis-sync}.log
-```
-
-ファイルの削除は双方向に反映されます。安全対策として、Google Drive のゴミ箱機能（30日間は復元可能）と、bisync の `--max-delete` オプション（デフォルトでは50%を超える削除が発生した場合に処理を中断）が用意されています。
-
-## 添付を貼る
-
-- Obsidian: 通常通り貼り付けます（`attachmentFolderPath=attachments` に保存されます）。
-- Neovim: Markdown ファイル上で `<leader>p` を押します（img-clip により Vault ルートの `attachments/` に保存されます）。
-
-どちらのエディタを使用しても、同じ単一のフォルダへ保存されます（詳細は [markdown プラグインのドキュメント](../../modules/home-manager/dev/neovim/config/docs/plugins/markdown.md) を参照）。
+添付ファイルについて、Obsidian 内では通常通り画像を貼り付けます（`attachments` に保存されます）。Neovim では Markdown ファイル上で `<leader>p` を押すと、img-clip により vault の `attachments/` へ保存されます（[markdown プラグイン](../../modules/home-manager/dev/neovim/config/docs/plugins/markdown.md) を参照）。
 
 ## トラブルシューティング
 
-エラー発生時は復旧手順を含んだメッセージが出力されますので、まずはその指示に従ってください。
+エラーが発生した場合は対処方法が画面に表示されるため、まずはその指示に従ってください。
 
-| 症状 | 原因 / 対処 |
-|---|---|
-| `remote 'gdrive' が未定義です` | `rclone config` でリモートを作成します（`zettelkasten-setup` の案内に従ってください）。 |
-| `認証に失敗しました` | トークンが失効しています。`rclone config reconnect gdrive:` を実行してください。 |
-| `両側にデータがあります` | 同期履歴の喪失か、別々の内容を統合しようとしています。内容を確認した上で `ZK_FORCE_RESYNC=1 zettelkasten-sync --only attachments --resync` を実行してください。 |
-| `--resync が中止される` | 既存の同期履歴が存在します（誤上書きの防止）。内容の確認・バックアップ後、失敗した対象を `--only` で絞り込み、意図して再同期する場合のみ `ZK_FORCE_RESYNC=1` を指定して実行してください。 |
-| ユニットが inactive のまま | 対象ディレクトリが未作成です。`ConditionPathIsDirectory` によりスキップされている状態です（エラーではありません）。 |
-| `.conflict` ファイルが生成される | 2台のマシンから同時に更新されました。ファイル内容を確認し、正しい方を残してください。 |
-| トークン書き戻しに関する警告（warning） | rclone がリフレッシュ後のアクセストークンを書き戻しているだけです。リフレッシュトークン自体は長期間有効なため、この警告だけで失効と判断する必要はなく、無視して問題ありません。 |
+- `remote 'gdrive' が未定義です`: `rclone config` でリモート設定を作成してください（`zettelkasten-setup` の案内に従う）。
+- `認証に失敗しました`: 認証トークンの期限が切れています。`rclone config reconnect gdrive:` を実行して再認証してください。
+- `両側にデータがあります` または `--resync` で停止する: 同期履歴が喪失しているか、異なる内容同士を統合しようとしています。双方のデータ内容を確認・バックアップした上で、対象を `--only` で絞り、`ZK_FORCE_RESYNC=1` を付与して再実行してください。
+- systemd unit が inactive のまま動かない: 対象ディレクトリがまだ存在しないためです。`ConditionPathIsDirectory` により正常にスキップされている状態であり、エラーではありません。
+- `.conflict` というファイルが生成された: 2 台の端末で同時に同じファイルが更新されました。内容を確認し、正しい方のファイルを残してください。
+- トークン書き戻し（writeback）の警告が表示される: rclone が更新されたアクセストークンをファイルに保存している通知であり、失効エラーではありません。
 
-## Originalsの導入と復旧
+## Originals の運用
 
-Originals 対応の workflow input を取り込んだ構成で使用します。ソースコードを編集しただけでは、flake.lock に固定されたバージョンや導入済みのコマンドは更新されません。評価時のローカル検証には `--override-input zettelkasten path:/path/to/zettelkasten-workflow` を使用し、lock ファイルの変更作業とは切り離して検証してください。
+両方の PC で初期設定が完了しており、`services.zettelkasten.originals.autoSync = true` が設定されています。ファイル変更検知および 15 分周期で `originals-sync` が動作し同期されます。
+削除されたり上書きされた古いバージョンは、`${XDG_DATA_HOME:-$HOME/.local/share}/zettelkasten/originals-backups/<host>/<runid>` および `gdrive:zettelkasten-originals-backups/<host>/<runid>` へ自動的に退避されます。退避されたファイルを直接同期対象ディレクトリへ書き戻さないでください。
 
-`zettelkastenSync` が有効な場合、Originals もコマンドの同期対象に含まれます。現在は両 PC ともに初期化を完了しており、`services.zettelkasten.originals.autoSync = true` に設定されています。この構成を反映すると `originals-sync.service`・`.path`・`.timer` が生成され、ローカルの変更検知時および 15 分間隔で同期が行われます。
-新しい PC を導入する際は、その PC の autoSync を false に設定した上で、先に以下の初期化手順を実施してください。
-なお、原本は `<vault>/Originals`、Drive 側の同期先は `gdrive:zettelkasten-originals` です。
-バックアップの退避先は `${XDG_DATA_HOME:-$HOME/.local/share}/zettelkasten/originals-backups/<host>/<runid>` および `gdrive:zettelkasten-originals-backups/<host>/<runid>` となります。退避したデータを同期対象ディレクトリへ直接戻さないでください。
+新しい PC を追加する場合は、該当 PC の `autoSync` を一時的に `false` に設定し、先に初期化を行います。
 
-1. 両方の PC と Drive の内容を比較し、同期対象外の場所へ元データを退避します。両側に同名で内容が異なるファイルがある場合は、あらかじめ整理しておきます。
-2. もう一方の PC の Originals ジョブを停止した状態で、担当 PC で `zettelkasten-sync --only originals --resync --dry-run` を実行して動作を確認し、問題がなければ `--dry-run` を外して初期化を実行します。
-3. もう一方の PC でも同様に内容の比較と退避を済ませてから初期化を行い、以降は `zettelkasten-sync --only originals` で同期します。
-4. 隔離された Drive のテスト環境を用いて、両 PC それぞれでのファイル追加、同名ファイルの競合、削除・上書き時の退避と復元、中断、多重実行、オフラインからの復帰を確認した上で、autoSync を有効化します。
+1. 両 PC および Drive 内のデータを確認し、既存データを同期対象外の安全な場所へ退避します。両方に同名で異なる内容のファイルが存在する場合は、あらかじめ整理しておきます。
+2. もう一方の PC で Originals の同期を停止した状態で、`zettelkasten-sync --only originals --resync --dry-run` を実行して事前確認し、問題がなければ `--dry-run` を外して初期化を実行します。
+3. もう一方の PC でも同様に差分確認・退避を行ってから初期化を実行し、以降は `zettelkasten-sync --only originals` で同期を行います。
+4. 両 PC にて、ファイルの新規追加・同名競合・削除/上書き時の退避と復元・中断・二重実行・オフライン復帰の動作を検証・確認できた後、`autoSync` を `true` に変更して有効化します。
 
-競合が発生した場合、双方のバージョンが別名で保存されることがあります。その際はログを確認し、採用する方を元のファイル名に戻すか、ノート側のリンクを修正した上で同期してください。
-誤った削除や上書きから復元する場合は、両 PC の自動同期を一時停止し、該当世代のバックアップを通常の同期先へ復元して内容を照合した上で、順次同期を行います。退避された世代データ自体は削除せずそのまま保持してください。
-同期履歴が破損した場合は、安易に resync を行わず、実データと退避データの安全を確保してから手動で対処を判断してください。
+競合が発生した場合、両方のバージョンが別名で保存されることがあります。ログを確認の上、採用する方を元のファイル名に戻すか、ノート側のリンク記述を修正してから再度同期してください。
+誤って削除・上書きしたファイルを復元する場合は、両 PC の自動同期を一度停止させ、指定世代の退避データを同期先に戻して内容を照合・確認してから同期を再開してください。退避データ自体は削除せずに保持しておきます。
+同期履歴データが破損した場合は、焦って `resync` を実行せず、必ず実データと退避データの安全を確保してから手動で状態を判断してください。
+強制終了等で残留したロックは送信後約 2 分で自動解除され、次回の同期時に直前の成功した履歴から復旧を試みます。復旧に失敗した場合は処理が停止するため、原因を調べてください。
 
-Originals では `--recover --max-lock 2m` を使用します。強制中断などでロックが残ってしまった場合でも、最終更新から約2分でロックが期限切れとなり、次回の通常同期時に直近の成功履歴から復旧を試みます。
-なお、同期スクリプト側にはロックを自動削除する処理や自動 resync を行う処理は実装していません。履歴の欠損や復旧の失敗が発生した場合は、処理を停止して原因を調査してください。
-詳細については、[rcloneの復旧仕様](https://rclone.org/bisync/#recover) および [ロック期限の仕様](https://rclone.org/bisync/#max-lock) を参照してください。
-
-通常同期のログは `zettelkasten-sync --only originals` のコマンド出力から、自動化後は `journalctl --user -u originals-sync` で確認できます。なお、ここでの退避処理は独立したバックアップとは異なるため、必要に応じて既存のバックアップ対象に Originals も含めてください。
+ワークフロー（workflow）の変更・試行を行う際は、`--override-input zettelkasten path:/path/to/zettelkasten-workflow` で評価を行い、`flake.lock` の更新作業とは分離して実施してください。

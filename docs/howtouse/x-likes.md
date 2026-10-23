@@ -10,7 +10,7 @@ X で「いいね」したツイートを、本文・画像・動画・引用元
 ## 初回準備
 
 データは SATA SSD の subvol `@x-likes` に保存します。
-subvol は自動作成されないため、[disk-tiering.md の「新しい subvol を足す」](./disk-tiering.md#新しい-subvol-を足す) の手順に従って一度だけ作成してください。
+subvol は自動作成されないため、[disk-tiering.md の「新しい subvol の追加手順」](./disk-tiering.md#新しい-subvol-の追加手順) の手順に従って一度だけ作成してください。
 `@x-likes` 固有の実行手順は以下の通りです。
 
 ```sh

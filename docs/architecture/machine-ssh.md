@@ -1,102 +1,60 @@
-# マシン間 SSH（設計判断）
+# マシン間 SSH の設計
 
-`machines` で `sshUser` を指定した NixOS ホストが相互に SSH でき、`ssh <短縮名>`（例 `ssh desktop`）で
-接続できるようにする配線。リモートビルド（[remote-build.md](./remote-build.md)）は
-この上に乗る一利用例。
+使い方: [マシン間 SSH](../howtouse/machine-ssh.md)
+実装: [machines.nix](../../hosts/machines.nix)、[ssh.nix](../../modules/nixos/ssh.nix)
 
-設定ファイル:
-- `hosts/machines.nix` — マシンごとの `system`・`sshUser`・`builder`・`nixos` と LAN 共通鍵の公開鍵（単一の情報源）
-- `modules/nixos/ssh.nix` — そこから authorized_keys とクライアント設定を生成
-- `modules/home-manager/secrets.nix` — 秘密鍵側を `secrets/secrets.yaml` から書き出す
-  （[private-repo-clone.md](./private-repo-clone.md) 参照）
+`machines.nix` で `sshUser` を持つ NixOS ホストが、互いに `ssh <短縮名>` で接続できるようにする。
+リモートビルド（[remote-build.md](./remote-build.md)）はこの上に乗る。
 
-使い方は [../howtouse/machine-ssh.md](../howtouse/machine-ssh.md) を参照。
+## `machines.nix` から両方向を生成する
 
-## 全体構成
+`ssh.nix` が `machines.nix` から、サーバ側には `lanPublicKey` を primaryUser の `authorized_keys` に入れ、クライアント側には `sshUser` を持つマシンごとの `Host` ブロック（短縮名、`IdentityFile`、`User`、`accept-new`）を作る。
+各ホストに `authorizedKeys` を直接書くと、双方向にしたときマシンの数の 2 乗だけ書くことになる。
 
-`machines.nix` を単一の情報源とし、共通モジュール `ssh.nix` が2方向に展開する:
+`ssh <短縮名>` で接続するには、認証、名前解決、ホスト鍵の受け入れが要る。
+名前解決は avahi の mDNS（LAN の外では tailnet の MagicDNS を引く `<短縮名>-ts`、[tailscale.md](./tailscale.md)）に任せ、認証とホスト鍵の扱いと短縮名を `machines.nix` から作る。
 
-- **サーバ側**: `lanPublicKey` を primaryUser の `authorized_keys` に登録 → 相互ログイン可
-- **クライアント側**: `machines` のうち `sshUser` を持つ各項目ぶんの `Host` ブロック（短縮エイリアス＋`IdentityFile`
-  ＋接続先の `sshUser`＋`accept-new`）を生成 → `ssh desktop` 等で接続可
+## 鍵は用途で名付ける
 
-秘密鍵の実体はここには無い。`secrets.nix` が switch のたびに `secrets/secrets.yaml`
-から `~/.ssh/id_lan` を書き出す。つまり**新マシンで手作業が要るのは age 鍵 1 本の設置だけ**で、
-SSH 鍵の生成も登録も無い。
+`~/.ssh/id_lan` は LAN の中のマシン同士に、`~/.ssh/id_github` は GitHub に使う。
+`id_ed25519` のようなアルゴリズムの名前にすると、1 本に複数の役割が載っても気づけない。
+この repo では `~/.ssh/id_ed25519` が LAN と GitHub を兼ねていて、GitHub の鍵を作り直したときに LAN の接続まで壊れた。
 
-## 設計判断
+## LAN の認証は全マシン共通の 1 本にする
 
-### 鍵は用途で名付ける（id_lan / id_github）
+新しいマシンで要る作業は age 鍵を置くことだけになり、マシンを足すときに既存の全マシンで switch しなくて済む（`authorized_keys` が変わらないため）。
+代わりに、マシンごとに失効させられない。1 台をなくしたら `lan_ssh_key` を作り直し、全マシンで switch する。3 台の規模では、増やすたびに全マシンで switch する手間を消すほうが効く。
 
-`id_ed25519` のようなアルゴリズム名だと、1 ファイルに複数の役割が同居しても気づけない。
-実際この repo では長らく `~/.ssh/id_ed25519` が「LAN の身元」と「GitHub 認証鍵」を兼ねており、
-GitHub 側の鍵を rotate したときに LAN 接続を巻き込んで壊した。役割ごとにファイルを分ければ、
-片方の失効がもう片方に波及しない。
+マシンごとの鍵にしていた理由は、同じ SSH 鍵を `ssh-to-age` で変換して sops の復号にも使っていたことで、1 本漏れると全部の秘密が危うかった。
+今は復号の種は独立した age 鍵（`~/.config/sops/age/keys.txt`）で、`id_lan` は LAN へのログインにしか使えない。
 
-- `~/.ssh/id_lan` — LAN 内 machine-to-machine。`machines.nix` の `lanPublicKey` と対
-- `~/.ssh/id_github` — GitHub 認証（clone/push）。`private-repos.nix` の clone が使う
+## 鍵は実行するユーザーの home から読む
 
-### LAN 認証は全マシン共通の鍵 1 本
+`Host` ブロックの `IdentityFile` は `~/.ssh/id_lan` で、一般ユーザーも root も自分の home を見る。ほかのユーザーの絶対パスを共有しない。鍵を持たないユーザーでは、この指定は読み飛ばされる。
 
-以前は per-machine 鍵（各マシンが自分の鍵ペアを持ち、公開鍵を `machines.nix` に登録）を
-採っていた。共通鍵に反転した。
+root は `id_lan` を持たないので、`sudo nixos-rebuild --build-host` のように root として SSH すると失敗する。`--build-host` は `sudo` を付けずに `--sudo` で実行する（[remote-build.md](./remote-build.md)）。
+この手順は ssh-agent に頼らないので、`IdentitiesOnly yes` でも通る（2026-09-16 に spin713 から確認）。
 
-理由は per-machine を選んだ根拠が消滅したこと。当時は同じ SSH 鍵が `ssh-to-age` 変換で
-sops secret の復号も兼ねており、1本漏れれば全 secret が一度に危険だった。この変換は廃止され、
-復号の種は独立した age 鍵（`~/.config/sops/age/keys.txt`）に移った。今の `id_lan` は
-LAN ログイン以外に何も開けない。
+例外は常設のリモートビルダーで、nix-daemon（root）が `/etc/nix/machines` の `sshKey` で primaryUser の `id_lan` を絶対パスで読む（[remote-build.md](./remote-build.md#鍵は-primaryuser-の-id_lan-を絶対パスで読む)）。
 
-得られるもの: 新マシンの立ち上げが age 鍵の設置だけで完結する。マシン追加時に
-既存全機を rebuild して回る必要がなくなった（`authorized_keys` が変わらないため）。
+## 鍵は `lanSsh` を選んだユーザーにだけ配る
 
-失うもの: **個別失効ができない**。1台紛失したら `lan_ssh_key` を作り直して
-`secrets.yaml` を再暗号化し、全機を switch する必要がある。3台規模ではこの手間より
-「増設のたびに全機 rebuild」を消すほうが効く。台数や共有者が増えるなら per-machine か
-SSH 証明書（CA）方式へ戻す。
+`local.profile.lanSsh = true` のユーザーだけが共通鍵を受け取る。OS が NixOS というだけでは配らない。
+共通鍵を持つユーザーは、接続先の `sshUser` として認証できるため。
 
-### 鍵管理は per-host 直書きでなく machines.nix に集約
+## ホスト鍵は accept-new で受け入れる
 
-以前は各 `hosts/<host>/default.nix` に `authorizedKeys` を直書きしていたが、双方向化すると
-N×N の直書きになり重複する。単一の情報源に集約し、`ssh.nix` が全ホストぶんを生成する。
+初回の接続ではホスト鍵を自動で受け入れ、以後の変更は拒否する。家庭の LAN の脅威にはこれで足りる。
+`programs.ssh.knownHosts` にホスト鍵を直接書く案は、入れ直すたびに書き換えが要るので退けた。
+`--build-host` の SSH では実行ユーザーの known_hosts に、常設のリモートビルダーでは root の known_hosts に、同じ設定で追加される。
 
-### クライアント設定も同じ情報源から生成
+## セキュリティ
 
-`ssh <短縮名>` で繋がるには ①認証 ②名前解決 ③ホスト鍵受理 が要る。②は avahi の mDNS
-（[remote-build.md](./remote-build.md) 参照。LAN の外では tailnet の MagicDNS を引く `<短縮名>-ts`、[tailscale.md](./tailscale.md) 参照）、①③と短縮エイリアスを `machines.nix` から
-生成する。`nixos-` プレフィックスを剥がして `desktop` / `spin713` を短縮名にする。
+- repo に入るのは `machines.nix` の公開鍵と、age で暗号化した `secrets/secrets.yaml` だけ
+- 全マシンの秘密鍵は同じ鍵なので、1 台が侵害されたら LAN の認証を全部作り直す
+- `PasswordAuthentication = false` で、鍵の認証しか受け付けない
+- 対象は NixOS ホストだけで、standalone home-manager（macOS）には `id_lan` を配らない
 
-### 鍵ファイルは実行ユーザーの home から読む
+## 見直す条件
 
-生成する `Host` ブロックの `IdentityFile` は `~/.ssh/id_lan`。一般ユーザーもrootも自分のhomeを参照し、他ユーザーの絶対パスを共有しない。
-鍵ファイルを持たないユーザーでは、この指定は読み飛ばされる。
-
-rootは `id_lan` を持たないので、`sudo nixos-rebuild --build-host` のようにrootとしてSSHすると `Permission denied (publickey)` で失敗する。
-リモートビルドは `sudo` を付けずに `--sudo` で実行し、SSHを一般ユーザーのまま動かす（判断の根拠は [remote-build.md](./remote-build.md)、手順は [remote buildの手順](../howtouse/remote-build.md)）。
-この手順はagentに依存しないので、`IdentitiesOnly yes` の有無に影響されない（`ssh -o IdentitiesOnly=yes pomu@nixos-desktop.local` で認証が通ることを 2026-09-16 に nixos-spin713 から確認）。
-
-例外は常設のリモートビルド（`local.remoteBuilders`）で、nix-daemon（root）が `/etc/nix/machines` の `sshKey` でprimaryUserの `id_lan` を絶対パスで読む。一般ユーザーのssh設定には入らない（判断は [remote-build.md](./remote-build.md#鍵は-primaryuser-の-id_lan-を絶対パスで読む)）。
-
-### ホスト鍵は accept-new（TOFU）
-
-生成する各 `Host` ブロックに `StrictHostKeyChecking accept-new` を付ける。初回接続の鍵は
-自動受理、以降は変更を拒否（MITM 検出）。家庭 LAN の脅威モデルでは十分。厳密にやるなら
-`programs.ssh.knownHosts` に host key を直書きする手もあるが、再インストールのたびに
-更新が要るため不採用。
-
-`nixos-rebuild --build-host` の SSH が実行ユーザーの known_hosts に host key を追加する動作も、
-この生成設定（`/etc/ssh/ssh_config`）が兼ねる。常設のリモートビルドでは、nix-daemon の SSH が root の known_hosts に同じく accept-new で追加する。
-
-## セキュリティモデル
-
-- repo にコミットされるのは `machines.nix` の公開鍵と、age で暗号化された
-  `secrets/secrets.yaml` のみ。平文の秘密鍵は入らない
-- 秘密鍵は各マシンに存在するが、**同一の鍵**である。1台が侵害されたら全機の LAN 認証を
-  作り直す（上記トレードオフ）
-- `PasswordAuthentication = false`（`ssh.nix` 共通）。鍵認証のみ
-- 自分自身の公開鍵も `authorized_keys` に含むが、自機への self-login が増えるだけで無害
-- 対象は NixOS ホストのみ（`ssh.nix` は NixOS モジュール）。standalone home-manager
-  （macOS 等）は LAN の一員とみなさず `id_lan` を配らない
-
-## ユーザーごとの鍵配布
-
-`local.profile.lanSsh = true` のユーザーだけが共有LAN鍵を復元する。OSがNixOSというだけでは秘密鍵を配布しない。既存2台ではpomuのworkstation profileが有効化している。
+- マシンの台数や共有する人が増えたら、マシンごとの鍵か SSH の証明書（CA）に戻す

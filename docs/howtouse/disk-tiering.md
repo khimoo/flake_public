@@ -1,122 +1,79 @@
-# ディスク階層構成（使い方・セットアップ）
+# ディスク階層構成
 
-nixos-desktop は NVMe（ホット層）と SATA SSD（コールド/バルク層）の 2 台を使い分ける。
-なぜこの構成かは [../architecture/disk-tiering.md](../architecture/disk-tiering.md) を参照。
+nixos-desktop では NVMe（`/`、`/nix/store`、`~/sagyo`）と SATA SSD を使い分け、高速アクセスを必要としないデータを SATA ドライブ上の btrfs サブボリューム（subvol）に配置しています。
+各 subvol のマウント先は [data-disk.nix](../../hosts/nixos-desktop/data-disk.nix) 内の `mounts` で定義されており、それぞれの最終パスへ直接マウントされます（`~/ダウンロード`、`~/Games`、`/var/lib/libvirt/images`、`/mnt/backup` など）。
 
-設定ファイル: `hosts/nixos-desktop/data-disk.nix`
+設計ドキュメント: [ディスク階層構成の設計](../architecture/disk-tiering.md)
 
-## レイアウト
+## ディスクレイアウト
 
-SATA SSD（`/dev/sda`）は btrfs 単一パーティション。subvol を最終パスへ直接マウントする。
-
-| subvol | マウント先 | オプション | 用途 |
-|--------|-----------|-----------|------|
-| `@papis` | `~/sagyo/zettelkasten/references` | `noatime,compress=zstd` | papis ライブラリ（vault 内・Google Drive 同期） |
-| `@downloads` | `~/ダウンロード` | `noatime,compress=zstd` | ダウンロード |
-| `@videos` | `~/ビデオ` | `noatime,compress=zstd` | 動画 |
-| `@music` | `~/音楽` | `noatime,compress=zstd` | 音楽 |
-| `@pictures` | `~/画像` | `noatime,compress=zstd` | 画像 |
-| `@documents` | `~/ドキュメント` | `noatime,compress=zstd` | ドキュメント |
-| `@games` | `~/Games` | `noatime,compress=zstd` | Steam のゲームライブラリ |
-| `@vm` | `/var/lib/libvirt/images` | `noatime`（NOCOW） | libvirt の VM イメージ |
-| `@backup` | `/mnt/backup` | `noatime,compress=zstd` | NVMe の退避先 |
-| `@mimikopi` | `~/.local/share/mimikopi` | `noatime,compress=zstd,nofail` | 耳コピの ML モデルの環境とチェックポイント（[mimikopi-env](./cli-tools/mimikopi-env.md)） |
-| `@x-likes` | `~/.local/share/x-likes` | `noatime,compress=zstd,nofail` | X のいいねの保存と、その ML の環境（[x-likes](./x-likes.md)） |
-
-全 subvol は FS 全体で 1 つの UUID を共有し、`subvol=@xxx` で選ぶ。
-
-`@papis` だけはマウント先が vault clone の内側（`~/sagyo/zettelkasten/references`）にあるため、
-`fileSystems` ではなく `systemd.mounts` で定義し、**vault が clone 済み
-（`~/sagyo/zettelkasten/.git` がある）のときだけマウントする**条件を付けている。無条件に
-マウントすると、clone より先に root 所有のディレクトリができて `git clone` が失敗する。
-
-新しいマシンで `clone-repos` が vault を clone すると、`.git` の出現を見る path unit
-（`papis-references.path`）がマウントを始める。以降の boot では条件が真なので自動でマウントされる。
-マウントされていないときは、状態を確かめてから手で起こせる:
+`@papis` については vault のクローン内（`~/sagyo/zettelkasten/references`）にマウントするため、vault をクローンした状態（`~/sagyo/zettelkasten/.git` が存在する間）でのみマウントされます。
+新しいマシンで `clone-repos` によって vault がクローンされると、`.git` の存在を検知する `papis-references.path` が動作し、自動的にマウントが開始されます。
+マウントされていない場合は、ステータスを確認した上で手動でマウントしてください。
 
 ```sh
 systemctl status papis-references.path home-pomu-sagyo-zettelkasten-references.mount
 sudo systemctl start home-pomu-sagyo-zettelkasten-references.mount
 ```
-なぜ vault の中かつ SATA なのかは [../architecture/disk-tiering.md](../architecture/disk-tiering.md) を参照。
 
-## Steam のゲーム置き場（@games）
+`@mimikopi` と `@x-likes` は、該当アプリケーションを有効化した後に手動作成する subvol です。作成前であってもシステムの起動が停止しないよう `nofail` オプションが付与されています。
 
-`~/Games` をマウントしても Steam は自動では使わない。既定のままだと NVMe 側の
-`~/.local/share/Steam/steamapps` にインストールされる。ライブラリの一覧は Steam が
-`~/.local/share/Steam/steamapps/libraryfolders.vdf` に自分で書く状態ファイルなので、
-repo では管理せず Steam の設定から登録する（理由は
-[../architecture/disk-tiering.md](../architecture/disk-tiering.md)）。
-
-1. Steam → 設定 → ストレージ → ドライブのプルダウン → 「ドライブを追加」で `~/Games` を選ぶ
-2. 追加したライブラリを選び「デフォルトに設定」。以後のインストール先が SATA になる
-
-既にインストール済みのゲームは、プロパティ → インストール済みファイル → 「移動」で
-ライブラリ間を移せる。
-
-## 状態確認
+## 状態の確認
 
 ```sh
-# 実使用量（圧縮後）・空き。df は圧縮前の見かけ値なので btrfs 側で見る
-sudo btrfs filesystem usage /mnt/backup      # 任意の btrfs マウントで可
-sudo btrfs subvolume list /mnt/backup        # subvol 一覧
-
-# マウント状況
-findmnt -t btrfs
-
-# @vm が NOCOW になっているか（C フラグが立っていれば OK）
-lsattr -d /var/lib/libvirt/images
+sudo btrfs filesystem usage /mnt/backup    # 圧縮後の実際の使用量と空き容量（df コマンドは圧縮前の値を表示するため注意）
+sudo btrfs subvolume list /mnt/backup      # subvol の一覧を表示
+findmnt -t btrfs                            # 現在のマウント状態を確認
+lsattr -d /var/lib/libvirt/images           # @vm が NOCOW に設定されているか確認（'C' フラグが立っていれば OK）
 ```
 
-## 新しい subvol を足す
+## 新しい subvol の追加手順
 
-1. 一時マウントして subvol を作る:
+1. ドライブを一時的にマウントし、subvol を作成します：
+
    ```sh
    sudo mkdir -p /mnt/sda && sudo mount /dev/sda1 /mnt/sda
    sudo nix shell nixpkgs#btrfs-progs -c btrfs subvolume create /mnt/sda/@newname
-   sudo chown pomu:users /mnt/sda/@newname     # home 系なら
+   sudo chown pomu:users /mnt/sda/@newname     # ホームディレクトリー配下にマウントする場合
    sudo umount /mnt/sda
    ```
-2. `hosts/nixos-desktop/data-disk.nix` の `mounts` リストに 1 行足す:
-   ```nix
-   { subvol = "@newname"; path = "/path/to/mount"; opts = dataOpts; }
-   ```
-3. `sudo nixos-rebuild switch --flake .#nixos-desktop`
 
-VM のように CoW を避けたい subvol は、作成直後に空の状態で `sudo chattr +C /mnt/sda/@newname`
-を実行し、`opts` から `compress=zstd` を外す。
+2. `data-disk.nix` の `mounts` 配下に `{ subvol = "@newname"; path = "/path/to/mount"; opts = dataOpts; }` を追記します。
+3. `sudo nixos-rebuild switch --flake .#nixos-desktop` を実行します。
 
-## バックアップ運用（@backup）
+※ VM イメージ用など CoW（Copy on Write）を回避したい subvol の場合は、作成直後の空の状態で `sudo chattr +C /mnt/sda/@newname` を実行し、マウントオプション `opts` から `compress=zstd` を外してください。
 
-`/mnt/backup` は NVMe の退避先。btrfs snapshot を送る、または restic のリポジトリ先に使う。
-restic を使う場合は SATA を格納先にしつつ、暗号化・重複排除・世代管理を restic 側に任せ、
-将来のオフサイト（別ロケーション）へも同じリポジトリを送れる。
+## Steam ゲームライブラリを SATA ドライブへ配置する
 
-## 初回セットアップ（参考: ディスクを一から作り直す場合）
+`~/Games` は SATA ドライブ上の `@games` にマウントされていますが、Steam は自動的にこれを使用せず、デフォルトでは NVMe 上の `~/.local/share/Steam/steamapps` にゲームをインストールします。
 
-`/dev/sda` を全消去して btrfs 化する手順。**sda の中身は完全に消える**。
+1. Steam を起動し、「設定」→「ストレージ」→ ドライブのドロップダウンメニューから「ドライブを追加」を選び、`~/Games` を選択します。
+2. 追加したライブラリを選択し、「デフォルトに設定」に変更します。
+
+すでにインストール済みのゲームは、「プロパティ」→「インストール済みファイル」→「移動」からライブラリ間で移動できます。
+
+## SATA ドライブを初期化して再構築する
+
+**注意: `/dev/sda` 内のデータはすべて消去されます。**
 
 ```sh
-# 消すのが sda(SATA)であることを目視確認
-lsblk -o NAME,SIZE,MODEL /dev/sda
+lsblk -o NAME,SIZE,MODEL /dev/sda    # 消去対象が正しい SATA ドライブ（sda）であることを必ず目視確認する
 
-# 全消去 → 単一パーティション → btrfs（-c で直接実行。対話シェルに入ると PATH が壊れる）
 sudo wipefs -a /dev/sda
 sudo nix shell nixpkgs#gptfdisk -c sgdisk --zap-all /dev/sda
 sudo nix shell nixpkgs#gptfdisk -c sgdisk -n 1:0:0 -t 1:8300 -c 1:data /dev/sda
 sudo nix shell nixpkgs#btrfs-progs -c mkfs.btrfs -f -L data /dev/sda1
 
-# subvol 作成
 sudo mkdir -p /mnt/sda && sudo mount /dev/sda1 /mnt/sda
 sudo nix shell nixpkgs#btrfs-progs -c bash -c \
-  'for s in papis downloads videos music pictures documents vm backup; do btrfs subvolume create /mnt/sda/@$s; done'
+  'for s in papis downloads videos music pictures documents games vm backup; do btrfs subvolume create /mnt/sda/@$s; done'
 sudo chattr +C /mnt/sda/@vm
 sudo chown pomu:users /mnt/sda/@papis /mnt/sda/@downloads /mnt/sda/@videos \
-                      /mnt/sda/@music /mnt/sda/@pictures /mnt/sda/@documents
+                      /mnt/sda/@music /mnt/sda/@pictures /mnt/sda/@documents /mnt/sda/@games
 
-# UUID を data-disk.nix の device に反映
-sudo blkid -s UUID -o value /dev/sda1
+sudo blkid -s UUID -o value /dev/sda1    # 出力された UUID を data-disk.nix の device 項目に設定する
 ```
 
-その後、既存データを各 subvol へ `rsync` で移し、NVMe 側の元データを空にしてから
-`nixos-rebuild` で最終マウントを適用する。
+※ `nix shell` は `-c` を使って直接コマンドを実行してください。`sudo` から `nix shell` の対話シェルに入ると PATH が正常に引き継がれず、コマンドが見つからなくなる原因になります。
+構築後、バックアップ等から各 subvol へ `rsync` でデータを移行し、NVMe 側の元のデータを削除・空にしてから `switch` を実行してください。
+`@mimikopi` と `@x-likes` については、前述の「[新しい subvol の追加手順](#新しい-subvol-の追加手順)」に沿って別途作成してください。
