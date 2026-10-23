@@ -55,7 +55,7 @@ treesitter parser として `latex` が `lang/markdown/treesitter.lua` の `ensu
 
 自動導入の一覧は、言語 spec と共通 spec のどちらが先に読まれても保持する。
 読み込み順によって一覧が空になっていた不具合と回帰チェックは
-[spec マージの設計](../architecture/spec-merge.md) を参照。
+[spec マージの設計](../../architecture/neovim/spec-merge.md) を参照。
 設定変更後は Neovim を再起動する。初回のパーサ導入が完了した後に Markdown を開き直し、
 ノーマルモードで数式の行からカーソルを外すと Unicode 近似表示を確認できる。
 
@@ -99,7 +99,7 @@ skkeleton 有効中は insert-mode の `<CR>` が skkeleton に横取りされ�
 
 1. **zettelkasten vault の `attachments/`**（`local.profile.zettelkastenRoot` 配下）に画像を保存
 2. ファイル名は `YYYY-MM-DD-HH-MM-SS.png`
-3. カーソル位置に現在ファイルからの相対パスで `![](.../attachments/...)` の Markdown リンクを挿入
+3. カーソル位置に現在ファイルからの相対パスで `![](../../../modules/home-manager/dev/neovim/config/docs/plugins/.../attachments/...)` の Markdown リンクを挿入
 
 > 保存先は `features.nix` が `local.profile.zettelkastenRoot` から生成する
 > `require("config.nix").data.img_clip.dir` を使う。vault が未設定なら img_clip 機能は読み込まない。
@@ -110,7 +110,7 @@ skkeleton 有効中は insert-mode の `<CR>` が skkeleton に横取りされ�
 
 保存先は Obsidian の `attachmentFolderPath="attachments"` と物理的に一致し、rclone bisync で
 Google Drive に同期される単一フォルダ（設定した vault の `attachments/`）へ集約される。
-同期の仕組みは [zettelkasten 添付同期のドキュメント](../../../../../../../docs/howtouse/zettelkasten-attachments-sync.md)を参照。
+同期の仕組みは [zettelkasten 添付同期のドキュメント](../zettelkasten-attachments-sync.md)を参照。
 
 **依存ツール**: Wayland 環境では `wl-clipboard`、X11 環境では `xclip` が必要。
 `modules/home-manager/dev/neovim/features.nix` の clipboard 機能が両方を、img_clip 機能が wl-clipboard を導入する。

@@ -22,7 +22,10 @@ let
   nvimExe = lib.getExe config.programs.neovim.finalPackage;
 in
 {
-  imports = [ ./features.nix ];
+  imports = [
+    ./features.nix
+    ./rustowl.nix
+  ];
 
   options.local.neovim.features = mkOption {
     type = types.attrsOf (

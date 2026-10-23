@@ -40,4 +40,4 @@ RustOwl が有効な状態でマウスをハイライト上に移動すると、
 
 ## プラットフォームとRustOwlの導入
 
-RustOwl は `local.rustowl.enable` で入れる（x86_64 Linux で既定 true、Darwin では false）。サーバーとプラグインはどちらも Nix の store から絶対パスで渡すので、PATH にある別の rustowl は使わない。無効なときはプラグインと対応するキーを読み込まない（[RustOwl の設計](../../../../../../../docs/architecture/rustowl.md)）。
+RustOwl は `local.rustowl.enable` で入れる（x86_64 Linux で既定 true、Darwin では false）。サーバーとプラグインはどちらも Nix の store から絶対パスで渡すので、PATH にある別の rustowl は使わない。無効なときはプラグインと対応するキーを読み込まない（[RustOwl の設計](../../architecture/rustowl.md)）。

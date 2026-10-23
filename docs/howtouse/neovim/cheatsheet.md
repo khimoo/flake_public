@@ -15,19 +15,19 @@
 
 | プレフィックス | カテゴリ | 詳細 |
 |---------------|---------|------|
-| `<leader>f` | 検索 (Telescope) | [telescope.md](./plugins/telescope.md) |
-| `<leader>g` | Git (gitsigns) | [git.md](./plugins/git.md) |
-| `<leader>d` | デバッグ (DAP) | [dap.md](./plugins/dap.md) |
-| `<leader>l` | LSP (低頻度操作) | [lsp.md](./plugins/lsp.md) |
-| `<leader>x` | 診断・quickfix (trouble) | [trouble.md](./plugins/trouble.md) |
-| `<leader>s` | 囲み操作 (surround) | [editing.md](./plugins/editing.md) |
-| `<leader>h` | ファイルマーク (harpoon) | [navigation.md](./plugins/navigation.md) |
-| `<leader><leader>` | バッファスワップ (smart-splits) | [smart-splits.md](./plugins/smart-splits.md) |
-| `<leader>m` | 1行↔複数行トグル (treesj) | [treesitter.md](./plugins/treesitter.md) |
-| `<leader>o` | アウトライン (aerial) | [treesitter.md](./plugins/treesitter.md) |
-| `<leader>t` | テスト (neotest) | [neotest.md](./plugins/neotest.md) |
-| `<leader>a` / `<leader>A` | 引数スワップ (textobjects) | [treesitter.md](./plugins/treesitter.md) |
-| `<leader>u` | Undo ツリー (undotree) | [editing.md](./plugins/editing.md) |
+| `<leader>f` | 検索 (Telescope) | [telescope.md](./telescope.md) |
+| `<leader>g` | Git (gitsigns) | [git.md](./git.md) |
+| `<leader>d` | デバッグ (DAP) | [dap.md](./dap.md) |
+| `<leader>l` | LSP (低頻度操作) | [lsp.md](./lsp.md) |
+| `<leader>x` | 診断・quickfix (trouble) | [trouble.md](./trouble.md) |
+| `<leader>s` | 囲み操作 (surround) | [editing.md](./editing.md) |
+| `<leader>h` | ファイルマーク (harpoon) | [navigation.md](./navigation.md) |
+| `<leader><leader>` | バッファスワップ (smart-splits) | [smart-splits.md](./smart-splits.md) |
+| `<leader>m` | 1行↔複数行トグル (treesj) | [treesitter.md](./treesitter.md) |
+| `<leader>o` | アウトライン (aerial) | [treesitter.md](./treesitter.md) |
+| `<leader>t` | テスト (neotest) | [neotest.md](./neotest.md) |
+| `<leader>a` / `<leader>A` | 引数スワップ (textobjects) | [treesitter.md](./treesitter.md) |
+| `<leader>u` | Undo ツリー (undotree) | [editing.md](./editing.md) |
 
 ---
 
@@ -48,7 +48,7 @@ which-key では表示されないキーバインド。カテゴリ別に分類�
 
 ### LSP (プレフィックスなし)
 
-LSP がアタッチされたバッファでのみ有効。→ [lsp.md](./plugins/lsp.md)
+LSP がアタッチされたバッファでのみ有効。→ [lsp.md](./lsp.md)
 
 | キー | 機能 |
 |------|------|
@@ -75,7 +75,7 @@ LSP がアタッチされたバッファでのみ有効。→ [lsp.md](./plugins
 
 ### コメント
 
-デフォルトの `gc`/`gb` 系。→ [editing.md](./plugins/editing.md)
+デフォルトの `gc`/`gb` 系。→ [editing.md](./editing.md)
 
 | キー | モード | 機能 |
 |------|--------|------|

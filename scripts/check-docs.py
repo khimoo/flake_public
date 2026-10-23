@@ -49,7 +49,7 @@ def heading_anchors(text):
 def check(root):
     failures = []
     paths = [root / "README.md", root / "AGENTS.md", root / "CLAUDE.md"]
-    for folder in ["docs", ".claude/commands", "modules/home-manager/dev/neovim/config/docs"]:
+    for folder in ["docs", ".claude/commands"]:
         paths.extend((root / folder).rglob("*.md"))
     for path in paths:
         if not path.is_file():

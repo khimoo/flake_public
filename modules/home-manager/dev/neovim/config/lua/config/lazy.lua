@@ -1,7 +1,7 @@
 -- lazy.nvim 本体は nixpkgs (programs.neovim.plugins の lazy-nvim) から入り、
 -- Nix のラッパが packpath に載せるので git clone のブートストラップは要らない。
 -- プラグイン本体は lazy.nvim が clone し、lazy-lock.json で固定する。
--- 経緯と比較した代替案: docs/architecture/plugin-manager.md
+-- 経緯と比較した代替案: docs/architecture/neovim/plugin-manager.md
 --
 -- ~/.config/nvim は mkOutOfStoreSymlink でリポジトリ実体を指す symlink のため、
 -- lockfile (lazy-lock.json) はデフォルト位置 (config dir 直下) のまま git で追跡できる。

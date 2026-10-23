@@ -27,7 +27,7 @@ Neovim が設定する `IS_NVIM` user var でフォーカス中のペインを�
 | `Ctrl+l` | 右のウィンドウ/ペインに移動 |
 
 端に到達したらそこで止まる（`at_edge = "stop"`）。理由は
-[kitty.md](../../../../../../../docs/architecture/kitty.md#smart-splits-の-kitty-backend) を参照。
+[kitty.md](../../architecture/kitty.md#smart-splits-の-kitty-backend) を参照。
 
 ### リサイズ
 
@@ -53,8 +53,8 @@ Neovim が設定する `IS_NVIM` user var でフォーカス中のペインを�
 
 ## kitty 側の設定
 
-[kitty.nix](../../../../../../../modules/home-manager/gui/kitty.nix) が smart-splits 同梱の kitten を配置する。
-接続とキー割当ては [kitty の使い方](../../../../../../../docs/howtouse/cli-tools/kitty.md) を参照。
+[kitty.nix](../../../modules/home-manager/gui/kitty.nix) が smart-splits 同梱の kitten を配置する。
+接続とキー割当ては [kitty の使い方](../cli-tools/kitty.md) を参照。
 
 ## 注意事項
 

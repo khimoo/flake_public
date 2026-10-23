@@ -56,7 +56,7 @@ journalctl --user -u originals-sync -f
 ※同期先は設定ファイルで定義されているため、コマンド引数で変更することはできません。
 ファイルの削除も双方向に反映されます。誤削除防止として、Google Drive のごみ箱（30 日間保持）および `bisync` の `--max-delete` オプション（デフォルトでは 50% を超える大量削除で安全停止）により保護されています。
 
-添付ファイルについて、Obsidian 内では通常通り画像を貼り付けます（`attachments` に保存されます）。Neovim では Markdown ファイル上で `<leader>p` を押すと、img-clip により vault の `attachments/` へ保存されます（[markdown プラグイン](../../modules/home-manager/dev/neovim/config/docs/plugins/markdown.md) を参照）。
+添付ファイルについて、Obsidian 内では通常通り画像を貼り付けます（`attachments` に保存されます）。Neovim では Markdown ファイル上で `<leader>p` を押すと、img-clip により vault の `attachments/` へ保存されます（[markdown プラグイン](neovim/markdown.md) を参照）。
 
 ## トラブルシューティング
 

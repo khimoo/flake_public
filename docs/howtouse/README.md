@@ -21,7 +21,7 @@
 | 音声 | 通話用エコーキャンセルの選択と確認 | [audio-echo-cancel.md](./audio-echo-cancel.md) |
 | CLI ツール | シェル環境と CLI ツール | [cli-tools/README.md](./cli-tools/README.md) |
 | kitty | 端末の操作 | [cli-tools/kitty.md](./cli-tools/kitty.md) |
-| Neovim | Neovim のプラグインとキー操作 | [modules/home-manager/dev/neovim/config/docs/README.md](../../modules/home-manager/dev/neovim/config/docs/README.md) |
+| Neovim | Neovim のプラグインとキー操作 | [neovim/README.md](./neovim/README.md) |
 | キーボードのレイヤー | キーの割り当てを調べる手順 | [keyboard-layers.md](./keyboard-layers.md) |
 | 共通 devShell | 共通 devShell をプロジェクトから使う方法 | [devshells.md](./devshells.md) |
 | Inkscape | 新規文書の既定の色の管理 | [inkscape.md](./inkscape.md) |

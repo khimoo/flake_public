@@ -17,7 +17,7 @@ factory の `homeModules` は共通機能の入口を列挙する。GUI の子�
 
 Home Manager への `extraSpecialArgs` は `inputs` を渡す。アプリ専用の引数や derivation を factory で作らず、その機能のモジュールが必要な input を参照する。
 
-- Neovim のプラグインが使う道具と、Lua に渡す生成物（SKK 辞書、LSP の一覧など）は、[dev/neovim/features.nix](../../modules/home-manager/dev/neovim/features.nix) が機能ごとに持つ（[設計](../../modules/home-manager/dev/neovim/config/docs/architecture/features.md)）。SKK 辞書の取得元は `inputs.skk-jisyo` で、展開には overlay を通さない `inputs.nixpkgs.legacyPackages` を使う。
+- Neovim のプラグインが使う道具と、Lua に渡す生成物（SKK 辞書、LSP の一覧など）は、[dev/neovim/features.nix](../../modules/home-manager/dev/neovim/features.nix) が機能ごとに持つ（[設計](neovim/features.md)）。SKK 辞書の取得元は `inputs.skk-jisyo` で、展開には overlay を通さない `inputs.nixpkgs.legacyPackages` を使う。
 
 生成した Lua は Home Manager の適用で XDG data 配下に配置する。Neovim の設定ディレクトリは live symlink なので、生成物をその中へ混ぜない。端末フォントの `terminalFont` は GUI 内の `_module.args` から kitty に渡す。GUI 無効時も kitty モジュールが引数として受け取るため、この定義は `mkIf` の外に置く。
 

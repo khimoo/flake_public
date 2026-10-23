@@ -6,22 +6,22 @@
 
 | カテゴリ | プラグイン | ドキュメント |
 |----------|-----------|-------------|
-| 検索 | telescope, project.nvim | [telescope.md](./plugins/telescope.md) |
-| ファイラー | oil.nvim | [telescope.md](./plugins/telescope.md) |
-| LSP | nvim-lspconfig | [lsp.md](./plugins/lsp.md) |
-| 構文解析 | treesitter, treesj, textobjects, aerial | [treesitter.md](./plugins/treesitter.md) |
-| テスト | neotest, neotest-rust | [neotest.md](./plugins/neotest.md) |
-| Git | gitsigns, diffview | [git.md](./plugins/git.md) |
-| デバッグ | nvim-dap, dap-view, dap-go | [dap.md](./plugins/dap.md) |
-| 編集支援 | Comment, surround, dial, hlslens, undotree, guess-indent | [editing.md](./plugins/editing.md) |
-| 診断・quickfix | trouble.nvim | [trouble.md](./plugins/trouble.md) |
-| 補完 | blink.cmp | [completion.md](./plugins/completion.md) |
-| 日本語入力 | skkeleton | [skkeleton.md](./plugins/skkeleton.md) |
-| ナビゲーション | harpoon2, smart-splits | [navigation.md](./plugins/navigation.md), [smart-splits.md](./plugins/smart-splits.md) |
-| 外観 | lualine, hlchunk, fidget, which-key | [appearance.md](./plugins/appearance.md) |
-| Markdown | render-markdown.nvim, autolist.nvim, img-clip.nvim, marksman, diagram.nvim, image.nvim | [markdown.md](./plugins/markdown.md) |
-| Rust | rustaceanvim, rustowl | [lang-rust.md](./plugins/lang-rust.md) |
-| Typst | tinymist, typst-preview.nvim | [lang-typst.md](./plugins/lang-typst.md) |
+| 検索 | telescope, project.nvim | [telescope.md](./telescope.md) |
+| ファイラー | oil.nvim | [telescope.md](./telescope.md) |
+| LSP | nvim-lspconfig | [lsp.md](./lsp.md) |
+| 構文解析 | treesitter, treesj, textobjects, aerial | [treesitter.md](./treesitter.md) |
+| テスト | neotest, neotest-rust | [neotest.md](./neotest.md) |
+| Git | gitsigns, diffview | [git.md](./git.md) |
+| デバッグ | nvim-dap, dap-view, dap-go | [dap.md](./dap.md) |
+| 編集支援 | Comment, surround, dial, hlslens, undotree, guess-indent | [editing.md](./editing.md) |
+| 診断・quickfix | trouble.nvim | [trouble.md](./trouble.md) |
+| 補完 | blink.cmp | [completion.md](./completion.md) |
+| 日本語入力 | skkeleton | [skkeleton.md](./skkeleton.md) |
+| ナビゲーション | harpoon2, smart-splits | [navigation.md](./navigation.md), [smart-splits.md](./smart-splits.md) |
+| 外観 | lualine, hlchunk, fidget, which-key | [appearance.md](./appearance.md) |
+| Markdown | render-markdown.nvim, autolist.nvim, img-clip.nvim, marksman, diagram.nvim, image.nvim | [markdown.md](./markdown.md) |
+| Rust | rustaceanvim, rustowl | [lang-rust.md](./lang-rust.md) |
+| Typst | tinymist, typst-preview.nvim | [lang-typst.md](./lang-typst.md) |
 
 ## リファレンス
 
@@ -29,9 +29,9 @@
 
 ## 設計方針 (architecture/)
 
-- [lazy.nvim spec マージ前提のディレクトリ設計](./architecture/spec-merge.md): `lang/<name>/` から共通プラグインの opts を後付け差し込みする設計の根拠
-- [プラグインと外部ツールを機能として組にする](./architecture/features.md): `lua/features/` の spec と Nix の依存を組にし、機能を外せば両方が外れる仕組み
-- [lazy.nvim 本体だけを nixpkgs から取る構成](./architecture/plugin-manager.md): 本体は nixpkgs、プラグインは lazy-lock.json で固定する役割分担と、採用しなかった案
+- [lazy.nvim spec マージ前提のディレクトリ設計](../../architecture/neovim/spec-merge.md): `lang/<name>/` から共通プラグインの opts を後付け差し込みする設計の根拠
+- [プラグインと外部ツールを機能として組にする](../../architecture/neovim/features.md): `lua/features/` の spec と Nix の依存を組にし、機能を外せば両方が外れる仕組み
+- [lazy.nvim 本体だけを nixpkgs から取る構成](../../architecture/neovim/plugin-manager.md): 本体は nixpkgs、プラグインは lazy-lock.json で固定する役割分担と、採用しなかった案
 
 ---
 
@@ -52,7 +52,7 @@ K               型やドキュメントをホバーで確認
 ]f / [f         次/前の関数にジャンプ
 ```
 
-→ [lsp.md](./plugins/lsp.md), [telescope.md](./plugins/telescope.md), [treesitter.md](./plugins/treesitter.md)
+→ [lsp.md](./lsp.md), [telescope.md](./telescope.md), [treesitter.md](./treesitter.md)
 
 **コツ**: `gd` → `<C-o>` のループがコードリーディングの基本動作。何回でも遡れる。
 
@@ -69,7 +69,7 @@ gra             code action で自動修正候補があれば適用
 <leader>lF      フォーマット
 ```
 
-→ [lsp.md](./plugins/lsp.md), [trouble.md](./plugins/trouble.md), [telescope.md](./plugins/telescope.md)
+→ [lsp.md](./lsp.md), [trouble.md](./trouble.md), [telescope.md](./telescope.md)
 
 ## 3. リファクタリング
 
@@ -84,7 +84,7 @@ gcc             不要なコードをコメントアウト (まず様子見)
 gcc             問題なければもう一度 gcc で戻して dd で削除
 ```
 
-→ [lsp.md](./plugins/lsp.md), [editing.md](./plugins/editing.md), [completion.md](./plugins/completion.md)
+→ [lsp.md](./lsp.md), [editing.md](./editing.md), [completion.md](./completion.md)
 
 **コメント操作のパターン**:
 - 1行: `gcc`
@@ -105,7 +105,7 @@ gt / gT         harpoon リスト内の次/前のファイル
 <leader>fe      Oil でディレクトリをバッファ表示 (ファイル作成・リネーム・移動時)
 ```
 
-→ [telescope.md](./plugins/telescope.md), [navigation.md](./plugins/navigation.md)
+→ [telescope.md](./telescope.md), [navigation.md](./navigation.md)
 
 ### テキスト編集
 
@@ -122,7 +122,7 @@ v → i;          in の別名
 <leader>m       treesj: 1行↔複数行のトグル
 ```
 
-→ [editing.md](./plugins/editing.md), [treesitter.md](./plugins/treesitter.md)
+→ [editing.md](./editing.md), [treesitter.md](./treesitter.md)
 
 ### 囲み操作 (surround)
 
@@ -132,7 +132,7 @@ v → i;          in の別名
 <leader>sds"    "x" を x に
 ```
 
-→ [editing.md](./plugins/editing.md)
+→ [editing.md](./editing.md)
 
 ### 検索
 
@@ -144,7 +144,7 @@ n / N           次/前のマッチ
 <leader>fg      プロジェクト全体を grep (Telescope)
 ```
 
-→ [editing.md](./plugins/editing.md), [telescope.md](./plugins/telescope.md)
+→ [editing.md](./editing.md), [telescope.md](./telescope.md)
 
 ## 5. Git 操作
 
@@ -159,7 +159,7 @@ n / N           次/前のマッチ
 ih              テキストオブジェクト: hunk 選択 (dih, yih 等)
 ```
 
-→ [git.md](./plugins/git.md)
+→ [git.md](./git.md)
 
 **典型フロー**: `]c` で巡回 → `<leader>gp` で確認 → `<leader>gs` でステージ
 
@@ -174,7 +174,7 @@ ih              テキストオブジェクト: hunk 選択 (dih, yih 等)
 <leader>dr      REPL を開く
 ```
 
-→ [dap.md](./plugins/dap.md), [lang-rust.md](./plugins/lang-rust.md)
+→ [dap.md](./dap.md), [lang-rust.md](./lang-rust.md)
 
 ## 7. テスト実行
 
@@ -187,7 +187,7 @@ ih              テキストオブジェクト: hunk 選択 (dih, yih 等)
 <leader>td      テストを DAP でデバッグ実行
 ```
 
-→ [neotest.md](./plugins/neotest.md)
+→ [neotest.md](./neotest.md)
 
 **典型フロー**: テスト書く → `<leader>tt` → 実装 → `<leader>tl` で再実行
 
@@ -197,7 +197,7 @@ ih              テキストオブジェクト: hunk 選択 (dih, yih 等)
 <C-j>           insert/command モードで SKK を ON/OFF
 ```
 
-→ [skkeleton.md](./plugins/skkeleton.md)
+→ [skkeleton.md](./skkeleton.md)
 
 ## 9. ウィンドウ・ペイン管理
 
@@ -210,4 +210,4 @@ gt / gT         harpoon リスト内の次/前のファイル
 <leader>h1〜h5  マークしたファイルに直接移動
 ```
 
-→ [navigation.md](./plugins/navigation.md), [smart-splits.md](./plugins/smart-splits.md)
+→ [navigation.md](./navigation.md), [smart-splits.md](./smart-splits.md)

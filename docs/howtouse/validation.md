@@ -71,7 +71,7 @@ Neovim における Markdown パーサー指定のマージ処理は、lazy.nvim
 nvim --headless -n -u NONE -i NONE -l scripts/check-neovim-parser-merge.lua
 ```
 
-[回帰チェック](../../scripts/check-neovim-parser-merge.lua) では、実際の lazy.nvim のマージ処理を利用し、共通 spec と Markdown spec の読み込み順を入れ替えても必要なパーサーが保持されることを確認します。背景の詳細は [spec マージの設計](../../modules/home-manager/dev/neovim/config/docs/architecture/spec-merge.md) を参照してください。
+[回帰チェック](../../scripts/check-neovim-parser-merge.lua) では、実際の lazy.nvim のマージ処理を利用し、共通 spec と Markdown spec の読み込み順を入れ替えても必要なパーサーが保持されることを確認します。背景の詳細は [spec マージの設計](../architecture/neovim/spec-merge.md) を参照してください。
 
 構成の適用は、利用者自身が README に記載されたコマンドに従って行い、実行結果や、必要に応じて復旧手順を確認してください。
 

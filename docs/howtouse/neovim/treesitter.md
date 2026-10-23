@@ -11,11 +11,11 @@
 
 構文解析エンジン。`branch = "main"` を指定している。main は master とは別物の書き直しで、設定に互換性がない。
 
-パーサは `opts.ensure_installed` に集めて `require("nvim-treesitter").install()` に渡す。`ensure_installed` は main ブランチのオプションではなく、言語モジュールからベース spec へ渡すための本リポジトリ内の名前。追加の仕組みは [spec-merge.md](../architecture/spec-merge.md) を参照。
+パーサは `opts.ensure_installed` に集めて `require("nvim-treesitter").install()` に渡す。`ensure_installed` は main ブランチのオプションではなく、言語モジュールからベース spec へ渡すための本リポジトリ内の名前。追加の仕組みは [spec-merge.md](../../architecture/neovim/spec-merge.md) を参照。
 
 main はハイライトを自動で有効化しない。`FileType` で `vim.treesitter.start` を呼ぶのが利用者の責務になったため、`config` 内の autocmd で全 filetype に対して試し、パーサが無い場合は `pcall` で握り潰している。
 
-`install()` は非同期なので、パーサ未導入の言語は初回起動時にハイライトが遅れて付く。CLI の `tree-sitter` 0.26.1 以上が要る (経緯は [unstable-packages.md](../../../../../../../docs/architecture/unstable-packages.md))。
+`install()` は非同期なので、パーサ未導入の言語は初回起動時にハイライトが遅れて付く。CLI の `tree-sitter` 0.26.1 以上が要る (経緯は [unstable-packages.md](../../architecture/unstable-packages.md))。
 
 ### treesj
 

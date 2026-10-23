@@ -2,7 +2,7 @@
 
 lazy.nvim 本体は nixpkgs の `vimPlugins.lazy-nvim` を `programs.neovim.plugins` で入れ、
 プラグイン本体は lazy.nvim 自身が `~/.local/share/nvim/lazy` に clone して `lazy-lock.json` で固定する。
-設定ファイル: [`../../../default.nix`](../../../default.nix)、[`../../lua/config/lazy.lua`](../../lua/config/lazy.lua)
+設定ファイル: [`../../../default.nix`](../../../modules/home-manager/dev/neovim/default.nix)、[`../../lua/config/lazy.lua`](../../../modules/home-manager/dev/neovim/config/lua/config/lazy.lua)
 
 ## 役割分担
 
@@ -29,9 +29,9 @@ switch がオフラインで完結し、再現性も `flake.lock` に一本化�
 
 採用しない理由は安定チャンネルの遅れ。nixos-25.11 の `vimPlugins.nvim-treesitter` は 2025-05-24 の
 master 版で、Neovim 0.12 ではハイライトが壊れるため main ブランチへ移した経緯がある
-([treesitter.md](../plugins/treesitter.md))。この遅れを 50 個近いプラグインぶん引き受けることになり、
+([treesitter.md](../../howtouse/neovim/treesitter.md))。この遅れを 50 個近いプラグインぶん引き受けることになり、
 安定チャンネルの遅れで動かなくなるパッケージだけを unstable から差し替える方針
-([unstable-packages.md](../../../../../../../docs/architecture/unstable-packages.md)) とも合わない。
+([unstable-packages.md](../unstable-packages.md)) とも合わない。
 プラグインを一つ更新するたびに rebuild が要る点も、Lua を rebuild なしで反映させる現行の設計目標と合わない。
 
 ### nixvim / nvf

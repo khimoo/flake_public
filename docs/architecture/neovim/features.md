@@ -2,7 +2,7 @@
 
 外部コマンドや Nix の生成物を使うプラグインは、Nix 側の「機能」の定義と `lua/features/<名前>.lua` の spec を組にする。
 機能を外すと、spec の読み込み、Neovim の PATH に入れる道具、Lua に渡す値が一緒に外れる。
-設定ファイル: [`../../../default.nix`](../../../default.nix)（仕組み）、[`../../../features.nix`](../../../features.nix)（機能ごとの依存）、[`../../lua/config/lazy.lua`](../../lua/config/lazy.lua)、[`../../lua/config/nix.lua`](../../lua/config/nix.lua)
+設定ファイル: [`../../../default.nix`](../../../modules/home-manager/dev/neovim/default.nix)（仕組み）、[`../../../features.nix`](../../../modules/home-manager/dev/neovim/features.nix)（機能ごとの依存）、[`../../lua/config/lazy.lua`](../../../modules/home-manager/dev/neovim/config/lua/config/lazy.lua)、[`../../lua/config/nix.lua`](../../../modules/home-manager/dev/neovim/config/lua/config/nix.lua)
 
 ## 仕組み
 
@@ -17,7 +17,7 @@ spec は `require("config.nix").data.<名前>` で値を読む。
 外部の道具を使わないプラグインは `lua/plugins/` に置く。
 すべてのプラグインを機能にする必要はない。
 
-RustOwl のように別のモジュールが持つ道具は、そのモジュールが機能を定義する（[`../../../../rustowl.nix`](../../../../rustowl.nix)）。
+RustOwl のように別のモジュールが持つ道具は、そのモジュールが機能を定義する（[`../../../../rustowl.nix`](../../../modules/home-manager/dev/neovim/rustowl.nix)）。
 
 ## 編集と適用の境界
 

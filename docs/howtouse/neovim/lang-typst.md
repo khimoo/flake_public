@@ -14,7 +14,7 @@ Typst + Neovim の界隈で標準的な構成で、言語機能とプレビュ�
 | 位置合わせ・図の調整 | `:TypstPreview` | 差分レンダリングで打鍵に追従 | 双方向 (プレビューのクリックで該当行へ) |
 
 `tdf` は端末内に kitty graphics protocol で PDF を描くビューア。
-使い方は [tdf のドキュメント](../../../../../../../docs/howtouse/cli-tools/shell-tools.md#tdf) を参照。
+使い方は [tdf のドキュメント](../cli-tools/shell-tools.md#tdf) を参照。
 
 PDF の出力先は tinymist の既定 (`$dir/$name`) なので、`report.typ` の隣に `report.pdf` ができる。
 `tdf` に渡すパスが自明になるようこうしている。

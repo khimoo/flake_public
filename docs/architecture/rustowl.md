@@ -1,6 +1,6 @@
 # RustOwl (rustowl-flake 由来)
 
-設定ファイル: [`modules/home-manager/dev/rustowl.nix`](../../modules/home-manager/dev/rustowl.nix)
+設定ファイル: [`modules/home-manager/dev/rustowl.nix`](../../modules/home-manager/dev/neovim/rustowl.nix)
 
 ## 背景
 
@@ -29,7 +29,7 @@ LSP サーバーと同じく、`rustowl` はシェルの PATH に入れない。
 - `local.rustowl.enable` が false のとき rustowl 機能も無効になり、プラグインと対応キーを読み込まない
 - プラグイン実体はNixが持つので `lazy-lock.json` には載せない
 
-キーと操作は [Neovim の Rust 言語サポート](../../modules/home-manager/dev/neovim/config/docs/plugins/lang-rust.md) を参照。
+キーと操作は [Neovim の Rust 言語サポート](../howtouse/neovim/lang-rust.md) を参照。
 
 ## バージョン更新手順
 
