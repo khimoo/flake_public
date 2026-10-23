@@ -1,234 +1,91 @@
-# private repo の clone（設計判断）
+# private repo の clone の設計
 
-使い方は [docs/howtouse/private-repo-clone.md](../howtouse/private-repo-clone.md) を参照。
-実装: [modules/home-manager/secrets.nix](../../modules/home-manager/secrets.nix)（鍵の書き出し）と
-[modules/home-manager/private-repos.nix](../../modules/home-manager/private-repos.nix)（clone）。
+使い方: [SSH 鍵の配布と private repo の clone](../howtouse/private-repo-clone.md)
+実装: [secrets.nix](../../modules/home-manager/secrets.nix)（秘密の書き出し）、[private-repos.nix](../../modules/home-manager/private-repos.nix)（`clone-repos` と `pull-repos`）
 
-> **今後の方向性**: age 鍵の bootstrap 経路（現在「SSH 送信 or Bitwarden から取得」の
-> 2 経路併存）は [new-machine.md](./new-machine.md) の nixos-anywhere ベース 1 コマンド
-> プロビジョニングに一本化する予定。
+## 復号の種はユーザーが読める age 鍵にし、home-manager で書き出す
 
-## 何を解決するか
+ホスト鍵（`/etc/ssh/ssh_host_ed25519_key`）で無人復号する NixOS の systemd サービスは退けた。
+ホスト鍵は root しか読めず、home-manager から扱えないので、NixOS 専用になって macOS で使えない。
+ユーザーが読める age 鍵なら root が要らず、`home.activation` で書き出せば `home-manager switch` でも `nixos-rebuild switch` でも、Darwin でも同じ経路で動く。
 
-新しい環境へ flake を適用するとき、private repo を一つずつ手で `git clone` する手間を無くしたい。
-switch で鍵を置き、`clone-repos` 一回で必要な repo が揃う状態にする。対象は NixOS だけでなく
-非 NixOS（macOS）も含む（会社PCの nixos-work-wsl は age 鍵を置かないので対象外。[wsl.md](./wsl.md)）。対象 repo は 1 つに限定せず、Claude 設定と Obsidian
-workflow など複数の private repo を **同じ経路** で自動化する。
+## age 鍵は全環境で 1 本にする
 
-## なぜ home-manager 単独か
+同じ age 鍵が、全環境の復号の種と、暗号文を編集する鍵を兼ねる。
+マシンを足すたびに受信者を足して `sops updatekeys` で暗号化し直す作業がなくなり、Bitwarden の 1 本からどの環境も同じ手順で用意できる。
 
-以前は「各マシンのホスト鍵で無人復号する NixOS systemd サービス」で組んでいたが、破棄した。
-理由:
-
-- ホスト鍵（`/etc/ssh/ssh_host_ed25519_key`）は root しか読めず、home-manager
-  （ユーザー権限）から扱えない。NixOS 専用になり、macOS を切り捨てる
-- 復号の種を「ユーザーが読める専用 age 鍵」にすれば root 不要になり、
-  NixOS / 非 NixOS を同じ経路で扱える
-
-鍵の書き出しは `home.activation`（`entryAfter [ "writeBoundary" ]`）で行う。`home-manager switch` でも
-`nixos-rebuild switch`（統合された home-manager）でも走り、systemd に依存しないので
-Darwin でも動く。clone は Home Manager が入れるコマンドなので、こちらも全環境で同じ実装になる。
-
-## 認証の流れ
-
-1. **復号の種 = 専用 age 鍵 1 本**。`~/.config/sops/age/keys.txt` に out-of-band で置く
-   （既存マシンから SSH 送信、または Bitwarden から取得）
-2. **暗号文 = SSH 秘密鍵**を sops で暗号化し `secrets/secrets.yaml` にコミット。
-   `secrets.nix` の activation が age 鍵で復号し、宣言したファイルを暗号文の内容に揃える
-3. 利用者が `clone-repos`（`private-repos.nix`）を実行し、書き出された `~/.ssh/id_github` で clone する
-
-## 復号と clone は別モジュールに分ける
-
-鍵の書き出し（`secrets.nix`）と clone（`private-repos.nix`）を分離した。
-clone は sops も age 鍵も知らず、`~/.ssh/id_github` が置かれているかを実行時に確かめるだけにする。
-
-分けた理由は、`secrets.yaml` が配るものが GitHub 鍵だけではなくなったこと。
-LAN 共通鍵（`~/.ssh/id_lan`, [machine-ssh.md](./machine-ssh.md) 参照）は clone とは
-無関係だが復号経路は同じで、clone モジュールに同居させると偶発的凝集になる。
-`local.profile.sshKeys = [{ secret, name }]` で「何をどこへ書き出すか」だけを受ける形にした。
+代償として、1 台から鍵が漏れると全部の暗号文を復号できる。
+個人の 2〜3 台では、Bitwarden での保管と漏れたときの作り直しで足りると判断した。
 
 ## 鍵は用途で名付ける
 
-`secrets.yaml` に入るのは `git_ssh_key`（→ `~/.ssh/id_github`）と
-`lan_ssh_key`（→ `~/.ssh/id_lan`）。`id_ed25519` のようなアルゴリズム名だと 1 ファイルに
-複数の役割が同居しても気づけず、片方の rotate がもう片方を巻き込む
-（[machine-ssh.md](./machine-ssh.md) に経緯）。
+`git_ssh_key` は `~/.ssh/id_github` に、`lan_ssh_key` は `~/.ssh/id_lan` に書き出す。
+`id_ed25519` のようなアルゴリズム名にすると、1 本に複数の用途が載っても気づけず、片方を作り直すともう片方も巻き込む（[machine-ssh.md](./machine-ssh.md)）。
 
-## age 鍵 1 本に統一した理由
+## 復号と clone を別のモジュールに分ける
 
-以前案は「admin 編集鍵 + 各ホスト鍵」の複数受信者だったが、専用 age 鍵 1 本に集約した。
-同じ鍵が復号の種（全環境の `keys.txt`）と暗号文の編集鍵を兼ねる。
+`secrets.yaml` が配るのは GitHub の鍵だけではなく、LAN の鍵や API キーもある。
+clone のモジュールは sops も age 鍵も知らず、`~/.ssh/id_github` があるかを実行時に確かめるだけにした。
 
-- マシン追加のたびの受信者追加・`sops updatekeys`（再暗号化）が要らなくなる
-- Bitwarden に 1 本置くだけで、どの新環境でも同じ手順で復元できる
+復号は `secrets.nix` に一つだけ置き、入口を二つ持つ。
+`sshKeys` は `~/.ssh` に `600` で置く鍵のための短い入口で、`secrets` は書き出し先と mode を明示する一般の入口。
+`secrets.nix` の中で前者を後者に変換するので、復号の手順は二重にならない。
 
-代償は粒度: 1 台漏れると同じ鍵で全暗号文が復号できる。個人の 2〜3 台構成では、
-Bitwarden 保管 + 漏洩時の rotate（age 鍵を作り直し `sops updatekeys` で全体を再暗号化）で
-実用上妥当と判断した。台数・共有者が増えるなら per-machine 受信者へ戻す。
+## switch は秘密を宣言どおりに揃える
 
-## 初回 clone を switch から分ける
+宣言した秘密は switch のたびに復号し、通常のファイルを暗号文の内容と mode に揃える。手で書き換えたファイルも戻す。
+宣言から外したファイルは、switch が置いたと記録したものだけを消す。
 
-clone は以前 activation で行っていた。次の理由で、switch の後に実行するコマンドへ移した。
+既存のファイルに触らない案と、内容のハッシュで手での編集を守る別の更新コマンドを置く案は、どちらも退けた。
+手で差し替えた鍵をそのまま使う運用はなく、鍵は `secrets.yaml` を直して変えるため。
 
-- switch にネットワークからの取得が混ざると、環境の適用が GitHub への到達や認証の状態に左右される。
-- 鍵の書き出しとの順序を DAG の依存名で表していたが、指していたノード名（`sshKeys`）は存在せず、Home Manager は存在しない依存名をエラーにしないので、順序は保証されていなかった。コマンドにすれば、鍵の有無を実行時に確かめられる。
-- clone が要るのは新しい環境を用意するときの一度だけで、毎回の switch で確認する意味が薄い。
+復号の結果は宛先と同じディレクトリの一時ファイルに書き、内容が違うときだけ `mv -f` で置き換える。
+宛先へ直接リダイレクトすると、復号に失敗したときに空の秘密が残る。
 
-代償は、新しい環境の手順が「age 鍵を置く → switch → `clone-repos`」の 3 手になること。activation の依存名が実在するノードを指していることは、`tests/default.nix` の契約で確かめる。
+## age 鍵がなければ switch を失敗させる
 
-## clone-if-absent（冪等・非破壊）
+新しいマシンで age 鍵を置き損ねたまま switch したとき、警告だけ出して続ける作りでは `nixos-rebuild switch` が成功と表示し、鍵がないことに気づけなかった。
+警告は `home-manager-<user>.service` の journal に出るだけで、端末には出ない。
 
-各 `{ url, dest }` について `dest` が存在しないときだけ clone する。
-既存の checkout は pull・上書きせず、live に編集する working tree を保つ。
-「初回だけ面倒を見て、以降の pull/push はユーザーに委ねる」割り切りで、
-mutable な状態を immutable に管理しようとしない
-（[agent-config.md](./agent-config.md) の out-of-store symlink と同じ思想）。
+そのため、秘密の宣言があるのに復号できなければ activation を `exit 1` で止める。
+`lanSsh` のユーザー（desktop と spin713 の pomu）は常に `id_lan` を宣言しているので、age 鍵を失うと switch が通らなくなる。
+age 鍵を置く作業に switch は要らないので、回復できなくなることはない。
 
-## 秘密の更新と削除は switch が行う
+## clone は switch の後のコマンドにする
 
-[secrets.nix](../../modules/home-manager/secrets.nix) の activation は、宣言した秘密を毎回復号し、
-通常のファイルを暗号文の内容と mode に揃える。手で置いた・書き換えたファイルも対象になる。
-鍵を変えるときは `secrets/secrets.yaml` を直す。
+clone を activation で行う案は退けた。
 
-| 状態 | switch の動作 |
-|---|---|
-| ファイルがない | 置いてパスを記録する |
-| 通常のファイルで内容が違う | 置き換えてパスを記録する |
-| 内容が同じ | ファイルは置き換えず mode を揃え、パスを記録する |
-| symlink・ディレクトリなど | 警告して触らず、記録に載せない |
-| 記録にあり宣言から外れた通常のファイル | 手編集の有無にかかわらず消し、記録から外す |
-| 記録にあり宣言から外れた通常のファイル以外 | 警告して残し、記録から外す |
+- switch にネットワークからの取得が混ざると、環境の適用が GitHub への到達や認証の状態に左右される
+- 鍵の書き出しとの順序を DAG の依存名で表すことになる。Home Manager は存在しない依存名をエラーにしないので、名前を間違えると順序の保証が黙って消える。実際に、存在しないノード名を指していた。activation の依存名が実在するノードを指していることは、`tests/default.nix` で確かめている
+- clone が要るのは新しい環境を用意する一度だけ
 
-記録は `${config.xdg.stateHome}/flake-secrets/placed`（通常は `~/.local/state/flake-secrets/placed`）に
-1 行 1 パスで保存し、中身やハッシュは書かない。記録も一時ファイルから `mv` で置き換える。
-宣言が空でも削除用 activation は残るが、復号しないので age 鍵は要求しない。
-宣言も記録も無ければ何もしない。
+`clone-repos` は `dest` がないときだけ clone し、既存の checkout には触らない。
+clone は一時領域で終えてから `dest` に移すので、途中で失敗しても `dest` を作りかけのまま残さない。
+Git の checkout かどうかは `.git` があるかで判断し、remote の URL までは比べない。
 
-復号先は宛先と同じディレクトリの一時ファイルで、umask 077 を使う。
-内容が違うときだけ mode を付けて `mv -f` するので、途中で失敗しても宛先には元のファイルが残る。
-同じなら宛先の mode だけを直す。一時ファイルは失敗時も trap で消す。
-直接宛先へリダイレクトすると、復号失敗時に空の秘密を残すので避ける。
-dry-run は復号も書き込みもせず、揃える予定と削除予定のパスだけを表示する。
+## 更新は `pull-repos` にし、switch に混ぜない
 
-退けた案は「あれば触らない」配置と、内容のハッシュで手編集を保護する別の更新コマンド。
-以前は手で差し替えた鍵を switch が戻す事故を避けるために分けていた。
-しかし手で差し替えたまま使う運用はなく、鍵は `secrets.yaml` を直して変えるため、
-switch で宣言に揃える方針にした。
-GitHub への公開鍵の登録・失効は扱わない。登録と switch の順序は
-[使い方](../howtouse/private-repo-clone.md#ssh-鍵を差し替えたとき)に従う。
+switch が pull もすると、システムの世代を切り替えるつもりの操作で working tree も動き、更新のタイミングをユーザーが選べなくなる。
+`git pull --ff-only` なので、分岐した repo で merge commit を勝手に作らない。
+同じ GitHub の鍵で更新できるので、flake 自身も対象に入れた。
 
-## 更新は switch から切り離して `pull-repos` に置く
+## vault は clone で用意する
 
-clone-if-absent の裏返しとして、一度 clone した repo は switch では新しくならない。
-その更新を `pull-repos` という別コマンドに出した（`private-repos.nix` が `home.packages`
-に載せる）。switch に pull を混ぜないのは、更新のタイミングをユーザーが選べるようにするため。
-switch が pull も担うと、システム世代を切り替えるつもりの操作が working tree も動かす。
+外部 flake の `services.zettelkasten.initializeVault` も、switch の中でフォルダを作って `git init` する。
+両方を有効にすると、先にできた空のフォルダに `git clone` できずに失敗する。
+ノートはすでに GitHub にあるので、clone 側に一本化した。
 
-対象は clone 対象の全 repo に flake 自身（`local.profile.flakeRoot`）を加えたもの。同じ GitHub 鍵で
-更新でき、「手元の checkout を全部新しくする」意図では flake だけ別扱いする理由が無い。
-clone 対象が無い環境でも flake 1 つを対象にコマンドは生える。
+同じ理由で、vault の中にマウントする papis の subvol（[disk-tiering.md](./disk-tiering.md)）も、clone より先にマウント先を作らない。
 
-`git pull --ff-only` なので、ローカルにコミットがあって分岐した repo は git が拒否して止まる
-（merge commit を勝手に作らない）。1 つ失敗しても残りは回し、最後に非ゼロで終わる。
-未 clone の dest は `clone-repos` を案内するだけで、ここでは clone しない
-（clone の経路を `clone-repos` に一本化するため）。
+## 制約
 
-## fail-fast（age 鍵が無ければ switch を失敗させる）
+- 新しい環境の評価に SSH 鍵は要らない。`inputs.zettelkasten` を `github:`（https）で取得しているため。`git+ssh://` に戻すと、age 鍵だけでは用意できなくなる
+- `lanSsh` のユーザーがいると `secrets/secrets.yaml` を評価で参照する。この repo を fork したら、自分の暗号文をコミットするまで評価が通らない
+- 暗号文は `"${secretsFile}"` で単独で store にコピーし、世代の closure に入れる。flake のソースは closure に入らない（2026-10-03、desktop の 26.05 の toplevel で確認）。ソースの中のパスを参照すると、GC でソースが消えた後の起動時の activation で復号に失敗する
+- `secrets.yaml` に同居させている Gemini の API キーは、課金を紐づけていない無料枠のキーで、漏れたときの被害は無料枠の消費に留まる。SSH 秘密鍵と同じ扱いでよいのはそのため
 
-以前は age 鍵が無いとき警告だけ出して続行していた。これをやめ、`exit 1` で activation を
-止めるようにした。
+## 見直す条件
 
-きっかけは実際に踏んだこと。新マシンで age 鍵の取得に失敗したまま switch したところ、
-`nixos-rebuild switch` は成功と表示し、鍵が無いことに気づけなかった。警告は
-`home-manager-<user>.service` の journal に落ちるので端末に出ない。「switch が成功した」と
-「環境が意図どおりになった」がずれる状態を作らないほうがよい。
-
-副作用として、既存マシンで age 鍵を失うと `nixos-rebuild switch` が完全に通らなくなる。
-`lanSsh` を有効にしているユーザー（desktop と spin713 の pomu）は、`id_lan` のために `sshKeys` が常に非空だからである。回復手段は
-[howtouse 側](../howtouse/private-repo-clone.md#age-鍵を作り直す)に書いてある。
-switch できないと回復もできないという循環は起きない——age 鍵を置く操作に switch は要らない。
-
-## 複数 repo へ汎用化
-
-`clone-repos` は `local.profile.privateRepos = [{ url; dest; }]` を回して clone する。
-リストは `modules/home-manager/profile.nix` がユーザーごとの高レベル設定（`agentConfigRepo` / `vaultSkeletonRepoUrl` などの
-URL 側と、`agentConfigRoot` / `vaultSkeletonRepo` などの dest 側）から自動で組み立てる。
-新しいprivate repoはユーザーの `local.profile.privateRepos` に `{ url; dest; }` を追加する。clone機構やfactoryの変更は不要。
-
-## SSH 鍵以外の秘密へ広げる
-
-復号の実装は `modules/home-manager/secrets.nix` に 1 つだけ置き、入口を 2 つ持つ。
-`sshKeys` は `~/.ssh` へ `600` で置く用途に限った短い入口、`secrets` は書き出し先と
-モードを明示する一般の入口。`secrets.nix` の中で前者を後者へ変換する。
-
-入口を分けたのは、SSH 鍵には置き場所とモードの選択肢が実質無く、毎回 `path` と `mode` を
-書かせると呼び出し側が冗長になるため。復号の手順（一時ファイル経由、失敗時に空ファイルを
-残さない、暗号文に揃える）を二重に持たないことのほうが、入口の数を 1 つに
-絞ることより優先度が高い。
-
-最初の利用者は Gemini の API キー（`~/.config/gemini/api-key`）。無料枠のキーで課金
-プロジェクトを紐づけていないので、漏れたときの被害は無料枠の消費に留まる。SSH 秘密鍵と
-同じ暗号文に同居させているが、秘密の格は同じではない。格の高い秘密を足すときは受信者の
-分離を検討する。
-
-## vault フォルダの所有者は clone
-
-Obsidian vault（ノート本文の private repo）もこのリストに載せている。vault を用意する経路は
-もう一つあり、`services.zettelkasten.initializeVault`（外部 flake 側の option）が switch 中に
-フォルダ作成と `git init` を行う。**両方を有効にしてはいけない**——先に空フォルダができると
-`git clone` が「空でないディレクトリ」で失敗するため。
-
-この repo では clone 側に一本化した。ノート本文が既に GitHub にある以上、`git init` は
-初期化ではなく衝突でしかない。`initializeVault` は既定 `false` なので、明示的に何も書かない
-ことが正しい設定になる。
-
-同じ理由で、vault の中へ mount する btrfs subvol（papis ライブラリ）も clone より先に
-mount 先を作ってはいけない。これは `fileSystems` ではなく条件付き `systemd.mounts` で
-表現し、clone 後は vault の `.git` の出現を見る path unit が mount を始める（[disk-tiering.md](./disk-tiering.md) 参照）。
-
-## 抜き差し可能性
-
-URL 側（`agentConfigRepo` / `vaultSkeletonRepoUrl` 等）が `null`（既定）ならその repo は
-リストに入らず、全 URL が null なら `clone-repos` は入らない。
-dest 側とは別軸で持つことで「symlink（あるいは mirror-vault）だけ欲しい（手動 clone）」と
-「clone も自動化したい」を repo ごとに独立に選べる。
-
-clone対象が無ければGitHub鍵は自動配布しない。LAN鍵も選択せず、追加の `local.profile.sshKeys` も無ければ鍵の復号はなくなり、配置記録に残る秘密を消すactivationだけが残る（追加の `secrets` も空の場合）。
-OS種別ではなく本人の `local.profile.lanSsh` でLAN鍵の配布を選ぶ。既存2台のpomuはtrueだが、新規ユーザーはfalse。
-
-## ゼロからの復元（eval 時の鍵依存は解消済み）
-
-以前は fresh 環境で flake の評価自体にユーザー SSH 鍵が必要だった。`inputs.zettelkasten`
-を `git+ssh://` で取得していたため、鍵が無いと switch に到達する前の eval で失敗し、「age 鍵だけ
-渡せば完全にゼロから復元」は成立しなかった。
-
-この制約は zettelkasten の mechanism を public repo（`github:khimoo/zettelkasten-workflow`）へ
-分割し、input を `github:`（https 取得）に切り替えたことで**解消した**
-（[zettelkasten-attachments-sync.md](./zettelkasten-attachments-sync.md) 参照）。eval が SSH 鍵を
-要求しなくなったので、いまは:
-
-- **専用 age 鍵 1 本を `~/.config/sops/age/keys.txt` に置く**（既存マシンから SSH 送信、または
-  Bitwarden から取得）
-- 公開 flake を clone して switch する
-- `clone-repos` を実行する
-
-だけでゼロから復元できる。SSH 鍵（`~/.ssh/id_github` と `~/.ssh/id_lan`）は switch 中の
-activation が `secrets.yaml` を age 鍵で復号して書き出すので、事前に置かなくてよい。
-
-## 限界
-
-- `lanSsh` を有効にしているユーザー（desktop と spin713 の pomu）は `sshKeys` が常に非空なので、`secrets/secrets.yaml` が store path として
-  参照される。この repo をそのまま fork して自分の暗号文に差し替える場合、
-  `secrets.yaml` をコミットするまで eval が通らない
-- standalone（`homeConfigurations`）は URL 側を全て未指定にすれば `secrets.yaml` を
-  参照しないので、age 鍵も暗号文も無しで switch できる
-- activation は秘密の宣言があるとき、起動時の activation（`home-manager-<user>.service`）を含めて毎回復号する。
-  暗号文は `"${secretsFile}"` で単独で store にコピーし、世代の closure に入れる。flake のソースは closure に
-  入らない（2026-10-03、desktop の 26.05 の toplevel で確認）ので、ソース内のパスを参照すると、GC でソースが消えた後の
-  起動で復号に失敗する。store の暗号文は誰でも読めるが、同じファイルは公開 repo にある
-
-## clone失敗後の再実行
-
-新規cloneは同じ親ディレクトリの一時領域で完了させてからdestへ移す。途中失敗では一時領域を掃除し、destを成功済みとして残さない。既存のdestがGit checkoutでなければ停止して利用者に確認を求める。既存ファイルは自動削除しない。
-Git checkoutの確認は `.git` エントリの存在を見る（通常cloneとworktreeに対応）。remote URLの同一性やcheckout内容までは検証しない。
-鍵配布を選択しないユーザーの `pull-repos` は、存在しない `id_github` を強制せず通常のGit/SSH設定を使う。
+- マシンの台数や共有する人が増えたら、age 鍵をマシンごとの受信者に分ける
+- 漏れたときの被害が大きい秘密を足すなら、受信者を分けることを考える
+- age 鍵を新しいマシンに置く経路（SSH で送る、Bitwarden から取り出す）は、[new-machine.md](./new-machine.md) の nixos-anywhere での用意に一本化する予定

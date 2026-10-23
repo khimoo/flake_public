@@ -1,262 +1,121 @@
-# エージェント設定（Claude Code / Codex）の git 管理（設計判断）
+# エージェント設定の設計
 
-使い方は [docs/howtouse/agent-config.md](../howtouse/agent-config.md) を参照。
-実装: [modules/home-manager/dev/claude.nix](../../modules/home-manager/dev/claude.nix)、
-[modules/home-manager/dev/codex.nix](../../modules/home-manager/dev/codex.nix)、
-マシン固有の指示は [modules/nixos/agent-instructions.nix](../../modules/nixos/agent-instructions.nix)
+使い方: [エージェント設定](../howtouse/agent-config.md)
+実装: [claude.nix](../../modules/home-manager/dev/claude.nix)、[codex.nix](../../modules/home-manager/dev/codex.nix)、[agent-sync.nix](../../modules/home-manager/dev/agent-sync.nix)、[agent-instructions.nix](../../modules/nixos/agent-instructions.nix)
 
-## 何を解決するか
+## 設定 repo の clone へ out-of-store symlink する
 
-Claude Code と Codex CLI のユーザー設定（共通指示、skills、Claude の settings と
-output style、Codex の実行ポリシー）は private な内容を含むため flake_public には置けない。
-一方で git 管理と複数マシンでの共有はしたい。
-flake_public は名目上誰でも使える公開リポジトリなので、private な設定は
-**抜き差し可能**（持っていない人には一切影響しない）である必要がある。
-
-二つのハーネスを併用するので、指示と skills を一箇所に持ち、両方がそれを読む形にする。
-
-## 採った方式: パス注入 + out-of-store symlink
-
-- 設定 repo の clone 先は、そのユーザーの `local.profile.agentConfigRoot`（既定 null）から注入する。
-  `modules/home-manager/profile.nix` が型を定義し、別ユーザーの home 配下は拒否する。
-- モジュールは `null` なら no-op。非 null なら `claude.nix` が `~/.claude/` の各エントリを、
-  `codex.nix` が `~/.codex/AGENTS.md` `~/.agents/skills` `~/.codex/rules/base.rules` を
-  `mkOutOfStoreSymlink` で clone へ張る
-
-flake_public 側が設定 repo について知るのはレイアウト規約（`shared/` `claude/` `codex/` の
-三分割と各ファイル名）だけで、repo の固有名・URL・中身には依存しない。
-
-## repo を `shared/` `claude/` `codex/` に分ける理由
-
-各ファイルを「誰が読むか」で置く。
-
-- `shared/AGENTS.md`: Codex は `~/.codex/AGENTS.md` を global 指示として読み、Claude Code は
-  `AGENTS.md` を読まない（"Claude Code reads CLAUDE.md, not AGENTS.md"）。そこで
-  `claude/CLAUDE.md` の先頭で `@../shared/AGENTS.md` を import し、両方が同じファイルを読む。
-  `@import` の相対パスは symlink の置き場所ではなく実体のディレクトリを基準に解決される
-  （2026-09-12 に実測。project 層の `CLAUDE.md` を symlink にし、両方の候補に別のマーカーを
-  置いて `claude -p` に答えさせた）
-- `shared/skills/`: Codex 0.153 は `~/.agents/skills/` から Claude Code と同じ `SKILL.md`
-  （`name` と `description` の frontmatter）を読み、description に合えば暗黙に起動する。
-  Claude は `~/.claude/skills` から直接参照する。Codex は `~/.agents/skills` を
-  `codex/skills/` に向け、そこから共有スキルへ相対リンクを張る。Codex 専用スキルは
-  `codex/skills/` のみに置くため、Claude には公開されない
-- `claude/`: Claude Code だけが読むもの。`settings.json`（方針）と `hooks/` `output-styles/` `agents/` `commands/`
-- `codex/rules/base.rules`: Codex だけが読むもの
-
-共通指示を repo 直下に置かないのは、Codex が cwd から上の `AGENTS.md` を project 指示としても
-読むため。直下に置くと repo 自体を編集するセッションで global と project が同じファイルになり、
-repo 保守用の指示を書く場所がなくなる。直下の `AGENTS.md` / `CLAUDE.md` は repo 保守用に充てる。
-
-## Codex の live ファイルを張らない理由
-
-`~/.codex/config.toml` は Codex が信頼済みディレクトリ（`[projects."<絶対パス>"]`）、
-TUI で選んだモデル、NUX カウンタを書き込むアプリケーション状態の置き場で、
-[codex-subagents.md](./codex-subagents.md) で symlink 方式を退けた。
-全マシン共通の宣言は `/etc/codex/config.toml`（system 層）、モデルごとの値は
-プロファイル層 `~/.codex/<name>.config.toml`（`codex --profile <name>`）に置く。
-
-`~/.codex/rules/` は事情が違う。Codex は `rules/` 配下の `*.rules` を全部読み、
-承認プロンプトの「always allow」とネットワーク承認は `default.rules` にだけ追記する
-（`codex-rs/core/src/exec_policy.rs` の `DEFAULT_POLICY_FILE` と `default_policy_path`、
-2026-09-12 の main）。複数一致は最も厳しい決定が勝つ。そこで人が書く方針を `base.rules` として
-張り、`default.rules` は live のまま追跡しない。`base.rules` の `forbidden` / `prompt` を
-`default.rules` の `allow` が緩めることはない。
-
-## モデル別の差分をプロファイルに限る理由
-
-Claude Code は `--settings <file>` をコマンドライン層としてユーザー設定の上に重ね、Codex は
-`--profile <name>` で `~/.codex/<name>.config.toml` をユーザー層の上に重ねる（0.153.4 で
-`CODEX_HOME` を隔離して実測。`-c profile=<name>` では読まれない）。モデルごとに変えたい値は
-モデルの系列と reasoning effort で、どちらも設定値なのでこの層に収まる（Codex の版は次の節のとおり起動時に選ぶ）。指示文はモデルで分けない。
-分ける必要がいまのところ無く、分けると同じ規約を二重に持つことになるため。
-
-起動は alias ではなく PATH 上の実行ファイルにする。alias とシェル関数は対話シェルの外
-（IDE や他ツールからの起動）で効かない。Codex のプロファイルは `CODEX_HOME` 直下の
-ファイルとして探されるため名前ごとに symlink が要る。
-
-## モデル ID を書かず、起動時に系列から版を選ぶ理由
-
-どの系列（Claude の Opus と Fable、Codex の Astra と sol）を使うかは利用者が起動コマンドで選び、
-系列の中では新しい版が出たら、利用者もエージェントも設定を書き換えずにその版を使う。これが目的。
-
-Claude Code は `opus`、`fable` のような別名を受け付け、インストールされている Claude Code が知る最新のモデルに解決する
-（2.1.287 の `claude --help`）。プロファイルと `~/.claude/settings.json` の `model` には別名を書く。
-
-Codex には系列を指す別名がない。0.160.0 のモデル一覧（`codex debug models`）の ID はどれも版を含み、
-古いモデルに付く `upgrade` も、新しい版の出ている `gpt-6-sol` で `null` だった。そこで設定 repo の
-`codex/launch.py` が起動のたびに一覧を読み、ID の版番号を数値として比べて最新版を選ぶ。
-
-- 一覧の `priority` は使わない。Codex での用途は一覧の並び順と既定モデルの選択で
-  （`codex-rs/models-manager/src/manager.rs` の `build_available_models`、tag `rust-v0.160.0`）、新旧の順の保証がない
-- ID の形（`gpt-<版>-<系列>`）が変わると候補が無くなり、`codex-<系列>` は起動せずに止まる。そのときは `launch.py` の規則を直す
-- 子エージェントのモデルも `-c agents.default_subagent_model=...` で渡す。Codex は spawn でモデルが指定されないとこの値を使い、
-  役割の定義に `model` が無ければそのまま使う（`codex-rs/core/src/agent/child_config.rs` と `role.rs`、tag `rust-v0.160.0`）。
-  これで `sol-worker` の定義からもモデル ID を外せる
-- 選ぶ処理は sol-handoff の `run.py` も使うので、flake_public ではなく設定 repo に置く。flake_public は起動コマンドの配線だけを持つ
-
-退けた案:
-
-- 版を固定したまま、新しい版が一覧に出たら通知する案。書き換えの手作業が残り、目的に合わない
-- 素の `codex` を、モデルを足して本体を呼ぶラッパーに置き換える案。codex-companion や `run.py` も `codex` を呼ぶので、
-  `app-server` のようなサブコマンドにはモデルを渡さない区別をラッパー側で保守し続けることになる
-
-## プロファイルの名簿は設定 repo のファイルから導く
-
-以前はプロファイル名を flake_public の `local.profile.agentProfiles` に並べ、Nix で起動コマンドを作っていた。
-名簿は設定 repo にファイルを足すたびに変わるのに、flake_public にも同じ名前を手で書き足す必要があった。
-評価時に設定 repo を読む案（flake input にする）は、評価と lock の更新に SSH 鍵が要るので退けた（下記）。
-
-そこで、名簿は設定 repo の `claude/profiles/*.json` と `codex/*.config.toml` そのものとし、
-[agent-sync.nix](../../modules/home-manager/dev/agent-sync.nix) の `agent-sync` が実行時に読んで、
-`~/.local/share/agent-launchers/bin` の起動コマンドと Codex のリンクを作る。switch のたびと、Linux では
-設定 repo のディレクトリの変更を見る systemd の path unit から走るので、プロファイルの追加・削除に switch は要らない。
-一方、何をどこへ張るか（`claude.nix`、`codex.nix` の配線）は Claude Code と Codex が読む場所の約束で、
-ツールの仕様が変わったときにしか変わらないので、Nix の `home.file` に残す。
-
-- 起動コマンドは Nix の世代の外に置くので、世代を戻しても戻らない（設定 repo の Git 履歴と `agent-sync` で戻す）。
-  起動コマンドが指す `claude` と `codex` の store パスは switch のたびに書き直す
-- 起動コマンドには生成した印の行を入れ、印のあるファイルだけを後始末で消す。Codex のリンクは、設定 repo の `codex/` を
-  指すものだけを消す。手で置いたファイルには触らない
-- 名前に使えるのは英数字と `_` `-` だけ。shell のメタ文字を含む名前のファイルは飛ばす
-
-`--profile` は一回しか渡せない（`cannot be used multiple times`）ので、モデル非依存で
-private な Codex 設定を base プロファイルに置く案は成立しない。
-
-## マシン固有の指示はシステム層に置く
-
-設定 repo の指示（`shared/AGENTS.md` と `claude/CLAUDE.md`）は、全マシンで同じファイルへの symlink になる。
-マシンによって変わる指示を書く場所がない。
-例として spin713 には「メモリや GPU を多く使う処理はまずデスクトップで実行できるか確かめ、できなければフリーズしないか概算してから手元で実行する」という指示が要る（[remote-build.md](./remote-build.md#spin713-では手元でビルドしないmax-jobs--0)）。
-
-そこで、NixOS のホスト設定 `local.agentInstructions`（[modules/nixos/agent-instructions.nix](../../modules/nixos/agent-instructions.nix)）から、両ハーネスのシステム層に同じ本文を書き出す。
-本文は `hosts/<host>/agent-instructions.md` に一つだけ置き、ハーネスごとに違うのは書き出し先だけにした。
-
-- **Claude Code**: `/etc/claude-code/CLAUDE.md`。公式ドキュメント（[How Claude remembers your project](https://code.claude.com/docs/en/memory)、2026-09-24 に参照）が Linux の managed policy の指示ファイルとして挙げるパスで、「Managed policy CLAUDE.md files cannot be excluded」とある。ユーザーと project の CLAUDE.md より先に読まれる
-- **Codex**: `/etc/codex/config.toml`（system 層、[codex-subagents.md](./codex-subagents.md)）の `developer_instructions`。0.154.0 のバイナリにこのキーがある。ユーザー層の `~/.codex/config.toml` とプロファイルはこのキーを設定していないので、system 層の値が使われる
-
-TOML では、テーブル見出しの後に書いたキーはそのテーブルに入る。
-そこで `developer_instructions` は `lib.mkBefore` で `codex.nix` の `[agents]` より前に置き、値は `builtins.toJSON` で TOML の basic string にする。
-引用符、バックスラッシュ、改行、日本語を含む本文が `builtins.fromTOML` で元に戻ることを、`tests/default.nix` の module contracts で確かめている。
-
-両ハーネスが実際にこの本文を読むかは、実機で switch してから確かめる（手順は [../howtouse/agent-config.md](../howtouse/agent-config.md#マシン固有の指示)）。2026-09-24 時点では未確認。
+エージェントの設定は private な内容を含むので、公開している flake_public には置けない。
+設定 repo を持たない人には何も影響しないように、clone の場所をユーザーの `local.profile.agentConfigRoot`（既定は `null`）から渡し、`null` なら何もしない。
+flake_public が設定 repo について知るのは、`shared/`、`claude/`、`codex/` の分け方とファイル名だけにした。
 
 退けた案と理由:
 
-- **共通の `shared/AGENTS.md` に「ホスト名が nixos-spin713 なら」と条件付きで書く**: 配線は要らない。代わりに、マシンの事実（性能、ビルダーの接続名）が flake の外に散らばり、全マシンのエージェントが毎回その条件を読む
-- **home-manager が書き出したファイルを `claude/CLAUDE.md` から `@import` する**: Claude Code には効く。Codex には import の仕組みがないので、`~/.codex/AGENTS.md` を設定 repo の本文と連結して生成することになる。そうすると設定 repo の指示を編集しても switch するまで反映されず、「即反映」の性質を失う
+- 設定 repo を flake input にする: private な input があると、アクセス権のない人の `nix flake update` と `nix flake check` が失敗する。skill は頻繁に編集するので、編集のたびに commit、`nix flake update`、switch が要るのも合わない
+- `~/.claude` を丸ごと symlink する: Claude Code が履歴やキャッシュを書き込むディレクトリなので、管理したいカテゴリだけをディレクトリごと張る。Claude Code が読む既知のカテゴリは最初から全部張り、repo にまだないものは dangling のままにする（Claude Code には「設定なし」に見える）
+- 読み取り専用の `settings.json` や `config.toml` を生成する: `/model` などのアプリからの書き込みが失敗する
 
-トレードオフ:
+## 設定 repo を `shared/`、`claude/`、`codex/` に分ける
 
-- 本文は Nix store を経由するので、編集のたびに switch が要る
-- Claude Code の managed 層はユーザー側で除外できない。自分のマシンにだけ置く指示なので問題にしない
-- 対象は NixOS ホストだけ。standalone home-manager の環境には入らない
+どちらのエージェントが読むかで置き場所を決める。
 
-## 検討して退けた案
+- Claude Code は `AGENTS.md` を読まない。そこで `claude/CLAUDE.md` の先頭で `@../shared/AGENTS.md` を import し、Codex の `~/.codex/AGENTS.md` と同じファイルを読ませる。`@import` の相対パスは、symlink の置き場所ではなく実体のディレクトリを基準に解決される（2026-09-12 に、symlink にした `CLAUDE.md` の両方の候補に別の印を置いて `claude -p` で確かめた）
+- Codex 0.153 は `~/.agents/skills/` から Claude Code と同じ形式の `SKILL.md` を読む。`~/.agents/skills` は `codex/skills/` に向け、共有の skill へはそこから相対リンクを張る。Codex 専用の skill は Claude からは見えない
+- 共通の指示を repo の直下に置かないのは、Codex が cwd から上の `AGENTS.md` を project の指示としても読むため。直下に置くと、設定 repo を編集するセッションで global と project が同じファイルになる。直下の `AGENTS.md` と `CLAUDE.md` は repo の保守用に使う
 
-### 設定 repo を flake input にする（zettelkasten 方式）
+## アプリが書き込むファイルは張らない
 
-zettelkasten（同期の仕組み）は flake input（`github:khimoo/zettelkasten-workflow`）だが、
-エージェント設定には合わない:
+`~/.codex/config.toml` には、Codex が信頼済みディレクトリや選んだモデルを書き込む（[codex-subagents.md](./codex-subagents.md) で symlink を退けた）。
+全マシン共通の設定は `/etc/codex/config.toml`（system 層）に、モデルごとの値はプロファイルに置く。
 
-- **公開利用性**: private repo を flake input にすると、アクセス権のない人は
-  `nix flake update` / `nix flake check` で失敗する。zettelkasten は仕組みを
-  public repo（`github:`, https 取得）に分割してこれを回避した（ノート本文だけ別の
-  private repo に残す）。エージェント設定 repo は public 化する動機のない純粋な private
-  コンテンツなので、input にすると回避策のない形でこの制約を持ち込むことになる
-- **編集サイクル**: skills は頻繁に編集する「生きた設定」で、input 経由の store コピーだと
-  編集のたびに commit + `nix flake update` + rebuild が必要になる。
-  neovim 設定が out-of-store symlink である理由と同じ
-- **input が提供する価値がない**: zettelkasten input は同期スクリプトや home-manager
-  モジュール（仕組み）を提供するから input である意味がある。エージェント設定 repo は
-  純粋なコンテンツなので、パスさえ分かれば良い
+Codex は `~/.codex/rules/` の `*.rules` を全部読み、承認の「always allow」とネットワークの承認は `default.rules` にだけ追記する（`codex-rs/core/src/exec_policy.rs` の `DEFAULT_POLICY_FILE`、2026-09-12 の main）。
+複数の規則に当たると最も厳しい決定が使われる。
+そこで人が書く方針だけを `base.rules` として張り、`default.rules` は追跡しない。
 
-### `~/.claude` を丸ごと symlink する
+`~/.claude/settings.json` も同じ理由で追跡しない（[Claude の方針](#claude-の方針は設定-repo-からユーザー設定へ反映する)）。
 
-`~/.claude` は Claude Code 自身が `settings.json`・履歴・キャッシュ等を書き込む
-live なディレクトリのため、git 管理したいエントリだけを個別に symlink する。カテゴリは
-ディレクトリ丸ごと symlink し、repo をそのカテゴリの唯一の所有者とする（個別 skill/agent
-ごとの列挙を Nix 側に持たない）。
+## モデルの違いはプロファイルに限る
 
-Claude Code がユーザー設定を読むカテゴリ（`skills` `agents` `commands` `output-styles` `hooks`）は
-ツール側で決まった小さな固定集合なので、既知カテゴリを最初から全部張っておく。repo に
-まだ存在しないカテゴリは dangling symlink になるが（Claude Code からは「設定なし」に
-見えるだけで無害）、repo 側でそのディレクトリを作った瞬間に live になる。switch が要るのは
-ツールが**未知の新カテゴリ**を導入したときだけに限定される。
+Claude Code は `--settings <file>` をコマンドラインの層としてユーザー設定に重ね、Codex は `--profile <name>` で `~/.codex/<name>.config.toml` をユーザーの層に重ねる（0.153.4 で `CODEX_HOME` を分けて確かめた。`-c profile=<name>` では読まれない）。
+モデルごとに変えたいのは系列と reasoning effort で、どちらも設定値なのでこの層に収まる。指示文は、分ける理由がないのでモデルで分けない。
 
-### `settings.json` を `--settings` で毎回重ねる（live を追跡しない）
+- 起動は alias ではなく PATH 上の実行ファイルにする。alias とシェル関数は、IDE や他のツールからの起動に適用されない
+- Codex の `--profile` は一回しか渡せない（`cannot be used multiple times`）。モデルに依らない private な設定を `base` プロファイルに置く案は成り立たない
+- `CLAUDE_CONFIG_DIR` でモデルごとに `~/.claude` を分ける案は、セッションの履歴とプラグインまで分かれるので退けた
 
-`claude --settings <file>` はコマンドライン層としてユーザー設定の上に重なるが、ラッパーを
-通さない起動（IDE、他ツールからの呼び出し）には効かない。ユーザー設定へ反映すれば起動の経路に
-よらず掛かる。
+## モデル ID を書かず、起動時に系列から版を選ぶ
 
-### home-manager が生成した読み取り専用の `settings.json` / `config.toml`
+どの系列（Claude の Opus と Fable、Codex の Astra と sol）を使うかは起動コマンドで選び、系列の中の新しい版は、利用者もエージェントも設定を書き換えずに使う。
 
-`/model` `/config` や Codex 側の書き込みが失敗する。
+Claude Code は `opus`、`fable` のような別名を、インストールされている Claude Code が知る最新のモデルに解決する（2.1.287 の `claude --help`）。プロファイルには別名を書く。
 
-### Codex の共通設定を `base` プロファイルにして常に `--profile base`
+Codex には系列を指す別名がない。0.160.0 の `codex debug models` の ID はどれも版を含み、古いモデルに付く `upgrade` も、新しい版の出ている `gpt-6-sol` で `null` だった。
+そこで設定 repo の `codex/launch.py` が起動のたびに一覧を読み、ID の版番号を数値として比べて最新版を選ぶ。
 
-`--profile` が一回しか渡せないためモデル別プロファイルと両立しない。全マシン共通で
-public に書ける設定は system 層、private でモデル非依存の設定が必要になったら各プロファイルに
-重複して書く。
+- 一覧の `priority` は使わない。Codex での用途は並び順と既定モデルの選択で（`codex-rs/models-manager/src/manager.rs` の `build_available_models`、tag `rust-v0.160.0`）、新旧の順を保証しない
+- ID の形（`gpt-<版>-<系列>`）が変わると候補がなくなり、`codex-<系列>` は起動せずに止まる。そのときは `launch.py` の規則を直す
+- 子エージェントのモデルも `-c agents.default_subagent_model=...` で渡す。Codex は spawn でモデルが指定されず、役割の定義にも `model` がなければこの値を使う（`codex-rs/core/src/agent/child_config.rs` と `role.rs`、tag `rust-v0.160.0`）
+- 選ぶ処理は sol-handoff の `run.py` も使うので、設定 repo に置く。flake_public は起動コマンドの配線だけを持つ
 
-### 起動を alias にする、または private repo 内のラッパースクリプトにする
+退けた案と理由:
 
-alias は対話シェルの外で効かない。private repo にラッパーを置くと起動の仕組みが repo 側に
-漏れ、flake_public が「レイアウト規約だけを知る」線を越える。
+- 版を固定し、新しい版が出たら通知する: 書き換えの手作業が残る
+- 素の `codex` を、モデルを足すラッパーに置き換える: codex-companion や `run.py` も `codex` を呼ぶので、`app-server` のようなサブコマンドにはモデルを渡さない区別を保守し続けることになる
 
-### `CLAUDE_CONFIG_DIR` でモデルごとに `~/.claude` を分ける
+## プロファイルの名簿は設定 repo のファイルから導く
 
-settings と一緒にセッション履歴と plugins の実体も分かれる。変えたい値が model と effort だけ
-なら過剰。
+名簿は設定 repo の `claude/profiles/*.json` と `codex/*.config.toml` そのものとし、`agent-sync` が実行時に読んで起動コマンドと Codex のリンクを作る。
+flake_public にプロファイル名を並べると、設定 repo にファイルを足すたびに同じ名前を手で書き足すことになる。評価時に設定 repo を読む（flake input にする）と、評価と lock の更新に SSH 鍵が要る。
+何をどこへ張るか（`claude.nix`、`codex.nix`）は、ツールの仕様が変わったときにしか変わらないので Nix の `home.file` に残した。
 
-### skills を `<repo>/.agents/skills` に置いて Codex の project 層でも拾わせる
+- 起動コマンドは Nix の世代の外に置くので、世代を戻しても戻らない。起動コマンドが指す `claude` と `codex` の store パスは switch のたびに書き直す
+- 起動コマンドには生成した印の行を入れ、印のあるファイルだけを後始末で消す。Codex のリンクは、設定 repo の `codex/` を指すものだけを消す
+- 名前は英数字と `_`、`-` に限る。shell のメタ文字を含む名前は飛ばす
+- 設定 repo の変更を見る path unit は Linux にしかない。macOS では、プロファイル名を足したり消したりしたら switch か `agent-sync` の実行が要る
 
-global の配線で全プロジェクトに効いているので不要。同じ skill が global と project の
-両方で見つかったときの扱いを前提にしない。
+## マシン固有の指示はシステム層に置く
 
-## トレードオフ
+設定 repo の指示は全マシンで同じファイルなので、マシンによって変わる指示を書く場所がない。
+例として spin713 には「メモリや GPU を多く使う処理はまずデスクトップで実行できるか確かめ、できなければフリーズしないか概算してから手元で実行する」という指示が要る（[remote-build.md](./remote-build.md#spin713-では手元でビルドしないmax-jobs--0)）。
 
-- clone が無い環境で `agentConfigRoot` を指定すると symlink が dangling になる
-  （「設定なし」に見えるだけで壊れはしない）。指定は clone がある
-  ホストに限る運用
-- レイアウト規約（`shared/` `claude/` `codex/` と各ファイル名）は flake_public と設定 repo の
-  間の暗黙の契約。既知カテゴリは列挙済みなので日常の追加では触らないが、
-  ツールが未知の新カテゴリを導入した場合はモジュールに 1 行足す必要がある
-- `~/.codex/rules/` に `base.rules` と `default.rules` が同居するため、どの行がどちらに
-  あるかは人が見て移す。自動化はしない
-- プロファイルは既定を選ぶだけで、モデルを固定しない。`claude --resume` は transcript のモデルを
-  優先し、Codex は project 層と `-c` フラグがプロファイルより優先される
-- プロファイル名の追加・削除は、Linux では path unit が反映する。macOS の Home Manager では switch か `agent-sync` の実行が要る
+NixOS のホスト設定 `local.agentInstructions` から、両方のエージェントのシステム層に同じ本文を書き出す。
 
-## 見直す条件
+- Claude Code: `/etc/claude-code/CLAUDE.md`。公式文書（[How Claude remembers your project](https://code.claude.com/docs/en/memory)、2026-09-24 に参照）が Linux の managed policy の指示ファイルとして挙げるパスで、「Managed policy CLAUDE.md files cannot be excluded」とある
+- Codex: `/etc/codex/config.toml` の `developer_instructions`（0.154.0 にこのキーがある）。ユーザーの層とプロファイルはこのキーを設定していないので、system 層の値が使われる
 
-- Codex がユーザー層の指示ファイルに include やホスト別のファイルを導入したら、マシン固有の指示を `developer_instructions` から指示ファイルに移す
-- Claude Code が `AGENTS.md` を直接読むようになったら `claude/CLAUDE.md` の import は不要になる
-- Codex がユーザー層の `config.toml` に include や複数ファイルを導入したら、モデル非依存の
-  private 設定を repo に置けるようになる
-- `--profile` を複数回渡せるようになったら `base` プロファイル案を再検討する
+TOML では、テーブルの見出しの後に書いたキーはそのテーブルに入る。
+そこで `developer_instructions` は `lib.mkBefore` で `codex.nix` の `[agents]` より前に置き、値は `builtins.toJSON` で TOML の basic string にする。引用符、バックスラッシュ、改行、日本語を含む本文が元に戻ることは `tests/default.nix` で確かめている。
+両方のエージェントが実機でこの本文を読むかは、2026-09-24 の時点では確かめていない。
+
+退けた案と理由:
+
+- 共通の `shared/AGENTS.md` に「ホスト名が nixos-spin713 なら」と書く: マシンの事実が flake の外に散らばり、全マシンのエージェントが毎回その条件を読む
+- home-manager が書き出したファイルを `claude/CLAUDE.md` から `@import` する: Codex には import がないので `~/.codex/AGENTS.md` を連結して生成することになり、設定 repo の指示を編集しても switch するまで反映されなくなる
+
+代償として、本文は Nix store を経由するので編集のたびに switch が要り、standalone home-manager の環境には入らない。
 
 ## Claude の方針は設定 repo からユーザー設定へ反映する
 
-`~/.claude/settings.json` は Claude Code が `/model`、`/config`、`/plugin` のたびに書き込む。
-以前は設定 repo へ直接リンクし、アプリの書き込みを diff で選別していたが、コミットのたびに選別する手間が残った。
-Codex の `config.toml` と同じく、live ファイルは追跡しない。
-
-残したい方針（フック、`enabledPlugins`、`extraKnownMarketplaces`、`outputStyle`、`language`、`env`）は、
-設定 repo の `claude/settings.json` に置き、`agent-sync` が `~/.claude/settings.json` の同じキーへ反映する。
-
-以前は NixOS の `/etc/claude-code/managed-settings.json` を設定 repo のファイルへのリンクにしていた。
-managed settings はマシンの全ユーザーに掛かる組織向けの層で、個人の設定を置く場所ではない
-（[Claude Code の設定スコープ](https://code.claude.com/docs/en/settings)）。個人の checkout をマシン全体から参照する構成もやめるため、
-ユーザー設定へ反映する形にした。
+`~/.claude/settings.json` には、Claude Code が `/model`、`/config`、`/plugin` のたびに書き込む。
+残したい方針は設定 repo の `claude/settings.json` に置き、`agent-sync` が `~/.claude/settings.json` の同じキーへ反映する。
 
 - 設定 repo にあるキーは設定 repo の値を優先する（ユーザーの判断）。前回の反映の後にアプリの中で変わっていたキーは、警告してから上書きする
-- 値がオブジェクトのキーは一段下のキーごとに管理する。`/plugin` で試しているプラグインのように、利用者が足したキーを残すため。
-  配列は一段下に分けず、値ごと置き換える
-- 前回反映したキーとパスを `~/.local/state/agent-sync/` に記録し、設定 repo から消えたものだけを消す
-- どちらかの JSON が壊れていれば反映を止める。switch は止めない（Claude Code は古い設定のまま動く）
-- ユーザー設定は project 設定や `--settings` より優先度が低い。managed settings のように、プロジェクト側の設定で上書きされない保証はない
+- 値がオブジェクトのキーは一段下のキーごとに管理し、利用者が `/plugin` で足したキーを残す。配列は値ごと置き換える
+- 前回反映したキーを `~/.local/state/agent-sync/` に記録し、設定 repo から消えたものだけを消す
+- どちらかの JSON が壊れていれば反映を止める。switch は止めない
+- ユーザー設定は project の設定や `--settings` より優先度が低いので、プロジェクト側の設定で上書きされうる
 
-公開されている dotfiles では、chezmoi の `modify_` などで既存の JSON に管理するキーだけを取り込む方式が複数ある。
-アプリの書き込みと宣言を両立させる方法に Claude Code の標準はないので、この形はこのリポジトリの判断である。
+退けた案と理由:
+
+- `~/.claude/settings.json` を設定 repo へ直接リンクする: アプリの書き込みを、コミットのたびに diff で選り分けることになる
+- `/etc/claude-code/managed-settings.json` を設定 repo へのリンクにする: managed settings はマシンの全ユーザーに掛かる組織向けの層で（[設定スコープ](https://code.claude.com/docs/en/settings)）、個人の checkout をマシン全体から参照することになる
+- 毎回 `--settings` で重ねる: ラッパーを通さない起動（IDE など）に適用されない
+
+既存の JSON に管理するキーだけを取り込む方式は、公開されている dotfiles でも chezmoi の `modify_` などで使われている。Claude Code に標準の方法はなく、この形はこのリポジトリの判断である。
+
+## 見直す条件
+
+- Claude Code が `AGENTS.md` を直接読むようになったら、`claude/CLAUDE.md` の import は要らない
+- Codex がユーザーの層の指示ファイルに include やホスト別のファイルを入れたら、マシン固有の指示を `developer_instructions` から指示ファイルに移す
+- Codex がユーザーの層の `config.toml` に include や複数のファイルを入れたら、モデルに依らない private な設定を設定 repo に置ける
+- `--profile` を複数回渡せるようになったら、`base` プロファイルの案を考え直す
