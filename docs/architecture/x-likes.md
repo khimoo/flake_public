@@ -130,7 +130,10 @@ x-likes-archive の `xlikes serve` は、ポートを開いて待ち受けるだ
 結果は検索方法ごとの列に並べ、RRF でまとめない。理由は x-likes-archive の `docs/design.md` にある。
 検索は GPU のロックを取らない（[GPU を使う計算はロックで順番にする](#gpu-を使う計算はロックで順番にする)）。夜間の画像の埋め込みと同時にモデルを読み込むと、どちらかの VRAM が足りなくなることがある。
 
-開けるのは 127.0.0.1 からだけにする。Tailscale 経由でノート PC から開けるようにするのは、あとで決める。
+nixos-desktop では、ポート番号を覚えずに開けるよう、常駐する Caddy を `http://xlikes.localhost/` の入口にする。
+名前は `/etc/hosts` でループバックへ解決し、Caddy も IPv4・IPv6 のループバックだけで待ち受ける。
+転送先は Home Manager の `local.xLikes.webPort` を参照する。サーバー本体へ直接転送するとソケットによる起動を迂回するため、既存の起動用ソケットへ渡す。
+自マシン内の HTTP 接続とし、証明書の配布は行わない。Tailscale 経由でノート PC から開けるようにするのは、あとで決める。
 
 ## バックアップを Google Drive に restic で写す
 
