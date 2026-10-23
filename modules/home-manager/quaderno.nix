@@ -133,6 +133,7 @@ in
         # 取り込み先がまだ無い間は失敗にせず skip する。用意するのは呼び出し側の責任で、
         # このホストでは data-disk.nix の systemd.tmpfiles が作る。
         ConditionPathIsDirectory = cfg.archiveDir;
+        OnFailure = config.local.failureNotify.onFailure;
       };
       Service = {
         Type = "oneshot";

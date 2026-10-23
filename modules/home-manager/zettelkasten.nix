@@ -47,5 +47,13 @@ in
       # null なら PATH に載らない。
       mirrorRepo = config.local.profile.vaultSkeletonRepo;
     };
+    # 同期の失敗をデスクトップに通知する。サービスは外部 flake が定義するので、ここで足す。
+    systemd.user.services = lib.mkMerge [
+      (lib.mkIf attachmentsOn {
+        zettelkasten-sync.Unit.OnFailure = config.local.failureNotify.onFailure;
+        originals-sync.Unit.OnFailure = config.local.failureNotify.onFailure;
+      })
+      (lib.mkIf papisOn { papis-sync.Unit.OnFailure = config.local.failureNotify.onFailure; })
+    ];
   };
 }

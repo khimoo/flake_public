@@ -404,6 +404,10 @@ lib.genAttrs systems (
         inputs.self.nixosConfigurations.nixos-desktop.config.services.postgresql.ensureDatabases;
       # ログイン画面のまま放置されても、ユーザーの timer を起動時から動かす。
       assert inputs.self.nixosConfigurations.nixos-desktop.config.users.users.pomu.linger == true;
+      # 定期実行が失敗したら気づけるよう、どの timer のサービスにも失敗の通知を付ける。
+      assert lib.all
+        (name: desktopUser.systemd.user.services.${name}.Unit.OnFailure or [ ] == desktopUser.local.failureNotify.onFailure)
+        (lib.attrNames desktopUser.systemd.user.timers);
       # sdl-freerdp は右 Alt（AltGr）の単独押しで、次のショートカット一回だけキーボードを掴む。右 Alt が AltGr に
       # なる配列を既定にし、keyd は普段の右 Alt を書き換えず、ターボの連打は ◇ + 右 Alt で入れるレイヤーに置く
       # （docs/architecture/windows-vm.md）。

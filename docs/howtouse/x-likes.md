@@ -68,6 +68,7 @@ xlikes fetch likejs <公式アーカイブの like.js>
 
 どちらも始めに `xlikes migrate` を実行するので、x-likes-archive を更新してスキーマが変わっても、次の実行で適用される。
 `xlikes-process` は途中の手順が失敗しても残りの手順を進め、最後に失敗として終わる。
+どちらの timer も、失敗すると GNOME に通知が出る（[failure-notify.md](./failure-notify.md)）。
 電源が切れていて 4:00 を逃すと、次の起動時に実行される。
 nixos-desktop の pomu は linger にしてあるので、どちらの timer もログインしていなくても動く。linger でないユーザーでは、ログインしている間だけ動き、逃した分は次のログイン時に実行される。
 

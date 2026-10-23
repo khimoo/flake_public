@@ -88,7 +88,10 @@ in
     home.packages = [ mcBackup mcCheck mcRestore mcSync mcSetupHooks ];
 
     systemd.user.services.mc-sync = {
-      Unit.Description = "Minecraft バックアップの刈り込みと Drive への同期";
+      Unit = {
+        Description = "Minecraft バックアップの刈り込みと Drive への同期";
+        OnFailure = config.local.failureNotify.onFailure;
+      };
       Service = {
         Type = "oneshot";
         ExecStart = lib.getExe mcSync;

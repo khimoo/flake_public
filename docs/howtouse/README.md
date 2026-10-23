@@ -16,6 +16,7 @@
 | 会社PCの NixOS-WSL | 会社 PC の WSL の導入と運用 | [wsl.md](./wsl.md) |
 | ディスク階層構成 | 2 層ディスクの subvol とマウント | [disk-tiering.md](./disk-tiering.md) |
 | GUI アプリ | GUI アプリの追加・削除の変更箇所 | [gui-apps.md](./gui-apps.md) |
+| 定期実行の失敗の通知 | ユーザーの定期実行が失敗したときの通知と確認 | [failure-notify.md](./failure-notify.md) |
 | デスクトップの Windows VM | Windows VM の起動と操作 | [windows-vm.md](./windows-vm.md) |
 | 音声 | 通話用エコーキャンセルの選択と確認 | [audio-echo-cancel.md](./audio-echo-cancel.md) |
 | CLI ツール | シェル環境と CLI ツール | [cli-tools/README.md](./cli-tools/README.md) |

@@ -94,7 +94,10 @@ in
     ];
 
     systemd.user.services.xlikes-sync = {
-      Unit.Description = "X のいいね欄と引用元を取得して登録する";
+      Unit = {
+        Description = "X のいいね欄と引用元を取得して登録する";
+        OnFailure = config.local.failureNotify.onFailure;
+      };
       Service = {
         Type = "oneshot";
         # projectDir を更新したときのスキーマの変更も、次の実行で適用される。
@@ -110,7 +113,10 @@ in
     };
 
     systemd.user.services.xlikes-process = {
-      Unit.Description = "保存したツイートの OCR と埋め込みを計算する";
+      Unit = {
+        Description = "保存したツイートの OCR と埋め込みを計算する";
+        OnFailure = config.local.failureNotify.onFailure;
+      };
       Service = {
         Type = "oneshot";
         ExecStartPre = "${lib.getExe xlikes} migrate";
