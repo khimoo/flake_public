@@ -1,6 +1,6 @@
 # 言語ごとの設定を spec のマージで足す
 
-使い方: [LSP のサーバーを足す](../../howtouse/neovim/lsp.md#サーバーを足す)、[Treesitter](../../howtouse/neovim/treesitter.md)
+使い方: [LSP のサーバーの追加](../../howtouse/neovim/lsp.md#サーバーの追加)、[Treesitter](../../howtouse/neovim/treesitter.md)
 実装: [lua/plugins/lang/](../../../modules/home-manager/dev/neovim/config/lua/plugins/lang/)
 
 Markdown や Typst のような言語ごとの設定は、`lua/plugins/lang/<言語>/` に集める。言語の設定には、言語専用のプラグインのほかに、nvim-treesitter に足すパーサーや、nvim-lspconfig に足すサーバーの設定も含まれる。

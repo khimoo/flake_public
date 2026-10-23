@@ -1,91 +1,47 @@
-# LSP (Language Server Protocol)
+# LSP
 
-コードの定義ジャンプ、補完、診断、リネーム等を提供する。
+定義へのジャンプ、参照の一覧表示、リネーム、診断は LSP で行います。なお、Rust は rustaceanvim が個別に管理しています（[lang-rust.md](./lang-rust.md) を参照）。
 
-- 設定ファイル: `lua/features/lsp.lua`, `lua/config/lsp/keymaps.lua`, `lua/config/lsp/diagnostics.lua`
-- 依存: nvim-lspconfig, blink.cmp
+設定ファイル: `lua/features/lsp.lua`、`lua/config/lsp/keymaps.lua`、`lua/config/lsp/diagnostics.lua`
 
-## サーバーの設定方法
+## サーバーの追加
 
-### サーバー一覧 (どの LSP を有効化するか)
+1. [features.nix](../../../modules/home-manager/dev/neovim/features.nix) の `lspServers` に `{ pkg = pkgs.foo; lsp = "foo_ls"; }` を追加する（`lsp` には nvim-lspconfig のサーバー名を指定）。
+2. Home Manager を switch する。
 
-`modules/home-manager/dev/neovim/features.nix` の `lspServers` に nixpkgs パッケージと LSP 識別子のペアを書く。lsp 機能の packages がパッケージを Neovim の PATH に追加し、識別子の配列は `~/.local/share/nvim/nix/features.lua` の data.lsp.servers に生成する。`features/lsp.lua` が `require("config.nix").data.lsp.servers` を読み込んでループ有効化する。factory や `dev/neovim/default.nix` に一覧を中継する引数は不要。
+`lspServers` に 1 行追加するだけで、サーバーが Neovim の PATH に追加され、同時に `vim.lsp.enable("foo_ls")` による有効化処理も行われるため、他の箇所を修正する必要はありません。
 
-新しい LSP を追加する手順:
-1. `dev/neovim/features.nix` の `lspServers` に `{ pkg = pkgs.foo; lsp = "foo_ls"; }` を追加
-2. rebuild
-3. 自動で `vim.lsp.enable("foo_ls")` まで走る
+サーバーごとの個別設定は、`lua/features/lsp.lua` の `opts.servers.<サーバー名>` に記述します。
+言語ごとの設定は、各言語のディレクトリから同じ `opts.servers` に追加できます（例: `lua/plugins/lang/typst/lsp.lua` の tinymist）。仕組みの詳細は [spec のマージ](../../architecture/neovim/spec-merge.md) を参照してください。
 
-この設計の利点: LSP サーバーバイナリの導入 (lsp 機能の `packages`) と nvim 側での有効化が **同じリストの 1 行から両方派生する** ので、片方を書き忘れない。
+## キーマップ
 
-### サーバー固有の設定 (capabilities 以外の override)
+LSP が接続されたバッファでのみ利用可能です。`gr` で始まるキーは Neovim の標準キーマップです。
 
-`features/lsp.lua` の `opts.servers` テーブルで設定する。例:
-
-```lua
-opts = {
-  servers = {
-    nil_ls = {
-      settings = { ['nil'] = { formatting = { command = { "nixfmt" } } } },
-    },
-  },
-},
-```
-
-このテーブルは **lazy.nvim の spec マージで言語モジュールから拡張可能**。例えば `lang/markdown/lsp.lua` で `opts.servers.marksman = { ... }` を返す spec を書けば、`nvim-lspconfig` の opts に deep-merge される。詳細は [spec マージの設計](../../architecture/neovim/spec-merge.md) を参照。
-
-現状の override:
-- `nil_ls`: Nix 用。`nixfmt` でフォーマット。`features/lsp.lua` に直接書いている
-- `tinymist`: Typst 用。spec マージを使って `lang/typst/lsp.lua` から差し込む。詳細は [lang-typst.md](./lang-typst.md)
-
-## キーバインド
-
-### プレフィックスなし (頻出操作)
-
-LSP がアタッチされたバッファでのみ有効。
-
-| キー | 機能 | 説明 |
-|------|------|------|
-| `gd` | 定義にジャンプ | **最も使う**。関数・型の定義元に飛ぶ |
-| `gD` | 宣言にジャンプ | C 言語等のヘッダ宣言に飛ぶ |
-| `gi` | 実装にジャンプ | インターフェースの実装に飛ぶ |
-| `grr` | 参照一覧 | シンボルが使われている箇所を一覧表示 |
-| `grn` | リネーム | プロジェクト全体でシンボルを一括リネーム |
-| `gra` | コードアクション | 自動修正候補の表示・適用 |
-| `gri` | 実装一覧 | インターフェースの実装を一覧表示 |
-| `K` | ホバー | カーソル下の型情報・ドキュメントを表示 |
-| `<C-s>` | シグネチャヘルプ | 関数の引数情報を表示 |
-| `[d` | 前の診断 | 前のエラー/警告にジャンプ |
-| `]d` | 次の診断 | 次のエラー/警告にジャンプ |
-
-> 注: `gr*` 系は Neovim 0.11+ のデフォルトマッピング。設定ファイルでの定義は不要。
-
-### `<leader>l` プレフィックス付き (低頻度操作)
-
-| キー | 機能 | 説明 |
-|------|------|------|
-| `<leader>lrn` | リネーム | プロジェクト全体でシンボルを一括リネーム |
-| `<leader>lca` | コードアクション | 自動修正候補の表示・適用 |
-| `<leader>lF` | フォーマット | バッファ全体をフォーマット (非同期) |
-| `<leader>lD` | 型定義にジャンプ | |
-| `<leader>ldl` | 診断フロート | カーソル位置の診断詳細をフロート表示 |
-| `<leader>lwa` | ワークスペース追加 | |
-| `<leader>lwr` | ワークスペース削除 | |
-| `<leader>lwl` | ワークスペース一覧 | |
-
-ビジュアルモード:
 | キー | 機能 |
 |------|------|
-| `<leader>lca` | 選択範囲のコードアクション |
+| `gd` | 定義へ移動 |
+| `gD` | 宣言へ移動 |
+| `gi` | 実装へ移動 |
+| `grr` | 参照の一覧表示 |
+| `grn` | リネーム |
+| `gra` | コードアクション |
+| `gri` | 実装の一覧表示 |
+| `K` | ホバー表示（型やドキュメントの確認） |
+| `<C-s>` | シグネチャヘルプ（挿入モード） |
+| `[d` / `]d` | 前 / 次の診断へ移動 |
 
-## 診断の設定
+使用頻度の低い操作は `<leader>l` 配下に割り当てられています。
 
-- `virtual_text = false`: 行末のインライン診断テキストは非表示
-- `signs = true`: 行番号横にアイコン表示
-- `update_in_insert = true`: 挿入モード中もリアルタイム更新
-- `CursorHold` で自動的に診断フロートを表示 (250ms 停止後)
+| キー | 機能 |
+|------|------|
+| `<leader>lrn` | リネーム |
+| `<leader>lca` | コードアクション（ビジュアルモードでは選択範囲に適用） |
+| `<leader>lF` | バッファ全体のフォーマット |
+| `<leader>lD` | 型定義へ移動 |
+| `<leader>ldl` | カーソル位置の診断をフロート表示 |
+| `<leader>lwa` / `<leader>lwr` / `<leader>lwl` | ワークスペースフォルダの追加 / 削除 / 一覧表示 |
 
-## ナビゲーションのコツ
+## 診断情報の表示
 
-- `gd` → `<C-o>` で戻る → `gd` → `<C-o>` のループがコードリーディングの基本
-- `<C-o>` は何回でも遡れる。逆方向は `<C-i>`
+行末には診断メッセージを表示せず、行番号の横にアイコンのみを表示します。カーソルを 250ms 静止させると、その位置の診断情報がフロートウィンドウで表示されます。挿入モード中も診断情報はリアルタイムで更新されます。

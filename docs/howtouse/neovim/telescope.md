@@ -1,68 +1,45 @@
-# Telescope
+# Telescope と Oil
 
-ファジーファインダー。ファイル検索、テキスト検索、LSP 連携など Neovim の検索の中核。
+Telescope でファイル・文字列・シンボルのファジー検索を行い、Oil でディレクトリを通常のバッファのように編集します。
 
-- 設定ファイル: `lua/features/telescope.lua`
-- 依存: plenary.nvim, ripgrep, telescope-media-files.nvim, project.nvim
+設定ファイル: `lua/features/telescope.lua`、`lua/plugins/oil.lua`
 
-## プラグイン
-
-### telescope.nvim
-
-ファジー検索エンジン本体。
-
-### project.nvim
-
-Git リポジトリのルートに自動で `cd` してくれる。`find_files` 等が常にプロジェクトルートから検索される。
-
-## キーバインド
-
-### 検索系 (最も使う)
+## 検索（Telescope）
 
 | キー | 機能 | 説明 |
 |------|------|------|
-| `<leader>ff` | find_files | ファイル名でファジー検索。2-3文字で絞れる |
-| `<leader>fg` | live_grep | プロジェクト全体のテキスト検索 (ripgrep) |
-| `<leader>fb` | buffers | 開いているバッファの一覧・切り替え |
-| `<leader>fo` | oldfiles | 最近開いたファイルの一覧 |
+| `<leader>ff` | find_files | ファイル名で検索。2〜3 文字の入力で素早く絞り込める |
+| `<leader>fg` | live_grep | カレントディレクトリ配下を ripgrep で全文検索する |
+| `<leader>fb` | buffers | 開いているバッファを選択して切り替える |
+| `<leader>fo` | oldfiles | 最近開いたファイルの履歴から選択する |
+| `<leader>fs` | lsp_document_symbols | 現在のファイル内の関数・型・変数の一覧を表示する |
+| `<leader>fS` | lsp_workspace_symbols | ワークスペース全体からシンボルを検索する |
+| `<leader>fh` | help_tags | Neovim のヘルプタグを検索する |
+| `<leader>ft` | `:Telescope` | Telescope のコマンド一覧を表示する |
 
-### LSP 連携
+`find_files` と `live_grep` は、Neovim のカレントディレクトリ配下を対象に検索します。そのため、プロジェクトのルートディレクトリで Neovim を起動するか、`:cd` で移動してから利用してください。
+なお、診断や参照の一覧確認には [trouble.nvim](./trouble.md) を使用します（`<leader>xx`、`<leader>xr`）。
 
-| キー | 機能 | 説明 |
-|------|------|------|
-| `<leader>fs` | lsp_document_symbols | 現在ファイル内の関数・型・変数の一覧 |
-| `<leader>fS` | lsp_workspace_symbols | ワークスペース全体からシンボルを検索 |
-
-diagnostics と references は [trouble.nvim](./trouble.md) で見る（`<leader>xx`、`<leader>xr`）。
-
-### その他
-
-| キー | 機能 | 説明 |
-|------|------|------|
-| `<leader>fh` | help_tags | Neovim のヘルプをファジー検索 |
-| `<leader>fe` | Oil (file explorer) | ディレクトリをバッファとして表示。ファイル作成・リネーム・削除も可能 |
-| `<leader>ft` | Telescope commands | Telescope の全コマンド一覧 |
-
-### Telescope ウィンドウ内の操作
+Telescope のウィンドウ内では、以下のキーで操作します。
 
 | キー | 動作 |
 |------|------|
-| `<C-n>` / `<C-p>` | 候補を上下に移動 |
-| `<CR>` | 選択して開く |
+| `<C-n>` / `<C-p>` | 候補を次 / 前へ移動 |
+| `<CR>` | 選択した項目を開く |
 | `<C-x>` | 水平分割で開く |
 | `<C-v>` | 垂直分割で開く |
-| `<C-t>` | 結果を trouble に送る |
+| `<C-t>` | 検索結果を trouble に送る |
 
-### Oil バッファ内の操作
+## ディレクトリの編集（Oil）
 
-デフォルトから変更したものだけ挙げる。それ以外は `g?` でヘルプを参照。
+`<leader>fe` を押すと、現在開いているファイルのディレクトリが Oil のバッファとして開きます。通常のテキストと同様に行を編集して保存（`:w`）するだけで、ファイルの作成、名前の変更、削除が反映されます。
 
-| キー | 動作 | 備考 |
-|------|------|------|
-| `<C-s>` | 垂直分割で開く | デフォルトのまま |
-| `<C-x>` | 水平分割で開く | デフォルトは `<C-h>`。smart-splits のペイン移動に譲った |
-| `gr` | 一覧を再読み込み | デフォルトは `<C-l>`。同上 |
+デフォルトから変更したキーマップは以下のとおりです。これら以外の操作は、Oil のバッファ内で `g?` を押すとヘルプで確認できます。
 
-`<C-h>` / `<C-l>` を oil に取られると、oil バッファでだけ左右のペイン移動ができなくなるため。
+| キー | 動作 | デフォルト |
+|------|------|------------|
+| `<C-s>` | 垂直分割で開く | （変更なし） |
+| `<C-x>` | 水平分割で開く | `<C-h>` |
+| `gr` | ディレクトリ一覧を再読み込み | `<C-l>` |
 
-ファイラーは oil.nvim（`lua/plugins/oil.lua`）。
+※`<C-h>` と `<C-l>` を Oil に割り当てたままにすると、Oil のバッファ内でのみ smart-splits による左右ペイン間の移動ができなくなるため、別のキーに変更しています。

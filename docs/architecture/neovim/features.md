@@ -1,6 +1,6 @@
 # Neovim のプラグインと外部の道具を機能として組にする
 
-使い方: [Neovim の設定を変える](../../howtouse/neovim/README.md#設定を変える)
+使い方: [Neovim の設定の変更](../../howtouse/neovim/README.md#設定の変更)
 実装: [default.nix](../../../modules/home-manager/dev/neovim/default.nix)（仕組み）、[features.nix](../../../modules/home-manager/dev/neovim/features.nix)（機能ごとの依存）、[lazy.lua](../../../modules/home-manager/dev/neovim/config/lua/config/lazy.lua)、[nix.lua](../../../modules/home-manager/dev/neovim/config/lua/config/nix.lua)
 
 外部コマンドや Nix の生成物を使うプラグインは、Nix の `local.neovim.features.<名前>` と `lua/features/<名前>.lua` の spec を組にする。
