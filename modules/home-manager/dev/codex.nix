@@ -8,7 +8,7 @@
 #   ~/.codex/rules/base.rules     <- <root>/codex/rules/base.rules   人が書く実行ポリシー
 #   ~/.codex/agents               <- <root>/codex/agents             カスタムエージェントの定義 (sol-worker など)
 #
-# モデル別プロファイル (<root>/codex/<name>.config.toml) のリンクと起動コマンド codex-<name> は、
+# 系列別プロファイル (<root>/codex/<name>.config.toml) のリンクと起動コマンド codex-<name> は、
 # 名簿が設定 repo のファイルで決まるので agent-sync.nix が実行時に作る。
 #
 # 張らないもの:

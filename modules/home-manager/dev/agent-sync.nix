@@ -4,6 +4,7 @@
 #
 #   claude/profiles/<名前>.json  → 起動コマンド claude-<名前>（claude --settings で重ねる）
 #   codex/<名前>.config.toml     → ~/.codex/<名前>.config.toml へのリンクと起動コマンド codex-<名前>
+#                                  （codex/launch.py が系列 <名前> の最新版を選んで codex を起動する）
 #   claude/settings.json         → ~/.claude/settings.json の同じ最上位キーへ反映する
 #
 # ~/.claude/settings.json は Claude Code も書き込む。設定 repo にあるキーは設定 repo の値で
@@ -38,6 +39,7 @@ let
     settings_file=${lib.escapeShellArg "${home}/.claude/settings.json"}
     claude_bin=${lib.escapeShellArg "${pkgs.claude-code}/bin/claude"}
     codex_bin=${lib.escapeShellArg "${pkgs.codex}/bin/codex"}
+    python_bin=${lib.escapeShellArg "${pkgs.python3}/bin/python3"}
     marker="# agent-sync が生成する。手で編集しない。"
     status=0
 
@@ -106,7 +108,7 @@ let
         warn "$profile: 名前に使えない文字があるので飛ばす"
         continue
       fi
-      write_launcher "codex-$name" "exec $(printf '%q' "$codex_bin") --profile $(printf '%q' "$name") \"\$@\""
+      write_launcher "codex-$name" "exec $(printf '%q' "$python_bin") $(printf '%q' "$root/codex/launch.py") $(printf '%q' "$codex_bin") $(printf '%q' "$name") \"\$@\""
       # Codex はプロファイルを CODEX_HOME 直下のファイルとして探すので、名前ごとに張る。
       link="$codex_dir/$name.config.toml"
       linked="$linked$name.config.toml "

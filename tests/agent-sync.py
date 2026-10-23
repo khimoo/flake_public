@@ -38,7 +38,9 @@ class AgentSync(unittest.TestCase):
         claude = self.bin / "claude-opus"
         self.assertIn(f"--settings {self.root}/claude/profiles/opus.json", claude.read_text())
         self.assertTrue(os.access(claude, os.X_OK))
-        self.assertIn("--profile astra", (self.bin / "codex-astra").read_text())
+        codex = (self.bin / "codex-astra").read_text()
+        self.assertIn(f"{self.root}/codex/launch.py", codex)
+        self.assertIn(' astra "$@"', codex)
         link = self.home / ".codex/astra.config.toml"
         self.assertEqual(os.readlink(link), str(self.root / "codex/astra.config.toml"))
 

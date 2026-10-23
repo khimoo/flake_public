@@ -68,12 +68,38 @@ TUI で選んだモデル、NUX カウンタを書き込むアプリケーショ
 Claude Code は `--settings <file>` をコマンドライン層としてユーザー設定の上に重ね、Codex は
 `--profile <name>` で `~/.codex/<name>.config.toml` をユーザー層の上に重ねる（0.153.4 で
 `CODEX_HOME` を隔離して実測。`-c profile=<name>` では読まれない）。モデルごとに変えたい値は
-model と reasoning effort で、どちらも設定値なのでこの層に収まる。指示文はモデルで分けない。
+モデルの系列と reasoning effort で、どちらも設定値なのでこの層に収まる（Codex の版は次の節のとおり起動時に選ぶ）。指示文はモデルで分けない。
 分ける必要がいまのところ無く、分けると同じ規約を二重に持つことになるため。
 
 起動は alias ではなく PATH 上の実行ファイルにする。alias とシェル関数は対話シェルの外
 （IDE や他ツールからの起動）で効かない。Codex のプロファイルは `CODEX_HOME` 直下の
 ファイルとして探されるため名前ごとに symlink が要る。
+
+## モデル ID を書かず、起動時に系列から版を選ぶ理由
+
+どの系列（Claude の Opus と Fable、Codex の Astra と sol）を使うかは利用者が起動コマンドで選び、
+系列の中では新しい版が出たら、利用者もエージェントも設定を書き換えずにその版を使う。これが目的。
+
+Claude Code は `opus`、`fable` のような別名を受け付け、インストールされている Claude Code が知る最新のモデルに解決する
+（2.1.287 の `claude --help`）。プロファイルと `~/.claude/settings.json` の `model` には別名を書く。
+
+Codex には系列を指す別名がない。0.160.0 のモデル一覧（`codex debug models`）の ID はどれも版を含み、
+古いモデルに付く `upgrade` も、新しい版の出ている `gpt-6-sol` で `null` だった。そこで設定 repo の
+`codex/launch.py` が起動のたびに一覧を読み、ID の版番号を数値として比べて最新版を選ぶ。
+
+- 一覧の `priority` は使わない。Codex での用途は一覧の並び順と既定モデルの選択で
+  （`codex-rs/models-manager/src/manager.rs` の `build_available_models`、tag `rust-v0.160.0`）、新旧の順の保証がない
+- ID の形（`gpt-<版>-<系列>`）が変わると候補が無くなり、`codex-<系列>` は起動せずに止まる。そのときは `launch.py` の規則を直す
+- 子エージェントのモデルも `-c agents.default_subagent_model=...` で渡す。Codex は spawn でモデルが指定されないとこの値を使い、
+  役割の定義に `model` が無ければそのまま使う（`codex-rs/core/src/agent/child_config.rs` と `role.rs`、tag `rust-v0.160.0`）。
+  これで `sol-worker` の定義からもモデル ID を外せる
+- 選ぶ処理は sol-handoff の `run.py` も使うので、flake_public ではなく設定 repo に置く。flake_public は起動コマンドの配線だけを持つ
+
+退けた案:
+
+- 版を固定したまま、新しい版が一覧に出たら通知する案。書き換えの手作業が残り、目的に合わない
+- 素の `codex` を、モデルを足して本体を呼ぶラッパーに置き換える案。codex-companion や `run.py` も `codex` を呼ぶので、
+  `app-server` のようなサブコマンドにはモデルを渡さない区別をラッパー側で保守し続けることになる
 
 ## プロファイルの名簿は設定 repo のファイルから導く
 

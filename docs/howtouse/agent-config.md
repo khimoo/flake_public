@@ -20,14 +20,15 @@ symlink して管理する。
 │   ├── CLAUDE.md          # ~/.claude/CLAUDE.md になる。先頭で `@../shared/AGENTS.md` を import する
 │   ├── settings.json      # 方針。agent-sync が ~/.claude/settings.json の同じキーへ反映する
 │   ├── profiles/
-│   │   └── <name>.json    # モデル別プロファイル。`claude-<name>` が `--settings` で重ねる
+│   │   └── <name>.json    # モデル別プロファイル。`claude-<name>` が `--settings` で重ねる。モデルは別名（`opus`、`fable`）で書く
 │   ├── hooks/             # hook スクリプト（任意）
 │   ├── output-styles/     # output style（任意）
 │   ├── agents/            # subagent 定義（任意）
 │   └── commands/          # カスタム slash command（任意）
 └── codex/
     ├── skills/            # ~/.agents/skills になる。専用 skill と ../../shared/skills/<name> へのリンク
-    ├── <name>.config.toml # モデル別プロファイル。~/.codex/<name>.config.toml になり `codex-<name>` が `--profile` で重ねる
+    ├── <name>.config.toml # 系列別プロファイル。~/.codex/<name>.config.toml になり `codex-<name>` が `--profile` で重ねる。モデル ID は書かない
+    ├── launch.py          # `codex-<name>` が呼ぶ。系列 <name> の最新版を選んで codex を起動する
     └── rules/
         └── base.rules     # ~/.codex/rules/base.rules になる。人が書く実行ポリシー
 ```
@@ -42,11 +43,12 @@ symlink して管理する。
 
 ## モデル別プロファイル
 
-モデルごとに変える値（model、reasoning effort）は指示文ではなくプロファイルに置き、
-起動コマンドで選ぶ。名簿は設定 repo のファイルそのもので、flake_public には書かない:
+系列ごとに変える値（reasoning effort など）は指示文ではなくプロファイルに置き、
+起動コマンドで系列を選ぶ。版付きのモデル ID はどこにも書かず、系列の中の新しい版は書き換えなしで使われる。
+名簿は設定 repo のファイルそのもので、flake_public には書かない:
 
 - `<root>/claude/profiles/<name>.json` を置くと、起動コマンド `claude-<name>`（`claude --settings <root>/claude/profiles/<name>.json "$@"`）ができる
-- `<root>/codex/<name>.config.toml` を置くと、`~/.codex/<name>.config.toml` へのリンクと起動コマンド `codex-<name>`（`codex --profile <name> "$@"`）ができる
+- `<root>/codex/<name>.config.toml` を置くと、`~/.codex/<name>.config.toml` へのリンクと起動コマンド `codex-<name>` ができる。`codex-<name>` は `<root>/codex/launch.py` を通して `codex --profile <name> "$@"` を起動し、系列 `<name>` の最新版を `-c model=...` で、sol の最新版を `-c agents.default_subagent_model=...` で渡す
 
 作るのは `agent-sync`（[agent-sync.nix](../../modules/home-manager/dev/agent-sync.nix)）で、switch のたびと、
 Linux では設定 repo の `claude/profiles/`・`claude/settings.json`・`codex/` が変わったとき（systemd の path unit）に走る。
@@ -62,6 +64,9 @@ Linux では設定 repo の `claude/profiles/`・`claude/settings.json`・`codex
 - Codex の `--profile` は一回しか渡せず、`codex features` などの管理系サブコマンドには効かない。プロファイルは既定の `~/.codex` にだけ張るので `CODEX_HOME` を変えた起動には効かない。**存在しないプロファイル名を渡しても Codex は黙って無視する**（0.153.4 で exit 0、警告なし）ので、効いているかは TUI の表示モデルか `codex-<name> exec --json` の出力で確かめる
 - happy は `codex app-server` を直接起動して `--profile` を渡さないので、この仕組みの対象外
 - Claude のプロファイルは `settings.json` の上に重なる差分なので、`model` と `effortLevel` のように変えたい値だけを書く。hooks や plugins を写さない
+- `codex-<name>` は起動のたびに `codex debug models` を実行し、`visibility` が `list` で ID が `gpt-<版>-<name>` の形のモデルから版番号の最も大きいものを選ぶ。該当が無ければ起動しない。Codex はモデル一覧の更新に失敗してもキャッシュから返すので、選ばれるのは Codex が知っている範囲の最新版になる
+- `codex-<name>` で起動したセッションでは、モデルを指定せずに spawn した子エージェント（`sol-worker` など）が sol の最新版で動く。`codex -m <ID>` で直接起動したセッションでは、子は親のモデルを引き継ぐ
+- 素の `codex` は、`~/.codex/config.toml` に `model` が無ければ Codex の既定モデル（モデル一覧の `priority` 順で最初の表示対象）で起動する。どの系列になるかは Codex の配布元が決めるので、系列を選ぶときは `codex-<name>` を使う。TUI でモデルを既定として保存すると、`config.toml` に版付きの `model` が書き込まれる
 
 ## 配線されないもの
 
