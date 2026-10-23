@@ -105,6 +105,9 @@ OCR は CPU の全コアを使うので、`Nice=19` と `IOSchedulingClass=idle`
 `Persistent=true` なので、電源が切れていて逃した分は、ユーザーのサービスマネージャーが次に起動したときに実行される。
 nixos-desktop では pomu を linger にしているので、ログインを待たずに OS の起動時に実行される（[tailscale.md](./tailscale.md#ログインしていなくてもユーザーの-timer-を動かす)）。
 
+`xlikes-sync`、`xlikes-process`、`xlikes-backup` には `X-SwitchMethod = "keep-old"` を付け、switch のときに動いていれば入れ替えない。新しい定義は次の実行から使われる。
+Home Manager の sd-switch は、定義が変わって動いているユニットを止めて起動し直し、oneshot の起動が終わるまで待つ。2026-10-23 に、取り込み直後の長い `xlikes-process` の途中で switch したところ、処理を最初からやり直し、`home-manager-pomu.service` が 5 分で時間切れになった。
+
 ## 退けた案
 
 - mimikopi-env を汎用化して両方から使う。上の「FHS 環境を mimikopi-env と分ける」に書いた理由で、今は退けた。

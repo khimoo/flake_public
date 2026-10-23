@@ -441,6 +441,12 @@ lib.genAttrs systems (
         inputs.self.nixosConfigurations.nixos-desktop.config.services.postgresql.ensureDatabases;
       # ログイン画面のまま放置されても、ユーザーの timer を起動時から動かす。
       assert inputs.self.nixosConfigurations.nixos-desktop.config.users.users.pomu.linger == true;
+      # 何時間も続く定期実行を、switch で止めて起動し直さない。
+      assert builtins.all (n: desktopUser.systemd.user.services.${n}.Unit.X-SwitchMethod == "keep-old") [
+        "xlikes-sync"
+        "xlikes-process"
+        "xlikes-backup"
+      ];
       # Web UI は常駐させず、ブラウザで開いたときにソケットから起動する。
       assert desktopUser.systemd.user.sockets.xlikes-web.Install.WantedBy == [ "sockets.target" ];
       assert !(desktopUser.systemd.user.services.xlikes-web-server ? Install);

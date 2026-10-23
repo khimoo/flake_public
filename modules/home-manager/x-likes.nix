@@ -184,10 +184,14 @@ in
       xlikes
     ];
 
+    # 三つの定期実行は oneshot で、何時間も続くことがある。switch で定義が変わったときに Home Manager が
+    # 起動し直すと、止めた処理をやり直し、終わるまで switch も返らない。動いている間は入れ替えず、
+    # 次の実行から新しい定義を使う。
     systemd.user.services.xlikes-sync = {
       Unit = {
         Description = "X のいいね欄と引用元を取得して登録する";
         OnFailure = config.local.failureNotify.onFailure;
+        X-SwitchMethod = "keep-old";
       };
       Service = {
         Type = "oneshot";
@@ -207,6 +211,7 @@ in
       Unit = {
         Description = "保存したツイートの OCR と埋め込みを計算する";
         OnFailure = config.local.failureNotify.onFailure;
+        X-SwitchMethod = "keep-old";
       };
       Service = {
         Type = "oneshot";
@@ -264,6 +269,7 @@ in
       Unit = {
         Description = "取得したツイートとデータベースを restic で写す";
         OnFailure = config.local.failureNotify.onFailure;
+        X-SwitchMethod = "keep-old";
       };
       Service = {
         Type = "oneshot";
