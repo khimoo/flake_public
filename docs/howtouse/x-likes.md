@@ -148,7 +148,7 @@ uv の実行環境およびモデルファイルはバックアップ対象外�
 
 ## 環境内での挙動の変化
 
-ライブラリ、PATH、`/etc`、`sudo` の扱いについては [uv-mode](./cli-tools/uv-mode.md#モードの中で変わること) と同様です。
+ライブラリ、PATH、`/etc`、`sudo` の扱いについては [uv-mode](./cli-tools/uv-mode.md#モード内での変化点) と同様です。
 設定される環境変数やデータディレクトリ内の配置については [x-likes-env](../../packages/x-likes-env/default.nix) を参照してください。
 
 ## トラブルシューティング

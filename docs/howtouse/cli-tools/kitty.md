@@ -1,130 +1,111 @@
 # kitty
 
-設定ファイル: `modules/home-manager/gui/kitty/kitty.conf`（配線は `modules/home-manager/gui/kitty.nix`）
+設定ファイルは [kitty.conf](../../../modules/home-manager/gui/kitty/kitty.conf) です。リポジトリ内のファイルへのシンボリックリンクになっているため、ファイルを編集すれば `switch` を実行しなくても変更が反映されます。
+kitty 上で `Ctrl+Shift+F5` を押すと設定が再読み込みされます。ただし、`listen_on` と `dynamic_background_opacity` の変更のみ、kitty を再起動するまで反映されません。
+会社 PC（nixos-work-wsl）でも、WSLg 上で同じ設定の kitty が動作します（詳細は [wsl.md](../wsl.md#kitty-と-gui-アプリ) を参照）。
 
-設計判断は [docs/architecture/kitty.md](../../architecture/kitty.md) を参照。
-
-会社 PC（nixos-work-wsl）でも、同じ設定の kitty が WSLg で動く。起動のしかたと日本語入力は [wsl.md](../wsl.md#kitty-と-gui-アプリ) を参照。
-
-`kitty.conf` は out-of-store symlink なので、編集はリポジトリのファイルを直接直せばよく rebuild は要らない。
-反映は kitty 側で `Ctrl+Shift+F5`（設定の再読込）。ただし `listen_on` と `dynamic_background_opacity` の変更は
-再読込では反映されず、kitty の起動し直しが要る。
+設計: [kitty の設計](../../architecture/kitty.md)
 
 ## 呼び名
 
-kitty は「pane」という語を使わない。このリポジトリでは kitty の語彙に合わせつつ、kitty の `window` を
-「**タブ内ウィンドウ**」と書く。階層は下から順に、タブ内ウィンドウ → タブ → OS ウィンドウ。
+kitty では「pane」という用語を使用しません。このリポジトリでは kitty の語彙に合わせ、kitty の `window` を「**タブ内ウィンドウ**」と呼ぶことにします。階層構造は下から順に「タブ内ウィンドウ → タブ → OS ウィンドウ」となります。
 
-| 呼び名 | kitty の語 | 実体 |
+| 呼び名 | kitty の用語 | 実体 |
 |--------|-----------|------|
-| タブ内ウィンドウ | window | シェルや Neovim が動く単位。タブの中で分割される |
-| タブ | tab | タブ内ウィンドウの集合。レイアウト（splits / stack）を持つ |
-| OS ウィンドウ | os_window | タブの集合。ウィンドウマネージャから見える窓 |
+| タブ内ウィンドウ | window | シェルや Neovim が動作する単位。タブ内で分割表示される |
+| タブ | tab | タブ内ウィンドウの集合。レイアウト（splits / stack）を保持する |
+| OS ウィンドウ | os_window | タブの集合。ウィンドウマネージャから認識されるウィンドウ |
 
 ## キー体系
 
-`Ctrl+a` に続けて「階層」「動詞」の順に押す。kitty ネイティブのキー列なので、モードには入らない
-（途中で無関係なキーを押せばそこで打ち切られる）。
+`Ctrl+a` に続けて「階層」「動詞」の順にキーを押します。これらは kitty ネイティブのキーシーケンスであるため、モーダルなモードには入りません（途中で無関係なキーを押すとその時点で打ち切られます）。
 
-階層は `w` タブ内ウィンドウ / `t` タブ / `o` OS ウィンドウ。
-動詞は `c` 作る / `f` フォーカス / `e` 並べ替え / `m` 別の入れ物へ移す / `r` サイズ / `x` 閉じる。
+- 階層キー: `w`（タブ内ウィンドウ） / `t`（タブ） / `o`（OS ウィンドウ）
+- 動詞キー: `c`（作成） / `f`（フォーカス） / `e`（並べ替え） / `m`（移動） / `r`（リサイズ） / `x`（削除）
 
 | 動詞 | `Ctrl+a w …`（タブ内ウィンドウ） | `Ctrl+a t …`（タブ） | `Ctrl+a o …`（OS ウィンドウ） |
 |------|--------------------------------|---------------------|------------------------------|
 | 作る | `c` 左右に分割 | `c` 新しいタブ | `c` 新しい OS ウィンドウ |
-| フォーカス | `f` 視覚的に選ぶ | `f` 一覧から選ぶ | `f` 直前の OS ウィンドウ |
-| 並べ替え | `e` 他のウィンドウと入れ替え | `e` 次へ / `Shift+E` 前へ | （無し） |
-| 移す | `m` 行き先のタブを選ぶ | `m` 行き先の OS ウィンドウを選ぶ | （無し） |
-| サイズ | `r` リサイズモードに入る | （無し） | （無し） |
+| フォーカス | `f` 視覚的に選択 | `f` 一覧から選択 | `f` 直前の OS ウィンドウ |
+| 並べ替え | `e` 他のウィンドウと入れ替え | `e` 次へ / `Shift+E` 前へ | （なし） |
+| 移す | `m` 移動先のタブを選択 | `m` 移動先の OS ウィンドウを選択 | （なし） |
+| サイズ | `r` リサイズモードに入る | （なし） | （なし） |
 | 閉じる | `x` 確認して閉じる | `x` タブを閉じる | `x` OS ウィンドウを閉じる |
 
-空欄が 3 つあるのは割当て漏れではない。OS ウィンドウには移す先の上位階層が無く、その並べ替えは
-ウィンドウマネージャの領分で、タブは表示領域を OS ウィンドウから受け取るので固有のサイズを持たない。
+※表中の空欄 3 箇所は割り当て忘れではありません（理由は [設計](../../architecture/kitty.md#キー体系) を参照）。
 
-### 行き先を選ばずに移す
+### 移動先を選ばずに移す
 
-`Ctrl+a w m` は行き先を一覧から選ぶが、選ばずに済ませたいときは以下を使う。
+`Ctrl+a w m` は移動先を一覧から選択しますが、選択の手間を省きたい場合は以下のショートカットが便利です。
 
 | キー | 動作 |
 |------|------|
-| `Ctrl+a w [` | 左隣のタブへ移す |
-| `Ctrl+a w ]` | 右隣のタブへ移す |
-| `Ctrl+a w n` | 新しいタブを作ってそこへ移す |
-| `Ctrl+a w o` | 新しい OS ウィンドウを作ってそこへ移す |
+| `Ctrl+a w [` | 左隣のタブへ移動 |
+| `Ctrl+a w ]` | 右隣のタブへ移動 |
+| `Ctrl+a w n` | 新しいタブを作成してそこへ移動 |
+| `Ctrl+a w o` | 新しい OS ウィンドウを作成してそこへ移動 |
 
-タブについては `Ctrl+a t n` が「新しい OS ウィンドウへ移す」。
+※タブ操作に関しては `Ctrl+a t n` が「新しい OS ウィンドウへ移動」に対応します。
 
 ### 短縮形
 
-wezterm で使っていた手癖をそのまま残してある。階層キーを挟まない。
+よく使う操作は、階層キーを挟まない短縮形でも実行できます。
 
 | キー | 動作 |
 |------|------|
 | `Ctrl+a s` / `Ctrl+a v` | 上下 / 左右に分割 |
-| `Ctrl+a c` | 新しいタブ |
-| `Ctrl+a n` / `Ctrl+a Shift+N` | 次 / 前のタブ |
+| `Ctrl+a c` | 新しいタブを作成 |
+| `Ctrl+a n` / `Ctrl+a Shift+N` | 次 / 前のタブへ移動 |
 | `Ctrl+a x` | タブ内ウィンドウを閉じる |
 | `Ctrl+a e` | レイアウトを回転 |
 | `Ctrl+a y` | スクロールバックを開く |
-| `Ctrl+a Ctrl+a` | アプリへ `Ctrl+a` を送る |
+| `Ctrl+a Ctrl+a` | アプリケーションへ `Ctrl+a` を送信 |
 
-### 割当ての一覧を出す
+### 割り当て一覧の表示
 
-`Ctrl+a ?` でオーバーレイが開き、`kitty.conf` の `map` 行と見出しがそのまま並ぶ。`q` で閉じる。
-出所が定義そのものなので、キーを足しても一覧の側を直す必要はない。
+`Ctrl+a ?` でオーバーレイが開き、`kitty.conf` の `map` 行と見出しが一覧表示されます。`q` キーで閉じます。キー割り当てを追加した場合でも、一覧を別途手動で修正する必要はありません。
 
-kitty 組み込みの `Ctrl+Shift+F6`（`debug_config`）も割当てを出すが、キー列を先頭のトリガーで
-まとめてしまうため、`Ctrl+a` 始まりの 30 個が 1 行に潰れて読めない。
+### Neovim との分割ウィンドウの相互移動
 
-### Neovim との分割の行き来
+`Ctrl+h/j/k/l` でフォーカス移動、`Alt+h/j/k/l` でサイズ変更が行えます。Neovim の分割画面と kitty のタブ内ウィンドウを区別することなくシームレスに行き来できます。Neovim がフォーカスを保持している間は kitty 側のショートカット割り当てが外れ、キー入力が直接 Neovim へ渡されます。
 
-`Ctrl+h/j/k/l` でフォーカス移動、`Alt+h/j/k/l` でリサイズ。Neovim の分割と kitty のタブ内ウィンドウを
-区別せずに跨げる。Neovim がフォーカスを持つ間は kitty 側の割当てが外れ、キーがそのまま Neovim へ渡る。
-
-端に到達したときは反対側へ回り込む（`at_edge = "wrap"`）。
+端に達するとそこで停止します（`at_edge = "stop"`）。
 
 ### 透明度
 
 | キー | 動作 |
 |------|------|
-| `Ctrl+=` / `Ctrl+-` | 5% 上げる / 下げる |
-| `Ctrl+0` | 既定の 0.75 に戻す |
+| `Ctrl+=` / `Ctrl+-` | 不透明度を 5% 上げる / 下げる |
+| `Ctrl+0` | デフォルトの 0.75 に戻す |
 
-全画面（`Ctrl+Shift+F11`）でも下が透けるように、desktop と spin713 で `local.gnome.transparentFullscreen.enable` を有効にしてある。
-GNOME の mutter は通常、全画面にした半透明のウィンドウの下を黒で塗る。
-有効にしたあとは、システムを切り替えてもログインし直すまで反映されない（動いている gnome-shell は古い mutter のまま）。
-代償と外す条件は [docs/architecture/gnome-transparent-fullscreen.md](../../architecture/gnome-transparent-fullscreen.md) を参照。
+全画面表示（`Ctrl+Shift+F11`）の際にも背面が透けるよう、desktop および spin713 で `local.gnome.transparentFullscreen.enable` を有効に設定しています。
+通常、GNOME の mutter は全画面化した半透明ウィンドウの下を黒く塗ります。
+設定変更後は、再ログインするまで反映されません（稼働中の gnome-shell が古い mutter のままであるため）。
+設定に伴うトレードオフや設定解除の条件については [gnome-transparent-fullscreen.md](../../architecture/gnome-transparent-fullscreen.md) を参照してください。
 
 ## スクロールバック
 
-`Ctrl+a y`（または kitty 既定の `Ctrl+Shift+H`）でスクロールバックが Neovim で開く。kitty 自身は
-スクロールバックの検索も vi 風の選択も持たないので、そこは Neovim の機能をそのまま使う。`/` で検索、
-`v` で選択、`y` でヤンク。`q` で閉じる（`ZQ` に割当ててあるので変更は破棄される）。
+`Ctrl+a y`（または kitty デフォルトの `Ctrl+Shift+H`）を押すと、スクロールバックが Neovim で開きます。kitty 自体にはスクロールバックの検索機能や vi 風の選択機能がないため、Neovim の機能を直接利用します。`/` で検索、`v` で選択、`y` でヤンクが可能です。`q` で閉じます（`ZQ` が割り当てられているため変更は破棄されます）。
 
-色は保たれる。開いた直後は末尾にいる。
+テキストの色は保持され、開いた直後は末尾の位置にカーソルが合います。
 
-この設定は Neovim 0.12 以降でしか動かない。0.11 では画面が空になる。
-理由は [docs/architecture/unstable-packages.md](../../architecture/unstable-packages.md) を参照。
+なお、この設定は Neovim 0.12 以降でのみ動作します。0.11 では画面が空白になります（詳細は [unstable-packages.md](../../architecture/unstable-packages.md) を参照）。
 
 ## 遠隔操作
 
-`allow_remote_control socket-only` と `listen_on` を有効にしてあるので、`kitten @` でシェルから
-kitty を操作できる。ソケットは `$XDG_RUNTIME_DIR/kitty.sock-<PID>`。
+`allow_remote_control socket-only` と `listen_on` を有効にしているため、`kitten @` コマンドを使ってシェルから kitty を操作できます。ソケットのパスは `$XDG_RUNTIME_DIR/kitty.sock-<PID>` です。
 
 ```sh
 kitten @ --to "unix:$XDG_RUNTIME_DIR/kitty.sock-$(pgrep -x kitty | head -1)" ls
 ```
 
-kitty の中から実行する場合は `KITTY_LISTEN_ON` が入っているので `--to` を省ける。
+kitty の内部から実行する場合は `KITTY_LISTEN_ON` が設定されているため、`--to` オプションを省略できます。
 
-`socket-only` なので、端末に流し込まれたエスケープ列による遠隔操作は拒否される。
-`cat` で悪意あるファイルを表示しても kitty を操作されない。
+`socket-only` に設定しているため、端末に注入されたエスケープシーケンスによる遠隔操作は拒否されます。`cat` で悪意のあるファイルを表示しても、kitty が勝手に操作されることはありません。
 
-## wezterm から移ってきて無いもの
+## 他の端末機能の代わりの実現方法
 
-| wezterm の機能 | kitty での扱い |
-|----------------|---------------|
-| vi 風コピーモード | 組み込みでは無い。スクロールバックを Neovim で開いて代替する |
-| QuickSelect | `kitten hints`（既定 `Ctrl+Shift+P` 系）が近い。画面上のパス・URL・単語をラベルで選ぶ |
-| command palette | 無い |
-| 配色プレビュー選択 | `kitten themes` |
+- **vi 風コピーモード**: 組み込み機能はありません。スクロールバックを Neovim で開いて代用します。
+- **画面上のパス、URL、単語をラベルで選択**: `kitten hints` を使用します（デフォルトは `Ctrl+Shift+P` 系）。
+- **カラーテーマのプレビューと選択**: `kitten themes` を使用します。
+- **コマンドパレット**: 存在しません。

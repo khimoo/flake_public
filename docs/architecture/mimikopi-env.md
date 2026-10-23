@@ -1,6 +1,7 @@
-# mimikopi-env の導入
+# mimikopi-env の設計
 
-[howtouse/cli-tools/mimikopi-env.md](../howtouse/cli-tools/mimikopi-env.md) の設計判断。
+使い方: [mimikopi-env](../howtouse/cli-tools/mimikopi-env.md)
+実装: [packages/mimikopi-env](../../packages/mimikopi-env/default.nix)、[mimikopi.nix](../../modules/home-manager/mimikopi.nix)
 
 ## 使いみち
 
@@ -16,10 +17,9 @@
 - Nix の Python 3.11.16 で作った uv の venv に torch 2.14.1+cpu を入れると、`import torch` が `ImportError: libstdc++.so.6: cannot open shared object file` で失敗した。Nix の `stdenv.cc.cc.lib` と `zlib` を `LD_LIBRARY_PATH` に入れると動いた。
 - torch 2.9.1+rocm6.4 は、上の二つに加えて `zstd`、`libdrm`、`numactl`、`elfutils`、`xz`、`bzip2` を `LD_LIBRARY_PATH` に入れると import できた。
 - `HSA_OVERRIDE_GFX_VERSION=10.3.0` を付けると、GPU で 4096 次の行列積 10 回が 0.39 秒で終わり、Conv1d も通った。付けないと HIP のカーネルエラーで失敗した。
-- torch 2.9.1+rocm6.4 の環境は展開後に約 15GB あった。ルートの空きが約 18GB だったので、検証中に空きが 119MB まで減った。
-- 同じ日に、`mimikopi-env` の中で上の 8 つのライブラリが `/usr/lib` に見え、uv が取得した Python 3.11.15 が起動することを確かめた。データディレクトリには tmpfs の `/run/user/1000` を使った。
-- `@mimikopi` を作って適用した後、`mimikopi-env` の中で uv が取得した Python 3.11 に torch 2.9.1+rocm6.4 を入れ、GPU で同じ行列積（0.393 秒）と Conv1d が通ることを確かめた。`LD_LIBRARY_PATH` は使っていない。
-- このとき uv のキャッシュは `du` で 15GB だったが、`df` で見た sda1 の使用量は 176G から 181G へ約 5GB しか増えなかった。`compress=zstd` で ROCm のライブラリが縮むためと考えられる。
+- torch 2.9.1+rocm6.4 の環境は展開後に約 15GB あり、ルートの空き（約 18GB）が 119MB まで減った。
+- `mimikopi-env` の中では、`LD_LIBRARY_PATH` を使わずに、uv が取得した Python 3.11 の torch 2.9.1+rocm6.4 で同じ行列積と Conv1d が GPU で通った。
+- uv のキャッシュは `du` で 15GB だったが、sda1 の使用量は約 5GB しか増えなかった。`compress=zstd` で ROCm のライブラリが縮むためと考えられる。
 
 ## FHS 環境を uv-mode と分ける
 
@@ -51,11 +51,7 @@ subvol は手で作るので、作る前に switch や再起動をすると、�
 検証中にルートを埋めかけたので、`mimikopi-env` は起動時に `mountpoint -q` でデータディレクトリを確かめ、マウントされていなければ止まる。
 [tests/default.nix](../../tests/default.nix) は `nofail` が付いていることを確かめる。
 
-## 退けた案
-
-- uv-mode の `targetPkgs` に足す。上の「FHS 環境を uv-mode と分ける」に書いた理由で退けた。
-- nix-ld をシステムで有効にする。[uv-mode.md](../howtouse/cli-tools/uv-mode.md#設計) で退けたのと同じ理由になる。
-- `/mnt/backup` の下にディレクトリを作る。上の「データを SATA の専用 subvol に置く」に書いた理由で退けた。
+nix-ld をシステムで有効にする案は、[uv-mode](../howtouse/cli-tools/uv-mode.md#設計) と同じ理由で退けた。
 
 ## 代償
 

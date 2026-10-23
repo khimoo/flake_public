@@ -1,36 +1,15 @@
-# 端末を wezterm から kitty へ移す
+# kitty の設計
 
-設定ファイル: `modules/home-manager/gui/kitty.nix`、`modules/home-manager/gui/kitty/kitty.conf`
+使い方: [kitty](../howtouse/cli-tools/kitty.md)
+実装: [kitty.nix](../../modules/home-manager/gui/kitty.nix)、[kitty.conf](../../modules/home-manager/gui/kitty/kitty.conf)
 
-使い方は [docs/howtouse/cli-tools/kitty.md](../howtouse/cli-tools/kitty.md) を参照。
+## 端末は kitty にする
 
-## 問題
+端末の階層は、タブ内ウィンドウ、タブ、OS ウィンドウの 3 つで、要るのは「タブ内ウィンドウを別のタブへ移す」と「タブを別の OS ウィンドウへ移す」の 2 つ。どちらも移動で、同時に表示することではなく、セッションの永続化と再接続は要らない。
+wezterm は前者しかできず、kitty は両方をネイティブの action（`detach_window`、`detach_tab`）でできる。
 
-端末の階層は タブ内ウィンドウ → タブ → OS ウィンドウ の 3 層あるのに、wezterm で自由に動かせるのは
-一番下の層だけだった。上の層をどう扱うかがキー割当てにも表れておらず、操作が場当たりになっていた。
-
-整理した結果、実際に要るのは 2 つだけだった。
-
-1. タブ内ウィンドウを別のタブへ移す
-2. タブを別の OS ウィンドウへ移す
-
-どちらも所有権の移動であって、同時表示ではない。セッションの永続化と再接続は要求に入らない。
-
-wezterm は 1 は持つが 2 を実現する手段を持たない。
-
-## 判断
-
-kitty に移る。両方ともネイティブの action（`detach_window` / `detach_tab`）で足りる。
-
-### tmux 案を退けた理由
-
-当初は wezterm を表示端末として残し、階層の管理を tmux へ移す案を検討した。tmux なら
-`join-pane` と `move-window` で 2 操作とも成立し、キー設定が端末非依存になる。
-
-しかし要求を満たすだけなら kitty のほうが軽い。tmux 案には移動先選択 UI を自作する手間と、
-session と OS ウィンドウが一対一にならない（運用規則で埋める）という代償が付く。端末非依存性も
-セッション永続化も要求に入っていない利益で、それを根拠に中間レイヤを足すと、乗り換えコストを
-避けるために今より重い乗り換えをすることになる。
+tmux で階層を管理する案は退けた。`join-pane` と `move-window` で 2 つともでき、キーの設定が端末に依存しなくなるが、移動先を選ぶ UI を自作することになり、session と OS ウィンドウが一対一にならない。
+端末に依存しないことも、セッションの永続化も要求にない利点で、それを理由に層を足すと、今より重い乗り換えをすることになる。
 
 ### 実測で確かめたこと
 
@@ -40,8 +19,7 @@ kitty 0.44.0 で以下を remote control 越しに確認した。
 - 3 つに分割された splits レイアウトのタブは、構成も 3 つの pid も保ったまま別 OS ウィンドウへ移る
 - `fcitx5-skk` の日本語入力がネイティブ Wayland で動く（`wayland_enable_ime` は既定で有効）
 
-「kitty は Wayland で IME が動かない」という記述が web の検索上位に出るが、これは 2021 年の
-Debian bug #990316 由来で現在は当たらない。
+「kitty は Wayland で IME が動かない」という記述が検索の上位に出るが、2021 年の Debian bug #990316 によるもので、今は当たらない。
 
 なお、タブ内ウィンドウが 1 つだけのタブを detach すると元の OS ウィンドウが空になって閉じるので、
 OS ウィンドウの総数が変わらない。動いていないように見えるが正常。
@@ -53,8 +31,7 @@ OS ウィンドウの総数が変わらない。動いていないように見�
 
 - kitty ネイティブのキー列（`map ctrl+a>w>m`）を使い、キーボードモード（`map --new-mode`）は使わない。
   モードは状態を持つので、抜け忘れると次の入力が化ける。キー列なら無関係なキーで自然に打ち切られる。
-- 3 打鍵は操作の発見性のための規則で、頻用するものは階層キーを挟まない短縮形を別名として残した。
-  wezterm での手癖をそのまま使い続けられる。
+- 3 打鍵は操作を見つけやすくするための規則で、よく使うものは階層のキーを挟まない短縮形を別名として残した。
 - 18 マス中 3 マスが構造的に空く。OS ウィンドウには移す先の上位階層が無く、その並べ替えは
   ウィンドウマネージャの領分で、タブは表示領域を OS ウィンドウから受け取るので固有のサイズを
   持たない。空欄に別の操作を当てると規則が壊れるので空けたままにする。
@@ -119,9 +96,7 @@ nixpkgs の `vimPlugins.smart-splits-nvim` が同じファイルを同梱して�
 kitty はスクロールバックの検索も vi 風の選択も持たない。`show_scrollback` は外部ページャに渡すだけ。
 そこで `scrollback_pager` を Neovim に向け、検索と選択を Neovim の機能で埋める。
 
-この設定は Neovim 0.12 以降でしか動かない。nixos-26.05 の Neovim は 0.12.4 なので安定版のまま使える
-（25.11 のあいだは `overlays/unstable-packages.nix` で unstable から取っていた）。経緯は
-[unstable-packages.md](./unstable-packages.md) を参照。
+この設定は Neovim 0.12 以降でしか動かない。nixos-26.05 の Neovim は 0.12.4 なので、安定版で足りる（[unstable-packages.md](./unstable-packages.md)）。
 
 ## 設定の置き方
 
@@ -135,12 +110,3 @@ kitty の `include` は symlink の指す先ではなく、設定ファイルが
 フォント定義（`plemoljp-nf` / "PlemolJP Console NF"）と `TERMINAL_TRANSPARENT` は
 `modules/home-manager/gui/default.nix` で定義する。前者は `_module.args` で kitty に渡し、
 後者は Neovim の背景透過 autocmd が読む。
-
-## 導入
-
-GUI 環境の端末は kitty を導入する。
-
-## 関連
-
-- [unstable-packages.md](./unstable-packages.md) — 25.11 のあいだ Neovim 0.12 を unstable から取っていた理由
-- [docs/howtouse/cli-tools/kitty.md](../howtouse/cli-tools/kitty.md) — 操作の一覧
