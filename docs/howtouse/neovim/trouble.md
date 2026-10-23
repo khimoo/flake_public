@@ -1,57 +1,37 @@
-# trouble.nvim — 診断・quickfix 統合 UI
+# 診断と一覧表示（trouble.nvim）
 
-diagnostics、LSP references、quickfix、loclist、シンボルアウトラインを統一的な UI で表示・操作するプラグイン。
+LSP の診断結果（Diagnostics）や参照（References）、Quickfix、Location List、シンボル一覧などをファイルごとに集約して表示し、順次確認・修正を行うためのツールです。
 
-- 設定ファイル: `lua/plugins/trouble.lua`
+設定ファイル: `lua/plugins/trouble.lua`
 
-## キーバインド
-
-### trouble の開閉
+## パネルを開く
 
 | キー | 機能 |
 |------|------|
-| `<leader>xx` | ワークスペース全体の diagnostics |
-| `<leader>xX` | 現在のバッファの diagnostics |
-| `<leader>xq` | quickfix リスト |
-| `<leader>xl` | location リスト |
-| `<leader>xs` | シンボルアウトライン |
-| `<leader>xr` | LSP references / definitions |
+| `<leader>xx` | ワークスペース全体の診断結果を表示 |
+| `<leader>xX` | 現在のバッファの診断結果を表示 |
+| `<leader>xq` | Quickfix リストを表示 |
+| `<leader>xl` | Location リストを表示 |
+| `<leader>xs` | シンボル一覧を表示 |
+| `<leader>xr` | LSP の定義・参照一覧を表示 |
 
-### trouble ウィンドウ内の操作
+## パネル内のキー操作
 
 | キー | 機能 |
 |------|------|
-| `<CR>` | 項目を開く |
-| `o` | 項目を開く（trouble を閉じない） |
-| `j` / `k` | 次/前の項目に移動 |
-| `q` | trouble を閉じる |
-| `r` | リストを更新 |
-| `m` | モードを切り替え |
+| `<CR>` | 選択した項目を開く |
+| `o` | 項目を開く（Trouble パネルは開いたまま維持） |
+| `j` / `k` | 次 / 前の項目へ移動 |
+| `q` | パネルを閉じる |
+| `r` | 一覧を再読み込み |
+| `m` | 表示モードを切り替え |
 
-## Telescope 連携
+## 検索結果を順に修正する
 
-Telescope の検索結果の画面で `<C-t>` を押すと、結果を trouble に送って一覧にできる。
-
-### 検索結果を一つずつ直す
+目的の 1 箇所を検索してジャンプしたいときは Telescope を、複数検出された項目を一覧で確認しながら順次修正したいときは Trouble を使い分けます。
 
 ```
-<leader>fg          live_grep で検索文字列を入力
-<C-t>               検索結果を trouble に送る
-                     → trouble に全マッチ箇所が一覧表示される
-                     → 各項目を確認しながら修正
+<leader>fg   live_grep で検索する
+<C-t>        検索の結果を trouble に送る
+             → マッチした箇所の一覧を見ながら、1 つずつ直す
 ```
-
-## bqf との違い
-
-- bqf は quickfix ウィンドウの拡張のみ。trouble は diagnostics / references / quickfix / loclist / symbols を同じ UI で扱える
-- ファイルごとのツリー表示でグループ化される
-- Telescope 連携で検索結果を直接 trouble に送れる
-
-## Telescope との使い分け
-
-| ツール | 用途 |
-|--------|------|
-| Telescope | **探す** — ファジー検索で1つ選ぶ |
-| trouble | **一覧を処理する** — 複数の項目を順番に確認・修正 |
-
-Telescope で検索 → 結果が多い → `<C-t>` で trouble に送る、という流れが基本。

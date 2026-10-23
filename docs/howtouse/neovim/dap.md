@@ -1,66 +1,33 @@
-# DAP (Debug Adapter Protocol)
+# デバッグ（DAP）
 
-Neovim 内でデバッグ実行。ブレークポイント、ステップ実行、変数ウォッチ。
+nvim-dap を使用してブレークポイントの設定、ステップ実行、変数の確認を行います。デバッグを開始すると nvim-dap-view のパネルが開き、変数の値がコードの横にインライン表示されます。
 
-- 設定ファイル: `lua/features/dap.lua`, `lua/config/dap/python.lua`
+設定ファイル: `lua/features/dap.lua`（Python: `lua/config/dap/python.lua`、Go: `lua/plugins/lang/go.lua`、Rust: [lang-rust.md](./lang-rust.md)）
 
-## プラグイン
+## キーマップ
 
-### nvim-dap
+| キー | 機能 |
+|------|------|
+| `<leader>dc` | デバッグ開始 / 続行 |
+| `<leader>db` | ブレークポイントの切り替え（設置 / 解除） |
+| `<leader>do` | ステップオーバー（関数内に入らず次へ） |
+| `<leader>di` | ステップイン（関数内に入る） |
+| `<leader>dO` | ステップアウト（現在の関数を抜ける） |
+| `<leader>dr` | REPL を開く |
 
-デバッグアダプタープロトコルのクライアント本体。
+## パネル操作
 
-### nvim-dap-virtual-text
+dap-view パネル上部のタブで、ウォッチ式（watches）、ローカル変数（scopes）、例外（exceptions）、ブレークポイント（breakpoints）、スレッド（threads）、REPL、デバッグ出力（console）を切り替えられます。タブの横には、続行やステップ実行用のボタンも配置されています。
 
-デバッグ中に変数の値をコード上にインライン表示する。
+Rust では、パネル上のボタンから `:RustLsp debuggables` を実行でき、rustaceanvim と codelldb によるデバッグが可能です。
 
-### nvim-dap-view
-
-デバッグ UI。ウォッチ、スコープ、ブレークポイント、REPL 等をサイドパネルに表示。
-デバッグ開始時に自動で開く (`event_initialized` リスナー)。
-
-### nvim-dap-go
-
-Go 用のデバッグアダプター設定 (delve)。`opts = {}` でデフォルト設定。
-
-## キーバインド
-
-全て `<leader>d` 配下。
-
-| キー | 機能 | 説明 |
-|------|------|------|
-| `<leader>dc` | Continue | デバッグ開始 / 一時停止から再開 |
-| `<leader>db` | Toggle breakpoint | ブレークポイントの設置/解除 |
-| `<leader>do` | Step over | 次の行へ (関数の中には入らない) |
-| `<leader>di` | Step into | 関数の中に入る |
-| `<leader>dO` | Step out | 現在の関数から出る |
-| `<leader>dr` | REPL | REPL (Read-Eval-Print Loop) を開く |
-
-## dap-view のパネル
-
-winbar のタブで以下のセクションを切り替えられる:
-
-- **watches**: 式のウォッチ
-- **scopes**: ローカル変数一覧
-- **exceptions**: 例外設定
-- **breakpoints**: ブレークポイント一覧
-- **threads**: スレッド一覧
-- **repl**: REPL
-- **console**: デバッグ出力
-
-winbar にはコントロールボタンもある (play, step_into, step_over 等)。
-
-## Rust のデバッグ
-
-rustaceanvim 経由で codelldb を使う。dap-view の winbar に Rust 専用の debug ボタンがあり、`:RustLsp debuggables` を実行する。詳細は [lang-rust.md](./lang-rust.md) を参照。
-
-## 典型的なフロー
+## デバッグの流れ
 
 ```
-<leader>db  → ブレークポイントを設置
-<leader>dc  → デバッグ開始 (dap-view が自動で開く)
+<leader>db  → ブレークポイントを置く
+<leader>dc  → デバッグを始める（パネルが開く）
 <leader>do  → ステップオーバーで実行を追う
-<leader>di  → 気になる関数にステップイン
+<leader>di  → 気になる関数にステップインする
 <leader>dO  → ステップアウトで戻る
-<leader>dc  → 続行
+<leader>dc  → 続ける
 ```
