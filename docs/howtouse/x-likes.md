@@ -59,18 +59,19 @@ xlikes fetch likejs <公式アーカイブの like.js>
 
 ## 定期実行
 
-二つの systemd user timer を設定している。
+次の systemd user timer を設定している。`xlikes-backup` は `local.xLikes.backup.repository` を設定したときだけ入る。
 
 | timer | 時刻 | 実行する内容 |
 |-------|------|-------------|
 | `xlikes-sync` | 毎時 0 分 | `xlikes sync`（いいね欄と引用元の取得と登録） |
 | `xlikes-process` | 毎日 4:00 | `xlikes embed text`、`ocr`、`embed images`、`embed text` の順 |
+| `xlikes-backup` | 毎日 6:00 | 取得したツイートとデータベースを restic で写す（下の「バックアップ」） |
 
-どちらも始めに `xlikes migrate` を実行するので、x-likes-archive を更新してスキーマが変わっても、次の実行で適用される。
+`xlikes-sync` と `xlikes-process` は、始めに `xlikes migrate` を実行するので、x-likes-archive を更新してスキーマが変わっても、次の実行で適用される。
 `xlikes-process` は途中の手順が失敗しても残りの手順を進め、最後に失敗として終わる。
-どちらの timer も、失敗すると GNOME に通知が出る（[failure-notify.md](./failure-notify.md)）。
-電源が切れていて 4:00 を逃すと、次の起動時に実行される。
-nixos-desktop の pomu は linger にしてあるので、どちらの timer もログインしていなくても動く。linger でないユーザーでは、ログインしている間だけ動き、逃した分は次のログイン時に実行される。
+どの timer も、失敗すると GNOME に通知が出る（[failure-notify.md](./failure-notify.md)）。
+電源が切れていて 4:00 や 6:00 を逃すと、次の起動時に実行される。
+nixos-desktop の pomu は linger にしてあるので、どの timer もログインしていなくても動く。linger でないユーザーでは、ログインしている間だけ動き、逃した分は次のログイン時に実行される。
 
 ```bash
 systemctl --user list-timers 'xlikes-*'
@@ -86,6 +87,46 @@ OCR と埋め込みは一件ずつ記録するので、次の実行は続きか�
 systemctl --user stop xlikes-process
 systemctl --user start xlikes-process   # すぐに続きを計算する
 ```
+
+## バックアップ
+
+`xlikes-backup` が毎日、取得したツイート（`tweets/`）と、データベース全体のダンプ（`backup/xlikes.sql`）を、Google Drive の restic のリポジトリ（`gdrive:x-likes-backup`）へ写す。
+X で消えたツイートは取り直せないので、この写しと保存先の subvol だけが残る。
+世代は日次 7、週次 4、月次 12 を残し、それより古いものは写すたびに消す。
+
+リポジトリは restic で暗号化してある。パスワードは `secrets/secrets.yaml` の `x_likes_restic_password` にあり、switch すると `~/.config/x-likes/restic-password` に置かれる。
+復号に使う age 鍵は Bitwarden にもあるので、このマシンが壊れても、別のマシンで secrets を復号すればパスワードを取り出せる。
+
+写した世代を見る。
+
+```bash
+export RESTIC_REPOSITORY=rclone:gdrive:x-likes-backup RESTIC_PASSWORD_FILE=~/.config/x-likes/restic-password
+nix shell nixpkgs#restic -c restic snapshots
+```
+
+保存先の subvol だけが壊れたときは、データベース（NVMe 上）は残っているので、ファイルだけを戻す。
+
+```bash
+systemctl --user stop xlikes-sync.timer xlikes-process.timer
+nix shell nixpkgs#restic -c restic restore latest --target / --include ~/.local/share/x-likes/tweets
+systemctl --user start xlikes-sync.timer xlikes-process.timer
+```
+
+データベースもなくなったとき（新しいマシンなど）は、ファイルを戻してから、ダンプを空のデータベースに読み込む。
+定期実行の `xlikes migrate` が先に空のテーブルを作っていると、ダンプのテーブルと衝突するので、timer を止めて、自分のテーブルを消してから読み込む。
+`DROP OWNED BY` は自分が持つテーブルだけを消し、NixOS 側が作った拡張は残す。
+
+```bash
+systemctl --user stop xlikes-sync.timer xlikes-process.timer
+nix shell nixpkgs#restic -c restic restore latest --target /
+psql -h /run/postgresql -d xlikes -c 'DROP OWNED BY CURRENT_USER'
+psql -h /run/postgresql -d xlikes -f ~/.local/share/x-likes/backup/xlikes.sql
+systemctl --user start xlikes-sync.timer xlikes-process.timer
+```
+
+読み込みでは、拡張へのコメント（`COMMENT ON EXTENSION`）の 2 行が `must be owner of extension` で失敗するが、データには関係しない。
+ダンプには OCR の文字と埋め込みのベクトルも入っているので、読み込めば計算し直す必要はない。
+uv の環境とモデルは写していないので、最初の `xlikes` の実行で取り直す。
 
 ## 環境の中で変わること
 

@@ -4,6 +4,7 @@
 #   x-likes-env     uv と ROCm 版の torch を動かす FHS 環境
 #   xlikes-sync     いいね欄と引用元を取得して登録する（毎時）
 #   xlikes-process  OCR と埋め込みの計算（毎晩）
+#   xlikes-backup   取得したツイートとデータベースを restic で写す（毎日、backup.repository を設定したとき）
 #
 # データベースと GPU のロックファイルは modules/nixos/x-likes.nix が用意する。保存先を subvol に
 # するかはホストが決め、マウントを定義したときだけ x-likes-env がマウントを確かめる。
@@ -22,9 +23,12 @@ let
   # osConfig は NixOS のモジュールとして使うときだけある。単独で使う構成では assertion で止める。
   onNixos = config.submoduleSupport.enable;
 
+  # dataDir を nofail でマウントするホストでは、マウントされていない間に何も書かず、何も写さない。
+  checkMount = onNixos && osConfig.fileSystems ? ${cfg.dataDir};
+
   env = pkgs.callPackage ../../packages/x-likes-env {
     inherit (cfg) dataDir database hsaOverrideGfxVersion;
-    checkMount = onNixos && osConfig.fileSystems ? ${cfg.dataDir};
+    inherit checkMount;
     gpuLock = if onNixos then osConfig.local.xLikes.gpuLock else null;
   };
 
@@ -49,6 +53,39 @@ let
       xlikes embed images || status=1
       xlikes embed text || status=1
       exit "$status"
+    '';
+  };
+
+  backup = pkgs.writeShellApplication {
+    name = "xlikes-backup";
+    runtimeInputs = [
+      pkgs.restic
+      pkgs.rclone
+      pkgs.util-linux
+      osConfig.services.postgresql.package
+    ];
+    text = ''
+      data=${lib.escapeShellArg cfg.dataDir}
+      ${lib.optionalString checkMount ''
+        # マウントされていない空のディレクトリを写すと、空の世代が日次の世代を押し出す。
+        if ! mountpoint -q "$data"; then
+          echo "xlikes-backup: $data がマウントされていません" >&2
+          exit 1
+        fi
+      ''}
+      export RESTIC_REPOSITORY=${lib.escapeShellArg cfg.backup.repository}
+      export RESTIC_PASSWORD_FILE=${lib.escapeShellArg cfg.backup.passwordFile}
+
+      # OCR と埋め込みの結果も入るので、データベースは丸ごと写す。復元すれば計算し直さずに済む。
+      # 圧縮しない形式にして、restic が前の日の写しと重なる部分を再利用できるようにする。
+      mkdir -p "$data/backup"
+      pg_dump --host=/run/postgresql --dbname=${lib.escapeShellArg cfg.database} --no-owner \
+        --file="$data/backup/xlikes.sql.tmp"
+      mv "$data/backup/xlikes.sql.tmp" "$data/backup/xlikes.sql"
+
+      restic cat config >/dev/null 2>&1 || restic init
+      restic backup --tag xlikes "$data/tweets" "$data/backup/xlikes.sql"
+      restic forget --tag xlikes --keep-daily 7 --keep-weekly 4 --keep-monthly 12 --prune
     '';
   };
 in
@@ -82,6 +119,23 @@ in
       default = null;
       description = "Optional ROCm GPU compatibility version.";
     };
+
+    backup = {
+      repository = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+        example = "rclone:gdrive:x-likes-backup";
+        description = ''
+          restic のリポジトリ。取得したツイートとデータベースのダンプを毎日写す。null なら写さない。
+          X で消えたツイートは取り直せないので、保存先と別のディスクかクラウドに置く。
+        '';
+      };
+      passwordFile = lib.mkOption {
+        type = lib.types.nullOr absolutePath;
+        default = null;
+        description = "restic のリポジトリのパスワードを書いたファイル。";
+      };
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -96,6 +150,12 @@ in
           local.xLikes は NixOS の Home Manager モジュールとして使うときだけ有効にできる。
           拡張を作るには superuser が要るので、データベースは NixOS 側（modules/nixos/x-likes.nix）が作る。
         '';
+      }
+    ]
+    ++ [
+      {
+        assertion = cfg.backup.repository == null || cfg.backup.passwordFile != null;
+        message = "local.xLikes.backup.repository を設定したら、backup.passwordFile も設定する。";
       }
     ]
     ++ map (name: {
@@ -148,6 +208,29 @@ in
         # GPU を使うので、ゲームと重なりにくい時刻にする。電源が切れていて逃した分は、ユーザーのサービス
         # マネージャーが次に起動したとき（linger なら OS の起動時、そうでなければログイン時）に実行される。
         OnCalendar = "*-*-* 04:00:00";
+        Persistent = true;
+      };
+      Install.WantedBy = [ "timers.target" ];
+    };
+
+    systemd.user.services.xlikes-backup = lib.mkIf (cfg.backup.repository != null) {
+      Unit = {
+        Description = "取得したツイートとデータベースを restic で写す";
+        OnFailure = config.local.failureNotify.onFailure;
+      };
+      Service = {
+        Type = "oneshot";
+        ExecStart = lib.getExe backup;
+        Nice = 10;
+        IOSchedulingClass = "idle";
+      };
+    };
+
+    systemd.user.timers.xlikes-backup = lib.mkIf (cfg.backup.repository != null) {
+      Unit.Description = "取得したツイートとデータベースを毎日写す";
+      Timer = {
+        # 夜間の OCR と埋め込みのあとにして、その日の計算結果まで写す。
+        OnCalendar = "*-*-* 06:00:00";
         Persistent = true;
       };
       Install.WantedBy = [ "timers.target" ];

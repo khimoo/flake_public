@@ -48,7 +48,18 @@ in {
     dataDir = "/home/pomu/.local/share/x-likes";
     projectDir = "/home/pomu/sagyo/x-likes-archive";
     inherit hsaOverrideGfxVersion;
+    # 保存先の SATA SSD が壊れても残るよう、Google Drive に写す。
+    backup = {
+      repository = "rclone:gdrive:x-likes-backup";
+      passwordFile = "${config.home.homeDirectory}/.config/x-likes/restic-password";
+    };
   };
+  local.profile.secrets = [
+    {
+      secret = "x_likes_restic_password";
+      path = config.local.xLikes.backup.passwordFile;
+    }
+  ];
 
   home.packages = with pkgs; [
     prismlauncher

@@ -441,6 +441,9 @@ lib.genAttrs systems (
         inputs.self.nixosConfigurations.nixos-desktop.config.services.postgresql.ensureDatabases;
       # ログイン画面のまま放置されても、ユーザーの timer を起動時から動かす。
       assert inputs.self.nixosConfigurations.nixos-desktop.config.users.users.pomu.linger == true;
+      # X で消えたツイートは取り直せないので、保存先と別の場所へ毎日写す。
+      assert desktopUser.systemd.user.timers ? xlikes-backup;
+      assert builtins.any (s: s.path == desktopUser.local.xLikes.backup.passwordFile) desktopUser.local.profile.secrets;
       # 定期実行が失敗したら気づけるよう、どの timer のサービスにも失敗の通知を付ける。
       assert lib.all
         (name: desktopUser.systemd.user.services.${name}.Unit.OnFailure or [ ] == desktopUser.local.failureNotify.onFailure)
