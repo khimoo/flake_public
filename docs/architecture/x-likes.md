@@ -1,22 +1,15 @@
-# X のいいねの保存と意味検索の実行環境
+# X のいいねの保存の設計
 
-[howtouse/x-likes.md](../howtouse/x-likes.md) の設計判断。
-ツール本体（取得、登録、OCR、埋め込み、検索）の設計は x-likes-archive の `docs/design.md` にあり、ここでは nixos-desktop で動かすための環境、データベース、定期実行を扱う。
+使い方: [X のいいねの保存と意味検索](../howtouse/x-likes.md)
+実装: [x-likes.nix](../../modules/home-manager/x-likes.nix)（コマンドと定期実行）、[modules/nixos/x-likes.nix](../../modules/nixos/x-likes.nix)（データベース）、[x-likes-env](../../packages/x-likes-env/default.nix)
+
+ツール本体（取得、登録、OCR、埋め込み、検索）の設計は x-likes-archive の `docs/design.md` にあり、この文書は nixos-desktop で動かすための環境、データベース、定期実行を扱う。
 
 ## 使いみち
 
 x-likes-archive は、gallery-dl で X のいいね欄と引用元を取得し、Postgres（pgvector と PGroonga）に登録し、ruri-v3-310m と Qwen3-VL-Embedding-2B の埋め込みと RapidOCR の文字で検索する。
 埋め込みは RX 6600 の GPU で計算するので、[mimikopi-env](./mimikopi-env.md) と同じく、uv が取得する Python に ROCm 版の torch を入れて FHS 環境で動かす。
 Postgres には拡張が二つ要る。いいね欄の取得と、OCR と埋め込みの計算は、定期的に実行する。
-
-## 確かめた結果
-
-2026-10-21 に nixos-desktop で確かめた。
-
-- Postgres 17.11、pgvector 0.8.2、PGroonga 4.0.5（nixpkgs 26.05、4feb8eb）で、superuser が拡張を作ったデータベースを一般ロールに所有させると、そのロールで x-likes-archive の migrate、PGroonga の全文検索、pgvector の距離計算が通った。
-- 二つの拡張の control ファイルには `trusted = true` がないので、superuser でないロールは `CREATE EXTENSION` を実行できない。
-- `x-likes-env` を `systemd-run --user` の中で起動すると、bwrap の FHS 環境が立ち上がり、データディレクトリがマウントされていなければマウント確認で止まった。
-- 取得から検索までの処理は、switch 前に `mimikopi-env` の中で、一時的な Postgres を使って実データで確かめてある。
 
 ## FHS 環境を mimikopi-env と分ける
 
@@ -51,7 +44,7 @@ subvol を分ければスナップショットやバックアップの単位を�
 
 データベースはそのユーザーが所有し、Unix socket の peer 認証で接続する。パスワードは使わない。
 nixpkgs の `ensureDBOwnership` はユーザーと同じ名前のデータベースにしか使えないので、所有者は `postgresql-setup` の最後に `ALTER DATABASE` で付ける。
-拡張は所有者には作れないので、同じ所で superuser として作る。x-likes-archive の migrate の `CREATE EXTENSION IF NOT EXISTS` は、作成済みなら何もしない。
+拡張は所有者には作れないので、同じ所で superuser として作る。pgvector と PGroonga の control ファイルには `trusted = true` がなく、superuser でないロールは `CREATE EXTENSION` を実行できない（Postgres 17.11、pgvector 0.8.2、PGroonga 4.0.5、nixpkgs 26.05 の 4feb8eb で確認）。superuser が拡張を作ったデータベースを一般ロールに所有させれば、そのロールで migrate、全文検索、距離計算が通る。x-likes-archive の migrate の `CREATE EXTENSION IF NOT EXISTS` は、作成済みなら何もしない。
 
 拡張を作るには superuser が要るので、Home Manager だけではデータベースを用意できない。
 `local.xLikes` は NixOS の Home Manager モジュールとして使うときだけ有効にでき、Home Manager を単独で使う構成では assertion で止まる。

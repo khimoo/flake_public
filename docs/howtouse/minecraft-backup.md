@@ -1,176 +1,96 @@
-# Minecraft バックアップ（使い方・セットアップ）
+# Minecraft バックアップ
 
-PrismLauncher のインスタンスを restic で世代管理し、Google Drive へ写す。インスタンスを
-終了すると自動で走る。なぜこの構成かは
-[../architecture/minecraft-backup.md](../architecture/minecraft-backup.md) を参照。
+PrismLauncher のインスタンスを終了した際、restic を用いてローカルリポジトリ（`/mnt/backup/minecraft/repo`）へデータを取り込み、さらに Google Drive（`gdrive:minecraft-backups/<ホスト名>`）へ同期します。
+Drive 上のリポジトリはマシンごとに隔離されており、各マシンは自身の領域にのみ書き込みを行い、他マシンの領域は読み取り専用として扱います。
+設定は [home-manager-pomu.nix](../../hosts/nixos-desktop/home-manager-pomu.nix) の `local.minecraftBackup` で管理しており、現在は nixos-desktop でのみ有効化しています。
 
-設定ファイル:
-- `modules/home-manager/minecraft-backup.nix`（コマンドの定義とオプション）
-- `modules/home-manager/minecraft-common.sh` / `minecraft-{backup,check,restore,sync}.sh`（本体）
-- `hosts/nixos-desktop/home-manager-pomu.nix`（リポジトリ位置と送り先の指定）
-- `hosts/nixos-desktop/data-disk.nix`（`/mnt/backup/minecraft` の作成）
+設計ドキュメント: [Minecraft バックアップの設計](../architecture/minecraft-backup.md)
 
-| | |
-|---|---|
-| リポジトリ（正本） | `/mnt/backup/minecraft/repo` |
-| 送り先（写し） | `gdrive:minecraft-backups/<ホスト名>` |
-| 発火 | PrismLauncher の post-exit フック + 毎日の `mc-sync` タイマー |
-| 保持 | 直近 3 / 日次 14 / 週次 8 / 月次 12（インスタンスごと） |
+## コマンド一覧
 
-Drive 上のリポジトリはマシンごとに分かれている。デスクトップは
-`gdrive:minecraft-backups/nixos-desktop` にしか書かず、他のマシンの領域は読むだけ。
+- `mc-backup [ID...]`: ローカルリポジトリへデータを取り込み、Drive へ同期する
+- `mc-check [ID...]`: 他のマシンに新しい状態が存在しないか確認する
+- `mc-restore --from HOST [ID...]`: 他のマシンの状態を自マシンへ取り込む
+- `mc-sync`: 古いバックアップ世代を削除し、Drive への転送を再実行する（日次タイマーでも自動実行）
 
-## コマンド
+ID の指定を省略すると全インスタンスが対象になります。指定した ID に一致するインスタンスが 1 つも存在しない場合は、非ゼロのステータスコードで終了します。
 
-| | |
-|---|---|
-| `mc-backup [ID...]` | 手元のリポジトリへ取り込み、Drive へ写す |
-| `mc-check [ID...]` | 他のマシンがより新しい状態を持っていないか確かめる |
-| `mc-restore --from HOST [ID...]` | 別のマシンの状態をこのマシンへ取り込む |
-| `mc-sync` | 古い世代を刈り、Drive への転送を取り直す |
+## 新しいマシンでのセットアップ
 
-ID を省くと全インスタンスが対象。
-
-## セットアップ（新しいマシンで一度だけ）
-
-PrismLauncher を終了してから、フックを設定するコマンドを実行する。
+PrismLauncher を終了してから、フック処理を設定します。
 
 ```sh
-mc-setup-hooks --dry-run   # 変更前と変更後の行を表示するだけ
+mc-setup-hooks --dry-run   # 変更前後の行を表示するだけで変更は行わない
 mc-setup-hooks
-```
-
-`~/.local/share/PrismLauncher/prismlauncher.cfg` の `[General]` に、Settings → Custom Commands の
-Pre-launch command（`mc-check "$INST_ID"`）と Post-exit command（`mc-backup "$INST_ID"`）を書く。
-ほかの設定は変えない。起動中の PrismLauncher は終了時に設定を書き戻すので、起動中なら何もせずに止まる。
-
-インスタンス単位の Settings にも同じ欄があるが、そちらは `Override commands` を有効にした
-インスタンスだけに効く。全インスタンスに効かせたいのでグローバル側に入れる。
-
-設定できたか確認する:
-
-```sh
 grep -E 'PreLaunchCommand|PostExitCommand' ~/.local/share/PrismLauncher/prismlauncher.cfg
 ```
 
-リポジトリは最初の `mc-backup` が自分で作る。事前の `restic init` は要らない。
+`prismlauncher.cfg` の `[General]` セクションに、起動前処理の `mc-check "$INST_ID"` と終了後処理の `mc-backup "$INST_ID"` が記述されます。
+PrismLauncher が起動中だと終了時に設定ファイルが上書きされてしまうため、起動中に実行した場合は何もせずに終了します。
+インスタンスごとの個別設定にも同項目の設定欄がありますが、そちらは `Override commands` を有効にしたインスタンスにのみ適用されます。
 
-## 動かす
+リポジトリは初回の `mc-backup` 実行時に自動作成されるため、あらかじめ `restic init` を実行しておく必要はありません。
 
-インスタンスを終了すると `mc-backup` が走る。ランチャーはコマンドの完了を待つので、その間
-インスタンスは実行中の表示のまま残る。ログはインスタンスのコンソールに出る。
+## 通常時の挙動
 
-手動で取ることもできる:
+インスタンスを終了すると `mc-backup` が自動実行されます。ランチャーはバックアップの完了を待機するため、その間インスタンスは実行中表示のまま維持され、ログはインスタンスのコンソールに出力されます。
+手動でバックアップを取得する場合は `mc-backup 1.21` や `mc-backup`（全インスタンス対象）を実行します。起動中のインスタンスはセーブデータの書き込み途中である可能性があるためスキップされ、その旨が標準エラー出力に警告されます。
 
-```sh
-mc-backup 1.21          # インスタンス ID を指定
-mc-backup               # 全インスタンス
-```
+Drive への転送に失敗した場合でも警告を出力して正常終了します。データ自体はローカルリポジトリに保存されているため、次回の `mc-sync` 実行時に再転送されます。
+クラッシュや強制終了が発生した場合はフックが実行されないため、そのセッションの変更分は次回正常終了したタイミングで取り込まれます。
 
-起動中のインスタンスは書き込み途中の状態が写るのでスキップされ、その旨が stderr に出る。
+## 別のマシンでプレイを継続する場合
 
-Drive への転送に失敗しても警告だけ出して正常終了する。手元のリポジトリには既に入っている
-ので、次の `mc-sync` が取り直す。旅行先などネットが無い場所を想定している。
-
-## 別のマシンで続きを遊ぶ
-
-デスクトップで遊んだ続きをラップトップで遊ぶ、という往復を想定した手順。**移動前に
-デスクトップ側でインスタンスを一度終了しておく**（post-exit フックが Drive へ写す）。
-
-持ち出す側で取り込む:
+マシンを移動する前に、元のマシンでインスタンスを一度正常終了させておきます（終了フックにより Drive へ同期されます）。
+移動先のマシンでデータを取り込みます。
 
 ```sh
 mc-restore --from nixos-desktop 1.21
-mc-restore --from nixos-desktop        # 相手にある全インスタンス
+mc-restore --from nixos-desktop        # 移行元にある全インスタンスを対象とする場合
 ```
 
-取り込むと手元のインスタンスが上書きされる。手元の方が新しい場合は中止し、両方の日時を
-表示する。それでも上書きするなら `--force`。
+手元のインスタンスデータは上書きされます。手元のデータの方が新しい場合は、両方の更新日時を表示して処理を停止します。強制的に上書きする場合は `--force` フラグを付与してください。
+元のマシンに戻ってプレイを再開する際は、逆方向に `mc-restore --from nixos-spin713 1.21` を実行します。
 
-帰宅後は逆向きに:
+データを取り込み忘れた状態で古い環境のまま起動しようとすると、起動前の `mc-check` が起動を差し止め、実行すべき `mc-restore` コマンドを表示します。なお、オフライン時は照合が行えないためチェックをスキップして起動を許可します。
+Drive 上にどのマシンの領域が存在するかは `rclone lsf --dirs-only gdrive:minecraft-backups` で確認できます。
 
-```sh
-mc-restore --from nixos-spin713 1.21
-```
+## バックアップ対象ファイル
 
-取り込み忘れて古い方で遊ぼうとすると、pre-launch の `mc-check` が起動を止めて、実行すべき
-`mc-restore` の行を出す。ただしネットに繋がらないときは照合できないので通す。
+`instance.cfg`、`mmc-pack.json`、および `minecraft/` ディレクトリ内の `saves`、`mods`、`config`、`options.txt`、`resourcepacks`、`shaderpacks`、`screenshots` のみを対象とします。
+`minecraft/backups`（ゲーム内バックアップ機能の出力先）、`logs`、`cache` は除外され、`assets/` や `libraries/` はランチャーによって必要時に再ダウンロードされます。
+対象を変更する場合は [minecraft-common.sh](../../modules/home-manager/minecraft-common.sh) 内の `MC_ITEMS` を編集してください。
 
-Drive にどのマシンの領域があるか:
-
-```sh
-rclone lsf --dirs-only gdrive:minecraft-backups
-```
-
-## 中身
-
-| 含める | 理由 |
-|--------|------|
-| `instance.cfg` / `mmc-pack.json` | インスタンス定義（MC バージョン・ローダー）。復元に必須 |
-| `minecraft/saves` | ワールド本体。代替不能 |
-| `minecraft/mods` | 無いと modded ワールドが開けない |
-| `minecraft/config` | MOD 設定 |
-| `minecraft/options.txt` | ゲーム内設定・キーバインド |
-| `minecraft/resourcepacks` `shaderpacks` `screenshots` | |
-
-これは allowlist なので、ここに無いものは入らない。`minecraft/backups`（ゲーム内バックアップ）、
-`logs`、`cache` などは対象外。`assets/` と `libraries/` はランチャーが再取得する。
-
-対象を変えるときは `minecraft-common.sh` の `MC_ITEMS` を編集する。
-
-## 手元のリポジトリから戻す
-
-同じマシンで過去の世代に戻す場合は restic を直接使う。
+## ローカルリポジトリから過去の世代へ復元する
 
 ```sh
 R=(restic --insecure-no-password -r /mnt/backup/minecraft/repo)
-
-# 世代を選ぶ
-"${R[@]}" snapshots --tag 1.21
-
-# ワールドだけを別の場所へ出して中身を確かめる
-"${R[@]}" restore <スナップショット ID> --target /tmp/mc-check
-
-# インスタンスへ書き戻す（元の絶対パスに戻るので --target /）
-"${R[@]}" restore <スナップショット ID> --target /
+"${R[@]}" snapshots --tag 1.21                                  # 対象の世代を選択
+"${R[@]}" restore <スナップショット ID> --target /tmp/mc-check  # 別の場所に展開して内容を確認
+"${R[@]}" restore <スナップショット ID> --target /              # 記録された絶対パスへ直接書き戻す
 ```
 
-`--target /` はスナップショットに記録された絶対パスへ書き戻す。先に `/tmp` へ出して中身を
-確かめてから本番へ戻すのが安全。
+`--target /` を指定すると、スナップショットに記録された絶対パスへそのまま復元されます。あらかじめ `/tmp` などに展開して内容を確認してから復元を行ってください。
 
-## 状態を見る
+## 状態確認・古い世代の削除
 
 ```sh
 R=(restic --insecure-no-password -r /mnt/backup/minecraft/repo)
-
-"${R[@]}" snapshots                     # 世代一覧
-"${R[@]}" stats --mode raw-data         # 実際に使っている容量（重複排除後）
-"${R[@]}" stats --mode restore-size     # 復元したときの合計サイズ
-
-systemctl --user list-timers mc-sync    # 次回の刈り込み
-journalctl --user -u mc-sync -n 50      # 直近のログ
-
-rclone about gdrive:                    # Drive の空き
+"${R[@]}" snapshots                     # バックアップ世代の一覧を表示
+"${R[@]}" stats --mode raw-data         # 重複排除後の実際の使用容量を確認
+systemctl --user list-timers mc-sync
+journalctl --user -u mc-sync -n 50
+rclone about gdrive:                    # Drive の空き容量を確認
 ```
 
-## 古い世代を消す
-
-毎日 `mc-sync` が保持ポリシーに従って刈る。手で走らせることもできる:
-
-```sh
-mc-sync
-```
-
-リポジトリが `warnAtGiB`（既定 10 GiB）を超えると `mc-sync` が警告するが、容量を理由に
-自動削除はしない。超えたら保持ポリシーを見直す。ポリシーは
-`hosts/nixos-desktop/home-manager-pomu.nix` の `local.minecraftBackup.retention` で変える。
+`mc-sync` は、インスタンスごとに直近 3 世代、日次 14 世代、週次 8 世代、月次 12 世代を残し、それより古い世代を自動削除します。
+リポジトリ容量が `warnAtGiB`（規定値: 10 GiB）を超えると警告を出力しますが、容量超過のみを理由として強制削除することはありません。警告が出た場合は `local.minecraftBackup.retention` の保持世代設定を見直してください。
 
 ```nix
 local.minecraftBackup.retention = [ "--keep-last=3" "--keep-daily=7" "--keep-monthly=6" ];
 ```
 
-## restic 移行前の ZIP
+## restic 導入以前の ZIP アーカイブについて
 
-`/mnt/backup/minecraft/*.zip` は restic 導入前の履歴で、restic には入っていない。当時の
-状態が要るときはここから `unzip` する。Drive 側の同名アーカイブは Google One 失効時に
-消えているので、これがその期間の唯一の写し。
+`/mnt/backup/minecraft/*.zip` は restic 導入以前の過去ログであり、restic リポジトリには含まれていません。この期間のデータが必要な場合は手動で `unzip` して解凍してください。
+Drive 上にあった同等のアーカイブは Google One 契約終了時に削除されたため、このローカルファイルが当該期間の唯一のバックアップとなります。

@@ -1,90 +1,41 @@
-# Quaderno の取り込み（使い方）
+# Quaderno の取り込み
 
-設計判断: [architecture/quaderno.md](../architecture/quaderno.md)
+Fujitsu Quaderno A4 Gen2 で作成した手書き PDF を、同じ LAN 内に接続している際に 1 時間ごとに自動でローカルへ取り込みます。
+データの同期はデバイスから手元への一方向のみであり、デバイス側のファイルを書き換えることはありません。
+設定は [home-manager-pomu.nix](../../hosts/nixos-desktop/home-manager-pomu.nix) の `local.quaderno` に記載されており、nixos-desktop のみで有効化しています。複数台で有効にすると、両方のマシンが全件を取り込む動作になります。
 
-Fujitsu Quaderno A4 Gen2 で手書きした PDF を、同じ LAN にいるときに自動でアーカイブへ
-落とす。デバイスから手元への一方向で、手元からデバイスへは何も書かない。
+設計ドキュメント: [Quaderno の取り込みの設計](../architecture/quaderno.md)
 
-設定ファイル:
-- [`modules/home-manager/quaderno.nix`](../../modules/home-manager/quaderno.nix)（`local.quaderno` オプションと `quaderno-pull` コマンド、systemd timer）
-- [`modules/home-manager/quaderno_pull.py`](../../modules/home-manager/quaderno_pull.py) / [`quaderno_plan.py`](../../modules/home-manager/quaderno_plan.py)（本体と選別ロジック）
-- [`packages/dpt-rp1-py/`](../../packages/dpt-rp1-py/)（デバイス操作 CLI。更新時は [単体 build](validation.md#対象別の確認手順) で確認）
-- [`profiles/home/pomu-workstation.nix`](../../profiles/home/pomu-workstation.nix)（この環境の設定）
+## 初回ペアリング手順
 
-## 初回のペアリング
+1. Quaderno の Wi-Fi を有効にし、設定画面に表示される IP アドレスを確認する
+2. `curl -s http://<IP>:8080/register/information` を実行し、`model_name` などの JSON が返ってくることを確認する
+3. `dptrp1 --addr <IP> register` を実行し、Quaderno の画面に表示された PIN を端末に入力する
 
-Quaderno の Wi-Fi を入れる。設定画面に出ている IP を控える。
+ペアリングが成功すると `~/.config/dpt/deviceid.dat` と `~/.config/dpt/privatekey.dat` が生成され、以降の認証にはこの 2 つのファイルが使用されます。
+これらはデバイス個別の認証鍵であるため、Git リポジトリには含めないでください。
 
-届いているか確かめる。
+## 日常の運用
 
-```sh
-curl -s http://<IP>:8080/register/information
-```
+自動で処理されるため手動での操作は不要です。今すぐ取り込みを行いたい場合は `quaderno-pull` を実行してください。
 
-`model_name` などが JSON で返れば届いている。
+取り込み先は `/mnt/backup/quaderno`（`archiveDir`）であり、デバイス内のフォルダ構造がそのまま再現されます（`<archiveDir>/Document/...`）。
+Google Drive への自動アップロードは行われません。クラウドへ保存したい場合は手動でアップロードしてください。
 
-登録する。
+ローカル側はアーカイブとして扱うため、デバイス側で削除された文書も手元にはそのまま残ります。
+また、デバイス側でファイル名の変更や移動を行っても、手元には変更前の名前と配置のまま保持されます。これは取り込み判定に `entry_id` と `file_revision` の対応のみを使用しているためです。手元の配置も一致させたい場合は手動で整理してください。
+注釈や手書きを追記した文書は上書き保存され、追記前の過去バージョンは保持されません。
 
-```sh
-dptrp1 --addr <IP> register
-```
+各文書のどのリビジョンまで取り込み済みかは `~/.local/state/quaderno/state.json` で管理されています。このファイルを削除すると、次回の実行時に全ファイルを再取り込みします。
 
-`dptrp1` は `local.quaderno.enable` を有効にした home-manager 世代で PATH に入る。
-
-実行すると本体の画面に PIN が出る。それを端末に打つと成功する。
-
-成功すると `~/.config/dpt/deviceid.dat` と `~/.config/dpt/privatekey.dat` ができる。
-この 2 つは本体への認証鍵なので、このリポジトリには入れない。以後 `quaderno-pull` は
-この 2 つのファイルで認証する。
-
-## 日常の使い方
-
-何もしなくてよい。1 時間ごとにタイマーが探索を試み、Quaderno が起きていれば取り込む。
-
-すぐ取り込みたいときは手で叩く。
-
-```sh
-quaderno-pull
-```
-
-取り込み先は `/mnt/backup/quaderno`（= `archiveDir`）。SATA 側の `@backup` subvol で、
-ディレクトリは `data-disk.nix` が用意する。ここは手動で
-Google Drive へ上げる運用にしている（自動同期は作っていない）。デバイス上のパスは
-`archiveDir` の下にそのまま再現する。`remoteRoot`（既定 `Document`）配下の文書なら、
-`<archiveDir>/Document/...` の 1 段を挟んだ階層になる。
-
-デバイス側で消した文書は手元に残る。手元のアーカイブを整理するのは自分の役目になる。
-
-取り込みの判定は `entry_id` と `file_revision` の対応だけを見る。デバイス側でリネームや
-移動をしても、この 2 つは変わらない。そのため新しいファイルとしては落ちてこず、
-古い名前・古い場所のまま手元に残り続ける。手元へも同じリネームや移動を反映したい場合は
-手作業になる。
-
-## 設定できるオプション
-
-`local.quaderno` 配下（[`modules/home-manager/quaderno.nix`](../../modules/home-manager/quaderno.nix)）。
-
-- `archiveDir`（必須）取り込み先。既定値は無く、環境ごとに `profiles/home/` で指定する。
-- `serial`（既定 `null`）接続する機器のシリアル番号。`null` なら mDNS で最初に見つかった
-  Digital Paper に接続する。
-- `remoteRoot`（既定 `"Document"`）デバイス上の対象フォルダ。この配下だけを取り込む。
-- `intervalSeconds`（既定 `3600`）タイマーが取り込みを試す間隔（秒）。
-- `discoveryTimeoutSeconds`（既定 `15`）mDNS で機器を探す時間（秒）。この間に見つからな
-  ければ何もせず終わる。
-
-## 状態
-
-`~/.local/state/quaderno/state.json` に、どの文書のどの改訂まで取り込んだかを記録している。
-取り込み先の外に置いてあるので、Drive へ上げるときに同期の記録が混ざらない。
-
-このファイルを消すと、次回の実行で全件を落とし直す。
-
-## 確認する
+## 動作確認
 
 ```sh
 systemctl --user status quaderno-pull
 journalctl --user -u quaderno-pull
 ```
 
-Quaderno がスリープしていると探索が失敗する。これは正常で、終了コード 0 で終わる。
-ログに「見つかりません」が並んでいても異常ではない。
+Quaderno がスリープ状態の場合はデバイスを発見できず、「見つかりません」と表示して正常終了します。これは正常な挙動です。
+認証エラーやダウンロード処理自体に失敗した場合は、非ゼロのステータスコードで終了します。
+
+同一 LAN 内に他の Digital Paper 機器が存在し、意図しない機器へ接続されてしまう場合は、`local.quaderno.serial` にシリアル番号を指定することで特定デバイスのみに接続を限定できます。

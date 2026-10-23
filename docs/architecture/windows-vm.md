@@ -1,10 +1,7 @@
-# デスクトップの Windows VM を FreeRDP で使う
+# デスクトップの Windows VM の設計
 
-使い方: [howtouse/windows-vm.md](../howtouse/windows-vm.md)
-
-OS 側は [modules/nixos/vm.nix](../../modules/nixos/vm.nix) の `local.vm` が libvirt と利用ユーザーをまとめる。`windowsDomain` が指定されていれば、`users` のうち `manageHome = false` でないユーザーに Windows ランチャーを設定する。
-
-実装: [modules/home-manager/windows-vm.nix](../../modules/home-manager/windows-vm.nix)、[modules/home-manager/windows-vm.sh](../../modules/home-manager/windows-vm.sh)、検証: [tests/windows-vm.py](../../tests/windows-vm.py)
+使い方: [デスクトップの Windows VM](../howtouse/windows-vm.md)
+実装: [vm.nix](../../modules/nixos/vm.nix)、[windows-vm.nix](../../modules/home-manager/windows-vm.nix)、[windows-vm.sh](../../modules/home-manager/windows-vm.sh)、[freerdp-grab-once](../../packages/freerdp-grab-once/default.nix)
 
 nixos-desktop の libvirt VM（`win11`）は、VM の中の MotionPro（Array Networks の SSL VPN クライアント）と mstsc で会社 PC に接続するときと、たまに Windows を使うときに起動する。
 画面は SPICE ではなくホストの FreeRDP から RDP で表示し、VM は使うときだけランチャー（`windows-vm`）で起動する。
@@ -104,7 +101,6 @@ GNOME の通知は一覧に残るので、古い通知のボタンを後から�
 
 アプリ一覧から起動すると端末がなく、エラーの出力が見えない。
 想定した失敗（VM の状態、起動待ちの間の停止とタイムアウト、二重起動）は内容を通知し、それ以外の失敗も終了時に通知する。
-通知の文言は Gemini で自然な日本語に直したものを使っている。
 
 ## キーボードを掴むのは右 Alt の直後だけにする
 
@@ -139,7 +135,7 @@ FreeRDP 3.31.1 の SDL のクライアント（`client/SDL/SDL3/sdl_input.cpp`�
 `SDL_KeyModMask` は `KMOD_MODE` にする。
 GNOME のキー配列は `us+altgr-intl`（[pomu-workstation.nix](../../profiles/home/pomu-workstation.nix)）で、右 Alt は AltGr（`ISO_Level3_Shift`）になる。
 SDL 3.4.10 は `ISO_Level3_Shift` をキーコード `SDLK_MODE` に変換し（`src/events/SDL_keysym_to_keycode.c`）、`SDLK_MODE` が押されている間は `KMOD_RALT` ではなく `KMOD_MODE` を立てる（`src/events/SDL_keyboard.c`）。
-最初は `KMOD_RALT` にしていて、右 Alt を押しても切り替わらなかった（2026-10-15）。そのときの配列は `us` に `lv3:ralt_switch` を足したもので、右 Alt はすでに AltGr だった。
+`KMOD_RALT` では、右 Alt が AltGr の配列（`us` に `lv3:ralt_switch` を足したもの）で押しても切り替わらなかった（2026-10-15）。
 右 Alt を AltGr のままにするのは、アクセント付きの文字とデッドキーを AltGr で打つためである。`lv3:ralt_switch` を外して `KMOD_RALT` に合わせる案は、AltGr がなくなるので退けた。
 配列を変えて右 Alt が AltGr でなくなると、切り替えは発動しない。契約（[tests/default.nix](../../tests/default.nix)）で、デスクトップの配列が `us+altgr-intl` であることを確かめている。
 
