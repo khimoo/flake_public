@@ -441,6 +441,9 @@ lib.genAttrs systems (
         inputs.self.nixosConfigurations.nixos-desktop.config.services.postgresql.ensureDatabases;
       # ログイン画面のまま放置されても、ユーザーの timer を起動時から動かす。
       assert inputs.self.nixosConfigurations.nixos-desktop.config.users.users.pomu.linger == true;
+      # Web UI は常駐させず、ブラウザで開いたときにソケットから起動する。
+      assert desktopUser.systemd.user.sockets.xlikes-web.Install.WantedBy == [ "sockets.target" ];
+      assert !(desktopUser.systemd.user.services.xlikes-web-server ? Install);
       # X で消えたツイートは取り直せないので、保存先と別の場所へ毎日写す。
       assert desktopUser.systemd.user.timers ? xlikes-backup;
       assert builtins.any (s: s.path == desktopUser.local.xLikes.backup.passwordFile) desktopUser.local.profile.secrets;

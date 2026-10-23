@@ -57,6 +57,24 @@ xlikes fetch likejs <公式アーカイブの like.js>
 `xlikes` は `~/sagyo/x-likes-archive` で今チェックアウトしている版を、その `uv.lock` のとおりに実行する。
 ブランチを切り替えると、手で実行するコマンドも定期実行も、切り替えた先の版が実行される。
 
+## Web UI
+
+ブラウザで <http://127.0.0.1:8765/> を開くと、検索と似たツイートの検索を使える。
+検索欄の右でモード（`rrf`、`ruri`、`qwen3vl-text`、`qwen3vl-image`、`fulltext`）を選ぶ。`fulltext` は空白で区切った語をすべて含むツイートを探す。
+結果のツイートの「似たツイート」を押すと、そのツイートに似たいいねを探す。
+
+サーバーは常駐しない。開いたときに systemd のソケットから起動し、15 分要求がなければ止まる。
+意味検索（`fulltext` 以外）の最初の 1 回は、埋め込みのモデルを GPU に読み込むので待たされる。読み込んだあとは、止まるまで速く返る。
+サーバーが止まると、モデルが使っていた VRAM も解放される。
+
+```bash
+systemctl --user status xlikes-web.socket xlikes-web-server
+journalctl --user -u xlikes-web-server
+```
+
+開けるのは、このマシンの上からだけである（127.0.0.1）。
+ポートは `local.xLikes.webPort` で変える。サーバー自身はその次のポートで待ち受ける。
+
 ## 定期実行
 
 次の systemd user timer を設定している。`xlikes-backup` は `local.xLikes.backup.repository` を設定したときだけ入る。

@@ -5,6 +5,7 @@
 #   xlikes-sync     いいね欄と引用元を取得して登録する（毎時）
 #   xlikes-process  OCR と埋め込みの計算（毎晩）
 #   xlikes-backup   取得したツイートとデータベースを restic で写す（毎日、backup.repository を設定したとき）
+#   xlikes-web      検索の Web UI。ブラウザで開いたときに起動し、使われなくなると止まる
 #
 # データベースと GPU のロックファイルは modules/nixos/x-likes.nix が用意する。保存先を subvol に
 # するかはホストが決め、マウントを定義したときだけ x-likes-env がマウントを確かめる。
@@ -55,6 +56,12 @@ let
       exit "$status"
     '';
   };
+
+  # Web UI のサーバーは、ソケットの次のポートで待ち受け、systemd-socket-proxyd が要求を渡す。
+  serverPort = toString (cfg.webPort + 1);
+  waitForServer = pkgs.writeShellScript "xlikes-web-wait" ''
+    until (exec 3<>/dev/tcp/127.0.0.1/${serverPort}) 2>/dev/null; do sleep 0.5; done
+  '';
 
   backup = pkgs.writeShellApplication {
     name = "xlikes-backup";
@@ -118,6 +125,15 @@ in
       type = lib.types.nullOr lib.types.str;
       default = null;
       description = "Optional ROCm GPU compatibility version.";
+    };
+
+    webPort = lib.mkOption {
+      type = lib.types.port;
+      default = 8765;
+      description = ''
+        Web UI を開くポート（127.0.0.1）。サーバー自身は次のポートで待ち受けるので、
+        同じホストのほかのユーザーとは 2 つ以上離す。
+      '';
     };
 
     backup = {
@@ -211,6 +227,37 @@ in
         Persistent = true;
       };
       Install.WantedBy = [ "timers.target" ];
+    };
+
+    # 検索はときどき使うだけなので、モデルを VRAM に載せたまま常駐させない。ブラウザで開くとソケットから
+    # サーバーが起動し、15 分要求がなければ systemd-socket-proxyd が終わり、サーバーも止まって VRAM を返す。
+    systemd.user.sockets.xlikes-web = {
+      Unit.Description = "X のいいねの検索の Web UI を待ち受ける";
+      Socket.ListenStream = "127.0.0.1:${toString cfg.webPort}";
+      Install.WantedBy = [ "sockets.target" ];
+    };
+
+    systemd.user.services.xlikes-web = {
+      Unit = {
+        Description = "Web UI への要求を検索のサーバーへ渡す";
+        BindsTo = [ "xlikes-web-server.service" ];
+        After = [ "xlikes-web-server.service" ];
+      };
+      Service.ExecStart =
+        "${osConfig.systemd.package}/lib/systemd/systemd-socket-proxyd --exit-idle-time=15min 127.0.0.1:${serverPort}";
+    };
+
+    systemd.user.services.xlikes-web-server = {
+      Unit = {
+        Description = "X のいいねの検索のサーバー";
+        StopWhenUnneeded = true;
+      };
+      Service = {
+        ExecStart = "${lib.getExe xlikes} serve --port ${serverPort}";
+        # 待ち受けを始めるまで、プロキシを起動させない。uv が環境を作り直すときは数分かかる。
+        ExecStartPost = waitForServer;
+        TimeoutStartSec = "5min";
+      };
     };
 
     systemd.user.services.xlikes-backup = lib.mkIf (cfg.backup.repository != null) {
