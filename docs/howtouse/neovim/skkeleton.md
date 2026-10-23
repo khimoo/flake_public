@@ -1,42 +1,29 @@
-# 日本語入力 (skkeleton)
+# 日本語入力（skkeleton）
 
-SKK 方式の日本語入力。設定: `lua/features/skkeleton.lua`
+SKK 方式で日本語を入力する環境。skkeleton は denops.vim を介して Deno 上で動作し、現在の入力モードは skkeleton_indicator によって表示される。辞書データは Nix 経由で導入・管理される。
 
-## プラグイン
+設定: `lua/features/skkeleton.lua`
 
-### skkeleton
-
-Vim/Neovim 上で動作する SKK 入力メソッド。denops.vim (Deno) に依存。
-
-### skkeleton_indicator.nvim
-
-skkeleton の入力モード (ひらがな/カタカナ/英数) をインジケーター表示。
-
-## キーバインド
+## 切り替え
 
 | キー | モード | 機能 |
 |------|--------|------|
-| `<C-j>` | i, c | SKK の ON/OFF トグル |
+| `<C-j>` | i, c | SKK の有効 / 無効を切り替える |
 
-## SKK の基本操作 (skkeleton が ON の状態)
+SKK が有効な間は、自動補完メニューの表示が抑制される（[completion.md](./completion.md) を参照）。
+
+## 入力方法
 
 | 操作 | 機能 |
 |------|------|
-| 大文字で入力開始 | 漢字変換モードに入る (例: `Kanji`) |
-| `<Space>` | 変換候補を表示 |
-| `<CR>` | 確定 (`eggLikeNewline=true` のため変換確定時は改行を伴わない) |
-| `q` | カタカナ変換 |
-| `l` | 英数モード |
+| 大文字で入力を開始 | 漢字変換対象の読みを入力する（例: `Kanji`） |
+| `<Space>` | 変換候補を表示・選択する |
+| `<CR>` | 変換を確定する（変換中の確定操作では改行されない） |
+| `q` | カタカナ入力モードへの切り替え / カタカナ変換 |
+| `l` | アスキー（半角英数）入力モードへ切り替える |
+| `z<Space>` | 全角スペースを入力する |
 
-### markdown バッファでの `<CR>` の追加挙動
+`,` と `.` の入力は、`、` と `。` ではなく全角の `，` と `．` に変換される。
+SKK の入力モードと内部状態は、挿入モードを抜けても次回挿入モードへ入るまで保持される。
 
-markdown ファイル編集中は、SKK 有効状態で `<CR>` を押すと **改行に加えて autolist の bullet 自動継続も発火する**。SKK が `<CR>` を横取りするため通常のキーマップでは autolist が呼ばれないが、`lang/markdown/skk-bridge.lua` が `User skkeleton-handled` でバッファ行数の増加を検知して `:AutolistNewBullet` を補っている。
-
-詳細は [markdown.md の skkeleton 連携セクション](./markdown.md#skkeleton-連携-skk-bridgelua) を参照。
-
-## 設定のポイント
-
-- `eggLikeNewline = true`: 確定と改行を分離
-- `keepMode = true`: モードを維持
-- `keepState = true`: 状態を維持
-- カスタムかな変換: `z<Space>` → 全角スペース、`,` → `'，'`、`.` → `'．'`
+Markdown ファイルの編集時、SKK が有効な状態で `<CR>` で改行した場合でも、自動的に箇条書きの次の項目が作成される（詳細は [markdown.md](./markdown.md#箇条書きautolistnvim) を参照）。
