@@ -4,8 +4,6 @@ return {
         "nvim-telescope/telescope.nvim",
         dependencies = {
             "nvim-lua/plenary.nvim",
-            'nvim-telescope/telescope-media-files.nvim',
-            "ahmedkhalf/project.nvim", -- どこにいてもgitのrootにcdしてくれるplugin
         },
         config = function()
             local function open_with_trouble(...)
