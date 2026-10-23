@@ -5,7 +5,6 @@
 -- 依存 (Nix 側で注入済み):
 --   - mermaid-cli (mmdc):       modules/home-manager/dev/neovim/features.nix
 --   - imagemagick (magick CLI): 同上
---   - magick luarock:           features.nix の diagram.luaPackages
 
 -- mmdc は 1 図あたり Chromium ヘッドレスを起動する重い処理 (≈3秒, 数百MB)。
 -- diagram.nvim は同時実行数を制限せず、キャッシュミスした図の数だけ mmdc を

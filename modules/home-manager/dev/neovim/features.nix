@@ -59,13 +59,10 @@ in
     dap.data.python = "${pkgs.python3.withPackages (ps: [ ps.debugpy ])}/bin/python";
 
     # mermaid を mmdc で PNG にし、image.nvim が ImageMagick で縮小して表示する。
-    diagram = {
-      packages = [
-        pkgs.mermaid-cli
-        pkgs.imagemagick
-      ];
-      luaPackages = ps: [ ps.magick ];
-    };
+    diagram.packages = [
+      pkgs.mermaid-cli
+      pkgs.imagemagick
+    ];
 
     # 数式を latex2text で Unicode に近似する。
     render_markdown.packages = [ pkgs.python3Packages.pylatexenc ];
