@@ -1,92 +1,37 @@
-# Codex のサブエージェント無効化（設計判断）
+# Codex のサブエージェントの設計
 
-使い方は [docs/howtouse/codex-subagents.md](../howtouse/codex-subagents.md) を参照。
+使い方: [Codex のサブエージェント](../howtouse/codex-subagents.md)
 実装: [modules/nixos/codex.nix](../../modules/nixos/codex.nix)
 
-## 何を解決するか
+## 既定ではサブエージェントを無効にする
 
-Codex CLI のサブエージェント（MultiAgentV2）は既定で親の会話履歴を全部コピーして
-子エージェントに渡す。`spawn_agent` の `fork_turns` 引数を省略すると `"all"`
-（`SpawnAgentForkMode::FullHistory`）になるため、子を N 個生やすと入力トークンが
-親のコンテキスト長 × N に膨らむ。
+Codex CLI のサブエージェント（MultiAgentV2）は、`spawn_agent` の `fork_turns` を省くと `"all"`（`SpawnAgentForkMode::FullHistory`）になり、親の会話履歴を全部子に渡す。子を N 個作ると、入力のトークンが親の長さの N 倍になる。
+旧世代（v1）の `fork_context` は既定が `false` で、子は何も持たずに始まった。v2 で既定が逆になったので、Claude Code の subagent と同じつもりで使うと想定外にトークンを使う。
+全履歴の fork では `agent_type`、`model`、`reasoning_effort` の指定も拒否される（"Full-history forked agents inherit the parent agent type, model, and reasoning effort"）ので、安いモデルに任せることもできない。
 
-旧世代（v1）の `spawn_agent` は `fork_context`（真偽値、既定 `false`）で、明示的に
-指定しない限り子は白紙から始まった。v2 で既定が反転している。Claude Code の
-subagent と同じ感覚で使うと想定外のトークンを消費する。
+決めたとき（2026-09-07）の `~/.codex/sessions` と `state_5.sqlite` の `thread_spawn_edges` には、`spawn_agent` の呼び出しが 0 件だった。使っていない機能で、将来うっかり全履歴を fork しないように無効にした保守的な判断である。
+`codex review` は `TaskKind::Review` として履歴を持たない別のスレッドで動く（`codex-rs/core/src/tasks/review.rs` が `initial_history: None` で `run_codex_thread_one_shot` を呼ぶ）ので、無効にしても使える。
 
-さらに全履歴 fork では `agent_type` / `model` / `reasoning_effort` の指定が拒否される
-（"Full-history forked agents inherit the parent agent type, model, and reasoning
-effort"）ため、安いモデルへ委譲することもできない。
+`codex-astra` だけは、agents-private の `codex/astra.config.toml` で `multi_agent_v2 = true` にしている。sol-handoff で `sol-worker` を spawn し、終わった子に追加の指示を送るためで、子のモデルは `agents.default_subagent_model` で sol にしている（[agent-config.md](./agent-config.md)）。
 
-導入判断時点（2026-09-07）で `~/.codex/sessions` の全セッションと
-`state_5.sqlite` の `thread_spawn_edges` を走査したところ、`spawn_agent` の呼び出しは
-0 件だった。この観測は全履歴forkによる実消費を示さない。現在使っていない機能の、将来の意図しない全履歴forkを避ける保守的な判断として無効化した。
+## system 層の `/etc/codex/config.toml` に書く
 
-コードレビューは `codex review`（TUI では `/review`）が `TaskKind::Review` として
-履歴を持たない別スレッドで走る独立機能なので、無効化しても失われない
-（`codex-rs/core/src/tasks/review.rs` が `initial_history: None` で
-`run_codex_thread_one_shot` を呼ぶ）。
+Codex の設定は、system（`/etc/codex/config.toml`）、user（`~/.codex/config.toml`）、profile（`--profile <name>` のときの `~/.codex/<name>.config.toml`）、project（信頼したリポジトリの `.codex/config.toml`）、runtime（`-c key=value`）の順に重なり、後のものが上書きする（`codex-rs/config/src/loader/mod.rs` のドキュメントコメント）。
+system 層を NixOS の `environment.etc` で宣言すると、nix store の読み取り専用のファイルになり、Codex に書き換えられない。
 
-## 採った方式: `/etc/codex/config.toml`（システム層）
+`agents.enabled = false` と `features.multi_agent_v2 = false` の両方を書く。`multi_agent_version_override`（`codex-rs/core/src/config/mod.rs`）は、`features.multi_agent_v2` が有効なら無条件に v2 を選ぶので、`agents.enabled` だけではモデルの側の指定で v2 が戻る。
+`~/.codex/config.toml` に同じキーを書くと、system 層の値は使われなくなる。
 
-Codex の設定はレイヤ構造になっており、下から順に上書きされる
-（`codex-rs/config/src/loader/mod.rs` のドキュメントコメント）:
+退けた案と理由:
 
-| 層 | パス | 誰が書くか |
-|----|------|-----------|
-| system | `/etc/codex/config.toml` | 管理者（= この flake） |
-| user | `~/.codex/config.toml` | Codex 自身と手動編集 |
-| profile | `~/.codex/<name>.config.toml`（`--profile <name>` 指定時のみ） | エージェント設定 repo（[agent-config.md](./agent-config.md)） |
-| project | `<repo>/.codex/config.toml` | リポジトリ（信頼済みのみ） |
-| runtime | `-c key=value` フラグ | 起動ごと |
-
-システム層の設定を NixOS の `environment.etc` で宣言します。これにより、設定ファイルは nix store の
-読み取り専用ファイルとなるため、Codex が勝手に書き換えることはありません。採用の判断根拠や元の設定に
-戻す手順はこのドキュメントに記載し、[modules/nixos/codex.nix](../../modules/nixos/codex.nix) には
-ここへの参照のみを記述します。
-
-`agents.enabled = false` と `features.multi_agent_v2 = false` の両方を書く必要がある。
-`multi_agent_version_override`（`codex-rs/core/src/config/mod.rs`）は
-`features.multi_agent_v2` が有効なら無条件で v2 を選ぶため、`agents.enabled` だけでは
-モデル側のピン留めで v2 が復活する経路が残る。
-
-## 検討して退けた案
-
-### `~/.codex/config.toml` を設定 repo への out-of-store symlink にする
-
-[agent-config.md](./agent-config.md) の `settings.json` と同じ方式。Codex は書き込み前に symlink 鎖を
-辿って実体に書く（`codex-rs/utils/path-utils/src/lib.rs` の
-`resolve_symlink_write_paths`）ので技術的には成立し、macOS でも効く。
-
-退けた理由は、`~/.codex/config.toml` が設定ではなく**アプリケーション状態**の置き場
-だから。Codex は信頼済みディレクトリ（`[projects."<絶対パス>"]`）、TUI で選んだモデル、
-NUX カウンタをここに書き込む。git 管理下に置くとこれらが差分として出続け、しかも
-絶対パスは Linux と macOS で食い違う。Claude Code に層の仕組みがないから symlink 方式を
-取っているのであって、層がある Codex で同じことをする理由はない。
-
-### home-manager の `programs.codex`
-
-`settings` から config.toml を生成して store の読み取り専用ファイルとして配置する。
-Codex 側の書き込みが失敗するうえ、生成物なのでコメントを書けない。
-
-### リポジトリごとの `.codex/config.toml`
-
-プロジェクト層は信頼済みディレクトリでのみ有効で、リポジトリ単位にしか効かない。
-グローバルな挙動の設定には合わない。
-
-### プロファイル層（`~/.codex/<name>.config.toml`）
-
-`codex --profile <name>` で `~/.codex/<name>.config.toml` がユーザー層の上に重なる
-（0.153.4 で確認。`-c profile=<name>` では読まれないので、以前「使えない」と書いていたのは
-渡し方の誤り）。ただし `--profile` は一回しか渡せず、起動ごとに指定が要る。
-サブエージェント無効化のような「常に効かせたい」設定の置き場には向かない。
-モデルごとに切り替える値の置き場としては使う（[agent-config.md](./agent-config.md)）。
+- `~/.codex/config.toml` を設定 repo への symlink にする: Codex は symlink をたどって実体に書く（`codex-rs/utils/path-utils/src/lib.rs` の `resolve_symlink_write_paths`）ので成り立つが、このファイルは信頼済みディレクトリ（`[projects."<絶対パス>"]`）、TUI で選んだモデル、NUX のカウンタが書き込まれるアプリの状態の置き場で、git で追うと差分が出続け、絶対パスは Linux と macOS で食い違う
+- home-manager の `programs.codex`: store の読み取り専用のファイルになり、Codex の書き込みが失敗する。生成物なのでコメントも書けない
+- リポジトリごとの `.codex/config.toml`: 信頼したリポジトリの中でしか効かない
+- profile 層: `--profile` は一回しか渡せず、起動ごとに指定が要る。常に効かせたい設定には向かない（0.153.4 で、`-c profile=<name>` では読まれず `--profile` なら読まれることを確かめた）
 
 ## 戻す条件
 
-- OpenAI 側が `fork_turns` の既定を `"none"` 相当に変えた
-- 並列調査をサブエージェントに任せたくなった
+- OpenAI が `fork_turns` の既定を `"none"` に相当するものに変えた
+- 並列の調査をサブエージェントに任せたくなった
 
-全部戻さずトークンだけ抑えるなら、`features.multi_agent_v2` を有効にしたうえで
-`root_agent_usage_hint_text`（`spawn_agent` のツール説明文に差し込まれる）へ
-`fork_turns="none"` で呼ぶよう書く方法もある。
+全部は戻さずにトークンだけ抑えるなら、`features.multi_agent_v2` を有効にし、`root_agent_usage_hint_text` に `fork_turns="none"` で呼ぶよう書く。

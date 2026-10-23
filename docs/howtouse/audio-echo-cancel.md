@@ -1,90 +1,63 @@
-# マイクへのスピーカー音の回り込みを減らす
+# マイクへのスピーカー音の回り込みを抑える（エコーキャンセル）
 
-設計: [WebRTC エコーキャンセル](../architecture/audio-echo-cancel.md)
-実装: [音声モジュール](../../modules/nixos/audio.nix) / [デスクトップ設定](../../hosts/nixos-desktop/default.nix) / [spin713 設定](../../hosts/nixos-spin713/default.nix)
+nixos-desktop および nixos-spin713 の PipeWire に、WebRTC ベースのエコーキャンセル（AEC）を設定している。デフォルトのスピーカー出力を参照し、その音声をマイク入力から取り除く。
+処理後の仮想マイクは `Echo-Cancel Microphone`（node.name は `echo-cancel-source`）となり、AEC に入力する実マイクはホストごとの `local.audio.echoCancel.source` で指定する（desktop は HyperX SoloCast、spin713 は内蔵マイクの `alsa_input.platform-avs_dmic.19.auto.stereo-fallback`）。
 
-`nixos-desktop` と `nixos-spin713` に PipeWire の WebRTC エコーキャンセルを設定しています。
-参照音は既定のスピーカー出力です。
+設計: [WebRTC エコーキャンセルの設計](../architecture/audio-echo-cancel.md)
+実装: [audio.nix](../../modules/nixos/audio.nix)
 
-| ホスト | AEC に渡す実マイク |
-|---|---|
-| `nixos-desktop` | HyperX SoloCast |
-| `nixos-spin713` | 内蔵 AVS DMIC（`alsa_input.platform-avs_dmic.19.auto.stereo-fallback`） |
+## 使い方
 
-仮想マイクの名前は `Echo-Cancel Microphone`（node.name は `echo-cancel-source`）です。
+1. 設定適用後、一度ログアウトして再ログインする。すぐに反映させたい場合は、通話や録音を終了してから `systemctl --user restart pipewire pipewire-pulse wireplumber` を実行する（一時的に音声が途切れる）。
+2. 通話・録音アプリの入力に `Echo-Cancel Microphone` を、出力に通常のスピーカーを選択する。
 
-## 適用と選択
+デフォルトの入力デバイスは実マイクのままになっているため、エコーキャンセルを行いたいアプリでのみ仮想マイクを選択する。実マイクに戻せば処理はバイパスされる。
+アプリ自体にエコーキャンセル機能がある場合は、まずアプリ側をオフにして PipeWire の処理のみで音質を比較する。
+ノイズ除去や自動ゲイン調整（AGC）はオフに設定している。音楽制作など、音声を加工したくない用途では実マイクを直接指定する。
 
-1. 利用者が [README の手順](../../README.md)で対象ホストの設定を適用する。spin713 は [リモートビルド手順](./remote-build.md)を参照。
-2. ログアウト・ログインしてユーザーの PipeWire を起動し直す。すぐに反映する場合は、通話・録音を終了してから `systemctl --user restart pipewire pipewire-pulse wireplumber` を実行する（音声が一時中断する）。
-3. 通話・録音アプリの入力に `Echo-Cancel Microphone` を選ぶ。出力は通常のスピーカーを選ぶ。
+## 動作確認
 
-既定の実マイクは維持します。処理を使いたいアプリで仮想マイクを選択してください。
-通常のマイクへ戻すとエコーキャンセルを迂回できます。
-アプリ内のエコーキャンセルを切れる場合は、まず PipeWire 側だけで比較してください。
+`wpctl status -n` を実行し、出力結果に `echo-cancel-source` が存在することを確認する。
+`pavucontrol` の「録音」タブ（「全ストリーム」表示に切り替え）または `qpwgraph` で、`echo-cancel-capture` がホストの実マイクに、`echo-cancel-reference` が現在使用中の出力の monitor に接続されていることを確認する。
 
-## 確認
+実マイクと仮想マイクのそれぞれにおいて、「スピーカー音のみ」「自分の声のみ」「両方同時」の順で録音・比較し、スピーカー音の回り込みが低減され、かつ自分の声が途切れないか確認する。なお、録音した音声をリアルタイムでスピーカーから再生して確認しないこと（ハウリングの原因となるため）。
+出力デバイスを切り替えた際も、参照先と録音状態を再確認する。spin713 では Bluetooth 機器の再接続時にデフォルト出力が変わることがあるため、内蔵スピーカーでテストする場合はそれをデフォルト出力に明示的に設定しておく。
 
-`wpctl status -n` で `echo-cancel-source` が表示されることを確認します。
-`pavucontrol` の録音タブ（全ストリーム表示）または `qpwgraph` で、`echo-cancel-capture` がホストの指定マイクに、`echo-cancel-reference` が現在の出力の monitor に接続されていることを確認します。
+仮想マイクが表示されない場合は `journalctl --user -u pipewire -b` でログを確認する。
+指定した実マイクが存在しない場合、自動で他の入力へ切り替わることはなく、対象のマイクが認識されるまで待機する。
+OS アップデート等で内蔵マイクの node.name が変更された場合は、`wpctl status -n` で名称を確認し、`local.audio.echoCancel.source` の設定を修正する。
 
-spin713 は Bluetooth 機器を再接続すると既定の出力が変わる可能性があります。内蔵スピーカーで試す場合は、その出力を既定に選んでください。
-AEC の初期入力は内蔵 DMIC です。別のマイクに AEC を適用する場合は、下記の `pavucontrol` で入力元を変更します。処理を迂回する場合はアプリで実マイクを選びます。
-OS 更新後などに内蔵マイクの node.name が変わった場合は、`wpctl status -n` で確認して `local.audio.echoCancel.source` を更新してください。
+## 入力デバイスの変更・無効化
 
-録音を実マイクと仮想マイクで比較します。スピーカーだけ、自分の声だけ、両方同時の順に試し、回り込みが減って自分の声が途切れないか確認してください。
-録音した自分の声を同時にスピーカーへモニターしないでください。
-出力を切り替えた場合も、参照先と録音結果を確認します。
+動作中に接続先を変更する場合は `pavucontrol` から変更可能で、設定ファイルの修正や PipeWire の再起動は不要。
 
-仮想マイクが出ない場合は `journalctl --user -u pipewire -b` を確認します。
-指定した実マイクが利用できない場合は他の入力へフォールバックせず、そのマイクが現れるまで待機します。
+1. 「録音」タブの表示設定を「全ストリーム」にする。
+2. `Echo-Cancel Capture`（`echo-cancel-capture`）の入力元として、AEC を適用したい実マイクを選択する。`Echo-Cancel Microphone` 自身や出力の monitor は選択しないこと。
+3. `Echo-Cancel Sink`（`echo-cancel-reference`）の入力元として、除去したい音が出力されている monitor を選択する。これは参照音の指定であり、スピーカーへの再生出力先は変更されない。アプリの再生先を変更する場合は「再生」タブで設定する。
+4. アプリの入力設定を `Echo-Cancel Microphone` のままにし、選択した実マイクからの音声が正しく届いているか録音して確認する。
 
-## 入力の変更・無効化
+起動時に使用される実マイクは `local.audio.echoCancel.source` の設定に依存する。`wpctl status -n` で確認できる実マイクの node.name を記述し、仮想マイクや出力 monitor の名称は指定しないこと。
+機能を無効化するには `local.audio.echoCancel.enable = false;` を設定して適用後、PipeWire を再起動する。
 
-実行中の接続先は `pavucontrol` で変更できます。`nixos-rebuild` や PipeWire の再起動は不要です。
+## GNOME のマイク使用インジケーターについて
 
-1. 録音タブの表示を「全ストリーム」にします。
-2. `Echo-Cancel Capture`（`echo-cancel-capture`）の入力元に、AEC を適用したい実マイクを選びます。`Echo-Cancel Microphone` 自身や出力の monitor は選ばないでください。
-3. `Echo-Cancel Sink`（`echo-cancel-reference`）の入力元には、除去したい再生音が出ている出力デバイスの monitor を選びます。これは再生音の参照先であり、スピーカーへの再生先を変更する操作ではありません。アプリの再生先は再生タブで変更します。
-4. アプリの入力は `Echo-Cancel Microphone` のままにし、選んだ実マイクの音が届くことを録音などで確認します。
+AEC の内部録音ストリームが常時動作しているため、通話・録音アプリがマイクを使用していなくても、音声再生中などに GNOME のマイク使用インジケーターが点灯する。
+この不要な点灯を防ぐため、GNOME 50 環境では Mic Indicator Visibility Manager を導入し、内部ストリームである `echo-cancel-capture` と `echo-cancel-reference` を表示対象から除外している。アプリが `Echo-Cancel Microphone` を使用している間は通常どおりインジケーターが表示される。
+本機能は GNOME Shell のプライベート API に依存しているため、情報の取得や解析に失敗した場合は標準の表示挙動に戻る。
 
-以下の Nix 設定は起動時の初期入力を指定します。実行中の切り替えとは別です。
-`wpctl status -n` に出る実マイクの node.name を、ホストの `local.audio.echoCancel.source` に設定します。
-仮想マイクや出力の monitor を指定しないでください。
-無効化するには `local.audio.echoCancel.enable = false;` に変更し、適用後に PipeWire を起動し直します。
-
-ノイズ除去と自動ゲイン調整は無効にしています。ハイパスフィルターなどは WebRTC の既定値です。
-音楽制作など、加工を避けたい用途には実マイクを選んでください。
-Nix の評価・設定ファイルの生成確認だけでは、実際の除去性能や USB 再接続時の動作は保証できません。
-
-## GNOME のマイク使用表示
-
-GNOME 50 の環境には Mic Indicator Visibility Manager を導入します。
-AEC の内部録音ストリームが常駐するため、通話・録音アプリが入力を使っていなくても、再生中などに標準のマイク使用表示が点灯します。
-拡張は内部ストリーム `echo-cancel-capture` と `echo-cancel-reference` だけを除外します。
-仮想入力全般は隠さず、アプリが `Echo-Cancel Microphone` を使う場合はマイク使用を表示します。
-GNOME Shell の private API に依存し、取得・解析などの失敗時は標準表示に戻ります。対応版と修正の根拠は [設計](../architecture/audio-echo-cancel.md#gnome-のマイク使用表示)を参照してください。
-
-利用者が [README の rebuild 手順](../../README.md)で対象ホストへ適用し、ログアウト・ログインして拡張を読み込みます。
-修正版の反映にもログアウト・ログインが必要です。読み込み状態は次で確認し、`Enabled: Yes` と `State: ACTIVE` になっていることを確認します。
+設定適用後はログアウト・再ログインを行い、拡張機能を読み込ませる。以下のコマンドで `Enabled: Yes` かつ `State: ACTIVE` になっていることを確認する。
 
 ```sh
 gnome-extensions info mic-indicator-visibility-manager@alhaddar.dev
+journalctl --user -b --no-pager | rg 'mic-indicator|Mic indicator'   # State: ERROR の場合
+gnome-extensions disable mic-indicator-visibility-manager@alhaddar.dev   # 標準の表示に戻す場合
 ```
 
-`State: ERROR` の場合は、`journalctl --user -b --no-pager | rg 'mic-indicator|Mic indicator'` で関連する起動エラーを確認します。初版には表示オブジェクトの生成前に起動すると失敗する競合があり、修正版は生成後の初期化に合わせて処理を取り付けます。
+設定ファイル側で拡張機能を有効化しているため、手動で無効化しても設定の再適用時に再び有効化される場合がある。
 
-表示の調整を無効化する場合は、GNOME の「拡張機能」で Mic Indicator Visibility Manager をオフにするか、次を実行します。
+インジケーターの動作確認は、以下の手順で手動で行う。
 
-```sh
-gnome-extensions disable mic-indicator-visibility-manager@alhaddar.dev
-```
-
-これで標準の表示へ戻ります。宣言設定では拡張を有効にしているため、設定の再適用で有効に戻る場合があります。
-
-修正版の適用後、利用者から動作しているように見えるとの報告がありました。表示の各条件は次の手順で手動確認できます。
-
-1. 通話・録音アプリを終了し、AEC の内部ストリームだけが動いている間はマイク使用表示が出ないこと。
-2. 通話・録音アプリで `Echo-Cancel Microphone` を選び、入力を使っている間は表示が出ること。
-3. アプリが入力の使用を終了すると表示が消えること。
-4. 拡張を無効化すると、AEC の内部ストリームによる標準のマイク使用表示が復帰すること。
+1. 通話・録音アプリを閉じ、AEC の内部ストリームのみが動作している状態ではインジケーターが表示されないことを確認する。
+2. 通話または録音アプリで `Echo-Cancel Microphone` を選択し、マイクの使用中にインジケーターが表示されることを確認する。
+3. アプリによるマイク使用が終了すると、インジケーターが消灯することを確認する。
+4. 拡張機能を無効化すると、AEC の内部ストリームによって再び標準のインジケーターが点灯することを確認する。

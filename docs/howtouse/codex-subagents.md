@@ -1,19 +1,14 @@
-# Codex のサブエージェント設定
+# Codex のサブエージェント
 
-Codex CLI のサブエージェント（`spawn_agent` 等のマルチエージェントツール）を
-無効化してある。理由と退けた案は
-[docs/architecture/codex-subagents.md](../architecture/codex-subagents.md) を参照。
+Codex CLI のサブエージェント（`spawn_agent` などのマルチエージェントツール）は、全マシン共通で無効化されています。
+NixOS では [modules/nixos/codex.nix](../../modules/nixos/codex.nix) によって `/etc/codex/config.toml` にその設定が書き込まれます。
+例外として、`codex-astra` は agents-private の `codex/astra.config.toml` で `multi_agent_v2 = true` に設定し、sol-handoff の `sol-worker` を spawn できるようにしています（詳細は [agent-config.md](./agent-config.md) を参照）。
 
-## NixOS の場合
+設計：[Codex のサブエージェントの設計](../architecture/codex-subagents.md)
 
-[modules/nixos/codex.nix](../../modules/nixos/codex.nix) が
-`/etc/codex/config.toml` を生成する。`modules/nixos/base.nix` から import 済みなので
-rebuild するだけで効く。設定を変えたいときはこのファイルを編集する。
+## NixOS 以外（macOS）で無効化する手順
 
-## NixOS 以外（macOS）の場合
-
-home-manager 単独構成では `/etc` を管理できないので、`~/.codex/config.toml` に
-同じ内容を手で書く。設定は次の 6 行だけ。
+home-manager のみの構成では `/etc` を管理できないため、`~/.codex/config.toml` に手動で記述します。
 
 ```toml
 [agents]
@@ -23,55 +18,35 @@ enabled = false
 multi_agent_v2 = false
 ```
 
-両方書くこと。`features.multi_agent_v2` が有効だと `agents.enabled` より優先されるため、
-`[agents]` だけではモデル側のピン留めで v2 が復活する。
+必ず両方の項目を記述してください。`features.multi_agent_v2` が有効になっていると `agents.enabled` より優先されるため、`[agents]` のみではモデル側の指定によって v2 が有効に戻ってしまうことがあります。
+Codex はこのファイルを `toml_edit` で部分的に書き換えるため、コメントを残すことも可能です。ただし、設定値の記法が正規化される場合があります（例：`multi_agent_v2 = false` が `[features.multi_agent_v2]` テーブルと `enabled = false` に展開されるなど）。
 
-コメントを添えたい場合は TOML に直接書いてよい。Codex は `toml_edit` で差分だけを
-適用するので、Codex 自身が設定を書き換えてもコメントは残る。ただし値の表現は
-正規化されることがある（`multi_agent_v2 = false` が
-`[features.multi_agent_v2]` + `enabled = false` に展開される等）。
+## 無効化されているか確認する
 
-## 効いているかの確認
-
-どちらも API を叩かないので気軽に実行してよい。
+どちらの確認コマンドも API は呼び出しません。
 
 ```sh
-codex features list | grep multi_agent_v2    # false なら無効
-codex debug prompt-input | grep spawn_agent  # 何も出なければ無効
+codex features list | grep multi_agent_v2    # false と表示されれば無効
+codex debug prompt-input | grep spawn_agent  # 何も表示されなければ無効
 ```
 
-`codex debug prompt-input` はモデルに渡すプロンプトを JSON で出力する。
-サブエージェントが有効だと `spawn_agent` の使い方を説明する developer メッセージが
-含まれるので、その有無で判定できる。
-
-`grep -c` で件数を数える形にしないこと。`grep` が ripgrep に割り当てられている環境では
-一致 0 件のとき何も出力せず終了コード 1 になり、GNU grep の `0` という表示と挙動が違う。
-件数が要るなら次のようにする。
+`codex debug prompt-input` は、モデルに送信するプロンプトを JSON 形式で出力します。サブエージェントが有効な場合、`spawn_agent` の使い方を説明する developer メッセージが含まれます。
+件数をカウントする際に `grep -c` を使用しないでください。`grep` が ripgrep（rg）の場合、一致件数が 0 件だと何も出力せず終了コード 1 で終了します。
 
 ```sh
 codex debug prompt-input | python3 -c 'import sys; print(sys.stdin.read().count("spawn_agent"))'
 ```
 
-## 有効に戻す
+## 有効に戻す手順
 
-NixOS なら `modules/nixos/codex.nix` の `enabled` を `true` にして rebuild する。
-それ以外なら `~/.codex/config.toml` の該当行を消す。
+NixOS の場合は `modules/nixos/codex.nix` 内の `enabled` を `true` に変更して switch を実行します。それ以外の環境では `~/.codex/config.toml` の該当行を削除します。
 
-戻したうえでトークン消費だけ抑えたいなら、`spawn_agent` を呼ぶときに
-`fork_turns` を指定させる。値の意味は次のとおり。
+有効に戻したうえでトークン消費量を抑えたい場合は、`spawn_agent` の `fork_turns` パラメータを指定させます。
 
-| 値 | 挙動 |
-|----|------|
-| `"all"`（省略時の既定） | 親の会話履歴を全部コピーする |
-| `"3"` のような正整数の文字列 | 直近 N ターンだけ渡す |
-| `"none"` | 履歴を渡さない。role 指示とタスク文だけ |
+- `"all"`（指定を省略した場合のデフォルト）：親の会話履歴をすべてコピーします。
+- `"3"` などの正の整数の文字列：直近の N ターンのみを渡します。
+- `"none"`：会話履歴を渡さず、役割の指示とタスク内容のみを渡します。
 
-`fork_turns` は設定ファイルのキーではなく `spawn_agent` の引数なので、既定値を
-config で決めることはできない。`AGENTS.md` に書くか、
-`features.multi_agent_v2.root_agent_usage_hint_text`（`spawn_agent` のツール説明文に
-差し込まれる）で指示する。
+`fork_turns` は全体設定のキーではなく `spawn_agent` ツールの引数であるため、デフォルト値を設定ファイルで一括指定することはできません。そのため、`AGENTS.md` に明記するか、`features.multi_agent_v2.root_agent_usage_hint_text`（`spawn_agent` のツール説明に挿入されるテキスト）を通じて指示を出してください。
 
-## レビューは無効化の影響を受けない
-
-`codex review`（TUI では `/review`）はサブエージェントとは別の機構で、
-履歴を持たない専用スレッドで走る。無効化した状態でもそのまま使える。
+なお、`codex review`（TUI での `/review`）はサブエージェントとは別の仕組みであるため、サブエージェントを無効化していても利用可能です。

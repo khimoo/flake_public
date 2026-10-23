@@ -1,87 +1,35 @@
-# 共通 devShell の設計方針
+# 共通 devShell の設計
 
-使い方は [howtouse/devshells.md](../howtouse/devshells.md) を参照。
-ここでは「なぜこの構成にしたか」を記録する。
+使い方: [共通 devShell](../howtouse/devshells.md)
+実装: [devShells/default.nix](../../devShells/default.nix)
 
-## 解決したい問題
+`~/sagyo` の読むだけのリポジトリや実験用のリポジトリごとに `flake.nix` を書いて、Rust の toolchain や Python の科学計算の依存を揃えるのは手間がかかる。`aquaponics-sim` と `rust-toybox` の `flake.nix` は、同じ Bevy 用のライブラリを持っていた。
+そこで flake_public に名前付きの devShell を集め、各プロジェクトは `.envrc` の `use flake "/home/pomu/sagyo/flake_public#rust-bevy"` で参照する。
 
-`~/sagyo/` 配下に複数のコードリーディング対象/実験用リポジトリを抱えており、
-それぞれに対して個別に `flake.nix` を書いて Rust toolchain や Python の
-科学スタックを揃えるのが煩雑だった。当初の `aquaponics-sim/flake.nix` と
-`rust-toybox/flake.nix` は実質同じ Bevy 用 native lib 一式を持っており、
-重複が問題だった。
+退けた案と理由:
 
-## 採用した解
+- [the-nix-way/dev-templates](https://github.com/the-nix-way/dev-templates): Bevy 用の Wayland、Vulkan、alsa、udev と、Python の科学計算（geopandas、scikit-learn）が入っておらず、結局自分で書くことになる
+- home-manager で LSP を全体に入れる: rust-analyzer のマクロ展開で `cargo check` が実行されるので、Bevy のライブラリもシステムに常に置くことになり、NixOS の設定が膨らむ
+- devenv.sh: 層が増える。`mkShell` で足りていて、devenv の機能（process-compose、services）は使わない
 
-flake_public に `devShells.x86_64-linux.<name>` として **named devShell** を
-集約し、各プロジェクトは `.envrc` で 1 行参照する：
+## devShell の分け方
 
-```
-use flake "/home/pomu/sagyo/flake_public#rust-bevy"
-```
+- 同じライブラリの集合を要るプロジェクトはまとめる（`rust-bevy`）
+- ライブラリが要らない用途は分ける。`rust-min` は Vulkan などを持たないので、入るのも速い
+- ほぼ同じで少しだけ違う場合に新しい devShell を作らず、プロジェクトの側で足す（TypeScript の `npm install`、Python の `uv venv`）
 
-direnv + nix-direnv が `cd` 時に devShell を自動 enter/exit し、ビルド結果は
-キャッシュされる。
+## Rust は nixpkgs の stable を使う
 
-### 検討した代替案と却下理由
+rust-overlay や fenix を使わず、`pkgs.rustc`、`pkgs.cargo`、`pkgs.rust-analyzer` を使う。
+`~/sagyo` に nightly の機能（`#![feature(...)]`）を使うプロジェクトがなく（rust-toybox を grep して確認）、nightly が要らなければ flake の input を 1 つ減らせる。
+std の定義へ飛ぶのは、`RUST_SRC_PATH = "${pkgs.rustPlatform.rustLibSrc}"` で rust-overlay の `rust-src` と同じことができる。
+nightly が要るプロジェクトが出たら、rust-overlay を input に戻して `rust-nightly` の devShell を足す。`rust-toybox/flake.nix` にあった元のコードは git の履歴にある。
 
-| 案 | 却下理由 |
-|----|----------|
-| [the-nix-way/dev-templates](https://github.com/the-nix-way/dev-templates) をそのまま使う | Bevy 用の Wayland/Vulkan/alsa/udev 一式と Python 科学スタック (geopandas, scikit-learn 等) が含まれず、結局自前で flake を書くことになる |
-| home-manager で LSP をグローバルインストール | rust-analyzer のマクロ展開等で `cargo check` が走る関係で結局 Bevy 系の native lib も system に常駐させる羽目になり、本番 NixOS 設定が肥大化する |
-| `devenv.sh` を採用 | 上物が増える。現状 nixpkgs の `mkShell` で足りており、`devenv` 固有の機能 (process-compose, services) を必要としていない |
+## 自分の `flake.nix` を残すプロジェクト
 
-## shell 粒度の判断基準
+- `aquaponics-sim/`: 公開する予定で、clone した人が再現できるよう自分の `flake.nix` を持つ
+- `MDA/.../backend/`: shellHook で `uv tool install specify-cli` のようなプロジェクト固有の準備をするので、共通にすると他のプロジェクトに要らない副作用が出る
 
-- **同じ native lib 集合を要求するプロジェクトはまとめる**: `rust-bevy` は
-  Bevy / wgpu / winit / egui 系の native lib を一括で抱える
-- **native lib が要らない用途は分ける**: 競プロや上流リポジトリ読みは
-  `rust-min` (rustTools + pkg-config のみ) で十分。Vulkan loader 等を引っ張ら
-  ないので入域も速い
-- **逆に、ほぼ同じだが微妙に違う場合に新 shell を作りすぎない**: project
-  固有の追加パッケージは project 側で対応 (例: TypeScript 拡張の
-  `npm install`, Python project の `uv venv`)
+共通にするのは、使い捨ての読むためや実験のためのプロジェクトに限る。
 
-## Rust toolchain は nixpkgs stable を使う
-
-`rust-overlay` / `fenix` を使わず、`pkgs.rustc` / `pkgs.cargo` /
-`pkgs.rust-analyzer` を直接使う。理由:
-
-- 現在 `~/sagyo` 配下に nightly 限定機能 (`#![feature(...)]` 等) を使う
-  project が無い (rust-toybox を全 grep して確認済み)
-- nightly が要らないなら `rust-overlay` も不要で、flake input が 1 個減って
-  lock も軽くなる
-- std へのジャンプは `RUST_SRC_PATH = "${pkgs.rustPlatform.rustLibSrc}"` で
-  実現可能で、`rust-overlay` の `extensions = [ "rust-src" ]` と等価な結果に
-  なる
-
-### nightly が要るときは
-
-将来 nightly が必要な project が出てきたら、その時に rust-overlay を
-input に再度追加し、`rust-nightly` shell を生やす。`rust-toybox/flake.nix`
-の元のコード (削除済み) は git history に残っているので参照可能。
-
-## 例外: 個別 `flake.nix` を残しているケース
-
-| プロジェクト | 残している理由 |
-|--------------|----------------|
-| `aquaponics-sim/` | 外部公開を予定しており、clone した第三者が再現できる必要があるため自己完結した `flake.nix` を保持 |
-| `MDA/.../backend/` | shellHook 内で `uv tool install specify-cli` 等の project 固有のセットアップを行っており、共通 shell に出すと他 project に不要な副作用が出る |
-
-これらは「flake.nix を書くこと自体が project に意味を持つ」ケース。共通化の
-対象は **使い捨てのコードリーディング/実験用 project** に限定する。
-
-## rustowl との関係
-
-`modules/home-manager/dev/rustowl.nix` が rustowl を導入しているが、これは
-devShell とは独立。
-
-- **rustowl**: 借用ライフタイム可視化ツール。専用 nightly sysroot を
-  パッケージ内部（store path 配下の `bin/sysroot/...`）に持つ。シェルの PATH には
-  出さず、Neovim が store の絶対パスで起動する
-- **devShell の rustc/cargo/rust-analyzer**: ユーザーが書く Rust コードの
-  build/edit 用。PATH に出る
-
-機能が被っているように見えるが、rustowl は borrow 可視化専用、devShell の
-rust-analyzer は標準 LSP (定義ジャンプ等) と役割が異なる。両者を併用する
-前提。詳細: [rustowl.md](./rustowl.md)。
+rustowl（[rustowl.md](./rustowl.md)）は devShell とは別で、借用の可視化のための専用の nightly の sysroot をパッケージの中に持ち、Neovim が store の絶対パスで起動する。devShell の rust-analyzer は定義へのジャンプなどの通常の LSP で、両方を使う。

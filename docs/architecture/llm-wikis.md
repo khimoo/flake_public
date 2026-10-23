@@ -1,8 +1,7 @@
-# LLM Wiki 群を独立 private repo に置く（設計判断）
+# LLM Wiki の設計
 
-使い方は [docs/howtouse/llm-wikis.md](../howtouse/llm-wikis.md) を参照。
-flake 側の実装は ユーザーの `local.profile.llmWikisRoot` / `llmWikisRepoUrl` と、それを受ける
-[modules/home-manager/private-repos.nix](../../modules/home-manager/private-repos.nix) のみ。
+使い方: [LLM Wiki](../howtouse/llm-wikis.md)
+実装: このリポジトリは `local.profile.llmWikisRoot` と `llmWikisRepoUrl` を [private-repos.nix](../../modules/home-manager/private-repos.nix) の clone の対象に入れるだけ
 
 ## 何を解決するか
 
@@ -69,10 +68,8 @@ skill 機構を必要としない。運用は該当ドメインのディレク�
 
 ## flake がやるのは clone だけ
 
-ユーザーの `local.profile` にclone元と配置先を指定すれば、profileモジュールがcloneリストを導出する。
-新しい home-manager モジュールは作らず、`~/.claude` 配下への symlink も張らない。
-[private-repo-clone.md](./private-repo-clone.md) の「新しい private repo を足すときは
-ユーザーのprofileに1エントリ」がそのまま効いた形。
+ユーザーの `local.profile` に clone 元と置き場所を書けば、profile のモジュールが clone のリストを作る（[private-repo-clone.md](./private-repo-clone.md)）。
+新しい home-manager のモジュールは作らず、`~/.claude` の下への symlink も張らない。
 
 `llmWikisRoot` は型付き `local.profile` のオプションだが、その利用はcloneリストの導出に限定する。
 Wiki本文を読むモジュールや自動ingestはこのflakeにはない。
