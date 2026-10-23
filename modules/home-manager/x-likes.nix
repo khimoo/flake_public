@@ -64,7 +64,9 @@ in
     };
 
     database = lib.mkOption {
-      type = lib.types.str;
+      # NixOS 側が superuser の SQL に、xlikes が接続文字列に、そのまま埋め込むので、引用符や空白を許さない。
+      # Postgres が引用符なしで受け付ける識別子に限り、長さも識別子の上限の 63 バイトに収める。
+      type = lib.types.strMatching "[a-z_][a-z0-9_]{0,62}";
       default = "xlikes";
       description = "Postgres のデータベース名。NixOS 側がこの名前でユーザー所有のデータベースを作る。";
     };

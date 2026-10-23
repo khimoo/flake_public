@@ -44,6 +44,7 @@ subvol を分ければスナップショットやバックアップの単位を�
 
 [modules/nixos/x-likes.nix](../../modules/nixos/x-likes.nix) が、Home Manager で `local.xLikes` を有効にしたユーザーごとに、NixOS の `services.postgresql` でデータベースを作る。
 データベースの名前は Home Manager 側の `local.xLikes.database` が正本で、NixOS 側はそれを読む。データディレクトリを Home Manager 側で決めて OS のマウントがそれを読むのと同じ向きにした。
+名前は、NixOS 側が superuser として実行する SQL と、xlikes の接続文字列に埋め込むので、英小文字、数字、`_` だけの 63 バイトまでに限る（先頭は数字以外）。
 [tests/default.nix](../../tests/default.nix) は、Home Manager 側の名前のデータベースを Postgres が作ることを確かめる。
 
 データベースはそのユーザーが所有し、Unix socket の peer 認証で接続する。パスワードは使わない。
