@@ -16,7 +16,9 @@
   };
   local.gnome.transparentFullscreen.enable = true;
 
-  local.music.enable = true;
+  # スワップパーティションは eMMC 上にあり読み戻しが遅いので、優先度の高い zram を先に使う。
+  # パーティションは hibernate の復帰先（hardware.nix の boot.resumeDevice）なので残す。
+  zramSwap.enable = true;
 
   local.audio.echoCancel = {
     enable = true;

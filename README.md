@@ -19,7 +19,7 @@
 
 ## 対応範囲
 
-- NixOS: `nixos-desktop`, `nixos-spin713`（x86_64 Linux）。個人プロファイルがGUI・音楽制作・vault同期を選択。
+- NixOS: `nixos-desktop`, `nixos-spin713`（x86_64 Linux）。個人プロファイルがGUIとvault同期を選択。音楽制作はホストで選択し、`nixos-desktop` だけで有効。
 - NixOS-WSL: `nixos-work-wsl`（x86_64 Linux、会社PC。GUI アプリは WSLg で表示）。`local.restrictedHost` で秘密情報と外部への接続経路を持たせない。[手順](docs/howtouse/wsl.md) · [設計判断](docs/architecture/wsl.md)
 - Home Manager: `pomu-macos`（aarch64 Darwin CLI）、`pomu-nixos`（x86_64 Linux GUI・音楽制作）。
 - RustOwlの自動導入はx86_64 Linux限定。macOSのGUI・音楽制作・vaultプロファイルは未対応。
