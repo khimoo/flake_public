@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Check local Markdown file links and the shared AI instruction entrypoint.
+"""Check local Markdown file links, their heading anchors, and the shared AI instruction entrypoint.
 
-Network links and heading anchors are deliberately outside this check. Ignore
-fenced/inline code (including Markdown syntax examples) before collecting links.
+Network links are deliberately outside this check. Ignore fenced/inline code
+(including Markdown syntax examples) before collecting links.
 """
 import re
 import sys
@@ -10,7 +10,7 @@ from pathlib import Path
 from urllib.parse import unquote
 
 
-def prose(text):
+def without_fences(text):
     lines = []
     fence = None
     for line in text.splitlines():
@@ -24,7 +24,26 @@ def prose(text):
             lines.append("")
         else:
             lines.append(line if fence is None else "")
-    return re.sub(r"(`+).*?\1", "", "\n".join(lines), flags=re.S)
+    return "\n".join(lines)
+
+
+def prose(text):
+    return re.sub(r"(`+).*?\1", "", without_fences(text), flags=re.S)
+
+
+def heading_anchors(text):
+    """Return the anchors GitHub gives the headings of a Markdown document."""
+    anchors, seen = set(), {}
+    for line in without_fences(text).splitlines():
+        match = re.match(r"^#{1,6}\s+(.*?)\s*#*\s*$", line)
+        if not match:
+            continue
+        heading = re.sub(r"\[([^]]*)\]\([^)]*\)", r"\1", match.group(1)).lower()
+        slug = re.sub(r"[^\w\- ]", "", heading).replace(" ", "-")
+        count = seen.get(slug, 0)
+        seen[slug] = count + 1
+        anchors.add(slug if count == 0 else f"{slug}-{count}")
+    return anchors
 
 
 def check(root):
@@ -40,12 +59,19 @@ def check(root):
         targets = re.findall(r"\]\(<?([^\s)>]+)>?(?:\s+\"[^\"]*\")?\)", text)
         targets += re.findall(r"^\s*\[[^]]+\]:\s*<?([^\s>]+)>?", text, re.M)
         for target in targets:
-            if re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*:", target) or target.startswith("#"):
+            if re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*:", target):
                 continue
-            target = unquote(target.split("#", 1)[0])
-            dest = root / target.lstrip("/") if target.startswith("/") else path.parent / target
+            file_part, _, anchor = (unquote(part) for part in target.partition("#"))
+            if not file_part:
+                dest = path
+            elif file_part.startswith("/"):
+                dest = root / file_part.lstrip("/")
+            else:
+                dest = path.parent / file_part
             if not dest.exists():
-                failures.append(f"{path.relative_to(root)}: missing link target {target}")
+                failures.append(f"{path.relative_to(root)}: missing link target {file_part}")
+            elif anchor and dest.suffix == ".md" and anchor not in heading_anchors(dest.read_text()):
+                failures.append(f"{path.relative_to(root)}: missing heading anchor {target}")
     if (root / "CLAUDE.md").is_file() and "@AGENTS.md" not in (root / "CLAUDE.md").read_text():
         failures.append("CLAUDE.md must import @AGENTS.md")
     for failure in failures:
