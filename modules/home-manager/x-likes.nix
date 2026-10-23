@@ -124,7 +124,8 @@ in
     systemd.user.timers.xlikes-process = {
       Unit.Description = "OCR と埋め込みを毎晩計算する";
       Timer = {
-        # GPU を使うので、ゲームと重なりにくい時刻にする。電源が切れていて逃した分は、次の起動時に実行される。
+        # GPU を使うので、ゲームと重なりにくい時刻にする。電源が切れていて逃した分は、ユーザーのサービス
+        # マネージャーが次に起動したとき（linger なら OS の起動時、そうでなければログイン時）に実行される。
         OnCalendar = "*-*-* 04:00:00";
         Persistent = true;
       };

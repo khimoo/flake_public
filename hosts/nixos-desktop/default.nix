@@ -17,6 +17,9 @@
     [org.gnome.settings-daemon.plugins.power]
     sleep-inactive-ac-type='nothing'
   '';
+  # 再起動後にログイン画面のまま放置されても、pomu のユーザー timer（xlikes や同期）を動かす。
+  # Persistent な timer が逃した分も、ログインを待たずに起動時に実行される。
+  users.users.pomu.linger = true;
 
   # GNOME のリモートデスクトップ（RDP）を tailnet からだけ受ける。LAN とインターネットには開けない。
   # 有効化とパスワードは GNOME の設定で行い、repo には置かない（docs/howtouse/tailscale.md）。

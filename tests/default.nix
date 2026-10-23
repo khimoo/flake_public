@@ -402,6 +402,8 @@ lib.genAttrs systems (
       # xlikes が接続するデータベースを、OS 側の Postgres が作る。
       assert builtins.elem desktopUser.local.xLikes.database
         inputs.self.nixosConfigurations.nixos-desktop.config.services.postgresql.ensureDatabases;
+      # ログイン画面のまま放置されても、ユーザーの timer を起動時から動かす。
+      assert inputs.self.nixosConfigurations.nixos-desktop.config.users.users.pomu.linger == true;
       # sdl-freerdp は右 Alt（AltGr）の単独押しで、次のショートカット一回だけキーボードを掴む。右 Alt が AltGr に
       # なる配列を既定にし、keyd は普段の右 Alt を書き換えず、ターボの連打は ◇ + 右 Alt で入れるレイヤーに置く
       # （docs/architecture/windows-vm.md）。

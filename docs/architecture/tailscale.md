@@ -7,7 +7,7 @@
 
 - `modules/nixos/tailscale.nix` — `common.nix` を読むホストで tailscaled を有効にする（会社PCの nixos-work-wsl は読まない）
 - `modules/nixos/ssh.nix` — tailnet 経由の接続名 `<短縮名>-ts` を生成する
-- `hosts/nixos-desktop/default.nix` — デスクトップを無操作でサスペンドさせない。RDP のポートを tailnet 側だけに開ける
+- `hosts/nixos-desktop/default.nix` — デスクトップを無操作でサスペンドさせない。pomu を linger にする。RDP のポートを tailnet 側だけに開ける
 
 ## `.local` の接続名は LAN の外で使えない
 
@@ -88,6 +88,15 @@ exit node を使うことにしたら、`useRoutingFeatures = "client"` を足�
 - `extraGSettingsOverrides` で `sleep-inactive-ac-type='nothing'`: ログイン中のセッションの既定値を変える。ユーザーが GNOME の設定で選んだ値はこちらより優先されるので、手動でサスペンドを有効にすればそれに従う
 
 停電後に電源を自動で入れるかどうかは BIOS の設定（AC 復電時の動作）で決まり、この repo の管理外だ。
+
+## ログインしていなくてもユーザーの timer を動かす
+
+`users.users.pomu.linger = true` で、OS の起動時から pomu のユーザーのサービスマネージャーを動かす。
+linger がないと、ユーザーの timer はログインするまで始まらない。再起動後にログイン画面のまま放置されると、`xlikes-sync` などの定期実行は RDP でログインするまで止まり、`Persistent=true` の timer が逃した分もログインまで実行されない。
+
+linger にすると、pomu のユーザー timer はすべてログイン前から動く。xlikes の二つ、zettelkasten 系の rclone の同期、`quaderno-pull`、`mc-sync` は、どれもログイン時に解錠されるキーリングを使わないので、ログイン前でも同じように動く。
+GPU のデバイス（`/dev/kfd`、`/dev/dri/renderD128`）は誰でも読み書きできる権限なので、`xlikes-process` もログインなしで GPU を使える。
+ログイン後に動かす必要のある timer（キーリングの秘密を使うものなど）を足すときは、ログイン前に失敗しないかを確かめる。
 
 ## 出先のリモートビルドでは `--use-substitutes` を付ける
 

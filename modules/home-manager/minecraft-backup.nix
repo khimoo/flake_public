@@ -99,7 +99,8 @@ in
       Unit.Description = "Minecraft バックアップの刈り込みと Drive への同期";
       Timer = {
         OnCalendar = "daily";
-        # 電源が入っていなかった日の分を起動後に走らせる。
+        # 電源が入っていなかった日の分を、ユーザーのサービスマネージャーが次に起動したとき
+        # （linger なら OS の起動時、そうでなければログイン時）に実行する。
         Persistent = true;
         RandomizedDelaySec = "10m";
       };
