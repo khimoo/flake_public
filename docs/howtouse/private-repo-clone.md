@@ -6,7 +6,7 @@ NixOS でも macOS でも同じ手順で利用できます。なお、会社 PC 
 
 設計: [private repo の clone の設計](../architecture/private-repo-clone.md)
 
-## 新しい環境を用意する
+## 新しい環境を準備する
 
 1. age 鍵を `~/.config/sops/age/keys.txt` に配置します（既存のマシンから SSH 経由で転送するか、Bitwarden から取得します）。
 2. switch を実行します。これにより `~/.ssh/id_github`（GitHub 用）と `~/.ssh/id_lan`（LAN 用、[machine-ssh.md](./machine-ssh.md) 参照）が書き出されます。
@@ -19,7 +19,7 @@ age 鍵が存在しない場合や復号に失敗した場合は、switch がエ
 もし `dest` に Git 管理外のディレクトリがすでに存在している場合は、その repo を失敗として報告したうえで残りの処理を続行します。中身を確認して退避させた後、再度実行してください。
 clone の途中で失敗した場合でも一時領域はクリーンアップされるため、そのまま再実行できます。
 
-## 手元の checkout をまとめて更新する
+## 手元の checkout を一括で更新する
 
 ```sh
 pull-repos
@@ -29,7 +29,7 @@ clone 対象の repo と flake 自身に対して `git pull --ff-only` を実行
 ローカルコミットによって分岐している repo は git に拒否されるため、該当する repo のみ手動で rebase または merge してください。
 1 つの repo で失敗しても残りの処理は継続し、最終的に非ゼロのステータスで終了します。まだ clone されていない repo はスキップされ、その旨のみ報告されます。
 
-## clone する repo を変える
+## clone する repo を変更する
 
 対象ユーザーの home モジュールの `local.profile` で、repo の URL と配置先を指定します。
 pomu では [pomu-workstation.nix](../../profiles/home/pomu-workstation.nix) に定義されており、`agentConfigRoot` のみ [pomu-agents.nix](../../profiles/home/pomu-agents.nix) で設定します。
@@ -46,7 +46,7 @@ vault は `services.zettelkasten.initializeVault` で作成することも可能
 clone 対象の repo がなく、`lanSsh = false` で、かつ `sshKeys` と `secrets` も空であれば、age 鍵は不要です。
 ただし pomu では `lanSsh = true` に設定されているため、repo の clone を行わない場合でも age 鍵が必要です。
 
-## SSH 鍵以外の秘密を配る
+## SSH 鍵以外のシークレットを配布する
 
 シークレットを `secrets/secrets.yaml` に追加したうえで、配置先を宣言します。
 
@@ -65,28 +65,28 @@ switch を実行するたびに、宣言されたファイルは暗号化デー�
 宣言から削除されたファイルは次回の switch 時に削除されます（symlink やディレクトリの場合は警告を出してそのまま残します）。
 なお、`~/.ssh` 配下にパーミッション `600` で配置する SSH 鍵であれば、`local.profile.sshKeys = [{ secret; name; }]` のように簡潔に記述できます。
 
-## SSH 鍵を差し替えたとき
+## SSH 鍵を差し替える手順
 
 switch を実行するとローカルの既存鍵は暗号化データの内容に更新されますが、GitHub や他のマシン側の設定は自動で更新されません。GitHub の鍵を更新する際は、以下の手順で行います。
 
-1. 新しい鍵で [secrets.yaml を再生成](#secretsyaml-を作る) してコミットする
+1. 新しい鍵で [secrets.yaml を再生成](#secretsyaml-を作成する) してコミットする
 2. GitHub に新しい公開鍵を登録する（`gh ssh-key add`）。登録前に switch してしまうと、その時点で GitHub との通信ができなくなるため注意してください
 3. 各マシンで pull して switch を実行し、`ssh -T git@github.com` で接続できることを確認する
 4. すべてのマシンで動作確認が取れたら、GitHub から古い鍵を削除（失効）する。失効後は Nix の世代をロールバックしても古い鍵での認証は行えなくなります
 
 LAN 用の鍵については、全マシンの `authorized_keys` も書き換わるため、すべてのマシンの更新が完了するまでは一部のマシン間で SSH 接続ができなくなります。手順の詳細は [machine-ssh.md](./machine-ssh.md#lan-共通鍵を作り直すとき) を参照してください。
 
-## age 鍵を作り直す
+## age 鍵を再作成する手順
 
 age 鍵を紛失すると `secrets.yaml` を復号できなくなり、pomu の switch もエラーで停止します。
-中身は再生成可能な SSH 鍵なので、新しい age 鍵を使って [secrets.yaml を作り直します](#secretsyaml-を作る)。
+中身は再生成可能な SSH 鍵なので、新しい age 鍵を使って [secrets.yaml を作り直します](#secretsyaml-を作成する)。
 
 - 紛失した場合: いずれかのマシンの `~/.ssh/` に SSH 秘密鍵が残っていればそれを再利用します。どこにも残っていない場合は SSH 鍵も再作成し、GitHub への再登録と `hosts/machines.nix` の `lanPublicKey` の差し替えを行ってください。
 - 漏洩した場合: 漏洩した age 鍵を入手した人物は、Git 履歴にある過去の `secrets.yaml` もすべて復号できてしまいます。そのため、中に含まれる SSH 鍵も漏洩したものとみなし、再作成したうえで GitHub 上の古い鍵を失効させてください。
 
 再作成が完了したら、各マシンの `~/.config/sops/age/keys.txt` を新しい鍵に差し替えます。古い鍵のままでは switch が失敗します。
 
-## secrets.yaml を作る
+## secrets.yaml を作成する
 
 初期セットアップ時、または age 鍵や SSH 鍵を作り直す際の手順です。
 `git_ssh_key` は `~/.ssh/id_github` に、`lan_ssh_key` は `~/.ssh/id_lan` にそれぞれ書き出されます。

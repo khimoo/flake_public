@@ -68,7 +68,7 @@ switch のたびに書き出される（[private-repo-clone.md](./private-repo-c
    ```
 2. `hosts/machines.nix` の `lanPublicKey` を `~/.ssh/id_lan.new.pub` の内容に差し替える
 3. `secrets/secrets.yaml` の `lan_ssh_key` を新しい秘密鍵で作り直す
-   （[private-repo-clone.md の「SSH 鍵を差し替えたとき」](./private-repo-clone.md#ssh-鍵を差し替えたとき)）
+   （[private-repo-clone.md の「SSH 鍵を差し替える手順」](./private-repo-clone.md#ssh-鍵を差し替える手順)）
 4. commit / push
 5. **各マシンで** pull して switch する。既存の `~/.ssh/id_lan` も暗号文の新しい鍵に揃う:
    ```sh

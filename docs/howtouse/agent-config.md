@@ -5,7 +5,7 @@ Claude Code と Codex のユーザー設定（共通の指示、スキル、Clau
 
 設計: [エージェント設定の設計](../architecture/agent-config.md)
 
-## 設定をどこに書くか
+## 設定ファイルの配置場所
 
 設定リポジトリ内のディレクトリ構成は以下のとおりです。
 
@@ -29,7 +29,7 @@ Claude Code と Codex のユーザー設定（共通の指示、スキル、Clau
 - 両方のエージェントに共通で適用したい指示は `shared/AGENTS.md` に、Claude Code 固有の指示は `claude/CLAUDE.md` の import 文より下に記述します。
 - 共通スキルを Codex でも利用したい場合は、`codex/skills/<name>` から `../../shared/skills/<name>` へのリンクを作成します。
 - スキル、エージェント、コマンド、output style は、`~/.claude/` 配下ではなく設定リポジトリ側に作成してください。カテゴリごとのディレクトリがシンボリックリンクになっているため、`~/.claude/skills/` 配下に作成したファイルもリポジトリ側に入ります。
-- フックや `enabledPlugins`、`extraKnownMarketplaces`、`outputStyle`、`language`、`env` などの設定は `claude/settings.json` に記述します（[Claude の方針](#claude-の方針) 参照）。
+- フックや `enabledPlugins`、`extraKnownMarketplaces`、`outputStyle`、`language`、`env` などの設定は `claude/settings.json` に記述します（[Claude の同期方針](#claude-の同期方針) 参照）。
 - マシンごとに異なる指示は設定リポジトリではなく、[ホスト設定](#マシン固有の指示) に記述してください。特定プロジェクト固有の設定値は、そのプロジェクト内の `.claude/settings.local.json` や `.codex/` に記載します。
 
 以下のファイルは各ツールが動的に書き込むため、設定リポジトリの Git 管理対象外としています。
@@ -41,7 +41,7 @@ Claude Code と Codex のユーザー設定（共通の指示、スキル、Clau
 Claude Code や Codex が新しい種別の設定ディレクトリを読み込むようになった場合のみ、`claude.nix` の `claudeDirs` や `codex.nix` の `home.file` に追加して switch を実行します。
 これらの設定は Nix の世代を戻してもロールバックされないため、設定リポジトリ側の Git 履歴を用いて復元してください。
 
-## モデルの系列を選んで起動する
+## モデル系列を指定して起動する
 
 設定リポジトリに `claude/profiles/<name>.json` を置くと `claude-<name>` が、`codex/<name>.config.toml` を置くと `codex-<name>` コマンドが利用可能になります。
 プロファイルや設定ファイルには、特定のバージョンが付与されたモデル ID は記述しません。これにより、その系列に新しいバージョンがリリースされた場合でも、設定を書き換えることなく自動で最新版が使用されます。
@@ -62,7 +62,7 @@ Claude Code や Codex が新しい種別の設定ディレクトリを読み込�
 - Codex の `--profile` オプションは `codex features` などの管理系サブコマンドには適用されず、`CODEX_HOME` を変更して起動した場合にも反映されません。また、happy は `codex app-server` を直接起動するためプロファイルの対象外となります。
 - TUI 上でモデルをデフォルトとして保存すると、`~/.codex/config.toml` にバージョン固定の `model` が書き込まれます。
 
-## マシンに入れる・外す
+## マシンへの導入とアンインストール
 
 1. 設定リポジトリを clone します（[private-repo-clone.md](./private-repo-clone.md) を使って自動化することも可能です）。
 2. 対象ユーザーの home モジュールで clone 先のパスを指定し、switch を実行します。pomu では [pomu-agents.nix](../../profiles/home/pomu-agents.nix) に記述されています。
@@ -104,7 +104,7 @@ switch 後の反映確認方法:
 - Claude Code: `/context` コマンドを実行し、**Memory files** に `/etc/claude-code/CLAUDE.md` が含まれているか確認します。
 - Codex: `grep developer_instructions /etc/codex/config.toml` で内容が書き出されているか確認し、対話セッションで「このマシン固有の指示を要約して」と質問して応答を確認します。
 
-## Claude の方針
+## Claude の同期方針
 
 設定リポジトリの `claude/settings.json` に定義された各キーは、`agent-sync` によって `~/.claude/settings.json` へ反映されます。Linux 環境ではファイルを保存すると自動で同期され、次回のセッションから適用されます。
 
