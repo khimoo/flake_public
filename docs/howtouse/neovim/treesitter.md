@@ -1,108 +1,60 @@
-# Treesitter 関連
+# Treesitter
 
-構文解析ベースのハイライト、テキストオブジェクト、コード整形。
+構文木（Syntax Tree）を活用し、シンタックスハイライト、ノード単位の範囲選択、関数や引数単位でのカーソル移動および編集を行う。
 
-- 設定ファイル: `lua/features/treesitter.lua`
-- ノード単位の選択キー: `lua/config/keymaps.lua`
+設定: `lua/features/treesitter.lua`、ノード単位選択のキーマップは `lua/config/keymaps.lua`
 
-## プラグイン
+パーサーは nvim-treesitter によってローカル環境でコンパイルされる。新たな言語のパーサーを追加する場合は、該当言語の設定ディレクトリ（例: `lua/plugins/lang/markdown/treesitter.lua`）の `ensure_installed` に記述を追加する。仕様の詳細は [spec のマージ](../../architecture/neovim/spec-merge.md) を参照。
+追加したパーサーは次回起動時にバックグラウンドで非同期コンパイルされるため、ビルドが完了するまではその言語のハイライトは適用されない。
 
-### nvim-treesitter
+## ノード単位での範囲選択
 
-構文解析エンジン。`branch = "main"` を指定している。main は master とは別物の書き直しで、設定に互換性がない。
-
-パーサは `opts.ensure_installed` に集めて `require("nvim-treesitter").install()` に渡す。`ensure_installed` は main ブランチのオプションではなく、言語モジュールからベース spec へ渡すための本リポジトリ内の名前。追加の仕組みは [spec-merge.md](../../architecture/neovim/spec-merge.md) を参照。
-
-main はハイライトを自動で有効化しない。`FileType` で `vim.treesitter.start` を呼ぶのが利用者の責務になったため、`config` 内の autocmd で全 filetype に対して試し、パーサが無い場合は `pcall` で握り潰している。
-
-`install()` は非同期なので、パーサ未導入の言語は初回起動時にハイライトが遅れて付く。CLI の `tree-sitter` 0.26.1 以上が要る (経緯は [unstable-packages.md](../../architecture/unstable-packages.md))。
-
-### treesj
-
-1行↔複数行のトグル。引数リストやテーブルを展開/折りたたみ。
+Neovim 組み込みのノード単位選択機能を利用する。ビジュアルモードで使用する。
 
 | キー | 機能 |
 |------|------|
-| `<leader>m` | 1行と複数行をトグル |
+| `an` | 親ノードを選択（押すたびに選択範囲を外側に拡大） |
+| `in` | 子ノードを選択（選択範囲を内側に縮小） |
+| `]n` / `[n` | 次 / 前のノードを選択 |
+| `]N` / `[N` | 次 / 前のノードまで選択範囲を広げる |
+| `.` / `;` | `an` のエイリアス |
+| `i;` | `in` のエイリアス |
 
-例:
-```
--- <leader>m で切り替え
-local t = { a = 1, b = 2, c = 3 }
--- ↕
-local t = {
-  a = 1,
-  b = 2,
-  c = 3,
-}
-```
+`.`、`;`、`i;` は、以前導入していた textsubjects のキーバインドに合わせたエイリアスである。textsubjects は言語ごとの意味的なまとまりを基準に選択していたのに対し、こちらは構文木のノードに準拠するため、同じ範囲を選択するのに `.` を押す回数が以前より増える場合がある。なお、直前の選択範囲に戻るキーは用意されていないため、範囲を狭めたい場合は `in` を使用する。
 
-### ノード単位の選択 (Neovim 組み込み)
+## 関数や引数を単位とした操作（textobjects）
 
-以前は nvim-treesitter-textsubjects を使っていたが、main ブランチで消えた `nvim-treesitter.query` と `ts_utils` に依存しており、upstream も 2025-02 で止まっているため外した。代わりに Neovim 0.12 組み込みの incremental selection (`:h treesitter-incremental-selection`) を使う。
-
-組み込みの既定キーはこの4組。
-
-| キー | 機能 |
-|------|------|
-| `an` | 親ノードを選択 |
-| `in` | 子ノードを選択 |
-| `]n` / `[n` | 次/前のノードを選択 |
-| `]N` / `[N` | 次/前のノードへ選択を拡張 |
-
-指の癖を残すため、`lua/config/keymaps.lua` で旧キーを割り当て直している。
-
-| キー | 割り当て先 |
-|------|-----------|
-| `.` | `an` |
-| `;` | `an` |
-| `i;` | `in` |
-
-textsubjects は言語ごとの手書きクエリで「意味のあるまとまり」を選んでいたのに対し、組み込みは構文木のノードを素直に辿る。同じ範囲を取るのに `.` の連打回数が増えることがある。旧 `,` (前の選択に戻る) に一対一で対応するキーは無く、縮める方向は `in` が担う。
-
-### aerial.nvim
-
-コードのアウトライン (関数・型の一覧) をサイドパネルに表示。
-
-| キー | 機能 |
-|------|------|
-| `<leader>o` | アウトラインの表示/非表示トグル |
-| `[s` | 前のシンボルにジャンプ |
-| `]s` | 次のシンボルにジャンプ |
-
-`[s`/`]s` は `[d`/`]d` (診断ジャンプ) と対になる覚え方。
-
-### nvim-treesitter-textobjects
-
-treesitter の構文木に基づいたテキストオブジェクトとジャンプ。`daf` (関数ごと削除)、`cia` (引数を書き換え) など operator と組み合わせて使う。
-
-こちらも `branch = "main"`。master 時代の `require('nvim-treesitter.configs').setup({ textobjects = ... })` は無くなり、`require("nvim-treesitter-textobjects").setup()` で挙動だけ設定し、キーは `vim.keymap.set` から `select` / `move` / `swap` の各モジュールを呼ぶ形になった。
-
-#### テキストオブジェクト (select)
+`daf`（関数全体の削除）や `cia`（引数の書き換え）のように、各種オペレータと組み合わせて使用する。
 
 | キー | 対象 |
 |------|------|
-| `af` / `if` | 関数 (outer / inner) |
-| `ac` / `ic` | クラス・impl (outer / inner) |
-| `aa` / `ia` | 引数 (outer / inner) |
-
-#### ジャンプ (move)
+| `af` / `if` | 関数（外側全体 / 内側のブロック） |
+| `ac` / `ic` | クラス、impl（外側全体 / 内側のブロック） |
+| `aa` / `ia` | 引数（カンマを含む外側 / 引数そのものの内側） |
 
 | キー | 機能 |
 |------|------|
-| `]f` / `[f` | 次/前の関数の先頭 |
-| `]F` / `[F` | 次/前の関数の末尾 |
-| `]a` / `[a` | 次/前の引数 |
+| `]f` / `[f` | 次 / 前の関数の先頭へ移動 |
+| `]F` / `[F` | 次 / 前の関数の末尾へ移動 |
+| `]a` / `[a` | 次 / 前の引数へ移動 |
+| `<leader>a` | 現在の引数を次の引数と入れ替える |
+| `<leader>A` | 現在の引数を前の引数と入れ替える |
 
-#### 引数スワップ (swap)
+例えば、`fn foo(a: i32, b: i32, c: i32)` において `b` にカーソルがある状態で `<leader>a` を押すと、`fn foo(a: i32, c: i32, b: i32)` に並び替えられる。
+
+## アウトライン表示（aerial）
 
 | キー | 機能 |
 |------|------|
-| `<leader>a` | 引数を次と入れ替え |
-| `<leader>A` | 引数を前と入れ替え |
+| `<leader>o` | 関数や型定義の一覧（アウトライン）をサイドパネルで開く / 閉じる |
+| `[s` / `]s` | 前 / 次のシンボルへジャンプする |
 
-例:
-```rust
-// カーソルが `b` にあるとき <leader>a で:
-fn foo(a: i32, b: i32, c: i32) → fn foo(a: i32, c: i32, b: i32)
-```
+## 1 行展開と複数行展開の切り替え（treesj）
+
+`<leader>m` を押すことで、引数リストやテーブルの記法を 1 行形式と複数行形式の間で相互に切り替える。
+
+## 設計
+
+nvim-treesitter および textobjects はともに main ブランチを利用している。master ブランチは Neovim 0.12 に対応していないためである（[unstable-packages.md](../../architecture/unstable-packages.md#以前の対象から分かっていること) を参照）。main ブランチは自動でハイライトを有効化しない仕様のため、`FileType` の autocmd 内で `vim.treesitter.start` を明示的に呼び出し、パーサーが存在しない filetype では何もしないように制御している。
+
+なお、以前使用していた textsubjects は、main ブランチで廃止された `nvim-treesitter.query` や `ts_utils` に依存しており、上流リポジトリの開発も 2025 年 2 月時点で停止していたため削除し、Neovim 組み込みのノード選択機能へと移行した。

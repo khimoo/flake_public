@@ -1,65 +1,48 @@
 # Typst
 
-tinymist (LSP) と typst-preview.nvim を組み合わせる。
-Typst + Neovim の界隈で標準的な構成で、言語機能とプレビューを別プロセスに分ける。
+tinymist（LSP）による補完・診断・PDF 出力と、typst-preview.nvim によるブラウザプレビューを提供する。
 
-> 設定: `lua/plugins/lang/typst/`、`lua/features/typst_preview.lua`
-> パッケージ: tinymist は `modules/home-manager/dev/neovim/features.nix`、websocat も同ファイルの typst_preview 機能
+設定: `lua/plugins/lang/typst/`、`lua/features/typst_preview.lua`
 
-## プレビューの二系統
+## プレビューする
 
-| 用途 | 手段 | 反映 | カーソル同期 |
+| 用途 | 手段 | 反映 | カーソルの同期 |
 |------|------|------|-------------|
-| 普段 | `tdf report.pdf` を別ペインで開く | tinymist が保存/入力ごとに PDF を書き、tdf が hot reload | なし |
-| 位置合わせ・図の調整 | `:TypstPreview` | 差分レンダリングで打鍵に追従 | 双方向 (プレビューのクリックで該当行へ) |
+| 普段 | `tdf report.pdf` を別のペインで開く | tinymist が入力のたびに PDF を再生成し、tdf が再読み込みする | なし |
+| 位置合わせ、図の調整 | `:TypstPreview` | 差分のみを再描画して入力に追従する | 双方向（プレビューをクリックすると該当行へ移動） |
 
-`tdf` は端末内に kitty graphics protocol で PDF を描くビューア。
-使い方は [tdf のドキュメント](../cli-tools/shell-tools.md#tdf) を参照。
-
-PDF の出力先は tinymist の既定 (`$dir/$name`) なので、`report.typ` の隣に `report.pdf` ができる。
-`tdf` に渡すパスが自明になるようこうしている。
-PDF をリポジトリに置きたくない場合は、対象リポジトリの `.gitignore` で弾く。
-
-## 分割された文書の扱い
-
-tinymist は既定で「開いているバッファ自身」をエントリポイントとして解決する (`projectResolution = "singleFile"`)。
-そのため `#include` される側のファイルを開くと、root にある `show` rule が効かず、他ファイルで定義されたラベルへの参照が未解決の診断として出る。
-
-`lang/typst/main_file.lua` がこれを解く。
-現在のファイルを `#include` または `#import` しているファイルを同じディレクトリから探し、見つかったらそれを起点にして同じ探索を繰り返す。
-誰からも参照されないファイルに行き着いたらそこが起点。
-
-```
-04-conjecture.typ → report.typ
-preamble.typ      → 01-setup.typ → report.typ
-solo.typ          → solo.typ          (単体の文書はそのまま)
-```
-
-求めた起点は二箇所で使う。
-
-LSP 側は `on_attach` と `BufEnter` で `tinymist.pinMain` を呼び、コンパイルと診断の起点を固定する。
-別の文書のバッファに移ると自動で pin し直すので、手動の操作は要らない。
-
-プレビュー側は `get_main_file` に同じ関数を渡す。
-
-起点をファイル名で設定に書くと文書ごとに書き換えが要るため、この方式にしている。
-代わりに、参照関係が同一ディレクトリ内で閉じていることを前提にしている。
-ディレクトリをまたいで `#include` する構成では解決できない。
-
-## コマンド
+`tdf` はターミナル内で PDF を表示するビューア（[tdf](../cli-tools/shell-tools.md#tdf)）。
+PDF は `report.typ` と同じディレクトリに `report.pdf` として出力される。PDF をリポジトリの管理下に置きたくない場合は、`.gitignore` で除外する。
 
 | コマンド | 動作 |
 |----------|------|
 | `:TypstPreview` | ブラウザでプレビューを開く |
-| `:TypstPreviewToggle` | プレビューの開始/停止 |
-| `:TypstPreviewStop` | プレビューを停止 |
-| `:TypstPreviewFollowCursorToggle` | カーソル追従の切替 |
-| `:TypstPreviewSyncCursor` | プレビューを現在のカーソル位置へ飛ばす |
+| `:TypstPreviewToggle` | プレビューの開始 / 停止を切り替える |
+| `:TypstPreviewStop` | プレビューを停止する |
+| `:TypstPreviewFollowCursorToggle` | カーソル追従のオン / オフを切り替える |
+| `:TypstPreviewSyncCursor` | プレビューの表示位置を現在のカーソル位置に同期する |
 
-`:TypstPreviewUpdate` は使わない。
-このコマンドは tinymist と websocat を Nix store の外にダウンロードするため、`dependencies_bin` で nixpkgs 版を指して無効化してある。
+`:TypstPreviewUpdate` は使用しない。このコマンドを実行すると tinymist と websocat が Nix store の外部にダウンロードされてしまうため、nixpkgs 版を使うように設定して無効化している。
 
-## 負荷が気になるとき
+## 分割した文書を編集する
 
-`exportPdf = "onType"` は打鍵のたびに文書全体をコンパイルする。
-図が多い文書で重いと感じたら `lang/typst/lsp.lua` で `"onSave"` に変える。
+`#include` されている子ファイルを開いている場合でも、診断やプレビューは文書全体の起点となるファイルからコンパイルされる。
+`lua/plugins/lang/typst/main_file.lua` が、現在のファイルを `#include` または `#import` しているファイルを同一ディレクトリ内から検索し、どのファイルからも参照されていない最上位のファイルまで遡って起点として特定する。
+
+```
+04-conjecture.typ → report.typ
+preamble.typ      → 01-setup.typ → report.typ
+solo.typ          → solo.typ（単体文書はそのまま）
+```
+
+別の文書のバッファに切り替えると、起点も自動的に切り替わる。
+なお、探索対象は同一ディレクトリ内に限られるため、ディレクトリをまたいで `#include` している文書では起点を正しく判定できない。
+
+## 動作が重いとき
+
+tinymist は入力のたびに文書全体をコンパイルして PDF を生成する（`exportPdf = "onType"`）。図が多い文書などで動作が重い場合は、`lua/plugins/lang/typst/lsp.lua` で `"onSave"`（保存時）に変更する。
+
+## 設計
+
+tinymist のデフォルト動作では、現在開いているバッファ自身を起点としてコンパイルする。そのため、`#include` されている子ファイルを開くとメインファイルの `show` ルールが適用されず、他ファイルのラベルへの参照が未解決エラーとして診断に表示されてしまう。
+起点のファイル名を設定に固定記述すると文書ごとに書き換える手間が生じるため、`#include` や `#import` の依存関係を遡って起点を自動特定する構成にした。特定した起点は、LSP では `tinymist.pinMain` で固定し、プレビューでは `get_main_file` に渡している。
