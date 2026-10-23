@@ -1,57 +1,53 @@
-# lazy.nvim 本体だけを nixpkgs から取る構成
+# Neovim のプラグインの管理
 
-lazy.nvim 本体は nixpkgs の `vimPlugins.lazy-nvim` を `programs.neovim.plugins` で入れ、
-プラグイン本体は lazy.nvim 自身が `~/.local/share/nvim/lazy` に clone して `lazy-lock.json` で固定する。
-設定ファイル: [`../../../default.nix`](../../../modules/home-manager/dev/neovim/default.nix)、[`../../lua/config/lazy.lua`](../../../modules/home-manager/dev/neovim/config/lua/config/lazy.lua)
+使い方: [プラグインを更新する](../../howtouse/neovim/README.md#プラグインを更新する)
+実装: [default.nix](../../../modules/home-manager/dev/neovim/default.nix)、[lazy.lua](../../../modules/home-manager/dev/neovim/config/lua/config/lazy.lua)
 
-## 役割分担
+## lazy.nvim がプラグインを取り、lazy-lock.json で固定する
 
-| 対象 | 持ち主 | 固定の仕組み |
-|------|--------|--------------|
-| lazy.nvim 本体 | nixpkgs (`programs.neovim.plugins`) | `flake.lock` の nixpkgs |
-| プラグイン本体 (RustOwl・smart-splits を除く) | lazy.nvim (git clone) | `lazy-lock.json` (リポジトリ内で git 追跡) |
-| Nix 側で組むもの (RustOwl・smart-splits プラグイン、codelldb、LSP 一覧、SKK 辞書) | Home Manager | `features.nix` 等で定義し、`~/.local/share/nvim/nix/features.lua` を `config.nix` 経由で読む |
+lazy.nvim の本体は nixpkgs の `vimPlugins.lazy-nvim` を `programs.neovim.plugins` で入れ、Nix のラッパーが packpath に載せる。プラグインは lazy.nvim が `~/.local/share/nvim/lazy` に clone し、`config/lazy-lock.json` で版を固定する。
+`~/.config/nvim` は checkout への symlink なので、`:Lazy update` で書き換わった lockfile はそのままリポジトリの差分になり、コミットすれば全マシンで同じ版になる。
 
-Nix のラッパが lazy.nvim を packpath に載せるので、git clone によるブートストラップは要らない。
-その代わり `performance.reset_packpath = false` と `performance.rtp.reset = false` が必要で、
-これを外すと lazy.nvim が自分自身を見失う。
+この形にしているのは、プラグインの更新を、switch せずに `:Lazy update` とコミットだけで済ませるため。
+Nix から入れるのは、lazy.nvim の本体、機能の道具（[機能の組](./features.md)）、RustOwl と smart-splits のプラグインだけ。
 
-`~/.config/nvim` は `mkOutOfStoreSymlink` でリポジトリ実体を指すため、`:Lazy update` で
-書き換わった `lazy-lock.json` はそのままリポジトリの差分になる。再現性の根拠はこのファイルなので、
-更新したらコミットする。
+Lua の設定を switch なしで編集できるのは、`~/.config/nvim` が checkout を指しているからで、プラグインをどこから取るかとは関係しない。
+
+lazy.nvim の luarocks の統合は無効にし、Lua のモジュールが要るプラグインには、機能の `luaPackages` で nixpkgs から渡す。lazy.nvim が組み立てる hererocks が Nix の環境では作れないため。理由の詳細は `lazy.lua` のコメントにある。
 
 ## 採用しなかった案
 
-### 全プラグインを nixpkgs の `vimPlugins` から取る
+### nixpkgs の vimPlugins からプラグインを取る
 
-lazy.nvim の `dev.path` を Nix の packDir に向け、`dev = true` で nixpkgs 版を使う構成。
-switch がオフラインで完結し、再現性も `flake.lock` に一本化できる。
+switch がオフラインで済み、版の固定も `flake.lock` にまとまる。
+退けた理由は安定チャンネルの遅れ。nixos-25.11 の `vimPlugins.nvim-treesitter` は 2025-05-24 の master の版で、Neovim 0.12 ではハイライトが壊れた（[treesitter.md](../../howtouse/neovim/treesitter.md#設計)）。50 個近いプラグインで、この遅れを引き受けることになる。
 
-採用しない理由は安定チャンネルの遅れ。nixos-25.11 の `vimPlugins.nvim-treesitter` は 2025-05-24 の
-master 版で、Neovim 0.12 ではハイライトが壊れるため main ブランチへ移した経緯がある
-([treesitter.md](../../howtouse/neovim/treesitter.md))。この遅れを 50 個近いプラグインぶん引き受けることになり、
-安定チャンネルの遅れで動かなくなるパッケージだけを unstable から差し替える方針
-([unstable-packages.md](../unstable-packages.md)) とも合わない。
-プラグインを一つ更新するたびに rebuild が要る点も、Lua を rebuild なしで反映させる現行の設計目標と合わない。
+### プラグインを Git のコミットで Nix に固定する（nixCats など）
 
-### nixvim / nvf
+nixpkgs を使わずに、プラグインごとの Git のコミットを Nix で固定する。安定チャンネルの遅れはなく、Lua も今と同じく checkout から読める。
+退けた理由は、プラグインを更新するたびに Nix の側の固定を更新して switch する必要があること。switch がオフラインで済むことや、固定が `flake.lock` にまとまることを必要とする場面が今はない。
 
-設定全体を Nix の型付きオプションに移す。設定の検証は強くなるが、Lua を直接編集して即反映する
-運用を失い、全面書き直しになる。
+### nixvim、nvf
 
-### nixCats
+設定を Nix のモジュールのオプションで書く。どちらも Lua をそのまま渡す手段はある（2026-10 に公式の README で確認）が、今の spec の合成（[spec のマージ](./spec-merge.md)、[機能の組](./features.md)）を移し替える必要があり、移して得るものが今はない。
 
-lazy.nvim を残したまま nixpkgs のプラグインを使う。上の「全プラグインを nixpkgs から」と同じく
-安定チャンネルの古さを引き受ける。
+### lazy.nvim の本体も git clone で入れる
 
-### lazy.nvim 本体も git clone でブートストラップする
+本体の版が Nix で固定されなくなるだけで、得るものがない。
 
-nixpkgs 依存が消えるが、本体の版が Nix で固定されなくなるだけで得るものがない。
+## 単独のパッケージとしては公開しない
+
+この Neovim を、Home Manager を使わない人も `nix run` で起動できるパッケージとして公開することを検討し、2026-10 にやめた。使う人がいないのに、次の仕組みを保守することになるため。
+
+- lazy.nvim は、プラグインを clone したあとに lockfile を書き込む（v11.17.5 の `lua/lazy/manage/init.lua`）。Nix store に置いた設定の lockfile には書き込めないので、書き込める場所に写し、公開版を更新したときに揃え直す仕組みが要る。
+- 初回の起動で、プラグインを GitHub から clone し、パーサーを手元でコンパイルする。配った時点では揃っておらず、ネットワークにつながらないと動かない。
+- 公開版と Home Manager の Neovim を同じ定義から作るには、機能の合成とラッパーを Home Manager の外に出すか、Home Manager の評価から取り出す必要がある。
+
+公開するなら、軽い案は次の形になる。Neovim のモジュールだけを入れた最小の Home Manager の構成を評価し、`config.programs.neovim.finalPackage` を、`NVIM_APPNAME` を設定して Nix store の `init.lua` を `-u` で読ませるシェルのラッパーで包む。Home Manager は生成した Lua を `--cmd` で読み込み、`wrapRc = false` なので、ラッパーが `-u` を足しても衝突しない（Home Manager 26.05 の `modules/programs/neovim/default.nix` で確認）。lazy.nvim の `import` が Nix store の設定を見つけられるかは確かめていない。
 
 ## 見直す条件
 
-- nixpkgs 安定チャンネルの `vimPlugins` が使いたい版に追いつく状態が続くなら、再現性を優先して
-  nixpkgs 側へ寄せる案を再検討する。
-- lazy.nvim 本体の nixpkgs 版が上流から大きく遅れ、必要な機能に届かなくなったら、
-  `overlays/unstable-packages.nix` の採用基準に照らして差し替えを検討する。
-  2026-09 時点では nixpkgs の 2025-11-06 版が上流最新 (v11.17.5) と同じコミット。
+- nixpkgs の安定チャンネルの `vimPlugins` が使いたい版に追いつく状態が続くなら、nixpkgs の側へ寄せる。
+- lazy.nvim の本体の nixpkgs の版が上流から大きく遅れたら、unstable からの差し替えを検討する（[unstable-packages.md](../unstable-packages.md)）。2026-09 の時点では、nixpkgs の 2025-11-06 版が上流の最新（v11.17.5）と同じコミット。
+- オフラインでの switch のように、Nix で固定する利点が要る場面ができたら、Git のコミットで Nix に固定する案を見直す。
+- Neovim を単独で配る相手ができたら、上の軽い案から試す。

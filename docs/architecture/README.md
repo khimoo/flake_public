@@ -26,6 +26,9 @@ Flake 設定の設計判断・実装構造のドキュメント。設定変更�
 | [kitty.md](./kitty.md) | 端末を kitty にした判断とキー体系の設計 |
 | [devshells.md](./devshells.md) | コードリーディング用の共通 devShell の設計 |
 | [mimikopi-env.md](./mimikopi-env.md) | 耳コピの ML モデルを動かす環境の設計 |
+| [neovim/plugin-manager.md](./neovim/plugin-manager.md) | Neovim のプラグインを lazy.nvim で管理し、単独では公開しない判断 |
+| [neovim/features.md](./neovim/features.md) | Neovim のプラグインと外部の道具を機能として組にする仕組み |
+| [neovim/spec-merge.md](./neovim/spec-merge.md) | Neovim の言語ごとの設定を spec のマージで足す設計 |
 | [rustowl.md](./rustowl.md) | RustOwl の導入と Neovim 連携の設計 |
 | [agent-config.md](./agent-config.md) | Claude Code と Codex のユーザー設定の管理の設計 |
 | [codex-subagents.md](./codex-subagents.md) | Codex のサブエージェントを無効化する判断 |

@@ -1,6 +1,6 @@
 # RustOwl (rustowl-flake 由来)
 
-設定ファイル: [`modules/home-manager/dev/rustowl.nix`](../../modules/home-manager/dev/neovim/rustowl.nix)
+設定ファイル: [`modules/home-manager/dev/neovim/rustowl.nix`](../../modules/home-manager/dev/neovim/rustowl.nix)
 
 ## 背景
 
@@ -16,7 +16,7 @@ flake input `rustowl` は [nix-community/rustowl-flake](https://github.com/nix-c
 
 [flake.nix](../../flake.nix) は x86_64 Linux の `packages.${system}` に `rustowl` と `rustowl-nvim` を、同じ locked input の `inputs.rustowl.packages.${system}` から組で公開する。Home Manager は `inputs.self.packages.${system}` を参照し、公開側と同じサーバーを rustowl 機能の `data.command` に、対応するプラグインを同機能の `data.plugin` に使う。公開属性を削除して導入参照が残ると評価エラーになる。
 
-`modules/home-manager/dev/rustowl.nix` は、`local.neovim.features.rustowl` に実行ファイルとNeovimプラグインの store path を定義するだけを行う（`nvim/nix/features.lua` の `data.rustowl` に生成）。activation は無い。
+`rustowl.nix` は、`local.neovim.features.rustowl` に実行ファイルとNeovimプラグインの store path を定義するだけを行う（`nvim/nix/features.lua` の `data.rustowl` に生成）。activation は無い。
 
 LSP サーバーと同じく、`rustowl` はシェルの PATH に入れない。シェルから使うときは `nix run .#rustowl -- <引数>` で、同じ版を実行する。
 

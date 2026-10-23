@@ -1,125 +1,35 @@
-## lazy.nvim spec マージ前提のディレクトリ設計
+# 言語ごとの設定を spec のマージで足す
 
-`lua/plugins/lang/<name>/` 以下から `nvim-treesitter` や `nvim-lspconfig` 等の **共通プラグインに言語固有の設定を後付けで差し込む**、という設計方針の根拠。
+使い方: [LSP のサーバーを足す](../../howtouse/neovim/lsp.md#サーバーを足す)、[Treesitter](../../howtouse/neovim/treesitter.md)
+実装: [lua/plugins/lang/](../../../modules/home-manager/dev/neovim/config/lua/plugins/lang/)
 
-## 背景: 何を解決したいか
+Markdown や Typst のような言語ごとの設定は、`lua/plugins/lang/<言語>/` に集める。言語の設定には、言語専用のプラグインのほかに、nvim-treesitter に足すパーサーや、nvim-lspconfig に足すサーバーの設定も含まれる。
+これらは、共通のプラグインと同じ名前の spec を言語のディレクトリに書き、lazy.nvim の spec のマージで共通の spec の `opts` に足す。共通の spec は言語を知らず、言語を足すときは `lang/<言語>/` を作るだけで済む。
 
-`markdown` のような「トピック」に関する設定は、性質ごとに複数のプラグイン spec に分散しがち:
+## 今使っている箇所
 
-- `ftplugin` 的な設定 (wrap, spell, conceallevel 等)
-- markdown 専用プラグイン (render-markdown.nvim, autolist.nvim 等)
-- `nvim-treesitter` の `ensure_installed` に追加するパーサ (`markdown`, `markdown_inline`, `latex`, `mermaid`)
-- `nvim-lspconfig` の override (現状は marksman はデフォルトで使うが、将来カスタマイズの可能性)
-- 他プラグインとの連携 (skkeleton ↔ autolist の bridge 等)
+| 共通の spec | 言語の spec | 足すもの |
+|------------|------------|---------|
+| `features/treesitter.lua`（nvim-treesitter） | `lang/markdown/treesitter.lua`、`lang/typst/treesitter.lua` | `opts.ensure_installed` にパーサーを足す |
+| `features/lsp.lua`（nvim-lspconfig） | `lang/typst/lsp.lua` | `opts.servers.tinymist` に設定と `on_attach` を足す |
 
-これを「トピック中心」のディレクトリにまとめたい。しかし `nvim-treesitter` の spec は元々 `features/treesitter.lua` で集中管理されており、`ensure_installed` を言語ごとに追記するには「同じプラグインの設定を複数箇所で書く」必要が出てくる。
+`on_attach` のような関数も `opts` のマージで渡るので、サーバーに固有の autocmd も言語のディレクトリに置ける。
+言語の spec には `optional = true` を付け、treesitter や lsp の機能を外すと一緒に外れるようにする。
 
-## 採用方針: lazy.nvim の spec マージ
+## 一覧は関数の形の opts で足す
 
-lazy.nvim は **同じプラグイン名で複数 spec が存在すると自動で deep-merge** する。これを使い、`lang/<name>/<sub>.lua` から共通プラグインの opts を追記する。
+lazy.nvim は、表の形の `opts` の配列をマージせず、上書きする。そのため、一覧に足す側は `opts = function(_, opts) vim.list_extend(...) end` の形にする。
+共通の spec も関数の形にし、一覧がまだないときだけ空の一覧で初期化する。共通の spec を `opts = { ensure_installed = {} }` にしていたとき、言語の spec が先に処理されると、足した一覧が空で上書きされ、latex のパーサーが入らずに数式が表示されなかった。
+lazy.nvim 2025-11-06 の `lua/lazy/core/plugin.lua` の `values` と `_values` で、どちらの順で読んでも一覧が残ることを確かめた。[回帰チェック](../../../scripts/check-neovim-parser-merge.lua) が、実際の lazy.nvim のマージで両方の順を確かめる（[検証ガイド](../../howtouse/validation.md)）。
 
-### 具体例: treesitter parser の追加
+## 代償
 
-`lang/markdown/treesitter.lua`:
+- サーバーの最終的な設定を知るには、関係する spec を探して、マージの結果を頭の中で組み立てる必要がある。
+- spec のマージは lazy.nvim の機能なので、プラグインマネージャーを替えるときは、この構成も作り直す。
 
-```lua
-return {
-  "nvim-treesitter/nvim-treesitter",
-  opts = function(_, opts)
-    opts.ensure_installed = opts.ensure_installed or {}
-    vim.list_extend(opts.ensure_installed, { "markdown", "markdown_inline", "mermaid", "latex" })
-  end,
-}
-```
+## 採用しなかった案
 
-`features/treesitter.lua` のベース spec も関数形式にし、未設定の場合だけ一覧を初期化する。
-各言語モジュールは list_extend で追加する。
+- ファイルを分けるだけにする: パーサーやサーバーの設定は共通の spec に書くことになり、言語の設定が複数の場所に散らばる。
+- 言語ごとの設定を集める登録の仕組みを作る（LazyVim の extras に近い形）: 個人の設定の規模では仕組みのほうが大きく、どの設定がどこから来たかも追いにくくなる。
 
-```lua
-opts = function(_, opts)
-  opts.ensure_installed = opts.ensure_installed or {}
-end,
-```
-
-ベースを `opts = { ensure_installed = {} }` にすると、言語 spec が先に処理された場合に
-追加済みの配列が空で上書きされる。実際に最終設定が空になり、`latex` パーサが
-自動導入されず数式が描画されなかった。初期化を関数にすることで読み込み順への依存を除く。
-lazy.nvim 2025-11-06 の `lua/lazy/core/plugin.lua` の `values` / `_values` で両順序を検証した。
-
-[回帰チェック](../../../scripts/check-neovim-parser-merge.lua) は、実際の lazy.nvim の
-マージ処理を使い、両順序で Markdown 用パーサと他言語の既存パーサが残ることを確認する。
-実行方法は [検証ガイド](../../howtouse/validation.md) を参照。
-利用時の数式表示と依存は [Markdown ガイド](../../howtouse/neovim/markdown.md) を参照。
-
-### 具体例: LSP override の追加
-
-`features/lsp.lua` で `opts.servers` を table として宣言:
-
-```lua
-opts = {
-  servers = {
-    nil_ls = { settings = { ... } },
-  },
-},
-config = function(_, opts)
-  -- opts.servers を読んで各サーバーを vim.lsp.config で有効化
-end,
-```
-
-`lang/typst/lsp.lua` が同じ spec を宣言して tinymist を差し込んでいる:
-
-```lua
-return {
-  "neovim/nvim-lspconfig",
-  opts = {
-    servers = {
-      tinymist = { settings = { ... }, on_attach = function(client, bufnr) ... end },
-    },
-  },
-}
-```
-
-`settings` だけでなく `on_attach` のような関数値も deep-merge の対象になるので、
-サーバー固有の autocmd 登録まで言語モジュール側に置ける。
-
-## 設計上のトレードオフ
-
-### 採用したもの
-
-- 凝集度: 言語/トピック単位で関連設定を 1 ディレクトリに集約できる
-- 結合度: 共通プラグイン側が言語を知らない (一方向の依存)
-- 拡張性: 新しい言語を追加するときは `lang/<name>/` を作るだけ。中央の編集が要らない
-
-### 採用しなかった案
-
-#### 単純なファイル分割
-
-`lang/markdown.lua` を `lang/markdown/{filetype,render,autolist,...}.lua` に分割するだけ。
-
-- 短所: `ensure_installed` や LSP override は中央 (`treesitter.lua`, `lsp/init.lua`) に書く必要があり、「markdown 関連の設定」が物理的に複数箇所に散る
-- 「半分集約」止まりで、spec マージより中途半端
-
-#### トピックレジストリ (LazyVim の extras に近い)
-
-`config/topics.lua` のようなレジストリを作り、各トピックモジュールが `topics.register("markdown", { ftplugin = ..., treesitter = ..., lsp = ... })` を呼ぶ。各プラグイン spec はレジストリから設定を集める。
-
-- 短所: 抽象化が過剰。個人 dotfiles の規模感では機構コストが見合わない
-- 短所: デバッグ時に「どの設定がどこから来たか」の追跡性が下がる
-
-## トレードオフ (spec マージの弱点)
-
-- **`:Lazy` のデバッグ感**: 「marksman の最終 opts は何か」を知るには、関連 spec を grep して spec マージの結果を頭で再現する必要がある (LazyVim 経験者なら慣れた手順)
-- **lazy.nvim 固有**: packer.nvim や mini.deps、rocks.nvim では同じ機構が無い (または挙動が違う)。パッケージマネージャを乗り換える際に再設計が要る
-- **opts のリスト merge は注意が必要**: `opts = { ensure_installed = {...} }` の table 形式は配列を上書きする。配列追加には `opts = function(_, opts) vim.list_extend(...) end` の関数形式を使うこと
-
-## 現在の適用箇所
-
-| ベース spec | 拡張側 | 形式 |
-|------------|--------|------|
-| `features/treesitter.lua` (nvim-treesitter) | `lang/markdown/treesitter.lua` | function 形式で `ensure_installed` を list_extend |
-| `features/lsp.lua` (nvim-lspconfig) | (現状は同ファイル内に集約; 将来 `lang/<x>/lsp.lua` から拡張する余地) | table 形式で `opts.servers.<name>` を deep-merge |
-
-## 参考
-
-- lazy.nvim 公式: [Spec Merging](https://lazy.folke.io/spec#%EF%B8%8F-spec-merging)
-- LazyVim の extras 実装が同パターンの参考になる: `lua/lazyvim/plugins/extras/lang/*.lua`
+参考: [lazy.nvim の Spec Merging](https://lazy.folke.io/spec#%EF%B8%8F-spec-merging)
