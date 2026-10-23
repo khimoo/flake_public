@@ -630,6 +630,11 @@ lib.genAttrs systems (
       python ${./minecraft-setup-hooks.py} ${../modules/home-manager/minecraft-setup-hooks.sh}
       touch "$out"
     '';
+    # コミット前の hook が、ステージした docs/howtouse の文書だけを校正し、印があれば通し、校正に失敗したら止めること。
+    proofread-howtouse = pkgs.runCommand "proofread-howtouse" { nativeBuildInputs = [ pkgs.python3 pkgs.git ]; } ''
+      python ${./proofread-howtouse.py} ${../.agents/hooks/proofread-howtouse.py}
+      touch "$out"
+    '';
     # windows-vm の起動、待機、ロック、止め忘れの通知を、偽の virsh と FreeRDP で確かめる。
     # flock は util-linux にしかなく、ランチャー自体も Linux 専用なので、Darwin では省く。
     windows-vm =
