@@ -51,10 +51,12 @@ xsaved similar <ツイートID>
 xsaved status
 xsaved delete <ツイートID>
 xsaved fetch likejs <公式アーカイブの like.js>
+xsaved retry
 ```
 
 `search` と `similar` は、デフォルトでいいねとブックマークの両方を対象に検索します。`--source likes` または `--source bookmarks` を指定すると、片方のみに絞り込んで検索できます。
 `xsaved delete` は、対象ツイートがいいねとブックマークのどちらに登録されているかにかかわらず、ローカルに保存されたデータを丸ごと削除します。なお、X 側でいいねやブックマークを解除しても、ローカルの保存データは自動削除されず残ります。
+`xsaved retry` は、取得できなかった返信先、引用元、like.js のいいねと、欠けている画像や動画を取得し直します。定期実行には含まれないため、`xsaved status` の `incomplete_media`（画像や動画が欠けているツイートの数）が増えたときなどに手動で実行してください。
 
 引数は xsaved の README に記載されているコマンドと同様で、`python -m xsaved` を `xsaved` に置き換えて使用します。
 `xsaved-env` を引数なしで実行すると専用環境のシェルに入り、引数を指定して実行するとそのコマンドのみを環境内で実行します。
