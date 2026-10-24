@@ -1,7 +1,7 @@
-# X のいいねの保存（Home Manager の local.xLikes）を有効にしたユーザーに、Postgres のデータベースを用意する。
+# X のいいねとブックマークの保存（Home Manager の local.xsaved）を有効にしたユーザーに、Postgres のデータベースを用意する。
 # データベースはそのユーザーが所有し、Unix socket の peer 認証で接続する。
 # GPU を使う計算は、全ユーザーで共有するロックファイルで順番にする。
-# 設計判断: docs/architecture/x-likes.md
+# 設計判断: docs/architecture/xsaved.md
 {
   config,
   lib,
@@ -11,16 +11,16 @@
 let
   databases = lib.mapAttrsToList (owner: hm: {
     inherit owner;
-    name = hm.local.xLikes.database;
-  }) (lib.filterAttrs (_: hm: hm.local.xLikes.enable) config.home-manager.users);
+    name = hm.local.xsaved.database;
+  }) (lib.filterAttrs (_: hm: hm.local.xsaved.enable) config.home-manager.users);
 in
 {
-  options.local.xLikes.gpuLock = lib.mkOption {
+  options.local.xsaved.gpuLock = lib.mkOption {
     type = lib.types.str;
     readOnly = true;
-    default = "/run/x-likes-gpu.lock";
+    default = "/run/xsaved-gpu.lock";
     description = ''
-      xlikes embed が排他ロックを取るファイル。local.xLikes を有効にしたユーザー全員が同じファイルを使い、
+      xsaved embed が排他ロックを取るファイル。local.xsaved を有効にしたユーザー全員が同じファイルを使い、
       GPU を使う計算を順番にする。
     '';
   };
@@ -29,7 +29,7 @@ in
     assertions = [
       {
         assertion = lib.allUnique (map (db: db.name) databases);
-        message = "local.xLikes.database はユーザーごとに別の名前にする。";
+        message = "local.xsaved.database はユーザーごとに別の名前にする。";
       }
     ];
 
@@ -46,7 +46,7 @@ in
     };
 
     # flock は読み取りで開いたファイルにも掛けられるので、root が持つ 0644 のファイルで全ユーザーが使える。
-    systemd.tmpfiles.rules = [ "f ${config.local.xLikes.gpuLock} 0644 root root -" ];
+    systemd.tmpfiles.rules = [ "f ${config.local.xsaved.gpuLock} 0644 root root -" ];
 
     # ensureDBOwnership はユーザーと同じ名前のデータベースにしか使えないので、所有者はここで付ける。
     # 二つの拡張は trusted ではなく、所有者（superuser でないロール）には作れないので、ここで作っておく。

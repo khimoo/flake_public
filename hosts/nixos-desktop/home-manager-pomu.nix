@@ -44,29 +44,29 @@ in {
     inherit hsaOverrideGfxVersion;
   };
 
-  # X のいいねの保存と意味検索。data-disk.nix がこの保存先に @x-likes をマウントし、
-  # modules/nixos/x-likes.nix が Postgres のデータベースを用意する。
-  local.xLikes = {
+  # X のいいねとブックマークの保存と意味検索。data-disk.nix がこの保存先に @xsaved をマウントし、
+  # modules/nixos/xsaved.nix が Postgres のデータベースを用意する。
+  local.xsaved = {
     enable = true;
-    dataDir = "/home/pomu/.local/share/x-likes";
-    projectDir = "/home/pomu/sagyo/x-likes-archive";
+    dataDir = "/home/pomu/.local/share/xsaved";
+    projectDir = "/home/pomu/sagyo/xsaved";
     inherit hsaOverrideGfxVersion;
     # 保存先の SATA SSD が壊れても残るよう、Google Drive に写す。
     backup = {
-      repository = "rclone:gdrive:x-likes-backup";
-      passwordFile = "${config.home.homeDirectory}/.config/x-likes/restic-password";
+      repository = "rclone:gdrive:xsaved-backup";
+      passwordFile = "${config.home.homeDirectory}/.config/xsaved/restic-password";
     };
   };
   local.profile.privateRepos = [
     {
-      url = "git@github.com:khimoo/x-likes-archive.git";
-      dest = config.local.xLikes.projectDir;
+      url = "git@github.com:khimoo/xsaved.git";
+      dest = config.local.xsaved.projectDir;
     }
   ];
   local.profile.secrets = [
     {
-      secret = "x_likes_restic_password";
-      path = config.local.xLikes.backup.passwordFile;
+      secret = "xsaved_restic_password";
+      path = config.local.xsaved.backup.passwordFile;
     }
   ];
 

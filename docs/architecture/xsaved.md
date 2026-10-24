@@ -1,19 +1,19 @@
-# X のいいねの保存の設計
+# X のいいねとブックマークの保存の設計
 
-使い方: [X のいいねの保存と意味検索](../howtouse/x-likes.md)
-実装: [x-likes.nix](../../modules/home-manager/x-likes.nix)（コマンドと定期実行）、[modules/nixos/x-likes.nix](../../modules/nixos/x-likes.nix)（データベース）、[x-likes-env](../../packages/x-likes-env/default.nix)
+使い方: [X のいいねとブックマークの保存と意味検索](../howtouse/xsaved.md)
+実装: [xsaved.nix](../../modules/home-manager/xsaved.nix)（コマンドと定期実行）、[modules/nixos/xsaved.nix](../../modules/nixos/xsaved.nix)（データベース）、[xsaved-env](../../packages/xsaved-env/default.nix)
 
-ツール本体（取得、登録、OCR、埋め込み、検索）の設計は x-likes-archive の `docs/design.md` にあり、この文書は nixos-desktop で動かすための環境、データベース、定期実行を扱う。
+ツール本体（取得、登録、OCR、埋め込み、検索）の設計は xsaved の `docs/design.md` にあり、この文書は nixos-desktop で動かすための環境、データベース、定期実行を扱う。
 
 ## 使いみち
 
-x-likes-archive は、gallery-dl で X のいいね欄と引用元を取得し、Postgres（pgvector と PGroonga）に登録し、ruri-v3-310m と Qwen3-VL-Embedding-2B の埋め込みと RapidOCR の文字で検索する。
+xsaved は、gallery-dl で X のいいね欄とブックマーク欄、返信先と引用元を取得し、Postgres（pgvector と PGroonga）に登録し、ruri-v3-310m と Qwen3-VL-Embedding-2B の埋め込みと RapidOCR の文字で検索する。
 埋め込みは RX 6600 の GPU で計算するので、[mimikopi-env](./mimikopi-env.md) と同じく、uv が取得する Python に ROCm 版の torch を入れて FHS 環境で動かす。
-Postgres には拡張が二つ要る。いいね欄の取得と、OCR と埋め込みの計算は、定期的に実行する。
+Postgres には拡張が二つ要る。いいね欄とブックマーク欄の取得と、OCR と埋め込みの計算は、定期的に実行する。
 
 ## FHS 環境を mimikopi-env と分ける
 
-[packages/x-likes-env](../../packages/x-likes-env/default.nix) は mimikopi-env と同じ形の buildFHSEnv で、ROCm 版の torch が読むライブラリを持つ。
+[packages/xsaved-env](../../packages/xsaved-env/default.nix) は mimikopi-env と同じ形の buildFHSEnv で、ROCm 版の torch が読むライブラリを持つ。
 mimikopi-env を、名前とデータディレクトリを引数で受け取る汎用の環境に作り替えれば定義は一つで済むが、耳コピの環境にも手が入る。
 用途が二つのうちは別の環境にし、三つ目が出てきたときにまとめるかを決める。
 
@@ -23,31 +23,31 @@ mimikopi-env で測ったときは、ROCm 版の torch の環境は展開後に�
 
 ## データを SATA の専用 subvol に置く
 
-SATA SSD に `@x-likes` を作り、`~/.local/share/x-likes` にマウントする（[data-disk.nix](../../hosts/nixos-desktop/data-disk.nix)）。
+SATA SSD に `@xsaved` を作り、`~/.local/share/xsaved` にマウントする（[data-disk.nix](../../hosts/nixos-desktop/data-disk.nix)）。
 取得したメディアと、uv の環境とモデルのチェックポイントはどれも大きく、読み書きはシーケンシャルが中心なので、[disk-tiering.md](./disk-tiering.md) の分け方ではコールド層に当たる。
 
 取得したツイート（`tweets/`）と、取得し直せる環境（`venv/`、`uv-cache/`、`python/`、`huggingface/`）を一つの subvol に置く。
 subvol を分ければスナップショットやバックアップの単位を分けられるが、手で作る subvol が増える。
 バックアップを作るときは `tweets/` だけを対象にする。
 
-マウントの扱いは `@mimikopi` と同じで、作る前の switch や再起動で起動を止めないよう `nofail` を付け、`x-likes-env` が起動時に `mountpoint -q` で確かめて、マウントされていなければ止まる。
-この確認は、NixOS 側の `fileSystems` が `local.xLikes.dataDir` のマウントを定義しているときだけ入れる。
+マウントの扱いは `@mimikopi` と同じで、作る前の switch や再起動で起動を止めないよう `nofail` を付け、`xsaved-env` が起動時に `mountpoint -q` で確かめて、マウントされていなければ止まる。
+この確認は、NixOS 側の `fileSystems` が `local.xsaved.dataDir` のマウントを定義しているときだけ入れる。
 確認の目的は、nofail のマウントに失敗したときにルート側を埋めないことで、マウントを定義していないホストやユーザーには守るものがない。そうした構成では、データはホームの下にそのまま置かれる。
 [tests/default.nix](../../tests/default.nix) は `nofail` が付いていることを確かめる。
 
 ## Postgres を OS のサービスで動かす
 
-[modules/nixos/x-likes.nix](../../modules/nixos/x-likes.nix) が、Home Manager で `local.xLikes` を有効にしたユーザーごとに、NixOS の `services.postgresql` でデータベースを作る。
-データベースの名前は Home Manager 側の `local.xLikes.database` が正本で、NixOS 側はそれを読む。データディレクトリを Home Manager 側で決めて OS のマウントがそれを読むのと同じ向きにした。
-名前は、NixOS 側が superuser として実行する SQL と、xlikes の接続文字列に埋め込むので、英小文字、数字、`_` だけの 63 バイトまでに限る（先頭は数字以外）。
+[modules/nixos/xsaved.nix](../../modules/nixos/xsaved.nix) が、Home Manager で `local.xsaved` を有効にしたユーザーごとに、NixOS の `services.postgresql` でデータベースを作る。
+データベースの名前は Home Manager 側の `local.xsaved.database` が正本で、NixOS 側はそれを読む。データディレクトリを Home Manager 側で決めて OS のマウントがそれを読むのと同じ向きにした。
+名前は、NixOS 側が superuser として実行する SQL と、xsaved の接続文字列に埋め込むので、英小文字、数字、`_` だけの 63 バイトまでに限る（先頭は数字以外）。
 [tests/default.nix](../../tests/default.nix) は、Home Manager 側の名前のデータベースを Postgres が作ることを確かめる。
 
 データベースはそのユーザーが所有し、Unix socket の peer 認証で接続する。パスワードは使わない。
 nixpkgs の `ensureDBOwnership` はユーザーと同じ名前のデータベースにしか使えないので、所有者は `postgresql-setup` の最後に `ALTER DATABASE` で付ける。
-拡張は所有者には作れないので、同じ所で superuser として作る。pgvector と PGroonga の control ファイルには `trusted = true` がなく、superuser でないロールは `CREATE EXTENSION` を実行できない（Postgres 17.11、pgvector 0.8.2、PGroonga 4.0.5、nixpkgs 26.05 の 4feb8eb で確認）。superuser が拡張を作ったデータベースを一般ロールに所有させれば、そのロールで migrate、全文検索、距離計算が通る。x-likes-archive の migrate の `CREATE EXTENSION IF NOT EXISTS` は、作成済みなら何もしない。
+拡張は所有者には作れないので、同じ所で superuser として作る。pgvector と PGroonga の control ファイルには `trusted = true` がなく、superuser でないロールは `CREATE EXTENSION` を実行できない（Postgres 17.11、pgvector 0.8.2、PGroonga 4.0.5、nixpkgs 26.05 の 4feb8eb で確認）。superuser が拡張を作ったデータベースを一般ロールに所有させれば、そのロールで migrate、全文検索、距離計算が通る。xsaved の migrate の `CREATE EXTENSION IF NOT EXISTS` は、作成済みなら何もしない。
 
 拡張を作るには superuser が要るので、Home Manager だけではデータベースを用意できない。
-`local.xLikes` は NixOS の Home Manager モジュールとして使うときだけ有効にでき、Home Manager を単独で使う構成では assertion で止まる。
+`local.xsaved` は NixOS の Home Manager モジュールとして使うときだけ有効にでき、Home Manager を単独で使う構成では assertion で止まる。
 
 Postgres のメジャー版は 17 に固定する。既定値は `system.stateVersion` で決まり、メジャー版が変わるとデータディレクトリの移行が要るからである。
 
@@ -58,9 +58,9 @@ Postgres のメジャー版は 17 に固定する。既定値は `system.stateVe
 ## GPU を使う計算はロックで順番にする
 
 二つの実行が同時に埋め込みのモデルを VRAM に載せると、どちらかが足りなくなる。
-夜間の `xlikes-process` と手で始めた `xlikes embed` が重なったときや、同じホストのほかのユーザーが使ったときに起きる。
-[modules/nixos/x-likes.nix](../../modules/nixos/x-likes.nix) が、ロックファイル `/run/x-likes-gpu.lock` を tmpfiles で作り、`x-likes-env` が `XLIKES_GPU_LOCK` でその場所を渡す。
-`xlikes embed` は、計算の前にこのファイルの排他ロックを取り、ほかの実行が終わるまで待つ。
+夜間の `xsaved-process` と手で始めた `xsaved embed` が重なったときや、同じホストのほかのユーザーが使ったときに起きる。
+[modules/nixos/xsaved.nix](../../modules/nixos/xsaved.nix) が、ロックファイル `/run/xsaved-gpu.lock` を tmpfiles で作り、`xsaved-env` が `XSAVED_GPU_LOCK` でその場所を渡す。
+`xsaved embed` は、計算の前にこのファイルの排他ロックを取り、ほかの実行が終わるまで待つ。
 
 ロックファイルは root が持つ 0644 のファイルにする。flock は読み取りで開いたファイルにも掛けられるので、どのユーザーも使え、消したり書き換えたりはできない。
 検索はロックを取らない。夜間の画像の埋め込みは数時間かかるので、検索を待たせると使えなくなる。検索と夜間の処理が重なると、VRAM が足りなくなることがある。
@@ -70,27 +70,27 @@ Postgres のメジャー版は 17 に固定する。既定値は `system.stateVe
 
 ## アカウント名をリポジトリに書かない
 
-いいね欄を取得する X のアカウント名は、データディレクトリの `x-user` から `x-likes-env` が読む。
+いいね欄を取得する X のアカウント名は、データディレクトリの `x-user` から `xsaved-env` が読む。
 このリポジトリは公開しているので、Nix の設定に書くと GitHub のアカウントと X のアカウントが結び付く。
 
 ## checkout をそのまま実行する
 
-`xlikes` は `local.xLikes.projectDir` の checkout を `uv run --project ... --frozen` で実行する。
-ML の依存（ROCm 版の torch の wheel など）は x-likes-archive の `uv.lock` で決まっていて、Nix のパッケージにすると uv の lock と二重に管理することになる。
+`xsaved` は `local.xsaved.projectDir` の checkout を `uv run --project ... --frozen` で実行する。
+ML の依存（ROCm 版の torch の wheel など）は xsaved の `uv.lock` で決まっていて、Nix のパッケージにすると uv の lock と二重に管理することになる。
 代わりに、checkout のブランチを切り替えると、定期実行もその版が実行される。
 
-スキーマの変更を取り込み忘れないよう、二つのサービスはどちらも始めに `xlikes migrate` を実行する。
-二つが同時に始まっても同じ SQL を二度流さないよう、x-likes-archive の migrate は Postgres の advisory lock を取る。
+スキーマの変更を取り込み忘れないよう、二つのサービスはどちらも始めに `xsaved migrate` を実行する。
+二つが同時に始まっても同じ SQL を二度流さないよう、xsaved の migrate は Postgres の advisory lock を取る。
 
 ## 定期実行
 
-[x-likes.nix](../../modules/home-manager/x-likes.nix) が二つの systemd user timer を定義する。
+[xsaved.nix](../../modules/home-manager/xsaved.nix) が取得、OCR・埋め込み、バックアップの systemd user timer を定義する。
 
-`xlikes-sync` は毎時、いいね欄と引用元を取得して登録する。
-gallery-dl は取得済みのファイルが 20 件続いたら止まるので、普段の実行は数秒から十数秒で終わる。
-初回は取得済みのファイルがないので、いいね欄を最後まで辿る。前の実行が終わるまで、timer は次の実行を始めない。
+`xsaved-sync` は毎時、いいね欄とブックマーク欄と、返信先と引用元を取得して登録する。
+gallery-dl は取得済みのツイートが 20 件続いたら止まるので、普段の実行は数秒から十数秒で終わる。
+初回は取得済みのツイートがないので、それぞれの欄を最後まで辿る。前の実行が終わるまで、timer は次の実行を始めない。
 
-`xlikes-process` は毎日 4:00 に、本文の埋め込み、OCR、画像の埋め込み、本文の埋め込みの順で計算する。
+`xsaved-process` は毎日 4:00 に、本文の埋め込み、OCR、画像の埋め込み、本文の埋め込みの順で計算する。
 GPU を使う計算を、ゲームなどと重なりにくい時刻に寄せる。
 本文の埋め込みは数分で終わるので先に済ませ、取り込んだ直後から意味検索できるようにする。
 OCR の文字は ruri の入力に入るので、最後にもう一度本文を埋め込む。入力が変わったツイートだけが計算される。
@@ -98,20 +98,20 @@ OCR は CPU の全コアを使うので、`Nice=19` と `IOSchedulingClass=idle`
 `Persistent=true` なので、電源が切れていて逃した分は、ユーザーのサービスマネージャーが次に起動したときに実行される。
 nixos-desktop では pomu を linger にしているので、ログインを待たずに OS の起動時に実行される（[tailscale.md](./tailscale.md#ログインしていなくてもユーザーの-timer-を動かす)）。
 
-`xlikes-sync`、`xlikes-process`、`xlikes-backup` には `X-SwitchMethod = "keep-old"` を付け、switch のときに動いていれば入れ替えない。新しい定義は次の実行から使われる。
-Home Manager の sd-switch は、定義が変わって動いているユニットを止めて起動し直し、oneshot の起動が終わるまで待つ。2026-10-23 に、取り込み直後の長い `xlikes-process` の途中で switch したところ、処理を最初からやり直し、`home-manager-pomu.service` が 5 分で時間切れになった。
+`xsaved-sync`、`xsaved-process`、`xsaved-backup` には `X-SwitchMethod = "keep-old"` を付け、switch のときに動いていれば入れ替えない。新しい定義は次の実行から使われる。
+Home Manager の sd-switch は、定義が変わって動いているユニットを止めて起動し直し、oneshot の起動が終わるまで待つ。2026-10-23 に、取り込み直後の長い `xsaved-process` の途中で switch したところ、処理を最初からやり直し、`home-manager-pomu.service` が 5 分で時間切れになった。
 
 ## 退けた案
 
 - mimikopi-env を汎用化して両方から使う。上の「FHS 環境を mimikopi-env と分ける」に書いた理由で、今は退けた。
-- x-likes-archive を Nix のパッケージや flake input にする。上の「checkout をそのまま実行する」に書いた理由で退けた。
-- Postgres のデータディレクトリを `@x-likes` に置く。`@x-likes` は `nofail` でマウントするので、マウントされていないときにルート側へ初期化させない仕組みが別に要る。データベースは NVMe に置ける大きさなので退けた。
+- xsaved を Nix のパッケージや flake input にする。上の「checkout をそのまま実行する」に書いた理由で退けた。
+- Postgres のデータディレクトリを `@xsaved` に置く。`@xsaved` は `nofail` でマウントするので、マウントされていないときにルート側へ初期化させない仕組みが別に要る。データベースは NVMe に置ける大きさなので退けた。
 - Postgres をユーザーの systemd サービスで動かす。データディレクトリをユーザーが持てるが、起動、拡張の読み込み、更新を自分で書くことになる。NixOS のモジュールで足りるので退けた。
 
 ## 代償
 
-`xlikes` と、x-likes-archive の環境の Python を使うものは、`x-likes-env` の中で実行する必要がある。
-`@x-likes` がマウントされていない間は、`x-likes-env` は何も実行せずに止まり、定期実行は失敗として記録される。
+`xsaved` と、xsaved の環境の Python を使うものは、`xsaved-env` の中で実行する必要がある。
+`@xsaved` がマウントされていない間は、`xsaved-env` は何も実行せずに止まり、定期実行は失敗として記録される。
 ROCm 版の torch を、耳コピの環境と別に持つ。
 
 ## Web UI は使うときだけ起動する
@@ -120,25 +120,25 @@ ROCm 版の torch を、耳コピの環境と別に持つ。
 検索はときどき使うだけなので、モデルを読み込んだまま常駐させると、使わない時間の VRAM が無駄になる。
 そこで、ブラウザで開いたときに systemd のソケットから起動し、使われなくなったら止める。
 
-x-likes-archive の `xlikes serve` は、ポートを開いて待ち受けるだけの普通のサーバーで、systemd からソケットを受け取る作りにはしていない。
-代わりに、`xlikes-web.socket` が受けた接続を `systemd-socket-proxyd` が次のポートのサーバーへ渡す。
+xsaved の `xsaved serve` は、ポートを開いて待ち受けるだけの普通のサーバーで、systemd からソケットを受け取る作りにはしていない。
+代わりに、`xsaved-web.socket` が受けた接続を `systemd-socket-proxyd` が次のポートのサーバーへ渡す。
 `systemd-socket-proxyd` は `--exit-idle-time=15min` で終わり、サーバーは `StopWhenUnneeded` なので、プロキシが終わると一緒に止まる。
 サーバーに、ソケットを受け取る処理と、しばらく使われなければ終わる処理を書かずに済む。
 サーバーが待ち受けを始める前にプロキシが接続すると失敗するので、サーバーの `ExecStartPost` でポートが開くまで待つ。
 
 検索語のベクトルは GPU で計算する。モデルを読み込むのはサーバーが起動してから最初の検索だけで、似たツイートの検索はモデルを使わない。
-結果は検索方法ごとの列に並べ、RRF でまとめない。理由は x-likes-archive の `docs/design.md` にある。
+結果は検索方法ごとの列に並べ、RRF でまとめない。理由は xsaved の `docs/design.md` にある。
 検索は GPU のロックを取らない（[GPU を使う計算はロックで順番にする](#gpu-を使う計算はロックで順番にする)）。夜間の画像の埋め込みと同時にモデルを読み込むと、どちらかの VRAM が足りなくなることがある。
 
-nixos-desktop では、ポート番号を覚えずに開けるよう、常駐する Caddy を `http://xlikes.localhost/` の入口にする。
+nixos-desktop では、ポート番号を覚えずに開けるよう、常駐する Caddy を `http://xsaved.localhost/` の入口にする。
 名前は `/etc/hosts` でループバックへ解決し、Caddy も IPv4・IPv6 のループバックだけで待ち受ける。
-転送先は Home Manager の `local.xLikes.webPort` を参照する。サーバー本体へ直接転送するとソケットによる起動を迂回するため、既存の起動用ソケットへ渡す。
+転送先は Home Manager の `local.xsaved.webPort` を参照する。サーバー本体へ直接転送するとソケットによる起動を迂回するため、既存の起動用ソケットへ渡す。
 自マシン内の HTTP 接続とし、証明書の配布は行わない。Tailscale 経由でノート PC から開けるようにするのは、あとで決める。
 
 ## バックアップを Google Drive に restic で写す
 
 X で消えたツイートは取り直せない。like.js の取り込みでも、29,611 件のうち 2,698 件がすでに取得できなかった。
-保存したデータが唯一の写しになるので、`xlikes-backup` が毎日 6:00 に、保存先の SATA SSD とは別の場所へ写す。
+保存したデータが唯一の写しになるので、`xsaved-backup` が毎日 6:00 に、保存先の SATA SSD とは別の場所へ写す。
 
 写すのは、取得したツイート（`tweets/`、メタデータとメディア）と、データベース全体のダンプである。
 データベースのうち `tweets/` から作り直せないのは、最初に見つけた日時（`first_seen_at`）だけだが、OCR の文字と埋め込みのベクトルを作り直すには GPU で約 1 日かかる。
@@ -152,7 +152,7 @@ Minecraft で手元に置いた理由（ゲームの終了時の待ち時間を 
 
 世代は GFS（日次 7、週次 4、月次 12）で残す。最新の状態だけを写すと、手元で消えたり壊れたりしたデータが次の写しにも反映される。データは追加がほとんどなので、世代を残しても増える容量は小さい。
 写しは restic で暗号化する。X ではいいねは本人にしか見えないので、何にいいねしたかの一覧は非公開の情報で、ダンプには X のアカウント名も入る。
-パスワードは `secrets/secrets.yaml` に sops で暗号化して置き、Home Manager の secrets が switch のたびに `~/.config/x-likes/restic-password` へ書き出す。パスワードを別に保管する必要はなく、age 鍵（Bitwarden にもある）があれば取り戻せる。
+パスワードは `secrets/secrets.yaml` に sops で暗号化して置き、Home Manager の secrets が switch のたびに `~/.config/xsaved/restic-password` へ書き出す。パスワードを別に保管する必要はなく、age 鍵（Bitwarden にもある）があれば取り戻せる。
 
 退けた案:
 

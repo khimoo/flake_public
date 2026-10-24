@@ -52,7 +52,7 @@ SATA は 1 台で冗長性がないので、Drive の写しがその役を担う
 ## リポジトリにパスワードを付けない
 
 `--insecure-no-password` を使う。ワールドは秘密ではなく、Drive の写しも自分のアカウントの中にある。
-パスワードを付けるなら、x-likes のバックアップと同じく `secrets/secrets.yaml` から配れる。
+パスワードを付けるなら、xsaved のバックアップと同じく `secrets/secrets.yaml` から配れる。
 
 ## `mc-check` は Drive を読めないとき通す
 

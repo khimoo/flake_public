@@ -88,10 +88,10 @@ exit node を使うことにしたら、`useRoutingFeatures = "client"` を足�
 ## ログインしていなくてもユーザーの timer を動かす
 
 `users.users.pomu.linger = true` で、OS の起動時から pomu のユーザーのサービスマネージャーを動かす。
-linger がないと、ユーザーの timer はログインするまで始まらない。再起動後にログイン画面のまま放置されると、`xlikes-sync` などの定期実行は RDP でログインするまで止まり、`Persistent=true` の timer が逃した分もログインまで実行されない。
+linger がないと、ユーザーの timer はログインするまで始まらない。再起動後にログイン画面のまま放置されると、`xsaved-sync` などの定期実行は RDP でログインするまで止まり、`Persistent=true` の timer が逃した分もログインまで実行されない。
 
-linger にすると、pomu のユーザー timer はすべてログイン前から動く。xlikes の二つ、zettelkasten 系の rclone の同期、`quaderno-pull`、`mc-sync` は、どれもログイン時に解錠されるキーリングを使わないので、ログイン前でも同じように動く。
-GPU のデバイス（`/dev/kfd`、`/dev/dri/renderD128`）は誰でも読み書きできる権限なので、`xlikes-process` もログインなしで GPU を使える。
+linger にすると、pomu のユーザー timer はすべてログイン前から動く。xsaved の二つ、zettelkasten 系の rclone の同期、`quaderno-pull`、`mc-sync` は、どれもログイン時に解錠されるキーリングを使わないので、ログイン前でも同じように動く。
+GPU のデバイス（`/dev/kfd`、`/dev/dri/renderD128`）は誰でも読み書きできる権限なので、`xsaved-process` もログインなしで GPU を使える。
 ログイン後に動かす必要のある timer（キーリングの秘密を使うものなど）を足すときは、ログイン前に失敗しないかを確かめる。
 
 ## 出先のリモートビルドでは `--use-substitutes` を付ける

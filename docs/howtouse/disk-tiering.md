@@ -16,7 +16,7 @@ systemctl status papis-references.path home-pomu-sagyo-zettelkasten-references.m
 sudo systemctl start home-pomu-sagyo-zettelkasten-references.mount
 ```
 
-`@mimikopi` と `@x-likes` は、該当アプリケーションを有効化した後に手動作成する subvol です。作成前であってもシステムの起動が停止しないよう `nofail` オプションが付与されています。
+`@mimikopi` と `@xsaved` は、該当アプリケーションを有効化した後に手動作成する subvol です。作成前であってもシステムの起動が停止しないよう `nofail` オプションが付与されています。
 
 ## 状態の確認
 
@@ -76,4 +76,4 @@ sudo blkid -s UUID -o value /dev/sda1    # 出力された UUID を data-disk.ni
 
 ※ `nix shell` は `-c` を使って直接コマンドを実行してください。`sudo` から `nix shell` の対話シェルに入ると PATH が正常に引き継がれず、コマンドが見つからなくなる原因になります。
 構築後、バックアップ等から各 subvol へ `rsync` でデータを移行し、NVMe 側の元のデータを削除・空にしてから `switch` を実行してください。
-`@mimikopi` と `@x-likes` については、前述の「[新しい subvol の追加手順](#新しい-subvol-の追加手順)」に沿って別途作成してください。
+`@mimikopi` と `@xsaved` については、前述の「[新しい subvol の追加手順](#新しい-subvol-の追加手順)」に沿って別途作成してください。

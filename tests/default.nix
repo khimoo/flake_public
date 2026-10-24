@@ -117,8 +117,8 @@ let
       failed = map (a: a.message) (builtins.filter (a: !a.assertion) config.assertions);
     in
     failed != [ ] && builtins.all (lib.hasPrefix "local.restrictedHost:") failed;
-  # 二人のユーザーが X のいいねの保存を使う架空のホスト。どちらにもデータ用のマウントはない。
-  xLikesHost =
+  # 二人のユーザーが xsaved を使う架空のホスト。どちらにもデータ用のマウントはない。
+  xsavedHost =
     (configurations.mkSystem {
       hostname = "example";
       system = "x86_64-linux";
@@ -126,17 +126,17 @@ let
       stateVersion = "25.11";
       hostModule.imports = [
         ../examples/new-host.nix
-        ../modules/nixos/x-likes.nix
+        ../modules/nixos/xsaved.nix
       ];
       users = map (username: {
         inherit username;
         homeModules = [
           {
-            local.xLikes = {
+            local.xsaved = {
               enable = true;
-              dataDir = "/home/${username}/.local/share/x-likes";
-              projectDir = "/home/${username}/x-likes-archive";
-              database = "xlikes_${username}";
+              dataDir = "/home/${username}/.local/share/xsaved";
+              projectDir = "/home/${username}/xsaved";
+              database = "xsaved_${username}";
             };
           }
         ];
@@ -386,15 +386,15 @@ lib.genAttrs systems (
         && host.environment.etc."claude-code/CLAUDE.md".text == instructions;
       assert !((agentHost "").environment.etc ? "claude-code/CLAUDE.md");
       # 複数のユーザーとマウントのないホストでも使える。GPU は共有のロックファイルで順番にする。
-      assert systemAssertionsHold xLikesHost;
-      assert xLikesHost.services.postgresql.ensureDatabases == [ "xlikes_alice" "xlikes_bob" ];
-      assert builtins.elem "f ${xLikesHost.local.xLikes.gpuLock} 0644 root root -" xLikesHost.systemd.tmpfiles.rules;
+      assert systemAssertionsHold xsavedHost;
+      assert xsavedHost.services.postgresql.ensureDatabases == [ "xsaved_alice" "xsaved_bob" ];
+      assert builtins.elem "f ${xsavedHost.local.xsaved.gpuLock} 0644 root root -" xsavedHost.systemd.tmpfiles.rules;
       # データベースは NixOS 側が作るので、Home Manager 単独では有効にできない。
       assert rejects {
-        local.xLikes = {
+        local.xsaved = {
           enable = true;
-          dataDir = "/home/test/.local/share/x-likes";
-          projectDir = "/home/test/x-likes-archive";
+          dataDir = "/home/test/.local/share/xsaved";
+          projectDir = "/home/test/xsaved";
         };
       };
       assert !(codexConfig (agentHost "") ? developer_instructions);
@@ -433,26 +433,26 @@ lib.genAttrs systems (
       # @mimikopi は手で作る subvol なので、作る前の switch や再起動で起動を止めないよう nofail を外さない。
       assert builtins.elem "nofail"
         inputs.self.nixosConfigurations.nixos-desktop.config.fileSystems."/home/pomu/.local/share/mimikopi".options;
-      assert hasLauncher desktopUser "xlikes";
+      assert hasLauncher desktopUser "xsaved";
       assert builtins.elem "nofail"
-        inputs.self.nixosConfigurations.nixos-desktop.config.fileSystems.${desktopUser.local.xLikes.dataDir}.options;
-      # xlikes が接続するデータベースを、OS 側の Postgres が作る。
-      assert builtins.elem desktopUser.local.xLikes.database
+        inputs.self.nixosConfigurations.nixos-desktop.config.fileSystems.${desktopUser.local.xsaved.dataDir}.options;
+      # xsaved が接続するデータベースを、OS 側の Postgres が作る。
+      assert builtins.elem desktopUser.local.xsaved.database
         inputs.self.nixosConfigurations.nixos-desktop.config.services.postgresql.ensureDatabases;
       # ログイン画面のまま放置されても、ユーザーの timer を起動時から動かす。
       assert inputs.self.nixosConfigurations.nixos-desktop.config.users.users.pomu.linger == true;
       # 何時間も続く定期実行を、switch で止めて起動し直さない。
       assert builtins.all (n: desktopUser.systemd.user.services.${n}.Unit.X-SwitchMethod == "keep-old") [
-        "xlikes-sync"
-        "xlikes-process"
-        "xlikes-backup"
+        "xsaved-sync"
+        "xsaved-process"
+        "xsaved-backup"
       ];
       # Web UI は常駐させず、ブラウザで開いたときにソケットから起動する。
-      assert desktopUser.systemd.user.sockets.xlikes-web.Install.WantedBy == [ "sockets.target" ];
-      assert !(desktopUser.systemd.user.services.xlikes-web-server ? Install);
+      assert desktopUser.systemd.user.sockets.xsaved-web.Install.WantedBy == [ "sockets.target" ];
+      assert !(desktopUser.systemd.user.services.xsaved-web-server ? Install);
       # X で消えたツイートは取り直せないので、保存先と別の場所へ毎日写す。
-      assert desktopUser.systemd.user.timers ? xlikes-backup;
-      assert builtins.any (s: s.path == desktopUser.local.xLikes.backup.passwordFile) desktopUser.local.profile.secrets;
+      assert desktopUser.systemd.user.timers ? xsaved-backup;
+      assert builtins.any (s: s.path == desktopUser.local.xsaved.backup.passwordFile) desktopUser.local.profile.secrets;
       # 定期実行が失敗したら気づけるよう、どの timer のサービスにも失敗の通知を付ける。
       assert lib.all
         (name: desktopUser.systemd.user.services.${name}.Unit.OnFailure or [ ] == desktopUser.local.failureNotify.onFailure)

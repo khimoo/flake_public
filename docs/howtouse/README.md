@@ -34,7 +34,7 @@
 | vault 骨格の配布・ミラー | vault の骨格を公開 repo へ写す手順 | [zettelkasten-vault-skeleton.md](./zettelkasten-vault-skeleton.md) |
 | Minecraft バックアップ | インスタンスのバックアップと復元 | [minecraft-backup.md](./minecraft-backup.md) |
 | Quaderno の取り込み | 手書き PDF の取り込み | [quaderno.md](./quaderno.md) |
-| X のいいねの保存 | いいねの保存と意味検索、定期実行 | [x-likes.md](./x-likes.md) |
+| X のいいねとブックマークの保存 | いいねとブックマークの保存と意味検索、定期実行 | [xsaved.md](./xsaved.md) |
 
 ## 関連
 

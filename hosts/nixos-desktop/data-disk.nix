@@ -44,10 +44,10 @@ let
     # 確認は mimikopi-env が受け持つ（docs/architecture/mimikopi-env.md）。
   ] ++ lib.optional hm.local.mimikopi.enable
     { subvol = "@mimikopi"; path = hm.local.mimikopi.dataDir; opts = dataOpts ++ [ "nofail" ]; }
-    # X のいいねの保存。@mimikopi と同じく手で作る subvol なので nofail にし、マウントの確認は
-    # x-likes-env が受け持つ（docs/architecture/x-likes.md）。
-    ++ lib.optional hm.local.xLikes.enable
-    { subvol = "@x-likes"; path = hm.local.xLikes.dataDir; opts = dataOpts ++ [ "nofail" ]; };
+    # X のいいねとブックマークの保存。@mimikopi と同じく手で作る subvol なので nofail にし、マウントの確認は
+    # xsaved-env が受け持つ（docs/architecture/xsaved.md）。
+    ++ lib.optional hm.local.xsaved.enable
+    { subvol = "@xsaved"; path = hm.local.xsaved.dataDir; opts = dataOpts ++ [ "nofail" ]; };
 in
 {
   options.local.dataDisk.backupDir = lib.mkOption {

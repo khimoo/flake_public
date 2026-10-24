@@ -17,21 +17,21 @@
     [org.gnome.settings-daemon.plugins.power]
     sleep-inactive-ac-type='nothing'
   '';
-  # 再起動後にログイン画面のまま放置されても、pomu のユーザー timer（xlikes や同期）を動かす。
+  # 再起動後にログイン画面のまま放置されても、pomu のユーザー timer（xsaved や同期）を動かす。
   # Persistent な timer が逃した分も、ログインを待たずに起動時に実行される。
   users.users.pomu.linger = true;
 
   networking.hosts = {
-    "127.0.0.1" = [ "xlikes.localhost" ];
-    "::1" = [ "xlikes.localhost" ];
+    "127.0.0.1" = [ "xsaved.localhost" ];
+    "::1" = [ "xsaved.localhost" ];
   };
   services.caddy = {
-    enable = config.home-manager.users.pomu.local.xLikes.enable;
+    enable = config.home-manager.users.pomu.local.xsaved.enable;
     openFirewall = false;
-    virtualHosts."http://xlikes.localhost" = {
+    virtualHosts."http://xsaved.localhost" = {
       listenAddresses = [ "127.0.0.1" "[::1]" ];
       extraConfig = ''
-        reverse_proxy 127.0.0.1:${toString config.home-manager.users.pomu.local.xLikes.webPort}
+        reverse_proxy 127.0.0.1:${toString config.home-manager.users.pomu.local.xsaved.webPort}
       '';
     };
   };

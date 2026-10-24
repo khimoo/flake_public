@@ -6,7 +6,7 @@ Home Manager で定義したユーザーの定期実行が失敗すると、GNOM
 通知のタイトルは「`<ユニット名>` が失敗しました」で、本文に原因を確かめるコマンドが出る。
 
 ```bash
-journalctl --user -u xlikes-process.service
+journalctl --user -u xsaved-process.service
 ```
 
 通知は緊急度 critical で出すので、閉じるまで画面に残り、通知の一覧にも残る。
