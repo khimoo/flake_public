@@ -37,10 +37,6 @@ in
       # clone-repos が clone するため、骨格の初期化・補充は行わない。
       initializeVault = false;
       vaultDir = config.local.profile.memexRoot;
-      # memex-nix の既定値は zettelkasten-* のまま。この Drive のフォルダは memex-* なので上書きする。
-      attachments.folder = "memex-attachments";
-      originals.folder = "memex-originals";
-      originals.backupFolder = "memex-originals-backups";
       attachments.enable = attachmentsOn;
       originals.enable = attachmentsOn;
       # 両PCの実Drive試験と原本の初期化・照合を完了（2026-10-19）。

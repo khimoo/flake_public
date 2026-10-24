@@ -16,7 +16,7 @@ OAuth のトークンはもともと宣言的に作れないので、`rclone con
 ## 同期コマンドは 1 本にし、対象は評価時に決める
 
 `memex-sync` 1 本で全部の対象を同期し、`--only` で絞る。同期先は評価時にコードへ埋め込み、実行時に設定ファイルを読まない。設定の正本を flake の一か所にするため。無効な対象のコードは生成しない。
-同期の履歴（baseline）は対象ごとにディレクトリを分ける（`~/.cache/rclone/bisync-zettelkasten`、`bisync-papis`）。同じリモートの違うフォルダを同期するので、履歴が混ざらないようにする。
+同期の履歴（baseline）は対象ごとにディレクトリを分ける（`~/.cache/rclone/bisync-attachments`、`bisync-papis`、`bisync-originals`）。同じリモートの違うフォルダを同期するので、履歴が混ざらないようにする。
 
 ## 最初の resync は、安全なら自動、判断が要るなら止める
 
