@@ -16,6 +16,9 @@
 { config, pkgs, lib, settings, utils, ... }:
 let
   hm = config.home-manager.users.${settings.primaryUser};
+  # fileSystems の名前を users.users から作ると、NFS の要否の判定を通って fileSystems に戻り、
+  # 評価が無限再帰になる。NixOS の既定のホームの場所から作り、一致は assertion で確かめる。
+  home = "/home/${settings.primaryUser}";
   vaultRoot = hm.local.profile.zettelkastenRoot;
   # btrfs は FS 全体で 1 UUID。各 subvol は subvol= オプションで選ぶので全マウントで共有する。
   device = "/dev/disk/by-uuid/57ba3e14-4099-4708-a643-edfc45d3eb18";
@@ -25,15 +28,15 @@ let
 
   # {subvol, path, opts} のリストから fileSystems を生成し、エントリの手書き重複を避ける。
   mounts = [
-    { subvol = "@downloads"; path = "/home/pomu/ダウンロード";  opts = dataOpts; }
-    { subvol = "@videos";    path = "/home/pomu/ビデオ";        opts = dataOpts; }
-    { subvol = "@music";     path = "/home/pomu/音楽";          opts = dataOpts; }
-    { subvol = "@pictures";  path = "/home/pomu/画像";          opts = dataOpts; }
-    { subvol = "@documents"; path = "/home/pomu/ドキュメント";  opts = dataOpts; }
+    { subvol = "@downloads"; path = "${home}/ダウンロード";  opts = dataOpts; }
+    { subvol = "@videos";    path = "${home}/ビデオ";        opts = dataOpts; }
+    { subvol = "@music";     path = "${home}/音楽";          opts = dataOpts; }
+    { subvol = "@pictures";  path = "${home}/画像";          opts = dataOpts; }
+    { subvol = "@documents"; path = "${home}/ドキュメント";  opts = dataOpts; }
     # Steam のライブラリ。ゲームは 1 本で数十 GB になり NVMe の残量を最も削るが、
     # ロードはシーケンシャル読みが中心なので SATA で足りる。
-    { subvol = "@games";     path = "/home/pomu/Games";         opts = dataOpts; }
-    { subvol = "@backup";    path = "/mnt/backup";              opts = dataOpts; }
+    { subvol = "@games";     path = "${home}/Games";         opts = dataOpts; }
+    { subvol = "@backup";    path = config.local.dataDisk.backupDir; opts = dataOpts; }
     # VM は chattr +C で NOCOW 済み（CoW 断片化対策）。NOCOW ファイルには圧縮が効かないので付けない。
     { subvol = "@vm";        path = "/var/lib/libvirt/images";  opts = [ "noatime" ]; }
     # 耳コピの ML モデルの環境とチェックポイント。subvol は手で作るので、作る前に switch や
@@ -47,51 +50,67 @@ let
     { subvol = "@x-likes"; path = hm.local.xLikes.dataDir; opts = dataOpts ++ [ "nofail" ]; };
 in
 {
-  fileSystems = builtins.listToAttrs (map (m: {
-    name = m.path;
-    value = {
-      inherit device;
-      fsType = "btrfs";
-      options = [ "subvol=${m.subvol}" ] ++ m.opts;
-    };
-  }) mounts);
-
-  # papis ライブラリは vault(Obsidian)配下の references/ に置く方針(vault で完結)。マウント先を
-  # vault の中にすることで、実体は SATA(コールド/バルク層)のまま、論理的には vault の 1 フォルダに
-  # 見える。同期は services.zettelkasten.papis が所有する(同じパスを見ている)。
-  #
-  # ここだけ fileSystems ではなく systemd.mounts なのは、mount 先の親が vault の clone だから。
-  # 無条件に mount すると systemd が clone より先に root 所有の中間ディレクトリを作り、
-  # clone-repos の git clone が「空でない」「書けない」で失敗する。vault が実在するとき
-  # (= .git がある)だけ mount することで、clone → mount の順序を条件で表現する。
-  # 初回 clone の後は、下の path unit が .git の出現を見て mount を始める。
-  systemd.mounts = [{
-    what = device;
-    where = "${vaultRoot}/references";
-    type = "btrfs";
-    options = lib.concatStringsSep "," ([ "subvol=@papis" ] ++ dataOpts);
-    unitConfig.ConditionPathExists = "${vaultRoot}/.git";
-    wantedBy = [ "local-fs.target" ];
-  }];
-  systemd.paths.papis-references = {
-    wantedBy = [ "multi-user.target" ];
-    pathConfig = {
-      PathExists = "${vaultRoot}/.git";
-      Unit = "${utils.escapeSystemdPath "${vaultRoot}/references"}.mount";
-    };
+  options.local.dataDisk.backupDir = lib.mkOption {
+    type = lib.types.str;
+    readOnly = true;
+    default = "/mnt/backup";
+    description = "Mount point of the @backup subvol. Home Manager settings read it through osConfig to place backups under it.";
   };
 
-  # @backup subvol は root 所有なので、そのままではユーザーのバックアップ処理が書き込めない。
-  # 用途ごとのディレクトリを primaryUser 所有で用意する（/mnt/backup 直下は root のまま残し、
-  # 用途が増えたときに混ざらないようにする）。systemd-tmpfiles は local-fs.target の後に走るので、
-  # マウント前の root ファイルシステム側に作られてマウントに隠される事故は起きない。
-  systemd.tmpfiles.rules =
-    lib.optional hm.local.minecraftBackup.enable
-      "d ${dirOf hm.local.minecraftBackup.repoDir} 0755 ${settings.primaryUser} users -"
-    ++ lib.optional hm.local.quaderno.enable
-      "d ${hm.local.quaderno.archiveDir} 0755 ${settings.primaryUser} users -";
+  config = {
+    assertions = [
+      {
+        assertion = config.users.users.${settings.primaryUser}.home == home;
+        message = "data-disk.nix: ${settings.primaryUser} のホームが ${home} ではないので、データ層のマウント先がホームの外になる";
+      }
+    ];
 
-  # btrfs をカーネル/システムで扱えるように（root は ext4 なので既定では無効）+ メンテ用 CLI。
-  boot.supportedFilesystems = [ "btrfs" ];
-  environment.systemPackages = [ pkgs.btrfs-progs ];
+    fileSystems = builtins.listToAttrs (map (m: {
+      name = m.path;
+      value = {
+        inherit device;
+        fsType = "btrfs";
+        options = [ "subvol=${m.subvol}" ] ++ m.opts;
+      };
+    }) mounts);
+
+    # papis ライブラリは vault(Obsidian)配下の references/ に置く方針(vault で完結)。マウント先を
+    # vault の中にすることで、実体は SATA(コールド/バルク層)のまま、論理的には vault の 1 フォルダに
+    # 見える。同期は services.zettelkasten.papis が所有する(同じパスを見ている)。
+    #
+    # ここだけ fileSystems ではなく systemd.mounts なのは、mount 先の親が vault の clone だから。
+    # 無条件に mount すると systemd が clone より先に root 所有の中間ディレクトリを作り、
+    # clone-repos の git clone が「空でない」「書けない」で失敗する。vault が実在するとき
+    # (= .git がある)だけ mount することで、clone → mount の順序を条件で表現する。
+    # 初回 clone の後は、下の path unit が .git の出現を見て mount を始める。
+    systemd.mounts = [{
+      what = device;
+      where = "${vaultRoot}/references";
+      type = "btrfs";
+      options = lib.concatStringsSep "," ([ "subvol=@papis" ] ++ dataOpts);
+      unitConfig.ConditionPathExists = "${vaultRoot}/.git";
+      wantedBy = [ "local-fs.target" ];
+    }];
+    systemd.paths.papis-references = {
+      wantedBy = [ "multi-user.target" ];
+      pathConfig = {
+        PathExists = "${vaultRoot}/.git";
+        Unit = "${utils.escapeSystemdPath "${vaultRoot}/references"}.mount";
+      };
+    };
+
+    # @backup subvol は root 所有なので、そのままではユーザーのバックアップ処理が書き込めない。
+    # 用途ごとのディレクトリを primaryUser 所有で用意する（@backup の直下は root のまま残し、
+    # 用途が増えたときに混ざらないようにする）。systemd-tmpfiles は local-fs.target の後に走るので、
+    # マウント前の root ファイルシステム側に作られてマウントに隠される事故は起きない。
+    systemd.tmpfiles.rules =
+      lib.optional hm.local.minecraftBackup.enable
+        "d ${dirOf hm.local.minecraftBackup.repoDir} 0755 ${settings.primaryUser} users -"
+      ++ lib.optional hm.local.quaderno.enable
+        "d ${hm.local.quaderno.archiveDir} 0755 ${settings.primaryUser} users -";
+
+    # btrfs をカーネル/システムで扱えるように（root は ext4 なので既定では無効）+ メンテ用 CLI。
+    boot.supportedFilesystems = [ "btrfs" ];
+    environment.systemPackages = [ pkgs.btrfs-progs ];
+  };
 }
