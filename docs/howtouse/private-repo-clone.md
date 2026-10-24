@@ -34,14 +34,14 @@ clone 対象の repo と flake 自身に対して `git pull --ff-only` を実行
 対象ユーザーの home モジュールの `local.profile` で、repo の URL と配置先を指定します。
 pomu では [pomu-workstation.nix](../../profiles/home/pomu-workstation.nix) に定義されており、`agentConfigRoot` のみ [pomu-agents.nix](../../profiles/home/pomu-agents.nix) で設定します。
 
-- vault: `zettelkastenRepoUrl` と `zettelkastenRoot`
+- vault: `memexRepoUrl` と `memexRoot`
 - エージェント設定: `agentConfigRepo` と `agentConfigRoot`
-- zettelkasten-workflow: `vaultSkeletonRepoUrl` と `vaultSkeletonRepo`
+- memex-nix: `vaultSkeletonRepoUrl` と `vaultSkeletonRepo`
 - LLM Wiki: `llmWikisRepoUrl` と `llmWikisRoot`
 - それ以外: `local.profile.privateRepos` に `{ url; dest; }` を追加
 
 URL を設定しない（デフォルトの `null` のままにする）場合、その repo は手動で clone する運用になります。配置先パスだけを残しておけば、symlink や同期、`mirror-vault` などの機能はそのまま利用可能です。
-vault は `services.zettelkasten.initializeVault` で作成することも可能ですが、有効にはしません。先に空フォルダが作成されると clone が失敗するためです。
+vault は `services.memex.initializeVault` で作成することも可能ですが、有効にはしません。先に空フォルダが作成されると clone が失敗するためです。
 
 clone 対象の repo がなく、`lanSsh = false` で、かつ `sshKeys` と `secrets` も空であれば、age 鍵は不要です。
 ただし pomu では `lanSsh = true` に設定されているため、repo の clone を行わない場合でも age 鍵が必要です。

@@ -16,7 +16,7 @@ let
     ../modules/home-manager/private-repos.nix
     ../modules/home-manager/rclone.nix
     ../modules/home-manager/failure-notify.nix
-    ../modules/home-manager/zettelkasten.nix
+    ../modules/home-manager/memex.nix
     ../modules/home-manager/yazi.nix
     ../modules/home-manager/nix-index.nix
     ../modules/home-manager/minecraft-backup.nix

@@ -15,7 +15,7 @@ MIME タイプに対するデフォルトアプリケーションは `xdg.mimeAp
 | text/html, text/xml, about 等 | `gui/firefox.nix` | `programs.firefox` + 直接指定 |
 | HTTP/HTTPS | `gui/teams-dispatcher.nix` | Teams URL ディスパッチャ経由 |
 | Slack・Discord・Spotify・Zoom のスキーム | `gui/apps.nix` | アプリごとの `mimeTypes` から導出（[理由](./xdg-scheme-workaround.md)） |
-| Obsidian のスキーム | `zettelkasten.nix` | Obsidian 有効時だけ登録 |
+| Obsidian のスキーム | `memex.nix` | Obsidian 有効時だけ登録 |
 
 パスはすべて `modules/home-manager/` からの相対。
 

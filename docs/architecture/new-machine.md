@@ -6,7 +6,7 @@
 ## 解決したいこと
 
 新しいマシンを用意するとき、age 鍵を運ぶ経路が「既存のマシンから SSH で送る」と「Bitwarden から取り出す」の 2 つあり、どちらも手作業で、手順書に並んでいるだけで強制されない。
-age 鍵を置き損ねたまま switch すると、以前は警告だけ出して成功し、`agents-private` や `zettelkasten-workflow` が週単位で clone されないまま残った。
+age 鍵を置き損ねたまま switch すると、以前は警告だけ出して成功し、`agents-private` や `memex-nix` が週単位で clone されないまま残った。
 この部分は、age 鍵がなければ activation を止める変更（[private-repo-clone.md](./private-repo-clone.md#age-鍵がなければ-switch-を失敗させる)）ですでに直した。残っているのは、鍵を運ぶ手作業と経路の二重化である。
 
 目指す状態:

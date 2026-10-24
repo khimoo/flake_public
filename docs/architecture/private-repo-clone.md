@@ -71,7 +71,7 @@ switch が pull もすると、システムの世代を切り替えるつもり�
 
 ## vault は clone で用意する
 
-外部 flake の `services.zettelkasten.initializeVault` も、switch の中でフォルダを作って `git init` する。
+外部 flake の `services.memex.initializeVault` も、switch の中でフォルダを作って `git init` する。
 両方を有効にすると、先にできた空のフォルダに `git clone` できずに失敗する。
 ノートはすでに GitHub にあるので、clone 側に一本化した。
 
@@ -79,7 +79,7 @@ switch が pull もすると、システムの世代を切り替えるつもり�
 
 ## 制約
 
-- 新しい環境の評価に SSH 鍵は要らない。`inputs.zettelkasten` を `github:`（https）で取得しているため。`git+ssh://` に戻すと、age 鍵だけでは用意できなくなる
+- 新しい環境の評価に SSH 鍵は要らない。`inputs.memex-nix` を `github:`（https）で取得しているため。`git+ssh://` に戻すと、age 鍵だけでは用意できなくなる
 - `lanSsh` のユーザーがいると `secrets/secrets.yaml` を評価で参照する。この repo を fork したら、自分の暗号文をコミットするまで評価が通らない
 - 暗号文は `"${secretsFile}"` で単独で store にコピーし、世代の closure に入れる。flake のソースは closure に入らない（2026-10-03、desktop の 26.05 の toplevel で確認）。ソースの中のパスを参照すると、GC でソースが消えた後の起動時の activation で復号に失敗する
 - `secrets.yaml` に同居させている Gemini の API キーは、課金を紐づけていない無料枠のキーで、漏れたときの被害は無料枠の消費に留まる。SSH 秘密鍵と同じ扱いでよいのはそのため

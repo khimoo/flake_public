@@ -293,7 +293,7 @@ lib.genAttrs systems (
       assert !(users.alice.home.file ? ".codex/astra.config.toml");
       assert rejects { local.profile.agentConfigRepo = "git@example.org:test/config.git"; };
       assert rejects { local.profile.agentConfigRoot = "/home/another-user/config"; };
-      assert rejects { local.profile.features.zettelkastenSync = true; };
+      assert rejects { local.profile.features.memexSync = true; };
       assert rejects { local.profile.features.gnome = true; };
       assert rejects {
         local.profile.privateRepos = [
@@ -555,10 +555,10 @@ lib.genAttrs systems (
     # clone 済みの両PCへ、配布元の骨格を補充しない。古い workflow の pin も検出する。
     vault-seed-isolation =
       assert lib.all (user:
-        user.services.zettelkasten.enable
-        && !user.services.zettelkasten.initializeVault
+        user.services.memex.enable
+        && !user.services.memex.initializeVault
         && !(user.home.activation ? seedVault)
-        && user.local.profile.zettelkastenRepoUrl != null
+        && user.local.profile.memexRepoUrl != null
       ) [
         desktopUser
         inputs.self.nixosConfigurations.nixos-spin713.config.home-manager.users.pomu

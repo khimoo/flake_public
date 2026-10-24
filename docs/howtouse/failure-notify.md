@@ -29,7 +29,7 @@ systemd.user.services.example = {
 };
 ```
 
-外部の flake が定義するサービス（Zettelkasten の同期）には、取り込む側のモジュール（[zettelkasten.nix](../../modules/home-manager/zettelkasten.nix)）で足す。
+外部の flake が定義するサービス（memex の同期）には、取り込む側のモジュール（[memex.nix](../../modules/home-manager/memex.nix)）で足す。
 
 ## 確かめる
 
@@ -51,7 +51,7 @@ systemd の `OnFailure=` で、失敗したユニットの名前をインスタ�
 systemd だけで完結し、各ユニットに足すのは `OnFailure` の 1 行で済む。
 
 同じユニットの通知を置き換えるため、`notify-send --print-id` が返す通知の ID を `$XDG_RUNTIME_DIR/notify-failure/<ユニット名>` に保存し、次の通知で `--replace-id` に渡す。
-置き換えないと、Zettelkasten の同期のように 15 分ごとに動くユニットは、原因が残っている間、15 分ごとに critical の通知を積み重ねる。
+置き換えないと、memex の同期のように 15 分ごとに動くユニットは、原因が残っている間、15 分ごとに critical の通知を積み重ねる。
 
 代償として、誰もログインしていないとき（linger で動いている間）に失敗した分は、通知を受け取る GNOME のセッションがないので通知されない。
 失敗したユニットは次に成功するまで `systemctl --user --failed` に残るので、ログイン後にそこで確かめられる。

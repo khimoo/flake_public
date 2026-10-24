@@ -25,7 +25,7 @@ ingest / query / lint の三操作からなる。
 
 - **履歴が濁る。** wiki は LLM が書く層で、1 回の ingest で 10〜15 ファイルが同時に
   書き換わる。CLAUDE.md や skills は意図的な低頻度の編集で、同居すると設定の履歴が
-  自動生成コミットに埋もれる。[zettelkasten-vault-skeleton.md](./zettelkasten-vault-skeleton.md)
+  自動生成コミットに埋もれる。[memex-vault-skeleton.md](./memex-vault-skeleton.md)
   で同居方式を退けたのと同じ理由
 - **レイアウト規約が壊れる。** [dev/claude.nix](../../modules/home-manager/dev/claude.nix) と
   [dev/codex.nix](../../modules/home-manager/dev/codex.nix) は `<root>/shared/` `<root>/claude/`
@@ -36,11 +36,11 @@ ingest / query / lint の三操作からなる。
 - **公開の自由度を失う。** wiki の内容に機密性は無い。特に Rust wiki は将来 public に
   したくなるかもしれず、private repo に入れると履歴の切り出しが要る
 
-### Zettelkasten vault に入れない
+### memex vault に入れない
 
 - **書き手が違う。** Zettel は自分が書くもの、LLM Wiki は LLM が書くもの。混ぜると
   自分の思考と機械の出力を区別できなくなる
-- **リンクグラフが薄まる。** Zettelkasten の価値は自分の思考どうしの接続にある。
+- **リンクグラフが薄まる。** memex の価値は自分の思考どうしの接続にある。
   外部仕様のページが大量に流入すると Obsidian のグラフビューが機能しなくなる
 - **`obsidian-git` の auto-commit と衝突する。** ingest 中の一括書き換えの途中で
   auto-commit が走ると、中途半端な状態が同期に流れる

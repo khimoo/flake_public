@@ -1,10 +1,10 @@
-# Zettelkasten の Google Drive 同期の設計
+# memex の Google Drive 同期の設計
 
-使い方: [Zettelkasten の Google Drive 同期](../howtouse/zettelkasten-attachments-sync.md)
-実装: mechanism は zettelkasten-workflow（`nix/hm-module.nix`、`nix/bisync-lib.nix`、`nix/sync-job.nix`、`nix/setup.nix`）、このリポジトリの配線は [zettelkasten.nix](../../modules/home-manager/zettelkasten.nix)
+使い方: [memex の Google Drive 同期](../howtouse/memex-attachments-sync.md)
+実装: mechanism は memex-nix（`nix/hm-module.nix`、`nix/bisync-lib.nix`、`nix/sync-job.nix`、`nix/setup.nix`）、このリポジトリの配線は [memex.nix](../../modules/home-manager/memex.nix)
 
 vault の添付と papis のライブラリは、git ではなく Google Drive と rclone bisync で同期する。
-同期の仕組みは public の zettelkasten-workflow に置き、このリポジトリは vault の場所、機能の選択、写し先だけを渡す。仕組みを public に分けたので、このリポジトリの評価に SSH 鍵が要らない。ノートの本文は private の `khimoo/zettelkasten` にある。
+同期の仕組みは public の memex-nix に置き、このリポジトリは vault の場所、機能の選択、写し先だけを渡す。仕組みを public に分けたので、このリポジトリの評価に SSH 鍵が要らない。ノートの本文は private の `khimoo/memex` にある。
 
 ## 認証情報はどちらの repo も持たない（各マシンの rclone.conf に委ねる）
 
@@ -15,14 +15,14 @@ OAuth のトークンはもともと宣言的に作れないので、`rclone con
 
 ## 同期コマンドは 1 本にし、対象は評価時に決める
 
-`zettelkasten-sync` 1 本で全部の対象を同期し、`--only` で絞る。同期先は評価時にコードへ埋め込み、実行時に設定ファイルを読まない。設定の正本を flake の一か所にするため。無効な対象のコードは生成しない。
+`memex-sync` 1 本で全部の対象を同期し、`--only` で絞る。同期先は評価時にコードへ埋め込み、実行時に設定ファイルを読まない。設定の正本を flake の一か所にするため。無効な対象のコードは生成しない。
 同期の履歴（baseline）は対象ごとにディレクトリを分ける（`~/.cache/rclone/bisync-zettelkasten`、`bisync-papis`）。同じリモートの違うフォルダを同期するので、履歴が混ざらないようにする。
 
 ## 最初の resync は、安全なら自動、判断が要るなら止める
 
 bisync の最初の `--resync` は壊す可能性があるが、判断が要るのは手元と Drive の両方にデータがあるときだけと定めた。
-Drive が空か手元が空なら失うものがないので自動で進め、両方にあるときだけ止めて `ZK_FORCE_RESYNC=1` を求める。
-自動にできる場面まで利用者に任せると、手順書が長くなるだけで安全にはならない。systemd のような対話のない環境で安全に止まることは `bisync-lib` が保証し、対話での確認は `zettelkasten-setup` が受け持つ。
+Drive が空か手元が空なら失うものがないので自動で進め、両方にあるときだけ止めて `MEMEX_FORCE_RESYNC=1` を求める。
+自動にできる場面まで利用者に任せると、手順書が長くなるだけで安全にはならない。systemd のような対話のない環境で安全に止まることは `bisync-lib` が保証し、対話での確認は `memex-setup` が受け持つ。
 
 ## 変更の監視は path unit と定期実行を併用する
 

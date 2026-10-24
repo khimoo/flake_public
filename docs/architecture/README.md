@@ -35,8 +35,8 @@ Flake 設定の設計判断・実装構造のドキュメント。設定変更�
 | [codex-subagents.md](./codex-subagents.md) | Codex のサブエージェントを無効化する判断 |
 | [llm-wikis.md](./llm-wikis.md) | LLM Wiki を独立した private repo に置く判断 |
 | [papis-gdrive-sync.md](./papis-gdrive-sync.md) | 文献管理に papis を選び vault 内に置く判断 |
-| [zettelkasten-attachments-sync.md](./zettelkasten-attachments-sync.md) | vault の添付と papis ライブラリの Drive 同期の設計 |
-| [zettelkasten-vault-skeleton.md](./zettelkasten-vault-skeleton.md) | vault の骨格の配布とミラーの設計 |
+| [memex-attachments-sync.md](./memex-attachments-sync.md) | vault の添付と papis ライブラリの Drive 同期の設計 |
+| [memex-vault-skeleton.md](./memex-vault-skeleton.md) | vault の骨格の配布とミラーの設計 |
 | [minecraft-backup.md](./minecraft-backup.md) | Minecraft のインスタンスのバックアップの設計 |
 | [quaderno.md](./quaderno.md) | Quaderno からの手書き PDF の取り込みの設計 |
 | [xsaved.md](./xsaved.md) | X のいいねとブックマークの保存と意味検索の実行環境、データベース、定期実行の設計 |

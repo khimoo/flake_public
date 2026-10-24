@@ -16,7 +16,7 @@
 
 代償として、nixpkgs を 2 つ評価する時間とメモリがかかり、closure に unstable の stdenv の依存が別に載る。
 
-全体を unstable に上げる案は退けた。home-manager が安定版の release ブランチに固定されていて master へ道連れになること、`follows` している小さな input（claude-history、zettelkasten）が nixpkgs の破壊的な変更に追いつけるか読めないこと、musnix がリアルタイムオーディオのためにカーネルの設定に踏み込んでいることが理由。
+全体を unstable に上げる案は退けた。home-manager が安定版の release ブランチに固定されていて master へ道連れになること、`follows` している小さな input（claude-history、memex-nix）が nixpkgs の破壊的な変更に追いつけるか読めないこと、musnix がリアルタイムオーディオのためにカーネルの設定に踏み込んでいることが理由。
 
 ## 今の対象
 

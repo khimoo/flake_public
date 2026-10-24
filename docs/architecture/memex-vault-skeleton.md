@@ -1,15 +1,15 @@
 # vault の骨格の設計
 
-使い方: [vault の骨格の配布とミラー](../howtouse/zettelkasten-vault-skeleton.md)
-実装: [zettelkasten.nix](../../modules/home-manager/zettelkasten.nix)、mechanism は zettelkasten-workflow（`seed-vault`、`mirror-vault`、`nix/skeleton-paths.nix`）
+使い方: [vault の骨格の配布とミラー](../howtouse/memex-vault-skeleton.md)
+実装: [memex.nix](../../modules/home-manager/memex.nix)、mechanism は memex-nix（`seed-vault`、`mirror-vault`、`nix/skeleton-paths.nix`）
 
 Obsidian vault の骨格（分類フォルダ、運用ドキュメント、`.obsidian`、skills へのリンク）の変更は public repo で、ノートの変更は private repo で追えるようにする。
-添付と papis の Drive 同期は別の仕組み（[zettelkasten-attachments-sync.md](./zettelkasten-attachments-sync.md)）で、骨格は Drive ではなく git に載る。
+添付と papis の Drive 同期は別の仕組み（[memex-attachments-sync.md](./memex-attachments-sync.md)）で、骨格は Drive ではなく git に載る。
 
 ## 正本は vault で、public repo はその写し
 
-骨格は private の notes repo（`khimoo/zettelkasten`）で追跡し、`obsidian-git` の同期で desktop と spin713 の間を運ぶ。
-public repo（`khimoo/zettelkasten-workflow`）は同じ骨格を `skeleton/` に持つ写しで、flake が `github:` で評価時に取り込めるよう、public の側に実体が要る。
+骨格は private の notes repo（`khimoo/memex`）で追跡し、`obsidian-git` の同期で desktop と spin713 の間を運ぶ。
+public repo（`khimoo/memex-nix`）は同じ骨格を `skeleton/` に持つ写しで、flake が `github:` で評価時に取り込めるよう、public の側に実体が要る。
 
 - `mirror-vault`（vault から public へ）: vault の骨格を `skeleton/` に写して commit する。たまに手で実行する
 - `seed-vault`（public から vault へ）: vault にないものだけをコピーする。既存のものは上書きしない
@@ -47,7 +47,7 @@ typst のプラグインは WSL の Obsidian を落とし、26MB の wasm を持
 ## 写し先は引数で受け取る
 
 `mirror-vault` は vault と写し先を引数か環境変数で受け取り、owner を書き込まない。
-自分の写し先はユーザーのオプション `local.profile.vaultSkeletonRepo` にだけ置き、`zettelkasten.nix` が `services.zettelkasten.mirrorRepo` に渡す。
+自分の写し先はユーザーのオプション `local.profile.vaultSkeletonRepo` にだけ置き、`memex.nix` が `services.memex.mirrorRepo` に渡す。
 写し先を mechanism に書き込むと、mechanism が特定の環境のパスを知ることになる。骨格の写しは秘密を扱わないので、誰の環境でもそのまま動く。
 
 ## 正本を public に移す案は退けた
@@ -56,4 +56,4 @@ typst のプラグインは WSL の Obsidian を落とし、26MB の wasm を持
 - notes と flake を 1 つの repo にまとめる: `obsidian-git` の自動 commit と flake の手での commit が同じ repo でぶつかり、flake の履歴が濁る
 
 代償として、public の写しは mirror するまで古い（mirror の翌日に数ファイル食い違っていた）。clone した vault には seed しないので、普段の同期は影響を受けない。
-写しを push しても、取り込む側は `flake.lock` の `zettelkasten` を更新するまで古いまま。
+写しを push しても、取り込む側は `flake.lock` の `memex-nix` を更新するまで古いまま。

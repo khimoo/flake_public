@@ -60,9 +60,9 @@ Quaderno はスリープすると Wi-Fi ごと消えるので、定期実行の�
 
 `archiveDir` は `/mnt/backup/quaderno` で、ディレクトリは `data-disk.nix` の tmpfiles が作る。`minecraft-backup` と同じく、置き場所と書き込み権限はホストが用意し、モジュールは受け取るだけにする。
 PDF は増え続ける一方で読むのは時々なので SATA に置く（最初の 62 件で 428 MiB、[disk-tiering.md](./disk-tiering.md)）。
-`~/sagyo/zettelkasten`（vault の clone）には置かない。obsidian-git が 2 台で同期しているので、数百 MiB の PDF を持ち込むと同期の対象が膨らむ。
+`~/sagyo/memex`（vault の clone）には置かない。obsidian-git が 2 台で同期しているので、数百 MiB の PDF を持ち込むと同期の対象が膨らむ。
 
-## zettelkasten-workflow に載せない
+## memex-nix に載せない
 
 workflow 側には添付と papis の Drive 同期があり、取り込み先を vault の下にすれば Drive へ運べる。
 しかし既存の同期は `rclone bisync` だけで片方向の `copy` がなく、Drive 側の削除が手元に伝わる。一方向にした判断と合わない。

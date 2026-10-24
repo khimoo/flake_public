@@ -6,7 +6,7 @@
 # 設計判断: docs/architecture/quaderno.md
 # 使い方:   docs/howtouse/quaderno.md
 #
-# 将来 zettelkasten-workflow へ移せるよう、このモジュールは local.quaderno と
+# 将来 memex-nix へ移せるよう、このモジュールは local.quaderno と
 # home.homeDirectory 以外の、このリポジトリに固有の値を読まない。
 {
   config,

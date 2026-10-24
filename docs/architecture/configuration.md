@@ -39,7 +39,7 @@ Home Manager への `extraSpecialArgs` は `inputs` を渡す。アプリ専用�
 
 ## OSとの接点
 
-デスクトップのpapis用mountは、ホスト固有モジュールで primaryUser の `local.profile.zettelkastenRoot` を参照する。
+デスクトップのpapis用mountは、ホスト固有モジュールで primaryUser の `local.profile.memexRoot` を参照する。
 
 SSHクライアントのIdentityFileは `~/.ssh/` を使い、全ユーザーへprimaryUserの絶対パスを配らない。LAN接続先のユーザー名は各マシンの `sshUser` で、鍵配布は `local.profile.lanSsh` を選んだユーザーだけ。例外は常設のリモートビルドで、nix-daemon（root）だけがprimaryUserの `id_lan` を絶対パスで読む（[remote-build.md](./remote-build.md)）。`--build-host` はrootを使わず、実行ユーザーのままSSHする。
 

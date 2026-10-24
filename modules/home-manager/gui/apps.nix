@@ -56,7 +56,7 @@ let
       };
     }
     # Obsidian はここに置かない。plugin が要求する git / claude ごと包んだラッパーを
-    # services.zettelkasten(obsidian.installPackage)が入れるので、素の pkgs.obsidian を
+    # services.memex(obsidian.installPackage)が入れるので、素の pkgs.obsidian を
     # 足すと同じ実行ファイルが二重に PATH へ載る。
     {
       pkg = pkgs.bitwarden-desktop;

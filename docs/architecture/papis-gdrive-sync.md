@@ -1,9 +1,9 @@
 # papis の設計
 
 使い方: [papis](../howtouse/papis-gdrive-sync.md)
-実装: papis、設定、同期は zettelkasten-workflow の `services.zettelkasten` が持ち、このリポジトリは [zettelkasten.nix](../../modules/home-manager/zettelkasten.nix) で vault の場所と機能の選択を渡すだけ
+実装: papis、設定、同期は memex-nix の `services.memex` が持ち、このリポジトリは [memex.nix](../../modules/home-manager/memex.nix) で vault の場所と機能の選択を渡すだけ
 
-同期の仕組み（認証、変更の監視、最初の resync）は添付と同じ（[zettelkasten-attachments-sync.md](./zettelkasten-attachments-sync.md)）。この文書は、papis にした理由と置き方だけを扱う。
+同期の仕組み（認証、変更の監視、最初の resync）は添付と同じ（[memex-attachments-sync.md](./memex-attachments-sync.md)）。この文書は、papis にした理由と置き方だけを扱う。
 
 ## Zotero ではなく papis にする
 
@@ -19,7 +19,7 @@ nixos-desktop では、このパスに SATA の subvol をマウントして、�
 
 ## papis と同期は 1 つのトグル（`referenceSync`）で入れる
 
-`services.zettelkasten.papis.enable` 1 つで、papis、設定、同期をまとめて入れる。papis があって同期がない状態や、その逆には意味がない。
+`services.memex.papis.enable` 1 つで、papis、設定、同期をまとめて入れる。papis があって同期がない状態や、その逆には意味がない。
 そのため、`gui = true` でも `referenceSync = false` の環境には papis 自体が入らない。
 
 ## citekey は自動で作らない
@@ -28,5 +28,5 @@ nixos-desktop では、このパスに SATA の subvol をマウントして、�
 
 ## 認証
 
-トークンは各マシンの `~/.config/rclone/rclone.conf` にだけあり、repo は暗号文も持たない（[zettelkasten-attachments-sync.md](./zettelkasten-attachments-sync.md#認証情報はどちらの-repo-も持たない各マシンの-rcloneconf-に委ねる)）。
+トークンは各マシンの `~/.config/rclone/rclone.conf` にだけあり、repo は暗号文も持たない（[memex-attachments-sync.md](./memex-attachments-sync.md#認証情報はどちらの-repo-も持たない各マシンの-rcloneconf-に委ねる)）。
 専用の OAuth クライアントに移った後のリモート `gdrive` の scope は `drive`（Drive 全体の読み書きと削除、2026-10-23 に desktop の rclone.conf で確認）で、トークンが漏れたときの被害は rclone が作ったファイルに限られない。

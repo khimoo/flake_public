@@ -25,8 +25,8 @@ let
     };
   pairs = [
     {
-      root = cfg.zettelkastenRoot;
-      repo = cfg.zettelkastenRepoUrl;
+      root = cfg.memexRoot;
+      repo = cfg.memexRepoUrl;
     }
     {
       root = cfg.agentConfigRoot;
@@ -71,11 +71,11 @@ in
       "ime"
       "audio"
       "referenceSync"
-      "zettelkastenSync"
+      "memexSync"
       "obsidian"
     ] (name: lib.mkEnableOption "${name} in this user's environment");
-    zettelkastenRoot = optionalPath "User's vault checkout.";
-    zettelkastenRepoUrl = optionalUrl "Vault clone URL; null means manual clone.";
+    memexRoot = optionalPath "User's vault checkout.";
+    memexRepoUrl = optionalUrl "Vault clone URL; null means manual clone.";
     agentConfigRoot = optionalPath "User's agent (Claude Code / Codex) configuration checkout.";
     agentConfigRepo = optionalUrl "Agent configuration clone URL; null means manual clone.";
     vaultSkeletonRepo = optionalPath "Workflow checkout used by mirror-vault.";
@@ -172,9 +172,9 @@ in
       }
       {
         assertion =
-          !(cfg.features.zettelkastenSync || cfg.features.referenceSync || cfg.features.obsidian)
-          || cfg.zettelkastenRoot != null;
-        message = "local.profile: vault features require zettelkastenRoot.";
+          !(cfg.features.memexSync || cfg.features.referenceSync || cfg.features.obsidian)
+          || cfg.memexRoot != null;
+        message = "local.profile: vault features require memexRoot.";
       }
       {
         assertion = !(cfg.features.gnome || cfg.features.ime) || cfg.features.gui;
@@ -186,7 +186,7 @@ in
           || !(
             cfg.features.gui
             || cfg.features.audio
-            || cfg.features.zettelkastenSync
+            || cfg.features.memexSync
             || cfg.features.referenceSync
             || cfg.features.obsidian
           );

@@ -31,7 +31,7 @@ zstd の圧縮も付けているが、対象の多く（jpg、mp4、mp3、PDF）
 `~/ダウンロード` などを bind mount や symlink で間接にせず、subvol をそのパスへ直接マウントする。アプリから見たパスは変わらず、中身だけが SATA に載る。
 fileSystems は `{ subvol, path, opts }` のリストから生成し、device と fsType を一か所にまとめる。
 
-`@papis` は `~/sagyo/zettelkasten/Assets/references`（NVMe の vault の clone の中）にマウントする。
+`@papis` は `~/sagyo/memex/Assets/references`（NVMe の vault の clone の中）にマウントする。
 papis のライブラリの場所は workflow の flake が `<vaultDir>/references` に固定しているので、マウントでその保存先だけを SATA に差し替える。
 papis を vault の中に置くことと、SATA に置くことを両立させる形で、papis の層が保存先を知らない向き（[papis-gdrive-sync.md](./papis-gdrive-sync.md)）とも合う。
 
@@ -39,7 +39,7 @@ papis を vault の中に置くことと、SATA に置くことを両立させ�
 
 `fileSystems` に書くと、systemd は起動時にマウント先を無条件に作り、root のものの中間ディレクトリができる。
 すると `clone-repos` の `git clone` が「空でないディレクトリ」で失敗し、`dest` があるので以後の実行では飛ばされて、vault が届かないまま気づけない。実際にこうなった。
-そこで `@papis` だけ `systemd.mounts` にし、`ConditionPathExists = "${zettelkastenRoot}/.git"` を付ける。
+そこで `@papis` だけ `systemd.mounts` にし、`ConditionPathExists = "${memexRoot}/.git"` を付ける。
 clone の後は `.git` の出現を見る path unit がマウントを始めるので、再起動は要らない。
 条件が偽の間、`Assets/references/` は vault がないのと同じ状態なので、NVMe 側に書き込まれる事故は起きない。
 

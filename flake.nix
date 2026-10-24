@@ -36,12 +36,12 @@
       url = "github:sadjow/claude-code-nix";
       inputs.nixpkgs.follows = "nixpkgs-unstable";
     };
-    # Zettelkasten(Obsidian vault)同期の mechanism(添付/papis の Drive 同期 + secret 暗号文の
-    # 実行時復号)。flake_public は modules/home-manager/zettelkasten.nix で clone 位置だけ注入する。
+    # memex(Obsidian vault)同期の mechanism(添付/papis の Drive 同期 + secret 暗号文の
+    # 実行時復号)。flake_public は modules/home-manager/memex.nix で clone 位置だけ注入する。
     # mechanism は public repo に切り出したので github:(https 取得)で引く。ノート本文は別の
     # private repo。git+ssh をやめたことで、この flake の eval に SSH 鍵が要らなくなる。
-    zettelkasten = {
-      url = "github:khimoo/zettelkasten-workflow";
+    memex-nix = {
+      url = "github:khimoo/memex-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     # comma と command-not-found が引く nix-index のデータベース。週次で生成済みのものを

@@ -7,13 +7,13 @@ nixos-desktop では NVMe（`/`、`/nix/store`、`~/sagyo`）と SATA SSD を使
 
 ## ディスクレイアウト
 
-`@papis` については vault のクローン内（`~/sagyo/zettelkasten/Assets/references`）にマウントするため、vault をクローンした状態（`~/sagyo/zettelkasten/.git` が存在する間）でのみマウントされます。
+`@papis` については vault のクローン内（`~/sagyo/memex/Assets/references`）にマウントするため、vault をクローンした状態（`~/sagyo/memex/.git` が存在する間）でのみマウントされます。
 新しいマシンで `clone-repos` によって vault がクローンされると、`.git` の存在を検知する `papis-references.path` が動作し、自動的にマウントが開始されます。
 マウントされていない場合は、ステータスを確認した上で手動でマウントしてください。
 
 ```sh
-systemctl status papis-references.path home-pomu-sagyo-zettelkasten-references.mount
-sudo systemctl start home-pomu-sagyo-zettelkasten-references.mount
+systemctl status papis-references.path home-pomu-sagyo-memex-Assets-references.mount
+sudo systemctl start home-pomu-sagyo-memex-Assets-references.mount
 ```
 
 `@mimikopi` と `@xsaved` は、該当アプリケーションを有効化した後に手動作成する subvol です。作成前であってもシステムの起動が停止しないよう `nofail` オプションが付与されています。

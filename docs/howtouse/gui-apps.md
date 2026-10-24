@@ -13,4 +13,4 @@ GUI 機能は、Linux 環境の個人用 home モジュールで `local.profile.
 { pkg = pkgs.pdfarranger; mimeTypes = { "application/pdf" = true; }; }
 ```
 
-エントリを削除すると、そこから自動生成される設定もすべて削除されます。ただし、独立して定義されている外部設定への参照関係は別途確認してください。VS Code や IntelliJ などの開発用アプリは [dev/apps.nix](../../modules/home-manager/dev/apps.nix) で管理し、Firefox やターミナルエミュレータは専用のモジュールが担当します。また、Slack、Discord、Spotify、Zoom などの URL スキームも各エントリの `mimeTypes` 内で指定します。Obsidian の導入とスキーム登録については [zettelkasten.nix](../../modules/home-manager/zettelkasten.nix) で管理します。新しく GUI 子モジュールを追加・import する場合は、`gui/default.nix` に記述してください。
+エントリを削除すると、そこから自動生成される設定もすべて削除されます。ただし、独立して定義されている外部設定への参照関係は別途確認してください。VS Code や IntelliJ などの開発用アプリは [dev/apps.nix](../../modules/home-manager/dev/apps.nix) で管理し、Firefox やターミナルエミュレータは専用のモジュールが担当します。また、Slack、Discord、Spotify、Zoom などの URL スキームも各エントリの `mimeTypes` 内で指定します。Obsidian の導入とスキーム登録については [memex.nix](../../modules/home-manager/memex.nix) で管理します。新しく GUI 子モジュールを追加・import する場合は、`gui/default.nix` に記述してください。

@@ -30,8 +30,8 @@
 | Codex のサブエージェント設定 | サブエージェントの無効化の確認と復帰 | [codex-subagents.md](./codex-subagents.md) |
 | LLM Wiki | LLM Wiki の運用 | [llm-wikis.md](./llm-wikis.md) |
 | papis の使い方 | 文献の追加と書き出し | [papis-gdrive-sync.md](./papis-gdrive-sync.md) |
-| Zettelkasten の Drive 同期 | 添付と papis ライブラリの同期の設定と運用 | [zettelkasten-attachments-sync.md](./zettelkasten-attachments-sync.md) |
-| vault 骨格の配布・ミラー | vault の骨格を公開 repo へ写す手順 | [zettelkasten-vault-skeleton.md](./zettelkasten-vault-skeleton.md) |
+| memex の Drive 同期 | 添付と papis ライブラリの同期の設定と運用 | [memex-attachments-sync.md](./memex-attachments-sync.md) |
+| vault 骨格の配布・ミラー | vault の骨格を公開 repo へ写す手順 | [memex-vault-skeleton.md](./memex-vault-skeleton.md) |
 | Minecraft バックアップ | インスタンスのバックアップと復元 | [minecraft-backup.md](./minecraft-backup.md) |
 | Quaderno の取り込み | 手書き PDF の取り込み | [quaderno.md](./quaderno.md) |
 | X のいいねとブックマークの保存 | いいねとブックマークの保存と意味検索、定期実行 | [xsaved.md](./xsaved.md) |

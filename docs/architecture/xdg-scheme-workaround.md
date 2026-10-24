@@ -1,6 +1,6 @@
 # XDG スキームハンドラ ワークアラウンド
 
-実装: [gui/apps.nix](../../modules/home-manager/gui/apps.nix) の `mimeTypes`、[zettelkasten.nix](../../modules/home-manager/zettelkasten.nix) の Obsidian 登録
+実装: [gui/apps.nix](../../modules/home-manager/gui/apps.nix) の `mimeTypes`、[memex.nix](../../modules/home-manager/memex.nix) の Obsidian 登録
 使い方: [GUI アプリの管理](../howtouse/gui-apps.md)
 
 アプリの導入条件と同じ条件で、URL スキームの既定を明示登録する。Slack・Discord・Spotify・Zoom は `guiApps` の項目を外せば登録も外れる。Obsidian は `obsidianOn` のときだけ登録する。Zoom の desktop ファイル名は `Zoom.desktop`。

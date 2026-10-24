@@ -1,12 +1,12 @@
-# Zettelkasten(Obsidian vault)の完結型ワークフローを、外部 flake(khimoo/zettelkasten-workflow)から
+# memex(Obsidian vault)の完結型ワークフローを、外部 flake(khimoo/memex-nix)から
 # 取り込んでこのマシンへ配線する唯一のグルー。
 #
 # 責務分離:
 #   - ワークフロー本体(vault の骨格 —— 分類フォルダ・運用ドキュメント・.obsidian —— の配布と、
-#     添付フォルダ同期 / papis 本体・設定・ライブラリ同期)は inputs.zettelkasten が所有する。
+#     添付フォルダ同期 / papis 本体・設定・ライブラリ同期)は inputs.memex-nix が所有する。
 #     Google Drive の認証情報はどちらの repo も持たず、各マシンの ~/.config/rclone/rclone.conf
 #     (`rclone config` で各自が作る)に委ねるので、sops-nix や起動順序の配線は不要。
-#   - ここが注入するのは純粋に環境固有の配線だけ: vault の clone 位置(zettelkastenRoot)、
+#   - ここが注入するのは純粋に環境固有の配線だけ: vault の clone 位置(memexRoot)、
 #     feature toggle、骨格ミラー先の checkout 位置(vaultSkeletonRepo → mirrorRepo)。
 #
 # vault フォルダ自体は clone-repos（private-repos.nix）の clone が用意するので、モジュール側の
@@ -14,7 +14,7 @@
 { config, inputs, lib, ... }:
 
 let
-  attachmentsOn = config.local.profile.features.zettelkastenSync;
+  attachmentsOn = config.local.profile.features.memexSync;
   papisOn = config.local.profile.features.referenceSync;
   # 既存 vault の設定と骨格は notes repo の clone が所有する。
   # obsidian feature はアプリを導入し、seed は initializeVault = true の環境に限る。
@@ -22,21 +22,25 @@ let
   enabled = attachmentsOn || papisOn || obsidianOn;
 in
 {
-  imports = [ inputs.zettelkasten.homeModules.zettelkasten ];
+  imports = [ inputs.memex-nix.homeModules.memex ];
 
   config = lib.mkIf enabled {
     # 古い input が戻っても、notes repo の内容を activation が復元する構成は適用させない。
     assertions = [ {
       assertion = !(config.home.activation ? seedVault);
-      message = "clone 管理の vault に seedVault activation は不要です。zettelkasten input を更新してください。";
+      message = "clone 管理の vault に seedVault activation は不要です。memex-nix input を更新してください。";
     } ];
     xdg.mimeApps.defaultApplications."x-scheme-handler/obsidian" =
       lib.mkIf obsidianOn "obsidian.desktop";
-    services.zettelkasten = {
+    services.memex = {
       enable = true;
       # clone-repos が clone するため、骨格の初期化・補充は行わない。
       initializeVault = false;
-      vaultDir = config.local.profile.zettelkastenRoot;
+      vaultDir = config.local.profile.memexRoot;
+      # memex-nix の既定値は zettelkasten-* のまま。この Drive のフォルダは memex-* なので上書きする。
+      attachments.folder = "memex-attachments";
+      originals.folder = "memex-originals";
+      originals.backupFolder = "memex-originals-backups";
       attachments.enable = attachmentsOn;
       originals.enable = attachmentsOn;
       # 両PCの実Drive試験と原本の初期化・照合を完了（2026-10-19）。
@@ -50,7 +54,7 @@ in
     # 同期の失敗をデスクトップに通知する。サービスは外部 flake が定義するので、ここで足す。
     systemd.user.services = lib.mkMerge [
       (lib.mkIf attachmentsOn {
-        zettelkasten-sync.Unit.OnFailure = config.local.failureNotify.onFailure;
+        attachments-sync.Unit.OnFailure = config.local.failureNotify.onFailure;
         originals-sync.Unit.OnFailure = config.local.failureNotify.onFailure;
       })
       (lib.mkIf papisOn { papis-sync.Unit.OnFailure = config.local.failureNotify.onFailure; })

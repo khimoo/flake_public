@@ -173,6 +173,26 @@
         "type": "github"
       }
     },
+    "memex-nix": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1792867251,
+        "narHash": "sha256-y6Mc5K6SLNPDPqzBseB3EFR7jKdXV6rnwBvx7k4D2zI=",
+        "owner": "khimoo",
+        "repo": "memex-nix",
+        "rev": "9c92bb2535de798ff75103ed2569f3d6de77e9b4",
+        "type": "github"
+      },
+      "original": {
+        "owner": "khimoo",
+        "repo": "memex-nix",
+        "type": "github"
+      }
+    },
     "musnix": {
       "inputs": {
         "nixpkgs": "nixpkgs"
@@ -368,6 +388,7 @@
         "claude-history": "claude-history",
         "codex-cli-nix": "codex-cli-nix",
         "home-manager": "home-manager",
+        "memex-nix": "memex-nix",
         "musnix": "musnix",
         "nix-index-database": "nix-index-database",
         "nixos-wsl": "nixos-wsl",
@@ -375,8 +396,7 @@
         "nixpkgs-unstable": "nixpkgs-unstable",
         "rnote": "rnote",
         "rustowl": "rustowl",
-        "skk-jisyo": "skk-jisyo",
-        "zettelkasten": "zettelkasten"
+        "skk-jisyo": "skk-jisyo"
       }
     },
     "rust-overlay": {
@@ -474,26 +494,6 @@
       "original": {
         "owner": "nix-systems",
         "repo": "default",
-        "type": "github"
-      }
-    },
-    "zettelkasten": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1792862650,
-        "narHash": "sha256-iXLDir5g1Kb7RFBGd8k93wCeYZ1bnxzfJmU2GiFwI3s=",
-        "owner": "khimoo",
-        "repo": "zettelkasten-workflow",
-        "rev": "45d5caf58b4e37ff87b1a01153489661860d8caa",
-        "type": "github"
-      },
-      "original": {
-        "owner": "khimoo",
-        "repo": "zettelkasten-workflow",
         "type": "github"
       }
     }
