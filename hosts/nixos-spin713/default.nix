@@ -20,6 +20,12 @@
   # パーティションは hibernate の復帰先（hardware.nix の boot.resumeDevice）なので残す。
   zramSwap.enable = true;
 
+  # Mesa は Intel の VA-API ドライバを含まないので、入れないと動画のデコードが CPU で行われる。
+  hardware.graphics.extraPackages = [ pkgs.intel-media-driver ];
+
+  # GNOME の画面の自動回転に要る。NixOS の GNOME モジュールは有効にしない。
+  hardware.sensor.iio.enable = true;
+
   local.audio.echoCancel = {
     enable = true;
     source = "alsa_input.platform-avs_dmic.19.auto.stereo-fallback";
