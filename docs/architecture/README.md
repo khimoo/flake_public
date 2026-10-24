@@ -15,6 +15,7 @@ Flake 設定の設計判断・実装構造のドキュメント。設定変更�
 | [new-machine.md](./new-machine.md) | 新マシンのプロビジョニングの設計メモ（未実装） |
 | [disk-tiering.md](./disk-tiering.md) | NVMe と SATA の 2 層ディスク構成の設計 |
 | [kernel-pin.md](./kernel-pin.md) | デスクトップのカーネルの選び方 |
+| [spin713-sd-resume.md](./spin713-sd-resume.md) | spin713 の /nix を置いた SD カードが復帰直後に読めなくなる問題への対処 |
 | [unstable-packages.md](./unstable-packages.md) | nixos-unstable から一部のパッケージだけを取る判断 |
 | [wsl.md](./wsl.md) | 会社 PC の NixOS-WSL の設計 |
 | [windows-vm.md](./windows-vm.md) | デスクトップの Windows VM の設計 |

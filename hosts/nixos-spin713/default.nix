@@ -2,18 +2,14 @@
 # your system.  Help is available in the configuration.nix(5) man page
 # and in the NixOS manual (accessible by running 'nixos-help').
 
-{ config, pkgs, specialArgs, ... }: {
+{ config, pkgs, ... }: {
   imports = [ # Include the results of the hardware scan.
     ./hardware.nix
+    ./nix-sd-card.nix
     ./chrome-audio.nix
     ../../modules/nixos/common.nix
   ];
 
-  # /nix/配下をSDカードにしてる場合の設定
-  systemd.services."home-manager-${specialArgs.settings.primaryUser}" = {
-    after = [ "nix.mount" "nix-daemon.service" ];
-    requires = [ "nix.mount" ];
-  };
   local.gnome.transparentFullscreen.enable = true;
 
   # スワップパーティションは eMMC 上にあり読み戻しが遅いので、優先度の高い zram を先に使う。
