@@ -1,7 +1,8 @@
 # X のいいねの保存と意味検索
 
-X で「いいね」したツイートを、本文・画像・動画・引用元ごとローカルに保存し、文章による検索や似たツイートの検索を行えるようにします。
-ツール本体は x-likes-archive（`~/sagyo/x-likes-archive`、リモートなし）にあり、コマンド一覧はその README に記載されています。
+X で「いいね」したツイートを、本文・画像・動画・引用元を含めてローカルに保存し、自然言語による検索や類似ツイートの検索を行えるようにします。
+ツール本体は、プライベートリポジトリ [khimoo/x-likes-archive](https://github.com/khimoo/x-likes-archive) の `~/sagyo/x-likes-archive` にあるチェックアウトを利用します。コマンド一覧は本体の README を参照してください。
+nixos-desktop の pomu 環境では `clone-repos` の対象に含まれます。新しい環境のセットアップ手順は [SSH 鍵の配布と private repo の clone](private-repo-clone.md) を、保存済みツイートと DB の復元方法は「[バックアップ](#バックアップ)」を参照してください。
 
 設定箇所は [home-manager-pomu.nix](../../hosts/nixos-desktop/home-manager-pomu.nix) の `local.xLikes` です。
 
@@ -9,9 +10,9 @@ X で「いいね」したツイートを、本文・画像・動画・引用元
 
 ## 初回準備
 
-データは SATA SSD の subvol `@x-likes` に保存します。
-subvol は自動作成されないため、[disk-tiering.md の「新しい subvol の追加手順」](./disk-tiering.md#新しい-subvol-の追加手順) の手順に従って一度だけ作成してください。
-`@x-likes` 固有の実行手順は以下の通りです。
+データは SATA SSD のサブボリューム `@x-likes` に保存します。
+サブボリュームは自動作成されないため、[disk-tiering.md の「新しい subvol の追加手順」](./disk-tiering.md#新しい-subvol-の追加手順) の手順に従って事前に作成してください。
+`@x-likes` 固有の作成手順は以下の通りです。
 
 ```sh
 sudo mkdir -p /mnt/sda && sudo mount /dev/sda1 /mnt/sda
@@ -21,15 +22,15 @@ sudo umount /mnt/sda
 sudo nixos-rebuild switch --flake .#nixos-desktop
 ```
 
-マウント設定に `nofail` オプションを指定しているため、subvol 作成前に switch や再起動を行ってもシステムの起動は阻害されません。
-その場合は、subvol を作成後に再起動するか、以下のコマンドでマウントしてください。
+マウント設定に `nofail` オプションを指定しているため、サブボリューム作成前に switch や再起動を行ってもシステムの起動は妨げられません。
+作成前に switch や再起動をした場合は、サブボリューム作成後に再起動するか、以下のコマンドでマウントしてください。
 
 ```sh
 sudo systemctl start home-pomu-.local-share-x-likes.mount
 ```
 
-いいねを取得する X のアカウント名（`@` を除いた文字列）を、データディレクトリ内の `x-user` に書き込みます。
-このリポジトリは公開設定になっているため、アカウント名は Nix の設定ファイルには記述しないでください。
+いいねを取得したい X のアカウント名（`@` を除いた文字列）を、データディレクトリ内の `x-user` ファイルに書き込みます。
+このリポジトリは公開設定になっているため、アカウント名は Nix の設定ファイルに直接記述しないでください。
 
 ```sh
 echo <アカウント名> > ~/.local/share/x-likes/x-user
@@ -38,7 +39,7 @@ echo <アカウント名> > ~/.local/share/x-likes/x-user
 いいねのデータ取得には Firefox のログイン情報（cookie）を使用するため、あらかじめ Firefox で X にログインしておいてください。
 
 最初に `xlikes` を実行した際、uv が Python や ROCm 版 PyTorch などをデータディレクトリへダウンロードします（数 GB 程度）。
-最初の `xlikes sync` 実行時はデータが一切存在しないため、いいね欄を一番過去まで遡って取得します。
+最初の `xlikes sync` 実行時はローカルにデータが一切存在しないため、いいね欄を過去最古のデータまで遡って取得します。
 
 ## 使い方
 
@@ -50,20 +51,21 @@ xlikes delete <ツイートID>
 xlikes fetch likejs <公式アーカイブの like.js>
 ```
 
-引数は x-likes-archive の README にあるコマンドと同様で、`python -m xlikes` を `xlikes` に置き換えて使用します。
-`x-likes-env` を引数なしで実行すると専用環境のシェルに入り、引数を渡すとそのコマンドのみを環境内で実行します。
+引数は x-likes-archive の README に記載されているコマンドと同様で、`python -m xlikes` を `xlikes` に置き換えて使用します。
+`x-likes-env` を引数なしで実行すると専用環境のシェルに入り、引数を指定して実行するとそのコマンドのみを環境内で実行します。
 
 `xlikes` は `~/sagyo/x-likes-archive` で現在チェックアウトされているバージョンを実行します。ブランチを切り替えると、定期実行処理も切り替え先のバージョンで動作します。
 
 ## Web UI
 
 nixos-desktop のブラウザで <http://xlikes.localhost/> を開くと、検索および類似ツイートの検索機能を利用できます。
-検索を行うと、ruri（本文＋OCRテキスト）、Qwen（本文＋OCRテキスト）、Qwen（画像）、全文検索の結果がそれぞれ独立した列に並んで表示されます。全文検索ではスペース区切りで AND 検索、`OR` 区切りで OR 検索が可能です。
-いずれの列でも、引用元の本文や画像がヒットした場合は、それを引用している「いいねしたツイート」を表示します。本文の列ではいいねしたツイートと引用元を個別に比較します。全文検索では両方のテキストを結合して探すため、検索語がそれぞれのツイートに分散していても検出できます。
+検索を実行すると、ruri（本文＋OCRテキスト）、Qwen（本文＋OCRテキスト）、Qwen（画像）、全文検索の結果が、それぞれ独立した列に並んで表示されます。全文検索ではスペース区切りで AND 検索、`OR` 区切りで OR 検索が可能です。
+いずれの列でも、引用元の本文や画像がヒットした場合は、それを引用している「いいねしたツイート」が表示されます。本文の列ではいいねしたツイートと引用元を個別に比較します。全文検索では両方のテキストを結合して検索するため、検索語がそれぞれのツイートに分かれて含まれていても検出できます。
 検索結果のツイートにある「似たツイート」ボタンを押すと、そのツイートに類似したいいねを、全文検索を除く 3 つの列で検索します。
+各列は独立してスクロールでき、「もっと表示」をクリックするとその列の続きを 20 件ずつ追加読み込みできます。古い検索結果の続きを取得できなくなった場合は、検索し直してください。
 
 サーバーは常駐しません。アクセス時に systemd ソケット経由で起動し、15 分間リクエストがないと自動停止します。
-サーバー起動後の初回検索では毎回埋め込みモデルを GPU に読み込むため、必ず 1 分以上かかります。読み込み完了後は、停止するまで 2 秒前後でレスポンスが返ります。
+サーバー起動後の初回検索では毎回埋め込みモデルを GPU に読み込むため、1 分以上かかります。読み込み完了後は、停止するまで 2 秒前後でレスポンスが返ります。
 夜間に `xlikes-process` が埋め込み計算を行っている間は VRAM が不足するため、モデルを使用する 3 列には「検索に失敗しました」と表示されます。この間も全文検索の列と類似ツイート検索は利用可能です。
 サーバーが停止すると、モデルが占有していた VRAM も解放されます。
 
@@ -75,8 +77,8 @@ journalctl -u caddy
 ```
 
 アクセスできるのは自マシンからのみです。URL は `http://` を指定してください。
-Caddy が動いていない場合は <http://127.0.0.1:8765/> から直接接続して切り分けられます。
-内部の接続先ポートは `local.xLikes.webPort` で変更できます。Caddy の転送先も追従し、サーバー本体はその次のポートで待機します。
+Caddy が動作していない場合は <http://127.0.0.1:8765/> から直接接続して問題を切り分けられます。
+内部の接続先ポートは `local.xLikes.webPort` で変更できます。Caddy の転送先もこれに追従し、サーバー本体はその次のポートで待機します。
 
 ## 定期実行
 
@@ -91,7 +93,7 @@ Caddy が動いていない場合は <http://127.0.0.1:8765/> から直接接続
 `xlikes-sync` と `xlikes-process` は、実行開始時に `xlikes migrate` を行うため、x-likes-archive を更新してデータベーススキーマが変更された場合も次回実行時に自動適用されます。
 `xlikes-process` は途中のステップで失敗しても残りの処理を継続し、最後に失敗ステータスで終了します。
 各タイマーが失敗した場合は GNOME 上に通知が表示されます（[failure-notify.md](./failure-notify.md)）。
-電源オフなどで 4:00 や 6:00 の実行を逃した場合は、次回のシステム起動時に実行されます。
+電源オフなどで 4:00 や 6:00 の実行タイミングを逃した場合は、次回のシステム起動時に実行されます。
 nixos-desktop の pomu ユーザーは linger を有効化しているため、ログインしていなくても全タイマーが動作します。linger が無効なユーザーの場合はログイン中のみ動作し、逃した分は次回ログイン時に実行されます。
 
 ```bash
@@ -112,8 +114,8 @@ systemctl --user start xlikes-process   # すぐに続きの計算を開始す�
 ## バックアップ
 
 `xlikes-backup` が毎日、取得済みツイート（`tweets/`）とデータベース全体のダンプ（`backup/xlikes.sql`）を Google Drive 上の restic リポジトリ（`gdrive:x-likes-backup`）へ同期します。
-X 上で削除されたツイートは再取得できないため、このバックアップと保存先の subvol のみが唯一のデータ退避先となります。
-保持世代は日次 7、週次 4、月次 12 とし、それより古い世代はバックアップのたびに削除されます。
+X 上で削除されたツイートは再取得できないため、このバックアップと保存先のサブボリュームのみが唯一のデータ退避先となります。
+保持世代は日次 7、週次 4、月次 12 となっており、それより古い世代はバックアップのたびに削除されます。
 
 リポジトリは restic により暗号化されています。パスワードは `secrets/secrets.yaml` 内の `x_likes_restic_password` に格納されており、switch 実行時に `~/.config/x-likes/restic-password` へ配置されます。
 復号に使用する age 鍵は Bitwarden にも保管されているため、本マシンが故障した場合でも別マシンで secrets を復号すればパスワードを復元できます。
@@ -125,7 +127,7 @@ export RESTIC_REPOSITORY=rclone:gdrive:x-likes-backup RESTIC_PASSWORD_FILE=~/.co
 nix shell nixpkgs#restic -c restic snapshots
 ```
 
-保存先の subvol だけが破損した場合、データベース（NVMe 上）は無事なためファイルのみを復元します。
+保存先のサブボリュームだけが破損した場合、データベース（NVMe 上）は無事なためファイルのみを復元します。
 
 ```bash
 systemctl --user stop xlikes-sync.timer xlikes-process.timer
@@ -133,8 +135,8 @@ nix shell nixpkgs#restic -c restic restore latest --target / --include ~/.local/
 systemctl --user start xlikes-sync.timer xlikes-process.timer
 ```
 
-新しいマシンへの移行時などデータベースも含めて消失した場合は、ファイルを復元したあとにダンプデータを空のデータベースへ流し込みます。
-定期実行の `xlikes migrate` が先に空のテーブルを作成してしまうとダンプの流し込み時に衝突するため、タイマーを停止してから既存テーブルを削除して復元を行ってください。
+新しいマシンへの移行時などデータベースも含めて消失した場合は、ファイルを復元した後にダンプデータを空のデータベースへ流し込みます。
+定期実行の `xlikes migrate` が先に空のテーブルを作成してしまうとダンプの投入時に衝突するため、タイマーを停止してから既存テーブルを削除して復元を行ってください。
 `DROP OWNED BY` は実行ユーザーが所有するテーブルのみを削除し、NixOS 側で作成された拡張（extension）は残します。
 
 ```bash
@@ -145,7 +147,7 @@ psql -h /run/postgresql -d xlikes -f ~/.local/share/x-likes/backup/xlikes.sql
 systemctl --user start xlikes-sync.timer xlikes-process.timer
 ```
 
-リストア時に拡張機能へのコメント記述（`COMMENT ON EXTENSION`）の 2 行で `must be owner of extension` というエラーが出ますが、データ整合性には影響しません。
+リストア時に拡張機能へのコメント記述（`COMMENT ON EXTENSION`）の 2 行で `must be owner of extension` というエラーが出ますが、データの整合性には影響しません。
 ダンプには OCR テキストや埋め込みベクトルも含まれているため、リストア後に再計算する必要はありません。
 uv の実行環境およびモデルファイルはバックアップ対象外のため、初回 `xlikes` 実行時に自動で再取得されます。
 
@@ -162,12 +164,12 @@ uv の実行環境およびモデルファイルはバックアップ対象外�
 x-likes-env: /home/pomu/.local/share/x-likes がマウントされていません。手順: docs/howtouse/x-likes.md
 ```
 
-`findmnt /home/pomu/.local/share/x-likes` でマウント状態を確認し、subvol 自体が存在しない場合は「初回準備」の手順を実行してください。
-subvol は存在するもののマウントされていない場合は、前述の `systemctl start` コマンドでマウントを実行します。
+`findmnt /home/pomu/.local/share/x-likes` でマウント状態を確認し、サブボリューム自体が存在しない場合は「初回準備」の手順を実行してください。
+サブボリュームは存在するもののマウントされていない場合は、前述の `systemctl start` コマンドでマウントを実行します。
 
 `XLIKES_X_USER is not set` で停止した場合は、`x-user` ファイルを作成してアカウント名を記述してください。
 
-データベースに接続できない場合は、`systemctl status postgresql postgresql-setup` で PostgreSQL 本体および DB・拡張機能の生成処理のステータスを確認します。
+データベースに接続できない場合は、`systemctl status postgresql postgresql-setup` で PostgreSQL 本体および DB・拡張機能の生成処理のステータスを確認してください。
 
 `xlikes embed` 実行時に `waiting for the GPU lock /run/x-likes-gpu.lock` と表示されて停止している場合は、他の `xlikes embed` プロセス（夜間の `xlikes-process` や他ユーザーの実行）の完了を待機しています。
 `systemctl --user status xlikes-process` で夜間処理などがバックグラウンドで動作していないか確認してください。

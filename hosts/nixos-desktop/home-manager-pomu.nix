@@ -54,6 +54,12 @@ in {
       passwordFile = "${config.home.homeDirectory}/.config/x-likes/restic-password";
     };
   };
+  local.profile.privateRepos = [
+    {
+      url = "git@github.com:khimoo/x-likes-archive.git";
+      dest = config.local.xLikes.projectDir;
+    }
+  ];
   local.profile.secrets = [
     {
       secret = "x_likes_restic_password";
