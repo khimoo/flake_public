@@ -58,7 +58,7 @@ in {
     };
   };
   # 開発用の checkout だけを載せる。本番用の projectDir を載せると、pull-repos がバックアップを取らずに
-  # 定期実行の版を進める。
+  # 定期実行の使う checkout を更新してしまう。
   local.profile.privateRepos = [
     {
       url = "git@github.com:khimoo/xsaved.git";

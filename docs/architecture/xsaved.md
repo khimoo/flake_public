@@ -84,7 +84,7 @@ ML の依存（ROCm 版の torch の wheel など）は xsaved の `uv.lock` で
 定期実行は起動時に `xsaved migrate` も実行するので、開発用の checkout を実行すると、未コミットの変更や作業中のブランチが保存済みのデータに作用する。
 nixos-desktop では、本番用の checkout を `~/sagyo` の外の `~/.local/share/xsaved-app` に置き、開発のつもりで編集しにくくする。
 サブボリュームの中に置かないのは、新しいマシンでサブボリュームのマウント前に clone すると、マウントがその checkout を隠すからである。
-`pull-repos` の対象にも入れない。入れると、バックアップを取らずに本番の版が進む。
+`pull-repos` の対象にも入れない。入れると、`pull-repos` がバックアップを取らずに本番用の checkout を更新する。
 
 スキーマの変更を取り込み忘れないよう、二つのサービスはどちらも始めに `xsaved migrate` を実行する。
 二つが同時に始まっても同じ SQL を二度流さないよう、xsaved の migrate は Postgres の advisory lock を取る。
