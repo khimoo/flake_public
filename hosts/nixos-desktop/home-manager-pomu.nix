@@ -49,7 +49,7 @@ in {
   local.xsaved = {
     enable = true;
     dataDir = "/home/pomu/.local/share/xsaved";
-    projectDir = "/home/pomu/sagyo/xsaved";
+    projectDir = "/home/pomu/.local/share/xsaved-app";
     inherit hsaOverrideGfxVersion;
     # 保存先の SATA SSD が壊れても残るよう、Google Drive に写す。
     backup = {
@@ -57,10 +57,12 @@ in {
       passwordFile = "${config.home.homeDirectory}/.config/xsaved/restic-password";
     };
   };
+  # 開発用の checkout だけを載せる。本番用の projectDir を載せると、pull-repos がバックアップを取らずに
+  # 定期実行の版を進める。
   local.profile.privateRepos = [
     {
       url = "git@github.com:khimoo/xsaved.git";
-      dest = config.local.xsaved.projectDir;
+      dest = "${config.home.homeDirectory}/sagyo/xsaved";
     }
   ];
   local.profile.secrets = [

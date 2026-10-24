@@ -110,7 +110,7 @@ in
 
     projectDir = lib.mkOption {
       type = absolutePath;
-      description = "xsaved の checkout。xsaved はここの uv.lock に従って環境を作る。";
+      description = "定期実行と xsaved コマンドが実行する、本番用の xsaved の checkout。xsaved はここの uv.lock に従って環境を作る。開発用の checkout とは分ける。";
     };
 
     database = lib.mkOption {
