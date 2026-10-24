@@ -69,7 +69,9 @@ Nix 2.31.5（`cc38c0c5`）のソースと、2026-09-24 の spin713 での観測�
 ## ビルダーの能力は `machines.nix` に置く
 
 `maxJobs` と `supportedFeatures` は呼び出し側ではなくビルダーの性質なので、`hosts/machines.nix` のホスト一覧に置いた。
-値はデスクトップ自身の `max-jobs`（32 スレッド）と `nix config show system-features` に合わせている。
+ビルダー自身の `nix.settings.max-jobs` と `system-features` も同じ値から設定するので（[remote-builders.nix](../../modules/nixos/remote-builders.nix)）、呼び出し側に伝える値とビルダーの実際の設定は食い違わない。
+`max-jobs` は `auto` ではなく `maxJobs` の値になるので、ビルダーの CPU を替えたときは `maxJobs` を書き換える。
+`system-features` はリスト型で NixOS の既定値に結合されるので、`supportedFeatures` に書かなかった既定の feature もビルダーには残る。
 `big-parallel` を載せないと、LLVM のようにそれを要求する derivation はデスクトップでビルドされない。
 
 ## `builders-use-substitutes = true`

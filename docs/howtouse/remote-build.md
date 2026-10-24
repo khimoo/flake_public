@@ -142,5 +142,7 @@ nixos-rebuild build --flake .#<ホスト> --build-host desktop-ts --use-substitu
 2 の設定を省くと、`--build-host` を明示的に指定したときだけデスクトップでビルドするホストになります。
 
 ビルダーを追加するときは、`hosts/machines.nix` の該当マシンに `builder` 設定を記述します。
-`maxJobs` と `supportedFeatures` には、そのホストで `nix config show max-jobs` および `nix config show system-features` を実行して確認した値を設定してください。
+`maxJobs` にはそのホストのスレッド数（`nproc`）を、`supportedFeatures` にはそのホストが実際に満たせる feature を書いてください（`kvm` には `/dev/kvm` が要ります）。
+ビルダー自身の `max-jobs` はこの `maxJobs` になり、`system-features` には `supportedFeatures` が足されます。
+switch 後にビルダーで `nix config show max-jobs` と `nix config show system-features` を実行すると、反映を確かめられます。
 `local.remoteBuilders.enable` が有効なホストは、次回の switch 以降、`builder` を持つ自身以外の全ホストをビルダーとして利用するようになります。

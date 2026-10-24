@@ -6,6 +6,7 @@ let
   machines = import ../../hosts/machines.nix;
   cfg = config.local.remoteBuilders;
   builders = lib.filterAttrs (host: m: host != settings.hostname && m ? builder) machines.machines;
+  thisMachine = machines.machines.${settings.hostname} or { };
 in
 {
   options.local.remoteBuilders = {
@@ -20,36 +21,46 @@ in
     };
   };
 
-  config = lib.mkIf cfg.enable {
-    assertions = [
-      {
-        assertion = builders != { };
-        message = "local.remoteBuilders: hosts/machines.nix に ${settings.hostname} 以外で builder を持つホストがない";
-      }
-      {
-        assertion = config.services.tailscale.enable;
-        message = "local.remoteBuilders: ビルダーへの接続名 `<短縮名>-ts` は、ssh.nix が tailscale を有効にしたホストでだけ生成する";
-      }
-    ];
+  config = lib.mkMerge [
+    # 呼び出し側の nix.buildMachines と同じ値をビルダー自身にも設定し、呼び出し側が送る並列数と
+    # feature をビルダーが必ず受けられるようにする。system-features はリスト型なので NixOS の
+    # 既定値に結合され、既定値の feature は消えない。
+    (lib.mkIf (thisMachine ? builder) {
+      nix.settings.max-jobs = thisMachine.builder.maxJobs;
+      nix.settings.system-features = thisMachine.builder.supportedFeatures;
+    })
 
-    nix.distributedBuilds = true;
-    nix.buildMachines = lib.mapAttrsToList (host: builder: {
-      # ssh.nix が生成する tailnet 側の接続名。自宅 LAN の内外で同じ経路を使う。
-      # `.local` の接続名にすると LAN の外で名前が引けず、ビルドが毎回手元に戻る。
-      hostName = "${lib.removePrefix "nixos-" host}-ts";
-      protocol = "ssh-ng";
-      inherit (builder) system;
-      inherit (builder.builder) maxJobs supportedFeatures;
-      # SSH を張るのは nix-daemon（root）で、root の ~/.ssh に id_lan はない。
-      sshKey = "${config.users.users.${settings.primaryUser}.home}/.ssh/id_lan";
-    }) builders;
+    (lib.mkIf cfg.enable {
+      assertions = [
+        {
+          assertion = builders != { };
+          message = "local.remoteBuilders: hosts/machines.nix に ${settings.hostname} 以外で builder を持つホストがない";
+        }
+        {
+          assertion = config.services.tailscale.enable;
+          message = "local.remoteBuilders: ビルダーへの接続名 `<短縮名>-ts` は、ssh.nix が tailscale を有効にしたホストでだけ生成する";
+        }
+      ];
 
-    # ビルドの入力をビルダーが binary cache から直接取る。無効だと、手元のストアから
-    # tailnet 越しに送る。
-    nix.settings.builders-use-substitutes = true;
+      nix.distributedBuilds = true;
+      nix.buildMachines = lib.mapAttrsToList (host: builder: {
+        # ssh.nix が生成する tailnet 側の接続名。自宅 LAN の内外で同じ経路を使う。
+        # `.local` の接続名にすると LAN の外で名前が引けず、ビルドが毎回手元に戻る。
+        hostName = "${lib.removePrefix "nixos-" host}-ts";
+        protocol = "ssh-ng";
+        inherit (builder) system;
+        inherit (builder.builder) maxJobs supportedFeatures;
+        # SSH を張るのは nix-daemon（root）で、root の ~/.ssh に id_lan はない。
+        sshKey = "${config.users.users.${settings.primaryUser}.home}/.ssh/id_lan";
+      }) builders;
 
-    # 0 にすると、Nix はビルダーに繋がらないときも手元でビルドせずに失敗する。
-    # binary cache からの取得は止まらない。
-    nix.settings.max-jobs = lib.mkIf (!cfg.localBuilds) 0;
-  };
+      # ビルドの入力をビルダーが binary cache から直接取る。無効だと、手元のストアから
+      # tailnet 越しに送る。
+      nix.settings.builders-use-substitutes = true;
+
+      # 0 にすると、Nix はビルダーに繋がらないときも手元でビルドせずに失敗する。
+      # binary cache からの取得は止まらない。
+      nix.settings.max-jobs = lib.mkIf (!cfg.localBuilds) 0;
+    })
+  ];
 }

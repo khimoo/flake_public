@@ -9,10 +9,10 @@
       system = "x86_64-linux";
       sshUser = "pomu";
       builder = {
-        # デスクトップ自身の max-jobs（auto = 32 スレッド）と揃える。スロットが埋まると、
-        # 呼び出し側は手元でビルドするか（localBuilds = true）、空きを待つ。
+        # デスクトップのスレッド数。デスクトップ自身の max-jobs もこの値になる（remote-builders.nix）。
+        # スロットが埋まると、呼び出し側は手元でビルドするか（localBuilds = true）、空きを待つ。
         maxJobs = 32;
-        # デスクトップの `nix config show system-features` と同じ値にする。載せていない
+        # デスクトップ自身の system-features にも足される（remote-builders.nix）。載せていない
         # feature を要求する derivation（big-parallel の LLVM など）は、ここに回らない。
         supportedFeatures = [ "benchmark" "big-parallel" "kvm" "nixos-test" ];
       };
