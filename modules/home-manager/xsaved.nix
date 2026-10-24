@@ -6,6 +6,7 @@
 #   xsaved-process  OCR と埋め込みの計算（毎晩）
 #   xsaved-backup   取得したツイート、データベース、埋め込みモデルを restic で写す（毎日、backup.repository を設定したとき）
 #   xsaved-restore-check  最新のバックアップから復元できるかを、保存先を変えずに確かめる
+#   xsaved-update   定期実行を止め、バックアップを取ってから、本番用の checkout に新しいコミットを取り込む
 #   xsaved-web      検索の Web UI。ブラウザで開いたときに起動し、使われなくなると止まる
 #
 # データベースと GPU のロックファイルは modules/nixos/xsaved.nix が用意する。保存先を subvol に
@@ -133,6 +134,38 @@ let
       restic backup --tag xsaved "''${paths[@]}"
       flock --unlock 9
       restic forget --tag xsaved --keep-daily 7 --keep-weekly 4 --keep-monthly 12 --prune
+    '';
+  };
+
+  # 新しいコミットは次の定期実行の起動時に migrate でスキーマを変えるので、取り込む直前の状態を写しておく。
+  update = pkgs.writeShellApplication {
+    name = "xsaved-update";
+    runtimeInputs = [
+      pkgs.git
+      pkgs.util-linux
+      osConfig.systemd.package
+      xsaved
+    ];
+    text = ''
+      app=${lib.escapeShellArg cfg.projectDir}
+      if [ ! -d "$app/.git" ]; then
+        echo "xsaved-update: $app がありません。開発用の checkout から git clone で作成してください（docs/howtouse/xsaved.md）" >&2
+        exit 1
+      fi
+      units=(xsaved-sync.timer xsaved-process.timer ${lib.optionalString (cfg.backup.repository != null) "xsaved-backup.timer"} xsaved-web.socket)
+      systemctl --user stop "''${units[@]}" xsaved-web-server.service
+      trap 'systemctl --user start "''${units[@]}"' EXIT
+
+      # バックアップは書き込みのロックを排他で取るので、動いている取得や計算が終わるのを待ってから写す。
+      ${if cfg.backup.repository != null then ''
+        systemctl --user start xsaved-backup.service
+      '' else ''
+        flock ${writeLock} true
+      ''}
+      before=$(git -C "$app" rev-parse HEAD)
+      git -C "$app" pull --ff-only
+      git -C "$app" log --oneline "$before..HEAD"
+      xsaved migrate
     '';
   };
 
@@ -288,6 +321,7 @@ in
     home.packages = [
       env
       xsaved
+      update
     ] ++ lib.optional (cfg.backup.repository != null) restoreCheck;
 
     # 三つの定期実行は oneshot で、何時間も続くことがある。switch で定義が変わったときに Home Manager が
