@@ -74,7 +74,7 @@ in
       };
     }) mounts);
 
-    # papis ライブラリは vault(Obsidian)配下の references/ に置く方針(vault で完結)。マウント先を
+    # papis ライブラリは vault(Obsidian)配下の Assets/references/ に置く方針(vault で完結)。マウント先を
     # vault の中にすることで、実体は SATA(コールド/バルク層)のまま、論理的には vault の 1 フォルダに
     # 見える。同期は services.zettelkasten.papis が所有する(同じパスを見ている)。
     #
@@ -85,7 +85,7 @@ in
     # 初回 clone の後は、下の path unit が .git の出現を見て mount を始める。
     systemd.mounts = [{
       what = device;
-      where = "${vaultRoot}/references";
+      where = "${vaultRoot}/Assets/references";
       type = "btrfs";
       options = lib.concatStringsSep "," ([ "subvol=@papis" ] ++ dataOpts);
       unitConfig.ConditionPathExists = "${vaultRoot}/.git";
@@ -95,7 +95,7 @@ in
       wantedBy = [ "multi-user.target" ];
       pathConfig = {
         PathExists = "${vaultRoot}/.git";
-        Unit = "${utils.escapeSystemdPath "${vaultRoot}/references"}.mount";
+        Unit = "${utils.escapeSystemdPath "${vaultRoot}/Assets/references"}.mount";
       };
     };
 

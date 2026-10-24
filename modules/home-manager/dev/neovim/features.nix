@@ -25,8 +25,6 @@ let
     unpackPhase = "gzip -d < $src > $out";
     dontInstall = true;
   };
-
-  vault = config.local.profile.zettelkastenRoot;
 in
 {
   local.neovim.features = {
@@ -66,13 +64,6 @@ in
 
     # 数式を latex2text で Unicode に近似する。
     render_markdown.packages = [ pkgs.python3Packages.pylatexenc ];
-
-    # 貼り付けた画像は vault の attachments/ に置く。vault のないユーザーでは読み込まない。
-    img_clip = {
-      enable = vault != null;
-      packages = lib.optionals isLinux [ pkgs.wl-clipboard ];
-      data.dir = "${toString vault}/attachments";
-    };
 
     typst_preview.packages = [
       pkgs.tinymist

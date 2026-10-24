@@ -1,10 +1,10 @@
 # Zettelkasten の Google Drive 同期
 
-vault 配下の `attachments/`（添付ファイル）、`references/`（papis ライブラリ）、`Originals/`（原本データ）を、`rclone bisync` を用いて Google Drive と双方向で同期します。ファイルの実体はローカル端末上にも保持し、Git リポジトリ管理からは除外しています（vault の `.gitignore` で設定済み）。
+vault 配下の `Assets/attachments/`（添付ファイル）、`Assets/references/`（papis ライブラリ）、`Assets/Originals/`（原本データ）を、`rclone bisync` を用いて Google Drive と双方向で同期します。ファイルの実体はローカル端末上にも保持し、Git リポジトリ管理からは除外しています（vault の `.gitignore` で設定済み）。
 
-- `attachments/` ↔ `gdrive:zettelkasten-attachments`（機能フラグ `zettelkastenSync`）
-- `references/` ↔ `gdrive:papis-library`（機能フラグ `referenceSync`、使用方法は [papis-gdrive-sync.md](./papis-gdrive-sync.md) を参照）
-- `Originals/` ↔ `gdrive:zettelkasten-originals`（`zettelkastenSync` 有効時）
+- `Assets/attachments/` ↔ `gdrive:zettelkasten-attachments`（機能フラグ `zettelkastenSync`）
+- `Assets/references/` ↔ `gdrive:papis-library`（機能フラグ `referenceSync`、使用方法は [papis-gdrive-sync.md](./papis-gdrive-sync.md) を参照）
+- `Assets/Originals/` ↔ `gdrive:zettelkasten-originals`（`zettelkastenSync` 有効時）
 
 `nixos-desktop` および `nixos-spin713` では両機能が有効化されています。スタンドアロンの home-manager 環境では、ユーザーごとの home モジュールで `local.profile.features` と `local.profile.zettelkastenRoot` を設定してください。なお、現在の vault プロファイルは Linux 環境にのみ対応しています。
 
@@ -56,7 +56,7 @@ journalctl --user -u originals-sync -f
 ※同期先は設定ファイルで定義されているため、コマンド引数で変更することはできません。
 ファイルの削除も双方向に反映されます。誤削除防止として、Google Drive のごみ箱（30 日間保持）および `bisync` の `--max-delete` オプション（デフォルトでは 50% を超える大量削除で安全停止）により保護されています。
 
-添付ファイルについて、Obsidian 内では通常通り画像を貼り付けます（`attachments` に保存されます）。Neovim では Markdown ファイル上で `<leader>p` を押すと、img-clip により vault の `attachments/` へ保存されます（[markdown プラグイン](neovim/markdown.md) を参照）。
+添付ファイルについて、Obsidian 内では通常通り画像を貼り付けます（`Assets/attachments` に保存されます）。
 
 ## トラブルシューティング
 

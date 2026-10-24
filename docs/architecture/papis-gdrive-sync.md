@@ -11,7 +11,7 @@ papis は文献ごとに `info.yaml`（平文のメタデータ）と PDF を同
 Zotero は、生きている SQLite を rclone で安全に同期できず、メタデータは Zotero の同期、PDF は rclone の 2 つに分かれていた。
 citekey を作るには Better BibTeX のプラグインが要るが、Zotero がプロファイルの `extensions.json` で管理するので宣言的に入れにくい。BBT 8.0.26 以降は Zotero 7 の対応をやめていて、nixpkgs の zotero と版を合わせる問題もある。これが移った主な理由。
 
-## ライブラリは vault の中の `references/` に置く
+## ライブラリは vault の中の `Assets/references/` に置く
 
 ノートから文献を参照するので、vault だけで持ち運べるようにする。パスは同期の対象と同じ理由で固定し、オプションにしない。
 依存の向きは同期からライブラリへの一方向で、`programs.papis` は同期の仕組みを知らない。Google Drive を NAS などに変えても、papis の設定は変わらない。

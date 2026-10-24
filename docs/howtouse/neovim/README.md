@@ -52,7 +52,7 @@ LSP サーバーや ripgrep などの外部ツールは Nix 経由で導入さ�
 | ファイル間移動 | harpoon2 | [navigation.md](./navigation.md) |
 | ウィンドウと kitty ペイン操作 | smart-splits | [smart-splits.md](./smart-splits.md) |
 | 外観・キー候補表示 | lualine, hlchunk, fidget, which-key | [appearance.md](./appearance.md) |
-| Markdown | render-markdown.nvim, autolist.nvim, img-clip.nvim, marksman, diagram.nvim, image.nvim | [markdown.md](./markdown.md) |
+| Markdown | render-markdown.nvim, autolist.nvim, marksman, diagram.nvim, image.nvim | [markdown.md](./markdown.md) |
 | Rust | rustaceanvim, rustowl | [lang-rust.md](./lang-rust.md) |
 | Typst | tinymist, typst-preview.nvim | [lang-typst.md](./lang-typst.md) |
 

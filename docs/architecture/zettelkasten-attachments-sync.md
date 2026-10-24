@@ -44,10 +44,9 @@ OAuth のトークンは宣言で用意できない。中途半端な同期が�
 Obsidian も Neovim（画像のインライン表示）も手元のパスを読むので、実体が手元にあれば軽く、オフラインでも使える。Drive だけに置いて rclone mount で使う形は、遅延とマウントへの依存が増え、ネットワークが切れると編集できない。
 バイナリは git から外し、ノートはファイル名（`![[filename]]` や相対パス）で参照する。git の履歴が画像で膨らまない。
 
-## フォルダ名は `attachments/` と `references/` に固定する
+## フォルダ名は `Assets/attachments/` と `Assets/references/` に固定する
 
 配る `.obsidian/app.json` の `attachmentFolderPath` と食い違わないよう、vault の中のパスはオプションにしない。
-img-clip の保存先も `~/sagyo/zettelkasten/attachments` に固定し（`relative_to_current_file = false`。そのため zettelkasten 以外の vault で貼っても、ここに保存される）、リンクは相対パスの Markdown のリンクにする。wikilink では image.nvim が treesitter で画像のノードとして認識できず、インラインで表示されない。
 
 ## Originals は退避を足し、自動で resync しない
 

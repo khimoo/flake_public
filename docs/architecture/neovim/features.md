@@ -15,7 +15,7 @@ Home Manager は有効な機能の名前と値を `~/.local/share/nvim/nix/featu
 
 ## 道具の持ち主
 
-複数の機能が同じ道具を使うときは、それぞれの機能の `packages` に書く（例: wl-clipboard は clipboard と img_clip）。PATH には一度だけ入り、片方の機能を外しても、もう一方が使う間は残る。
+複数の機能が同じ道具を使うときは、それぞれの機能の `packages` に書く。PATH には一度だけ入り、片方の機能を外しても、もう一方が使う間は残る。
 
 RustOwl のように、Neovim のためだけに別の flake から取る道具は、その道具のモジュール（[rustowl.nix](../../../modules/home-manager/dev/neovim/rustowl.nix)）が機能を定義する。このモジュールも Neovim のモジュールから import するので、Neovim を外すと一緒に外れる。
 

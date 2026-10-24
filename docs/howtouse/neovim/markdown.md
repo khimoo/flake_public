@@ -2,7 +2,7 @@
 
 装飾、数式の近似表示、箇条書きの入力補助、画像の貼り付け、Mermaid 図のプレビュー機能を備えた環境で Markdown を編集する。
 
-設定: `lua/plugins/lang/markdown/`、`lua/features/` 配下の `render_markdown.lua`、`img_clip.lua`、`diagram.lua`
+設定: `lua/plugins/lang/markdown/`、`lua/features/` 配下の `render_markdown.lua`、`diagram.lua`
 
 Markdown ファイルを開くと、長い行は自動で折り返して表示され、スペルチェックが有効になる（日本語は誤りとして扱われない）。
 
@@ -33,14 +33,6 @@ Markdown ファイルを開くと、長い行は自動で折り返して表示�
 Markdown バッファでは、スニペットの展開中であっても `<Tab>` が箇条書きの操作になるため、blink.cmp のプレースホルダー移動には使用できない。
 
 SKK が有効なときも、改行すると次の項目が作成される。変換を確定する `<CR>` では改行されないため、項目は作成されない（詳細は [skkeleton.md](./skkeleton.md) を参照）。
-
-## 画像を貼る（img-clip.nvim）
-
-クリップボードに画像をコピーした状態で `<leader>p` を押すと、画像を vault の `attachments/` に `YYYY-MM-DD-HH-MM-SS.png` として保存し、カーソル位置に現在のファイルからの相対パスで `![](...)` 形式のリンクを挿入する。
-
-- vault（`local.profile.zettelkastenRoot`）を設定していないユーザー環境では、この機能は読み込まれない。
-- クリップボードの読み取りには、Wayland では `wl-clipboard`、X11 では `xclip` を使用する（どちらも Nix 経由で導入される）。
-- `attachments/` は Google Drive と同期される（[Zettelkasten の Drive 同期](../zettelkasten-attachments-sync.md) を参照）。
 
 ## 図を表示する（diagram.nvim、image.nvim）
 
