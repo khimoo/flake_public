@@ -6,6 +6,7 @@
   imports = [ # Include the results of the hardware scan.
     ./hardware.nix
     ./nix-sd-card.nix
+    ./sleep.nix
     ./chrome-audio.nix
     ../../modules/nixos/common.nix
   ];
@@ -13,7 +14,7 @@
   local.gnome.transparentFullscreen.enable = true;
 
   # スワップパーティションは eMMC 上にあり読み戻しが遅いので、優先度の高い zram を先に使う。
-  # パーティションは hibernate の復帰先（hardware.nix の boot.resumeDevice）なので残す。
+  # パーティションは hibernate のイメージを書き込む場所（sleep.nix）なので残す。
   zramSwap.enable = true;
 
   # Mesa は Intel の VA-API ドライバを含まないので、入れないと動画のデコードが CPU で行われる。
