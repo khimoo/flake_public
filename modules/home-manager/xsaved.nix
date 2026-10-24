@@ -4,7 +4,8 @@
 #   xsaved-env      uv と ROCm 版の torch を動かす FHS 環境
 #   xsaved-sync     いいね欄とブックマーク欄、返信先と引用元を取得して登録する（毎時）
 #   xsaved-process  OCR と埋め込みの計算（毎晩）
-#   xsaved-backup   取得したツイートとデータベースを restic で写す（毎日、backup.repository を設定したとき）
+#   xsaved-backup   取得したツイート、データベース、埋め込みモデルを restic で写す（毎日、backup.repository を設定したとき）
+#   xsaved-restore-check  最新のバックアップから復元できるかを、保存先を変えずに確かめる
 #   xsaved-web      検索の Web UI。ブラウザで開いたときに起動し、使われなくなると止まる
 #
 # データベースと GPU のロックファイルは modules/nixos/xsaved.nix が用意する。保存先を subvol に
@@ -13,6 +14,7 @@
 # 使い方:   docs/howtouse/xsaved.md
 {
   config,
+  inputs,
   lib,
   osConfig,
   pkgs,
@@ -33,9 +35,16 @@ let
     gpuLock = if onNixos then osConfig.local.xsaved.gpuLock else null;
   };
 
+  # 書き込むサブコマンドは共有ロック、xsaved-backup は排他ロックを取る。ユーザーごとに別のデータなので、
+  # ロックファイルもユーザーごとの XDG_RUNTIME_DIR に置く。
+  writeLock = ''"''${XDG_RUNTIME_DIR:?}/xsaved-write.lock"'';
+
   xsaved = pkgs.writeShellApplication {
     name = "xsaved";
-    runtimeInputs = [ env ];
+    runtimeInputs = [
+      env
+      pkgs.util-linux
+    ];
     # 埋め込みと OCR を使うサブコマンドだけに ml の依存（ROCm 版の torch など）を入れる。ほかのサブコマンドにも
     # 付けると、torch の取得や更新に失敗したときにツイートの取得と登録まで止まる。uv run は --exact を
     # 付けなければ venv から ml のパッケージを消さないので、venv は分けずに済む。
@@ -44,7 +53,12 @@ let
         ocr | embed | search | serve) extra=(--extra ml) ;;
         *) extra=() ;;
       esac
-      exec xsaved-env uv run --project ${lib.escapeShellArg cfg.projectDir} "''${extra[@]}" --frozen xsaved "$@"
+      run=(xsaved-env uv run --project ${lib.escapeShellArg cfg.projectDir} "''${extra[@]}" --frozen xsaved "$@")
+      case "''${1-}" in
+        # 読むだけのサブコマンドはロックを取らない。serve は何時間も動くので、取るとバックアップが始まらない。
+        status | search | similar | serve) exec "''${run[@]}" ;;
+        *) exec flock --shared ${writeLock} "''${run[@]}" ;;
+      esac
     '';
   };
 
@@ -76,6 +90,7 @@ let
       pkgs.restic
       pkgs.rclone
       pkgs.util-linux
+      pkgs.git
       osConfig.services.postgresql.package
     ];
     text = ''
@@ -90,6 +105,11 @@ let
       export RESTIC_REPOSITORY=${lib.escapeShellArg cfg.backup.repository}
       export RESTIC_PASSWORD_FILE=${lib.escapeShellArg cfg.backup.passwordFile}
 
+      # 取得や計算が書き込んでいる途中で写すと、データベースのダンプとファイルが別の時点の状態になる。
+      # 書き込んでいるサブコマンドが終わるのを待ち、写し終えるまで新しく始めさせない。
+      exec 9>${writeLock}
+      flock 9
+
       # OCR と埋め込みの結果も入るので、データベースは丸ごと写す。復元すれば計算し直さずに済む。
       # 圧縮しない形式にして、restic が前の日の写しと重なる部分を再利用できるようにする。
       mkdir -p "$data/backup"
@@ -97,9 +117,88 @@ let
         --file="$data/backup/xsaved.sql.tmp"
       mv "$data/backup/xsaved.sql.tmp" "$data/backup/xsaved.sql"
 
+      # 復元したデータを、どのコードと設定が作ったか分かるようにする。
+      app=${lib.escapeShellArg cfg.projectDir}
+      xsaved_rev=$(git -C "$app" rev-parse HEAD 2>/dev/null || echo unknown)
+      if [ -n "$(git -C "$app" status --porcelain 2>/dev/null)" ]; then xsaved_rev="$xsaved_rev-dirty"; fi
+      printf 'flake_public %s\nxsaved %s\n' ${lib.escapeShellArg (inputs.self.rev or inputs.self.dirtyRev or "unknown")} "$xsaved_rev" \
+        >"$data/backup/revisions"
+
+      # 配布元がモデルを消すと同じモデルを取り直せず、保存済みのベクトルと比べる検索ができなくなるので、
+      # モデルも写す。uv の環境は uv.lock から作り直せるので写さない。
+      paths=("$data/tweets" "$data/backup/xsaved.sql" "$data/backup/revisions")
+      if [ -d "$data/huggingface/hub" ]; then paths+=("$data/huggingface/hub"); fi
+
       restic cat config >/dev/null 2>&1 || restic init
-      restic backup --tag xsaved "$data/tweets" "$data/backup/xsaved.sql"
+      restic backup --tag xsaved "''${paths[@]}"
+      flock --unlock 9
       restic forget --tag xsaved --keep-daily 7 --keep-weekly 4 --keep-monthly 12 --prune
+    '';
+  };
+
+  restoreCheck = pkgs.writeShellApplication {
+    name = "xsaved-restore-check";
+    runtimeInputs = [
+      pkgs.restic
+      pkgs.rclone
+      pkgs.coreutils
+      pkgs.gnused
+      osConfig.services.postgresql.finalPackage
+    ];
+    text = ''
+      data=${lib.escapeShellArg cfg.dataDir}
+      export RESTIC_REPOSITORY=${lib.escapeShellArg cfg.backup.repository}
+      export RESTIC_PASSWORD_FILE=${lib.escapeShellArg cfg.backup.passwordFile}
+      snapshot=(latest --tag xsaved)
+
+      # ルートは空きが少なく、ダンプを読み込んだデータベースは数 GB になるので、保存先と同じディスクで試す。
+      work=$(mktemp -d "$data/restore-check.XXXXXX")
+      cleanup() {
+        pg_ctl -D "$work/pg" -m fast stop >/dev/null 2>&1 || true
+        rm -rf "$work"
+      }
+      trap cleanup EXIT
+
+      restic snapshots --tag xsaved --latest 1
+      restic restore "''${snapshot[@]}" --target "$work/files" --include "$data/backup" >/dev/null
+      cat "$work/files$data/backup/revisions" 2>/dev/null || echo "このスナップショットにはコミットの記録がない"
+
+      # 本番のデータベースに触れないよう、一時的な Postgres にダンプを読み込む。
+      initdb -D "$work/pg" -U postgres --auth=trust -E UTF8 --locale=C.UTF-8 >/dev/null
+      pg_ctl -D "$work/pg" -l "$work/pg.log" -w -o "-c listen_addresses=''' -c unix_socket_directories=$work" start >/dev/null
+      psql=(psql -h "$work" -U postgres -X -q -v ON_ERROR_STOP=1)
+      "''${psql[@]}" -d postgres -c 'CREATE DATABASE restored'
+      "''${psql[@]}" -d restored -f "$work/files$data/backup/xsaved.sql" >/dev/null
+      q() { "''${psql[@]}" -d restored -At -c "$1"; }
+
+      echo "いいね $(q 'SELECT count(*) FROM tweets WHERE liked')、ブックマーク $(q 'SELECT count(*) FROM tweets WHERE bookmarked')、ツイート全体 $(q 'SELECT count(*) FROM tweets')"
+      echo "引用 $(q 'SELECT count(*) FROM quotes')、返信 $(q 'SELECT count(*) FROM replies')、メディア $(q 'SELECT count(*) FROM media')"
+      echo "ベクトル: ruri $(q 'SELECT count(*) FROM tweet_ruri')、Qwen の本文 $(q 'SELECT count(*) FROM tweet_qwen')、Qwen の画像 $(q 'SELECT count(*) FROM image_qwen')"
+      # 読み込んだデータで、全文検索の索引とベクトルの比較が使えることを確かめる。
+      echo "全文検索で「の」を含むツイート $(q "SET enable_seqscan = off; SELECT count(*) FROM tweets WHERE search_text &@~ 'の'") 件"
+      echo "ベクトル検索の結果 $(q 'SELECT count(*) FROM (SELECT tweet_id FROM tweet_ruri ORDER BY embedding <=> (SELECT embedding FROM tweet_ruri LIMIT 1) LIMIT 10) s') 件"
+
+      # メディアを全部戻す空きはないので、全ファイルがスナップショットにあることを一覧で確かめ、
+      # 一部だけ戻して中身をデータベースのハッシュと照合する。
+      restic ls "''${snapshot[@]}" "$data/tweets/media" | sed -n "s|^$data/tweets/media/||p" | sort >"$work/listed"
+      q 'SELECT path FROM media' | sort >"$work/expected"
+      missing=$(comm -13 "$work/listed" "$work/expected" | wc -l)
+      echo "データベースにあってスナップショットにないメディア $missing 件"
+      q 'SELECT path, sha256 FROM media ORDER BY random() LIMIT 20' | tr '|' ' ' >"$work/sample"
+      includes=()
+      while read -r path _; do includes+=(--include "$data/tweets/media/$path"); done <"$work/sample"
+      restic restore "''${snapshot[@]}" --target "$work/files" "''${includes[@]}" >/dev/null
+      mismatched=0
+      while read -r path sha; do
+        if [ "$(sha256sum "$work/files$data/tweets/media/$path" | cut -d' ' -f1)" != "$sha" ]; then
+          echo "中身が一致しない: $path"
+          mismatched=$((mismatched + 1))
+        fi
+      done <"$work/sample"
+      echo "戻して照合したメディア $(wc -l <"$work/sample") 件、一致しないもの $mismatched 件"
+      echo "モデル: $(restic ls "''${snapshot[@]}" "$data/huggingface/hub" | sed -n "s|^$data/huggingface/hub/\(models--[^/]*\)$|\1|p" | tr '\n' ' ')"
+
+      [ "$missing" -eq 0 ] && [ "$mismatched" -eq 0 ]
     '';
   };
 in
@@ -189,7 +288,7 @@ in
     home.packages = [
       env
       xsaved
-    ];
+    ] ++ lib.optional (cfg.backup.repository != null) restoreCheck;
 
     # 三つの定期実行は oneshot で、何時間も続くことがある。switch で定義が変わったときに Home Manager が
     # 起動し直すと、止めた処理をやり直し、終わるまで switch も返らない。動いている間は入れ替えず、

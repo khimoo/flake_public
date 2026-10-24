@@ -1,8 +1,8 @@
 # X のいいね・ブックマークの保存と意味検索
 
-X で「いいね」またはブックマークしたツイートを、本文・画像・動画・引用元を含めてローカルに保存し、自然言語での検索や類似ツイートの検索を行えるようにします。
-ツール本体には、プライベートリポジトリ [khimoo/xsaved](https://github.com/khimoo/xsaved) の本番用チェックアウト（`~/.local/share/xsaved-app`）を使用します。開発用チェックアウトは `~/sagyo/xsaved` に別途配置します。コマンド一覧は本体の README を参照してください。
-nixos-desktop の pomu 環境では、開発用チェックアウトのみが `clone-repos` の対象に含まれます。本番用チェックアウトの作成・更新手順については「[本番用チェックアウトの更新](#本番用チェックアウトの更新)」を参照してください。新規環境のセットアップ手順は [SSH 鍵の配布と private repo の clone](private-repo-clone.md) を、保存済みツイートと DB の復元方法は「[バックアップ](#バックアップ)」を参照してください。
+X で「いいね」またはブックマークしたツイートを、本文・画像・動画・引用元を含めてローカルに保存し、自然言語による検索や類似ツイートの検索を行えるようにします。
+ツール本体には、プライベートリポジトリ [khimoo/xsaved](https://github.com/khimoo/xsaved) の本番用チェックアウト（`~/.local/share/xsaved-app`）を使用します。開発用チェックアウトは `~/sagyo/xsaved` に別途配置します。コマンド一覧はリポジトリ本体の README を参照してください。
+nixos-desktop の pomu 環境では、開発用チェックアウトのみが `clone-repos` の対象に含まれます。本番用チェックアウトの作成・更新手順は「[本番用チェックアウトの更新](#本番用チェックアウトの更新)」を、新規環境のセットアップ手順は [SSH 鍵の配布と private repo の clone](private-repo-clone.md) を、保存済みツイートとデータベースの復元方法は「[バックアップ](#バックアップ)」をそれぞれ参照してください。
 
 設定箇所は [home-manager-pomu.nix](../../hosts/nixos-desktop/home-manager-pomu.nix) の `local.xsaved` です。
 
@@ -22,7 +22,7 @@ sudo umount /mnt/sda
 sudo nixos-rebuild switch --flake .#nixos-desktop
 ```
 
-マウント設定に `nofail` オプションを指定しているため、サブボリューム作成前に switch や再起動を行ってもシステム起動は妨げられません。
+マウント設定に `nofail` オプションを指定しているため、サブボリューム作成前に switch や再起動を行っても、システムの起動が妨げられることはありません。
 作成前に switch や再起動を行った場合は、サブボリューム作成後に再起動するか、以下のコマンドで手動マウントしてください。
 
 ```sh
@@ -38,9 +38,9 @@ echo <アカウント名> > ~/.local/share/xsaved/x-user
 
 いいねとブックマークの取得には Firefox のログイン情報（Cookie）を利用するため、あらかじめ Firefox で X にログインしておいてください。ブックマークはログイン中のアカウントから取得します。
 
-最初に `xsaved` を実行した際、uv が Python と依存パッケージをデータディレクトリへダウンロードします。また、`ocr`、`embed`、`search`、`serve` を初めて実行した際には、ROCm 版 PyTorch など（数 GB 程度）もダウンロードされます。
+最初に `xsaved` を実行した際、uv が Python 本体と依存パッケージをデータディレクトリへダウンロードします。また、`ocr`、`embed`、`search`、`serve` を初めて実行した際には、ROCm 版 PyTorch など（数 GB 程度）もダウンロードされます。
 初回 `xsaved sync` 実行時はローカルにデータが存在しないため、いいね欄とブックマーク欄から、X の一覧で取得可能な最も古いデータまで遡って取得します。
-なお、ブックマークは公式アーカイブに含まれないため、一覧に表示されない過去のデータは取得できません（本体の `TODO.md` 参照）。
+なお、ブックマークは公式アーカイブに含まれないため、一覧に表示されない過去のデータは取得できません（本体の `TODO.md` を参照）。
 
 ## 使い方
 
@@ -54,18 +54,18 @@ xsaved fetch likejs <公式アーカイブの like.js>
 xsaved retry
 ```
 
-`search` と `similar` は、デフォルトでいいねとブックマークの両方を検索対象とします。`--source likes` または `--source bookmarks` を指定することで、どちらか一方に絞り込んで検索できます。
-`xsaved delete` は、対象ツイートがいいね・ブックマークのどちらに登録されているかにかかわらず、ローカルに保存されたデータを完全に削除します。なお、X 上でいいねやブックマークを解除しても、ローカルの保存データは自動削除されず維持されます。
+`search` と `similar` は、デフォルトでいいねとブックマークの両方を検索対象とします。`--source likes` または `--source bookmarks` を指定することで、どちらか一方に絞り込んで検索することも可能です。
+`xsaved delete` は、対象ツイートがいいね・ブックマークのどちらに登録されているかを問わず、ローカルに保存されたデータを完全に削除します。なお、X 上でいいねやブックマークを解除しても、ローカルに保存されたデータは自動削除されず保持されます。
 `xsaved retry` は、取得に失敗した返信先や引用元、like.js のいいね、および欠落している画像や動画を再取得します。定期実行には含まれないため、`xsaved status` の `incomplete_media`（メディアが欠けているツイート数）が増加した際などに手動で実行してください。
 
 引数は xsaved の README に記載されているコマンドと同様で、`python -m xsaved` を `xsaved` に置き換えて実行できます。
 `xsaved-env` を引数なしで実行すると専用環境のシェルが起動し、引数を指定した場合はそのコマンドのみを環境内で実行します。
 
-`xsaved` や定期実行処理は、本番用チェックアウト（`~/.local/share/xsaved-app`）のバージョンで動作します。開発用チェックアウト（`~/sagyo/xsaved`）を編集しても定期実行には反映されません。
+`xsaved` や定期実行処理は、本番用チェックアウト（`~/.local/share/xsaved-app`）のバージョンで動作します。開発用チェックアウト（`~/sagyo/xsaved`）を編集しても、そのままでは定期実行には反映されません。
 
 ### 本番用チェックアウトの更新
 
-本番用チェックアウトは開発用チェックアウトから clone されたものであり、開発用の main ブランチの変更を取り込みます。開発用チェックアウトの main にコミットした後、定期実行を停止してバックアップを取得してから、本番用チェックアウトを更新してください。
+本番用チェックアウトは開発用チェックアウトからクローンされたものであり、開発用の main ブランチの変更を取り込みます。開発用チェックアウトの main にコミットした後、定期実行を停止してバックアップを取得してから、本番用チェックアウトを更新してください。
 定期実行処理（`xsaved-sync`、`xsaved-process`、`xsaved-backup`）が動作中の場合は、処理が完了するのを待ってから実行します。
 
 ```bash
@@ -85,13 +85,13 @@ git clone ~/sagyo/xsaved ~/.local/share/xsaved-app
 
 nixos-desktop 上のブラウザで <http://xsaved.localhost/> を開くと、検索および類似ツイートの検索が利用できます。
 「検索対象」で「すべて」「いいね」「ブックマーク」を選択でき、この選択は「似たツイート」や「もっと表示」の検索条件にも引き継がれます。
-検索を実行すると、ruri（本文＋OCRテキスト）、Qwen（本文＋OCRテキスト）、Qwen（画像）、全文検索の結果が、それぞれ独立した列に並んで表示されます。全文検索ではスペース区切りで AND 検索、`OR` 区切りで OR 検索を行えます。
-いずれの列でも、引用元の本文や画像がヒットした場合は、それを引用している保存ツイートが表示されます。本文の列では保存ツイートと引用元を個別に比較しますが、全文検索では双方のテキストを結合して検索するため、検索ワードが別々のツイートに分かれて含まれていてもヒットします。
+検索を実行すると、ruri（本文＋OCRテキスト）、Qwen（本文＋OCRテキスト）、Qwen（画像）、全文検索の結果が、それぞれ独立した列に並んで表示されます。全文検索では、スペース区切りで AND 検索、`OR` 区切りで OR 検索を行えます。
+どの列でも、引用元の本文や画像がヒットした場合は、それを引用している保存ツイートが表示されます。本文の列では保存ツイートと引用元を個別に比較しますが、全文検索では双方のテキストを結合して検索するため、検索ワードが別々のツイートに分かれて含まれていてもヒットします。
 検索結果の各ツイートにある「似たツイート」ボタンを押すと、そのツイートに類似した保存ツイートを、全文検索を除く 3 つの列で横断検索します。
-各列は個別にスクロールでき、「もっと表示」をクリックすることで続きを 20 件ずつ追加読み込みできます。古い検索結果の続きを取得できなくなった場合は、再度検索を実行してください。
+各列は個別にスクロール可能で、「もっと表示」をクリックすることで続きを 20 件ずつ追加で読み込めます。古い検索結果の続きを取得できなくなった場合は、再度検索を実行してください。
 
 サーバーは常駐しません。アクセス時に systemd ソケット経由でオンデマンド起動し、15 分間リクエストがないと自動で停止します。
-サーバー起動後の初回検索時は GPU に埋め込みモデルをロードするため、1 分以上の時間がかかります。一度ロードされれば、サーバー停止までは 2 秒前後でレスポンスが返ります。
+サーバー起動後の初回検索時は GPU に埋め込みモデルをロードするため、1 分以上の時間がかかります。一度ロードされれば、サーバーが停止するまでは 2 秒前後でレスポンスが返ります。
 夜間に `xsaved-process` が埋め込み計算を行っている間は、モデルを利用する 3 列に「GPU を使うほかの計算（夜間の埋め込みなど）が終わるまで、モデルを使う検索はできません。」と表示されます。ただし、その間も全文検索列および類似ツイート検索は利用可能です。
 逆に、検索サーバーの稼働中に 4:00 を迎えた場合、`xsaved-process` は検索サーバーが停止するまで（最後のリクエストから最大 15 分）埋め込み計算の開始を待機します。
 サーバー停止時には、モデルが占有していた VRAM も自動的に解放されます。
@@ -105,7 +105,7 @@ journalctl -u caddy
 
 アクセスはローカルマシンからのみ可能です。URL には `http://` を指定してください。
 Caddy が動作していない場合は、<http://127.0.0.1:8765/> へ直接接続することで問題の切り分けが可能です。
-内部接続先ポートは `local.xsaved.webPort` で変更でき、Caddy の転送先も自動追従します。サーバー本体はその次のポート番号で待機します。
+内部接続先のポートは `local.xsaved.webPort` で変更でき、Caddy の転送先も自動追従します。サーバー本体はその次のポート番号で待機します。
 
 ## 定期実行
 
@@ -121,7 +121,7 @@ Caddy が動作していない場合は、<http://127.0.0.1:8765/> へ直接接�
 `xsaved-process` は途中のステップで失敗しても残りの処理を継続し、最終的な終了コードとして失敗ステータスを返します。
 いずれかのタイマーが失敗した場合は、GNOME 上にエラー通知が表示されます（[failure-notify.md](./failure-notify.md)）。
 電源オフなどで 4:00 や 6:00 の実行タイミングを逃した場合は、次回のシステム起動時に自動実行されます。
-nixos-desktop の pomu ユーザーは linger を有効化しているため、ログインしていなくても全タイマーが動作します。linger が無効なユーザーの場合はログイン中のみ動作し、未実行分は次回ログイン時にまとめて処理されます。
+nixos-desktop の pomu ユーザーは linger を有効化しているため、ログインしていなくてもすべてのタイマーが動作します。linger が無効なユーザーの場合はログイン中のみ動作し、未実行分は次回ログイン時にまとめて処理されます。
 
 ```bash
 systemctl --user list-timers 'xsaved-*'
@@ -140,12 +140,21 @@ systemctl --user start xsaved-process   # すぐに続きの計算を開始す�
 
 ## バックアップ
 
-`xsaved-backup` により、取得済みツイート（`tweets/`）とデータベース全体のダンプ（`backup/xsaved.sql`）が、毎日 Google Drive 上の restic リポジトリ（`gdrive:xsaved-backup`）へ同期されます。
+`xsaved-backup` により、取得済みツイート（`tweets/`）、データベース全体のダンプ（`backup/xsaved.sql`）、埋め込みモデル（`huggingface/hub`）、バックアップ時の flake_public と xsaved のコミット記録（`backup/revisions`）が、毎日 Google Drive 上の restic リポジトリ（`gdrive:xsaved-backup`）へ同期されます。
+バックアップは、書き込みを伴う `xsaved` の処理（定期実行・手動実行）が完了するのを待ってから開始されます。また、バックアップの実行中に開始された処理は、バックアップが完了するまで待機します。
 X 上で削除されたツイートは再取得できないため、このバックアップと保存先サブボリュームが唯一のデータ退避先となります。
 保持世代は日次 7 世代、週次 4 世代、月次 12 世代で、これらを超えた古い世代はバックアップ実行時に自動削除されます。
 
 リポジトリは restic によって暗号化されています。パスワードは `secrets/secrets.yaml` 内の `xsaved_restic_password` に格納されており、switch 実行時に `~/.config/xsaved/restic-password` へ配置されます。
 復号用の age 鍵は Bitwarden にも保管されているため、本マシンが故障した場合でも、別マシンで secrets を復号すればパスワードを復元できます。
+
+最新のバックアップから正常に復元できるかどうかは、`xsaved-restore-check` で確認できます。
+本番のデータやデータベースには触れず、ダンプを一時的な PostgreSQL インスタンスに読み込んで件数や検索を検証します。あわせて、メディアファイルがすべてバックアップ内に存在することと、ランダムに選んだ 20 件のハッシュ値がデータベースと一致するかを確認します。
+問題がなければ終了コード 0 で正常終了します。
+
+```bash
+xsaved-restore-check
+```
 
 バックアップの世代一覧を確認するコマンド:
 
@@ -154,29 +163,29 @@ export RESTIC_REPOSITORY=rclone:gdrive:xsaved-backup RESTIC_PASSWORD_FILE=~/.con
 nix shell nixpkgs#restic -c restic snapshots
 ```
 
-保存先サブボリュームのみが破損した場合、データベース（NVMe 上）は無事なためファイル群のみをリストアします。
+保存先サブボリュームのみが破損した場合、データベース（NVMe 上）は無事なため、ファイル群のみをリストアします。
 
 ```bash
-systemctl --user stop xsaved-sync.timer xsaved-process.timer
+systemctl --user stop xsaved-sync.timer xsaved-process.timer xsaved-sync xsaved-process
 nix shell nixpkgs#restic -c restic restore latest --target / --include ~/.local/share/xsaved/tweets
 systemctl --user start xsaved-sync.timer xsaved-process.timer
 ```
 
-新マシンへの移行などでデータベースも含めて消失した場合は、ファイルを復元した後にダンプデータを空のデータベースへ投入します。
-定期実行の `xsaved migrate` が先に空テーブルを作成してしまうとダンプ投入時に競合するため、タイマーを停止してから既存テーブルを削除してリストアを行ってください。
-`DROP OWNED BY` は実行ユーザーが所有するテーブルのみを削除し、NixOS 側で作成された拡張（extension）はそのまま保持します。
+新マシンへの移行などでデータベースも含めて消失した場合は、ファイルを復元した後に空のデータベースへダンプデータを投入します。
+定期実行の `xsaved migrate` が先に空テーブルを作成してしまうと、ダンプ投入時に競合してしまいます。そのため、タイマーと実行中の処理を停止したうえで既存テーブルを削除してからリストアを行ってください。手動での `xsaved` の実行も控えてください。
+`DROP OWNED BY` は実行ユーザーが所有するテーブルのみを削除し、NixOS 側で作成された拡張機能（extension）はそのまま保持します。
 
 ```bash
-systemctl --user stop xsaved-sync.timer xsaved-process.timer
+systemctl --user stop xsaved-sync.timer xsaved-process.timer xsaved-backup.timer xsaved-web.socket xsaved-sync xsaved-process xsaved-backup xsaved-web-server
 nix shell nixpkgs#restic -c restic restore latest --target /
 psql -h /run/postgresql -d xsaved -c 'DROP OWNED BY CURRENT_USER'
 psql -h /run/postgresql -d xsaved -f ~/.local/share/xsaved/backup/xsaved.sql
-systemctl --user start xsaved-sync.timer xsaved-process.timer
+systemctl --user start xsaved-sync.timer xsaved-process.timer xsaved-backup.timer xsaved-web.socket
 ```
 
 リストア時に拡張機能へのコメント付与（`COMMENT ON EXTENSION`）に関する 2 行で `must be owner of extension` というエラーが出力されますが、データの整合性には影響ありません。
 ダンプデータには OCR テキストや埋め込みベクトルも含まれているため、リストア後に再計算を行う必要はありません。
-uv の実行環境やモデルファイルはバックアップ対象外ですが、初回 `xsaved` 実行時に自動で再取得されます。
+埋め込みモデルもバックアップから復元されます。uv の実行環境はバックアップ対象外ですが、初回 `xsaved` 実行時に自動で再取得されます。
 
 ## 環境内での挙動の変化
 

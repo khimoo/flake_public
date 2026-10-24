@@ -434,6 +434,7 @@ lib.genAttrs systems (
       assert builtins.elem "nofail"
         inputs.self.nixosConfigurations.nixos-desktop.config.fileSystems."/home/pomu/.local/share/mimikopi".options;
       assert hasLauncher desktopUser "xsaved";
+      assert hasLauncher desktopUser "xsaved-restore-check";
       assert builtins.elem "nofail"
         inputs.self.nixosConfigurations.nixos-desktop.config.fileSystems.${desktopUser.local.xsaved.dataDir}.options;
       # xsaved が接続するデータベースを、OS 側の Postgres が作る。
