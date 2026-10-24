@@ -80,6 +80,10 @@ Postgres のメジャー版は 17 に固定する。既定値は `system.stateVe
 `xsaved` は `local.xsaved.projectDir` の checkout を `uv run --project ... --frozen` で実行する。
 ML の依存（ROCm 版の torch の wheel など）は xsaved の `uv.lock` で決まっていて、Nix のパッケージにすると uv の lock と二重に管理することになる。
 
+`xsaved` は、埋め込みと OCR を使うサブコマンド（`ocr`、`embed`、`search`、`serve`）のときだけ `--extra ml` を付ける。
+ほかのサブコマンドでは uv が ML の依存を取得も更新もしないので、ROCm 版の torch の取得や更新に失敗しても、ツイートの取得と登録は続く。
+`uv run` は `--exact` を付けなければ、指定されていない extra のパッケージを venv から消さないので、venv は一つで足りる。
+
 `projectDir` は本番用の checkout で、開発用の checkout（nixos-desktop では `~/sagyo/xsaved`）とは分ける。
 定期実行は起動時に `xsaved migrate` も実行するので、開発用の checkout を実行すると、未コミットの変更や作業中のブランチが保存済みのデータに作用する。
 nixos-desktop では、本番用の checkout を `~/sagyo` の外の `~/.local/share/xsaved-app` に置き、開発のつもりで編集しにくくする。
@@ -112,6 +116,7 @@ Home Manager の sd-switch は、定義が変わって動いているユニッ�
 
 - mimikopi-env を汎用化して両方から使う。上の「FHS 環境を mimikopi-env と分ける」に書いた理由で、今は退けた。
 - xsaved を Nix のパッケージや flake input にする。上の「checkout をそのまま実行する」に書いた理由で退けた。
+- 取得と登録用の venv と ML 用の venv を分ける。ML のサブコマンドが uv の同期に失敗して venv を中途半端に書き換えても、取得と登録を巻き込まずに済むが、venv の場所と uv の設定が二組になるので退けた。
 - Postgres のデータディレクトリを `@xsaved` に置く。`@xsaved` は `nofail` でマウントするので、マウントされていないときにルート側へ初期化させない仕組みが別に要る。データベースは NVMe に置ける大きさなので退けた。
 - Postgres をユーザーの systemd サービスで動かす。データディレクトリをユーザーが持てるが、起動、拡張の読み込み、更新を自分で書くことになる。NixOS のモジュールで足りるので退けた。
 

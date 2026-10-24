@@ -36,8 +36,15 @@ let
   xsaved = pkgs.writeShellApplication {
     name = "xsaved";
     runtimeInputs = [ env ];
+    # 埋め込みと OCR を使うサブコマンドだけに ml の依存（ROCm 版の torch など）を入れる。ほかのサブコマンドにも
+    # 付けると、torch の取得や更新に失敗したときにツイートの取得と登録まで止まる。uv run は --exact を
+    # 付けなければ venv から ml のパッケージを消さないので、venv は分けずに済む。
     text = ''
-      exec xsaved-env uv run --project ${lib.escapeShellArg cfg.projectDir} --extra ml --frozen xsaved "$@"
+      case "''${1-}" in
+        ocr | embed | search | serve) extra=(--extra ml) ;;
+        *) extra=() ;;
+      esac
+      exec xsaved-env uv run --project ${lib.escapeShellArg cfg.projectDir} "''${extra[@]}" --frozen xsaved "$@"
     '';
   };
 
