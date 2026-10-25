@@ -656,6 +656,42 @@ lib.genAttrs systems (
           keyd check ${pkgs.writeText "default.conf" inputs.self.nixosConfigurations.nixos-desktop.config.environment.etc."keyd/default.conf".text}
           touch "$out"
         '';
+    # 起動順序の循環は評価でもビルドでも見つからず、起動のたびに systemd が循環の中のジョブを一つ取り消すだけで
+    # 起動が続く（docs/architecture/disk-tiering.md）。
+    # fileSystems のマウントはユニットのディレクトリになく、起動時に fstab から generator が作るので、ここでも作る。
+    # SYSTEMD_PROC_CMDLINE を空にして、ビルドするマシンのカーネルのコマンドラインを generator に読ませない。
+    # systemd-analyze verify は循環を見つけても 0 で終わるので、出力で判定する。
+    # ビルドのサンドボックスには /run がなく、verify は /run/systemd を作れずに止まるので、bwrap で /run を用意する。
+    systemd-ordering =
+      if system != "x86_64-linux" then
+        pkgs.runCommand "systemd-ordering-skipped" { } "touch $out"
+      else
+        pkgs.runCommand "systemd-ordering" { nativeBuildInputs = [ pkgs.bubblewrap ]; } (
+          lib.concatMapStrings (
+            name:
+            let
+              host = inputs.self.nixosConfigurations.${name}.config;
+              systemd = host.systemd.package;
+            in
+            ''
+              gen=$PWD/${name}
+              mkdir -p "$gen"/normal "$gen"/early "$gen"/late
+              SYSTEMD_FSTAB=${pkgs.writeText "${name}-fstab" host.environment.etc.fstab.text} \
+                SYSTEMD_PROC_CMDLINE= SYSTEMD_IN_INITRD=0 \
+                ${systemd}/lib/systemd/system-generators/systemd-fstab-generator "$gen"/normal "$gen"/early "$gen"/late
+              SYSTEMD_UNIT_PATH="$gen/early:${host.environment.etc."systemd/system".source}:$gen/normal:$gen/late" \
+                bwrap --bind /nix /nix --bind "$PWD" "$PWD" --proc /proc --dev /dev --tmpfs /run --tmpfs /tmp \
+                ${systemd}/bin/systemd-analyze verify --man=no --generators=no default.target 2>&1 | tee "$gen.log"
+              if grep -q 'ordering cycle' "$gen.log"; then
+                echo "${name}: 起動順序が循環している" >&2
+                exit 1
+              fi
+            ''
+          ) (builtins.attrNames inputs.self.nixosConfigurations)
+          + ''
+            touch "$out"
+          ''
+        );
     # windows-vm のビルド（writeShellApplication の shellcheck）を CI で通す。
     # デスクトップの構成は評価しかしないので、ここでビルドしないと見つからない。
     windows-vm-package =

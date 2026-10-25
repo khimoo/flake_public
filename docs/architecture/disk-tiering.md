@@ -50,6 +50,7 @@ systemd はローカルのマウントに暗黙の `Before=local-fs.target` を�
 systemd は循環を解くために、その起動で関係するジョブのどれかを取り消す。
 `systemd-tmpfiles-setup.service` が取り消された起動では、`/run/opengl-driver` が作られずに GDM が起動しなかった。
 マウントは `wantedBy` による `Wants` で引き込むので、マウントに失敗しても起動が止まらないことは `nofail` の有無で変わらない。
+起動順序の循環は評価でもビルドでも見つからないので、check の `systemd-ordering`（[tests/default.nix](../../tests/default.nix)）が、各ホストのユニットと fstab から作るマウントで `systemd-analyze verify` を実行し、循環があれば失敗する。
 
 条件が真でも、マウントの前と、マウントに失敗したときの `Assets/references/` は、vault が追跡する NVMe 側の空のディレクトリである。
 papis-sync（memex-nix の user unit）はディレクトリがあることしか確かめないので、そのまま動くと NVMe 側に書き込み、空のローカルと Drive を bisync する。
