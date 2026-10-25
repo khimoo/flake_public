@@ -75,6 +75,7 @@ let
       xsaved ocr || status=1
       xsaved embed images || status=1
       xsaved tag || status=1
+      xsaved tag-names || status=1
       xsaved embed text || status=1
       exit "$status"
     '';

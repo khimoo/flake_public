@@ -114,7 +114,7 @@ Caddy が動作していない場合は、<http://127.0.0.1:8765/> へ直接接�
 | タイマー | 実行時刻 | 実行内容 |
 |-------|------|-------------|
 | `xsaved-sync` | 毎時 0 分 | `xsaved sync`（いいね・ブックマーク欄、返信先や引用元の取得と登録） |
-| `xsaved-process` | 毎日 4:00 | `xsaved embed text` → `ocr` → `embed images` → `tag` → `embed text` の順で実行 |
+| `xsaved-process` | 毎日 4:00 | `xsaved embed text` → `ocr` → `embed images` → `tag` → `tag-names` → `embed text` の順で実行 |
 | `xsaved-backup` | 毎日 6:00 | 取得ツイートとデータベースを restic で同期（後述の「バックアップ」参照） |
 
 `xsaved-sync` と `xsaved-process` は、起動時に毎回 `xsaved migrate` を実行するため、xsaved 本体の更新によってデータベーススキーマが変更されても次回実行時に自動で適用されます。
