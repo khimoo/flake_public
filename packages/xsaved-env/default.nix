@@ -44,6 +44,9 @@ buildFHSEnv {
     export UV_CACHE_DIR=${lib.escapeShellArg "${dataDir}/uv-cache"}
     export UV_PYTHON_INSTALL_DIR=${lib.escapeShellArg "${dataDir}/python"}
     export UV_PROJECT_ENVIRONMENT=${lib.escapeShellArg "${dataDir}/venv"}
+    # uv が取得する Python の OpenSSL は CA 証明書を /etc/ssl/cert.pem で探すが、NixOS にはない。
+    # 渡さないと、urllib のような標準ライブラリの HTTPS が証明書を検証できずに失敗する。
+    export SSL_CERT_FILE="''${SSL_CERT_FILE:-/etc/ssl/certs/ca-certificates.crt}"
     export HF_HOME=${lib.escapeShellArg "${dataDir}/huggingface"}
     export XSAVED_DATA_DIR=${lib.escapeShellArg "${dataDir}/tweets"}
     export XSAVED_DATABASE_URL=${lib.escapeShellArg "host=/run/postgresql dbname=${database}"}
