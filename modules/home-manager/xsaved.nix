@@ -63,8 +63,8 @@ let
     '';
   };
 
-  # 本文の埋め込みを先に済ませ、時間のかかる OCR と画像の埋め込みはその後に回す。OCR の文字は
-  # ruri の入力に入るので、最後にもう一度本文を埋め込む（入力が変わったツイートだけが計算される）。
+  # 本文の埋め込みを先に済ませ、時間のかかる OCR、画像の埋め込み、タグ付けはその後に回す。OCR の文字は
+  # 本文の入力に入るので、最後にもう一度本文を埋め込む（入力が変わったツイートだけが計算される）。
   # 途中の手順が失敗しても残りは進め、最後に失敗として終わる。
   process = pkgs.writeShellApplication {
     name = "xsaved-process";
@@ -74,6 +74,7 @@ let
       xsaved embed text || status=1
       xsaved ocr || status=1
       xsaved embed images || status=1
+      xsaved tag || status=1
       xsaved embed text || status=1
       exit "$status"
     '';
