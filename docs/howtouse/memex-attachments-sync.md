@@ -65,6 +65,7 @@ journalctl --user -u originals-sync -f
 - `remote 'gdrive' が未定義です`: `rclone config` でリモート設定を作成してください（`memex-setup` の案内に従う）。
 - `認証に失敗しました`: 認証トークンの期限が切れています。`rclone config reconnect gdrive:` を実行して再認証してください。
 - `両側にデータがあります` または `--resync` で停止する: 同期履歴が喪失しているか、異なる内容同士を統合しようとしています。双方のデータ内容を確認・バックアップした上で、対象を `--only` で絞り、`MEMEX_FORCE_RESYNC=1` を付与して再実行してください。
+- `papis-sync: ... がマウントされていません`（nixos-desktop のみ）: `Assets/references/` に SATA の subvol がマウントされていないので、papis の同期を止めています。[disk-tiering.md](./disk-tiering.md#ディスクレイアウト) のコマンドでマウントを確認してください。マウントされれば、次の定期実行から同期が再開します。
 - systemd unit が inactive のまま動かない: 対象ディレクトリがまだ存在しないためです。`ConditionPathIsDirectory` により正常にスキップされている状態であり、エラーではありません。
 - `.conflict` というファイルが生成された: 2 台の端末で同時に同じファイルが更新されました。内容を確認し、正しい方のファイルを残してください。
 - トークン書き戻し（writeback）の警告が表示される: rclone が更新されたアクセストークンをファイルに保存している通知であり、失効エラーではありません。

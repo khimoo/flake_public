@@ -20,6 +20,7 @@ let
   # 評価が無限再帰になる。NixOS の既定のホームの場所から作り、一致は assertion で確かめる。
   home = "/home/${settings.primaryUser}";
   vaultRoot = hm.local.profile.memexRoot;
+  papisDir = "${vaultRoot}/Assets/references";
   # btrfs は FS 全体で 1 UUID。各 subvol は subvol= オプションで選ぶので全マウントで共有する。
   device = "/dev/disk/by-uuid/57ba3e14-4099-4708-a643-edfc45d3eb18";
 
@@ -85,7 +86,7 @@ in
     # 初回 clone の後は、下の path unit が .git の出現を見て mount を始める。
     systemd.mounts = [{
       what = device;
-      where = "${vaultRoot}/Assets/references";
+      where = papisDir;
       type = "btrfs";
       # nofail は失敗を許すためではなく、systemd が付ける暗黙の Before=local-fs.target を外すために付ける。
       # 外さないと、sysinit.target の後に起動する下の path unit がこのマウントより前に並び、起動順序が循環する
@@ -98,8 +99,19 @@ in
       wantedBy = [ "multi-user.target" ];
       pathConfig = {
         PathExists = "${vaultRoot}/.git";
-        Unit = "${utils.escapeSystemdPath "${vaultRoot}/Assets/references"}.mount";
+        Unit = "${utils.escapeSystemdPath papisDir}.mount";
       };
+    };
+    # papis-sync（memex-nix の user unit）は papisDir がディレクトリであることしか確かめない。vault がこの
+    # ディレクトリを追跡しているので、マウントの前や失敗したときも、同期は NVMe 側の空のディレクトリに対して動く。
+    # AssertPathIsMountPoint= では unit が failed にならず OnFailure の通知が出ないので、ExecStartPre で失敗させる。
+    home-manager.users.${settings.primaryUser} = { config, ... }: lib.mkIf config.services.memex.papis.enable {
+      systemd.user.services.papis-sync.Service.ExecStartPre = toString (pkgs.writeShellScript "papis-mount-check" ''
+        if ! ${pkgs.util-linux}/bin/mountpoint -q ${lib.escapeShellArg papisDir}; then
+          echo "papis-sync: ${papisDir} がマウントされていません" >&2
+          exit 1
+        fi
+      '');
     };
 
     # @backup subvol は root 所有なので、そのままではユーザーのバックアップ処理が書き込めない。

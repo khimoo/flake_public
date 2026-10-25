@@ -51,6 +51,11 @@ systemd は循環を解くために、その起動で関係するジョブのど
 `systemd-tmpfiles-setup.service` が取り消された起動では、`/run/opengl-driver` が作られずに GDM が起動しなかった。
 マウントは `wantedBy` による `Wants` で引き込むので、マウントに失敗しても起動が止まらないことは `nofail` の有無で変わらない。
 
+条件が真でも、マウントの前と、マウントに失敗したときの `Assets/references/` は、vault が追跡する NVMe 側の空のディレクトリである。
+papis-sync（memex-nix の user unit）はディレクトリがあることしか確かめないので、そのまま動くと NVMe 側に書き込み、空のローカルと Drive を bisync する。
+`data-disk.nix` は papis-sync に、マウントされていなければ失敗する前処理を足し、失敗の通知を出させる。
+papis の CLI からの書き込みは防げない。
+
 ## データの層のマウントに `nofail` を付けない
 
 データは SATA にしかないので、マウントの失敗を `nofail` で隠すと、NVMe 上の空のマウント先にアプリが書き込み、データがないことにも気づけない。
