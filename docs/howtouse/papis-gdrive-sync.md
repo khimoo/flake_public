@@ -36,6 +36,6 @@ papis export --all --format bibtex > references.bib
 
 ## papis 特有の注意事項
 
-- 最初の文献を追加するまで同期機能は動作しない。`Assets/references/` ディレクトリは最初の `papis add` 実行時に作成され、それまでは `ConditionPathIsDirectory` によって同期処理がスキップされる（エラーではなく正常な挙動）。
+- `Assets/references/` は vault の clone に含まれる（vault が `.gitkeep` を追跡している）ので、clone した時点から同期が動く。vault を clone していない間は、`ConditionPathIsDirectory` によって同期処理がスキップされる（エラーではなく正常な挙動）。
 - 文献ディレクトリ内の変更（`references/<item>/paper.pdf` の差し替えなど）はファイル変更監視イベントで検知されないため、15分ごとの定期実行時に同期される。即座に同期したい場合は `memex-sync --only papis` を実行する。
 - nixos-desktop 環境では `Assets/references/` に SATA ディスクの subvol（サブボリューム）をマウントしている。vault を clone した後にのみマウントされるため、新しい環境では clone 実行後に正しくマウントが始まるか確認すること（[disk-tiering.md](./disk-tiering.md#ディスクレイアウト) 参照）。
