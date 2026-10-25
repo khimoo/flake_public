@@ -25,6 +25,11 @@ in
     virtualisation.spiceUSBRedirection.enable = true;
     virtualisation.libvirtd = {
       enable = true;
+      # 既定の suspend は VM のメモリを / の下に書き出すが、virtiofs の共有を持つ VM は次の起動で復元できず、
+      # 保存ファイルが / を埋めたまま残る（docs/architecture/windows-vm.md）。
+      onShutdown = "shutdown";
+      # 既定の start は、ホストの停止時に動いていた VM を次の起動で通常起動する。VM は使うときだけランチャーで起動する。
+      onBoot = "ignore";
       # UEFI対応などのためのQEMU設定
       qemu = {
         package = pkgs.qemu_kvm;
