@@ -80,7 +80,7 @@ Postgres のメジャー版は 17 に固定する。既定値は `system.stateVe
 `xsaved` は `local.xsaved.projectDir` の checkout を `uv run --project ... --frozen` で実行する。
 ML の依存（ROCm 版の torch の wheel など）は xsaved の `uv.lock` で決まっていて、Nix のパッケージにすると uv の lock と二重に管理することになる。
 
-`xsaved` は、埋め込みと OCR を使うサブコマンド（`ocr`、`embed`、`search`、`serve`）のときだけ `--extra ml` を付ける。
+`xsaved` は、埋め込みと OCR を使うサブコマンド（`ocr`、`embed`、`tag`、`frames`、`search`、`serve`）のときだけ `--extra ml` を付ける。
 ほかのサブコマンドでは uv が ML の依存を取得も更新もしないので、ROCm 版の torch の取得や更新に失敗しても、ツイートの取得と登録は続く。
 `uv run` は `--exact` を付けなければ、指定されていない extra のパッケージを venv から消さないので、venv は一つで足りる。
 
@@ -110,7 +110,23 @@ OCR は CPU の全コアを使うので、`Nice=19` と `IOSchedulingClass=idle`
 `Persistent=true` なので、電源が切れていて逃した分は、ユーザーのサービスマネージャーが次に起動したときに実行される。
 nixos-desktop では pomu を linger にしているので、ログインを待たずに OS の起動時に実行される（[tailscale.md](./tailscale.md#ログインしていなくてもユーザーの-timer-を動かす)）。
 
-`xsaved-sync`、`xsaved-process`、`xsaved-backup` には `X-SwitchMethod = "keep-old"` を付け、switch のときに動いていれば入れ替えない。新しい定義は次の実行から使われる。
+## 動画のフレームは別のユニットで計算する
+
+`xsaved-frames` は、動画から取り出したフレームを、8 秒、4 秒、2 秒、1 秒ごとの順に埋め込み、タグを付ける（`xsaved frames`）。
+2026-10-26 の全動画（3,165 本）を最後まで計算すると約 55 時間かかり、その間 GPU のロックを持つ。
+毎晩の `xsaved-process` に入れると、終わるまで次の晩の計算が始まらず、新しいツイートが何日も検索に出ない。
+そこで、別のユニットにし、`xsaved-process` が始めに止めて、終わったら起動し直す。
+毎晩の計算が先に GPU を使い、残りの時間でフレームを計算する、という順番がユニットの構成で決まる。
+フレームは 1 枚ずつ記録されるので、止めても次の起動は続きから始まる。GPU を使いたいユーザーも、止めてよい。
+止めたときは成功として終わるので、失敗の通知は出ない。
+
+`xsaved frames` は書き込みのロックを取らない。
+取ると、何日もバックアップが始まらない。
+`xsaved frames` はデータベースに行を足すだけでファイルを書かず、`pg_dump` はそれだけで一つの時点の状態を写すので、ロックを取らなくてもダンプとファイルは食い違わない。
+
+`xsaved-update` は `xsaved-frames` も止め、動いていたときだけ、取り込んだコードで起動し直す。
+
+`xsaved-sync`、`xsaved-process`、`xsaved-backup`、`xsaved-frames` には `X-SwitchMethod = "keep-old"` を付け、switch のときに動いていれば入れ替えない。新しい定義は次の実行から使われる。
 Home Manager の sd-switch は、定義が変わって動いているユニットを止めて起動し直し、oneshot の起動が終わるまで待つ。2026-10-23 に、取り込み直後の長い `xsaved-process` の途中で switch したところ、処理を最初からやり直し、`home-manager-pomu.service` が 5 分で時間切れになった。
 
 ## 退けた案

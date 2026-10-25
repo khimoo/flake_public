@@ -4,6 +4,7 @@
 #   xsaved-env      uv と ROCm 版の torch を動かす FHS 環境
 #   xsaved-sync     いいね欄とブックマーク欄、返信先と引用元を取得して登録する（毎時）
 #   xsaved-process  OCR と埋め込みの計算（毎晩）
+#   xsaved-frames   動画のフレームの埋め込みとタグ付け。毎晩の計算が始めに止め、終わると起動し直す
 #   xsaved-backup   取得したツイート、データベース、埋め込みモデルを restic で写す（毎日、backup.repository を設定したとき）
 #   xsaved-restore-check  最新のバックアップから復元できるかを、保存先を変えずに確かめる
 #   xsaved-update   定期実行を止め、バックアップを取ってから、本番用の checkout に新しいコミットを取り込む
@@ -51,13 +52,15 @@ let
     # 付けなければ venv から ml のパッケージを消さないので、venv は分けずに済む。
     text = ''
       case "''${1-}" in
-        ocr | embed | tag | search | serve) extra=(--extra ml) ;;
+        ocr | embed | tag | frames | search | serve) extra=(--extra ml) ;;
         *) extra=() ;;
       esac
       run=(xsaved-env uv run --project ${lib.escapeShellArg cfg.projectDir} "''${extra[@]}" --frozen xsaved "$@")
       case "''${1-}" in
         # 読むだけのサブコマンドはロックを取らない。serve は何時間も動くので、取るとバックアップが始まらない。
-        status | search | similar | serve) exec "''${run[@]}" ;;
+        # frames も何日も動く。データベースに行を足すだけでファイルは書かず、pg_dump はそれだけで一つの時点の
+        # 状態を写すので、ロックを取らなくてもバックアップのダンプとファイルは食い違わない。
+        status | search | similar | serve | frames) exec "''${run[@]}" ;;
         *) exec flock --shared ${writeLock} "''${run[@]}" ;;
       esac
     '';
@@ -66,10 +69,16 @@ let
   # 本文の埋め込みを先に済ませ、時間のかかる OCR、画像の埋め込み、タグ付けはその後に回す。OCR の文字は
   # 本文の入力に入るので、最後にもう一度本文を埋め込む（入力が変わったツイートだけが計算される）。
   # 途中の手順が失敗しても残りは進め、最後に失敗として終わる。
+  # 動画のフレームの計算は何日も GPU のロックを持つので、始めに止め、終わったら続きから起動し直す。止めないと、
+  # 埋め込みとタグ付けがロックを待ち続け、新しいツイートが検索に出ない。
   process = pkgs.writeShellApplication {
     name = "xsaved-process";
-    runtimeInputs = [ xsaved ];
+    runtimeInputs = [
+      xsaved
+      osConfig.systemd.package
+    ];
     text = ''
+      systemctl --user stop xsaved-frames.service
       status=0
       xsaved embed text || status=1
       xsaved ocr || status=1
@@ -77,6 +86,7 @@ let
       xsaved tag || status=1
       xsaved tag-names || status=1
       xsaved embed text || status=1
+      systemctl --user start --no-block xsaved-frames.service
       exit "$status"
     '';
   };
@@ -155,8 +165,11 @@ let
         exit 1
       fi
       units=(xsaved-sync.timer xsaved-process.timer ${lib.optionalString (cfg.backup.repository != null) "xsaved-backup.timer"} xsaved-web.socket)
-      systemctl --user stop "''${units[@]}" xsaved-web-server.service
-      trap 'systemctl --user start "''${units[@]}"' EXIT
+      # 動画のフレームの計算は、動いていたときだけ、取り込んだコードで続きから起動し直す。止めていたのは、
+      # GPU を使いたいユーザーが止めたからかもしれない。
+      frames=$(systemctl --user is-active xsaved-frames.service || true)
+      systemctl --user stop "''${units[@]}" xsaved-web-server.service xsaved-frames.service
+      trap 'systemctl --user start "''${units[@]}"; if [ "$frames" = active ]; then systemctl --user start --no-block xsaved-frames.service; fi' EXIT
 
       # バックアップは書き込みのロックを排他で取るので、動いている取得や計算が終わるのを待ってから写す。
       ${if cfg.backup.repository != null then ''
@@ -360,6 +373,23 @@ in
         ExecStartPre = "${lib.getExe xsaved} migrate";
         ExecStart = lib.getExe process;
         # OCR は CPU の全コアを使う。初回の取り込みが昼まで続いても、前面のアプリを遅くしないようにする。
+        Nice = 19;
+        IOSchedulingClass = "idle";
+      };
+    };
+
+    # 全動画を最後の段階まで計算すると数日かかる。毎晩の計算のあとに続きから起動し、すべて終えると止まる。
+    # GPU を使いたいときは止めてよく、計算したフレームは 1 枚ずつ残る。
+    systemd.user.services.xsaved-frames = {
+      Unit = {
+        Description = "動画のフレームを、粗い間隔から順に埋め込み、タグを付ける";
+        OnFailure = config.local.failureNotify.onFailure;
+        X-SwitchMethod = "keep-old";
+      };
+      Service = {
+        Type = "exec";
+        ExecStartPre = "${lib.getExe xsaved} migrate";
+        ExecStart = "${lib.getExe xsaved} frames";
         Nice = 19;
         IOSchedulingClass = "idle";
       };
