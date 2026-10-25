@@ -7,6 +7,7 @@
 #   ~/.agents/skills              <- <root>/codex/skills             Codex 専用と共有スキルへのリンク
 #   ~/.codex/rules/base.rules     <- <root>/codex/rules/base.rules   人が書く実行ポリシー
 #   ~/.codex/agents               <- <root>/codex/agents             カスタムエージェントの定義 (sol-worker など)
+#   ~/.codex/hooks.json           <- <root>/codex/hooks.json         ユーザー層のフック
 #
 # 系列別プロファイル (<root>/codex/<name>.config.toml) のリンクと起動コマンド codex-<name> は、
 # 名簿が設定 repo のファイルで決まるので agent-sync.nix が実行時に作る。
@@ -39,6 +40,7 @@ in
       ".agents/skills".source = mkLink "codex/skills";
       ".codex/rules/base.rules".source = mkLink "codex/rules/base.rules";
       ".codex/agents".source = mkLink "codex/agents";
+      ".codex/hooks.json".source = mkLink "codex/hooks.json";
     };
   };
 }
