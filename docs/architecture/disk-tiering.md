@@ -32,7 +32,9 @@ zstd の圧縮も付けているが、対象の多く（jpg、mp4、mp3、PDF）
 fileSystems は `{ subvol, path, opts }` のリストから生成し、device と fsType を一か所にまとめる。
 
 `@papis` は `~/sagyo/memex/Assets/references`（NVMe の vault の clone の中）にマウントする。
-papis のライブラリの場所は workflow の flake が `<vaultDir>/references` に固定しているので、マウントでその保存先だけを SATA に差し替える。
+papis のライブラリの場所は memex-nix が `<vaultDir>/Assets/references` に固定しているので、マウントでその保存先だけを SATA に差し替える。
+マウント先は memex-nix が読み取り専用で公開する `services.memex.papis.libraryDir` から作り、パスを書き写さない。memex-nix が場所を変えても、マウントが古い場所を指したまま残らない。
+papis を使わない構成（`services.memex.papis.enable` が偽）ではマウントしない。
 papis を vault の中に置くことと、SATA に置くことを両立させる形で、papis の層が保存先を知らない向き（[papis-gdrive-sync.md](./papis-gdrive-sync.md)）とも合う。
 
 ## `@papis` だけは vault があるときだけマウントする

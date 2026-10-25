@@ -20,7 +20,8 @@ let
   # 評価が無限再帰になる。NixOS の既定のホームの場所から作り、一致は assertion で確かめる。
   home = "/home/${settings.primaryUser}";
   vaultRoot = hm.local.profile.memexRoot;
-  papisDir = "${vaultRoot}/Assets/references";
+  papisOn = hm.services.memex.papis.enable;
+  papisDir = hm.services.memex.papis.libraryDir;
   # btrfs は FS 全体で 1 UUID。各 subvol は subvol= オプションで選ぶので全マウントで共有する。
   device = "/dev/disk/by-uuid/57ba3e14-4099-4708-a643-edfc45d3eb18";
 
@@ -77,14 +78,14 @@ in
 
     # papis ライブラリは vault(Obsidian)配下の Assets/references/ に置く方針(vault で完結)。マウント先を
     # vault の中にすることで、実体は SATA(コールド/バルク層)のまま、論理的には vault の 1 フォルダに
-    # 見える。同期は services.memex.papis が所有する(同じパスを見ている)。
+    # 見える。パスは同期を所有する memex-nix が決めるので、書き写さずに papis.libraryDir から読む。
     #
     # ここだけ fileSystems ではなく systemd.mounts なのは、mount 先の親が vault の clone だから。
     # 無条件に mount すると systemd が clone より先に root 所有の中間ディレクトリを作り、
     # clone-repos の git clone が「空でない」「書けない」で失敗する。vault が実在するとき
     # (= .git がある)だけ mount することで、clone → mount の順序を条件で表現する。
     # 初回 clone の後は、下の path unit が .git の出現を見て mount を始める。
-    systemd.mounts = [{
+    systemd.mounts = lib.optional papisOn {
       what = device;
       where = papisDir;
       type = "btrfs";
@@ -94,8 +95,8 @@ in
       options = lib.concatStringsSep "," ([ "subvol=@papis" ] ++ dataOpts ++ [ "nofail" ]);
       unitConfig.ConditionPathExists = "${vaultRoot}/.git";
       wantedBy = [ "local-fs.target" ];
-    }];
-    systemd.paths.papis-references = {
+    };
+    systemd.paths.papis-references = lib.mkIf papisOn {
       wantedBy = [ "multi-user.target" ];
       pathConfig = {
         PathExists = "${vaultRoot}/.git";
