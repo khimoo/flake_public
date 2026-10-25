@@ -51,7 +51,7 @@ let
     # 付けなければ venv から ml のパッケージを消さないので、venv は分けずに済む。
     text = ''
       case "''${1-}" in
-        ocr | embed | search | serve) extra=(--extra ml) ;;
+        ocr | embed | tag | search | serve) extra=(--extra ml) ;;
         *) extra=() ;;
       esac
       run=(xsaved-env uv run --project ${lib.escapeShellArg cfg.projectDir} "''${extra[@]}" --frozen xsaved "$@")
