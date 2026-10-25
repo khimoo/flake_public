@@ -87,7 +87,10 @@ in
       what = device;
       where = "${vaultRoot}/Assets/references";
       type = "btrfs";
-      options = lib.concatStringsSep "," ([ "subvol=@papis" ] ++ dataOpts);
+      # nofail は失敗を許すためではなく、systemd が付ける暗黙の Before=local-fs.target を外すために付ける。
+      # 外さないと、sysinit.target の後に起動する下の path unit がこのマウントより前に並び、起動順序が循環する
+      # (docs/architecture/disk-tiering.md)。
+      options = lib.concatStringsSep "," ([ "subvol=@papis" ] ++ dataOpts ++ [ "nofail" ]);
       unitConfig.ConditionPathExists = "${vaultRoot}/.git";
       wantedBy = [ "local-fs.target" ];
     }];
