@@ -1,25 +1,24 @@
 # CLI ツールガイド
 
-ターミナル環境で使う CLI ツールの使いこなしドキュメント。
+ターミナル環境で活用する各種 CLI ツールの実践ガイドです。
 
 ## ツール一覧
 
 | カテゴリ | ツール | 説明 | ドキュメント |
 |----------|--------|------|-------------|
 | ファイルマネージャ | yazi | TUI ファイルマネージャ | [yazi.md](./yazi.md) |
-| ターミナル | kitty | 端末の操作 | [kitty.md](./kitty.md) |
-| Git UI | lazygit | Git の TUI クライアント | [lazygit.md](./lazygit.md) |
-| AI リモート操作 | Happy | スマホから Codex を操作する | [happy.md](./happy.md) |
-| AI エージェント | Antigravity CLI (agy) | 日本語の校正の予備の経路 | [antigravity-cli.md](./antigravity-cli.md) |
-| Python | uv-mode | uv が取得する Python と wheel を動かす環境 | [uv-mode.md](./uv-mode.md) |
-| Python | mimikopi-env | 耳コピの ML モデルを動かす環境 | [mimikopi-env.md](./mimikopi-env.md) |
-| シェルツール | fzf, eza, zoxide, fd, rg, bat, btm, direnv, jq, xh | 日常の CLI ツール | [shell-tools.md](./shell-tools.md) |
-| Nix | comma (`,`), nix-locate | 入っていないコマンドを一度だけ実行し、所属パッケージを調べる | [comma.md](./comma.md) |
-| PDF ビューア | tdf | 端末内の PDF 表示 | [shell-tools.md#tdf](./shell-tools.md#tdf) |
+| ターミナル | kitty | ターミナルエミュレータの操作 | [kitty.md](./kitty.md) |
+| Git UI | lazygit | Git 向け TUI クライアント | [lazygit.md](./lazygit.md) |
+| AI リモート操作 | Happy | スマートフォンから Codex を遠隔操作 | [happy.md](./happy.md) |
+| AI エージェント | Antigravity CLI (agy) | 日本語校正用のフォールバック経路 | [antigravity-cli.md](./antigravity-cli.md) |
+| Python | mimikopi-env | 耳コピ用 ML モデルの実行環境 | [mimikopi-env.md](./mimikopi-env.md) |
+| シェルツール | fzf, eza, zoxide, fd, rg, bat, btm, direnv, jq, xh | 日常的に使用する各種 CLI ツール | [shell-tools.md](./shell-tools.md) |
+| Nix | comma (`,`), nix-locate | 未インストールコマンドの一時実行とパッケージ検索 | [comma.md](./comma.md) |
+| PDF ビューア | tdf | ターミナル内での PDF 閲覧 | [shell-tools.md#tdf](./shell-tools.md#tdf) |
 
 ## シェルエイリアス (core.nix)
 
-日常的に使うコマンドはモダンな代替ツールに置き換え済み。
+日常的に使う標準コマンドは、モダンな代替ツールに置き換えています。
 
 | 元コマンド | エイリアス | ツール |
 |-----------|-----------|--------|
@@ -31,56 +30,56 @@
 | `top` | `btm` | bottom |
 | `cd` | `z` | zoxide |
 
-> `yazi` は `y` 関数で起動する（終了時にディレクトリを追従する）。直接 `yazi` でも起動できるがディレクトリ追従なし。
+> `yazi` は `y` 関数経由で起動してください（終了時にカレントディレクトリが追従します）。`yazi` コマンドで直接起動した場合はディレクトリの追従が行われません。
 
 ---
 
 ## ワークフロー
 
-### 1. プロジェクトに入って作業を始める
+### 1. プロジェクトへの移動と作業開始
 
 ```bash
-z myproject          # zoxide: 過去に訪問した "myproject" に cd
+z myproject          # zoxide: 履歴にある "myproject" へ cd
 direnv allow         # 初回のみ: devShell を有効化 (.envrc がある場合)
-# → 自動で devShell の環境変数・ツールが読み込まれる
-y                    # yazi でファイル構造を確認、Enter で開く
+# → devShell の環境変数やツールが自動ロードされる
+y                    # yazi でディレクトリ構造を確認、Enter でファイルを開く
 nvim .               # エディタで開く
 ```
 
 → [zoxide](./shell-tools.md#zoxide), [direnv](./shell-tools.md#direnv), [yazi](./yazi.md)
 
 
-### 2. ファイルを探す・内容を検索する
+### 2. ファイルやコンテンツの検索
 
 ```bash
-# ファイル名で探す
-fd pattern                    # カレント以下を再帰検索
+# ファイル名で検索
+fd pattern                    # カレントディレクトリ以下を再帰検索
 fd -e rs                      # 拡張子で絞り込み
-fd -H pattern                 # 隠しファイルも含める
+fd -H pattern                 # 隠しファイルも含めて検索
 
-# ファイル内容を検索する
-rg "pattern"                  # カレント以下を grep
+# ファイル内容を検索
+rg "pattern"                  # カレントディレクトリ以下を grep 検索
 rg "pattern" -t rust          # ファイルタイプで絞り込み
 rg "pattern" -g "*.toml"      # glob パターンで絞り込み
 
-# インタラクティブに絞り込む
-Ctrl+T                        # fzf: ファイルを選んでコマンドラインに挿入
-Ctrl+R                        # fzf: コマンド履歴を検索
-Alt+C                         # fzf: ディレクトリを選んで cd
+# インタラクティブな絞り込み
+Ctrl+T                        # fzf: 選択したファイルをコマンドラインに挿入
+Ctrl+R                        # fzf: コマンド履歴をインクリメンタル検索
+Alt+C                         # fzf: 選択したディレクトリへ cd
 ```
 
 → [fd, ripgrep, fzf](./shell-tools.md)
 
-### 3. ファイル内容を確認する
+### 3. ファイル内容・一覧の確認
 
 ```bash
 cat file.rs                   # bat: シンタックスハイライト付きで表示
-cat -p file.rs                # bat: ページャー付き (長いファイル)
-cat -A file.rs                # bat: 全装飾 (行番号+Git差分マーク)
+cat -p file.rs                # bat: ページャー経由で閲覧 (長いファイル向け)
+cat -A file.rs                # bat: 行番号や Git 差分マークなどの全装飾付きで表示
 
-ll                            # eza: ファイル一覧 (サイズ, 権限, Git状態)
-la                            # eza: 隠しファイル含む
-eza -l --tree --level=2       # ツリー表示 (2階層まで)
+ll                            # eza: ファイル一覧 (サイズ・権限・Git 状態を表示)
+la                            # eza: 隠しファイルを含めて一覧表示
+eza -l --tree --level=2       # ツリー形式で表示 (2階層まで)
 ```
 
 → [bat, eza](./shell-tools.md)
@@ -88,9 +87,9 @@ eza -l --tree --level=2       # ツリー表示 (2階層まで)
 ### 4. Git 操作
 
 ```bash
-lazygit                       # TUI で Git 操作 (ステージ, コミット, push)
-git diff                      # delta: side-by-side diff が自動適用
-git log                       # delta: commit ログも装飾付き
+lazygit                       # TUI 上でステージ・コミット・push などの Git 操作を実行
+git diff                      # delta: side-by-side diff を自動適用
+git log                       # delta: コミットログを見やすく装飾して表示
 ```
 
 → [lazygit](./lazygit.md)
@@ -98,8 +97,8 @@ git log                       # delta: commit ログも装飾付き
 ### 5. システム監視
 
 ```bash
-top                           # bottom: プロセス/CPU/メモリ監視
-# → btm 内で Tab キーでウィジェット切替, / で検索
+top                           # bottom: プロセス、CPU、メモリ等のリアルタイム監視
+# → btm 内では Tab キーでウィジェット切り替え、/ でプロセス検索
 ```
 
 → [bottom](./shell-tools.md#bottom)
@@ -108,20 +107,20 @@ top                           # bottom: プロセス/CPU/メモリ監視
 ### 6. HTTP リクエスト (API テスト)
 
 ```bash
-xh GET https://api.example.com/users     # curl 代替: カラフルな出力
+xh GET https://api.example.com/users     # curl の代替: カラー出力で見やすく表示
 xh POST https://api.example.com/users \
-  name=john email=john@example.com        # JSON ボディを簡潔に指定
-xh :8080/api/health                       # localhost 省略形
+  name=john email=john@example.com        # JSON リクエストボディを簡潔に指定
+xh :8080/api/health                       # localhost:8080 の短縮記法
 ```
 
 → [xh](./shell-tools.md#xh)
 
 
-### 7. ノイズ再生 (集中用)
+### 7. 環境音・ノイズ再生 (集中用)
 
 ```bash
-noise                         # ~/音楽/noise/ をシャッフル再生 (音量50)
-noise ~/音楽/rain 30          # ディレクトリと音量を指定
+noise                         # ~/音楽/noise/ をシャッフル再生 (デフォルト音量: 50)
+noise ~/音楽/rain 30          # ディレクトリと音量を指定して再生
 ```
 
-> `noise` は bash 関数として定義 (core.nix)。mpv をバックグラウンドで使用。
+> `noise` は bash 関数として定義されています (core.nix)。内部で mpv をバックグラウンド実行します。

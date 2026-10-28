@@ -1,6 +1,5 @@
 # 耳コピ（楽曲の自動採譜）のスキルが使う ML モデルを、uv が取得する Python と manylinux wheel で動かす環境。
-# uv-mode と同じ仕組みだが、ROCm 版の PyTorch が要るライブラリを足し、データを dataDir の subvol に寄せる。
-# 影響を耳コピだけに閉じるため uv-mode には混ぜない。設計判断: docs/architecture/mimikopi-env.md
+# データは dataDir の subvol に寄せる。設計判断: docs/architecture/mimikopi-env.md
 { lib, buildFHSEnv, writeShellScript, dataDir, hsaOverrideGfxVersion ? null }:
 
 buildFHSEnv {

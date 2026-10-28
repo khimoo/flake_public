@@ -270,7 +270,7 @@ lib.genAttrs systems (
       assert !(home.config.home.activation ? rustowl);
       assert !(builtins.any (p: (p.pname or "") == "rustowl") home.config.home.packages);
       assert home.config.local.neovim.features.rustowl.enable == (system == "x86_64-linux");
-      assert (hasLauncher home.config "uv-mode") == (lib.hasSuffix "-linux" system);
+      assert !(home.config.programs.uv.settings ? python-preference);
       assert !(mkTestHome system [{ local.rustowl.enable = false; }]).config.local.neovim.features.rustowl.enable;
       assert !(hasLauncher home.config "cargo-remote-run");
       assert hasLauncher (mkTestHome system [
@@ -419,13 +419,16 @@ lib.genAttrs systems (
       assert builtins.any (p: (p.pname or "") == "kitty") wslUser.home.packages;
       assert wsl.wsl.startMenuLaunchers;
       assert !(hasLauncher wslUser "agent-sync");
-      assert hasLauncher wslUser "uv-mode";
+      # uv が取得した Python だけを使わせる設定は、nix-ld があって初めて意味を持つ。
+      assert wsl.programs.nix-ld.enable;
+      assert wslUser.programs.uv.settings.python-preference == "only-managed";
       "nixos-work-wsl contracts passed";
     # デスクトップ（nixos-desktop）の実際の構成に固有の確認。
     desktopContracts =
       assert activationDepsExist desktopUser.home.activation;
       assert builtins.elem "L+ /etc/nixos - - - - /home/pomu/sagyo/flake_public"
         inputs.self.nixosConfigurations.nixos-desktop.config.systemd.tmpfiles.rules;
+      assert !(desktopUser.programs.uv.settings ? python-preference);
       # Windows VM のランチャーはデスクトップだけで有効にする。
       assert hasLauncher desktopUser "windows-vm";
       assert desktopUser.local.windowsVm.domain == "win11";

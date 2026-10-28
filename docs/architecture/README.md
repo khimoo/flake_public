@@ -41,4 +41,4 @@ Flake 設定の設計判断・実装構造のドキュメント。設定変更�
 | [quaderno.md](./quaderno.md) | Quaderno からの手書き PDF の取り込みの設計 |
 | [xsaved.md](./xsaved.md) | X のいいねとブックマークの保存と意味検索の実行環境、データベース、定期実行の設計 |
 
-小さな機能（agy、comma、Graphify、Inkscape、uv-mode）は、使い方の文書の「設計」の節に判断を書く（[使い方ガイド](../howtouse/README.md)）。
+小さな機能（agy、comma、Graphify、Inkscape）は、使い方の文書の「設計」の節に判断を書く（[使い方ガイド](../howtouse/README.md)）。

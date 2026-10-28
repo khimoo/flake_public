@@ -32,7 +32,7 @@ let
           echo "単発で使うなら: nix shell nixpkgs#$best -c $cmd ...（候補: $candidates）"
         fi
         case $cmd in
-          pip | pip3) echo "Nix の Python には pip install できない。uv（PyPI の wheel を使うなら uv-mode）か devShell を使う。" ;;
+          pip | pip3) echo "Nix の Python には pip install できない。uv か devShell を使う。" ;;
         esac
       } >&2
       return 127

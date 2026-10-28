@@ -14,5 +14,9 @@
   # ユーザーのプロファイルにある kitty などをそこへ写させる。
   wsl.startMenuLaunchers = true;
 
+  # 会社の Python プロジェクトで、uv が取得する Python と PyPI の manylinux wheel を動かす。
+  # Home Manager の uv の設定がこの値を読む（docs/architecture/wsl.md）。
+  programs.nix-ld.enable = true;
+
   local.restrictedHost.enable = true;
 }

@@ -96,6 +96,33 @@ Slack などの自動起動は `graphical-session.target` に結び付いてい�
 kitty の remote control はローカルのソケット（`unix:${XDG_RUNTIME_DIR}/kitty.sock`）だけを使うので、`local.restrictedHost` の制限は変えない。
 描画は mesa のソフトウェア描画のままにし、遅いと感じたら `wsl.useWindowsDriver` で Windows の GPU ドライバーを使う。
 
+## uv が取得する Python を nix-ld で動かす
+
+会社の Python プロジェクトは uv で依存を固定し（`uv.lock`）、Python 3.8 から 3.14 までの互換性を確かめる。
+uv が取得する Python（python-build-standalone）と PyPI の manylinux wheel は一般的な Linux 向けに動的リンクされていて、NixOS にはローダーの `/lib64/ld-linux-x86-64.so.2` がないので起動しない。
+このホストでは `programs.nix-ld.enable` で nix-ld を入れ、どのシェルからでも動くようにする。
+
+Nix の python3 で venv を作る案は退けた。nixpkgs 26.05 には Python 3.8 がなく、wheel のバイナリが `libstdc++.so.6` を見つけられない。
+2026-10-14 に nixos-desktop で、Nix の Python 3.13 に入れた shapely 2.1.2 の import が `ImportError: libstdc++.so.6: cannot open shared object file` で失敗した。
+nix-ld はこの場合を助けない。Nix の Python は `/nix/store` のローダーを使うので、nix-ld を経由しない。
+
+uv が取得した Python だけを使わせるため、[core.nix](../../modules/home-manager/core.nix) は nix-ld のあるホストで `programs.uv.settings.python-preference` を `only-managed` にする。
+uv の既定の `managed` は、取得済みの Python がないと、ダウンロードより PATH 上の Python を優先する（uv の文書の「Python versions」）。PATH には core.nix の Nix の python3 があるので、そのままでは上の venv ができる。
+逆に `only-managed` は、nix-ld がないと起動できない Python しか選ばない。二つは一緒にしか意味がないので、uv の設定は NixOS の `programs.nix-ld.enable` から導き、ホストで切り替えるのは nix-ld だけにする。
+環境変数の `UV_PYTHON_PREFERENCE` ではなく uv の設定ファイル（`~/.config/uv/uv.toml`）に書くのは、環境変数がログインシェルから起動したプロセスにしか設定されないから。
+
+nix-ld の代償は、uv 以外のダウンロードしたビルド済みバイナリもホスト全体で動くようになり、Nix の管理外のものが入り込んでも起動の失敗で気づけなくなること。
+Nix でビルドしたプログラムには影響しない。ローダーと RUNPATH が `/nix/store` を指していて `/lib64` を使わず、nix-ld はライブラリを `/usr/lib` ではなく `NIX_LD_LIBRARY_PATH` で自分にだけ渡す。
+nix-ld 2.0.6 は、外部のバイナリのために設定した `LD_LIBRARY_PATH` をそのプログラムの実行が始まる前に戻すので、子プロセスにも伝わらない（`src/main.rs` の entry trampoline）。
+
+退けた案と理由:
+
+- buildFHSEnv の環境に入って作業する: 一般的なバイナリが動く範囲をその環境に閉じられるが、`.venv` の Python を使う処理（テスト、CLI、エディタの LSP）をすべて環境の中で起動する必要があり、入り忘れると失敗する。環境の中では `/etc` が置き換わり、`sudo` が失敗する
+- プロジェクトに `shell.nix` や `flake.nix` を置く: リポジトリは Nix を使わない同僚と共有するので、自分しか保守できないファイルを残すことになる
+- direnv で devShell に入る: direnv は環境変数を読み込むだけで、ローダーを用意できない
+
+デスクトップでは nix-ld を有効にしない（[mimikopi-env.md](./mimikopi-env.md#buildfhsenv-で動かす)）。
+
 ## 見直す条件
 
 - 会社 PC ではなく個人の PC で使うことになったら、制限を外し、age 鍵、秘密、tailnet を入れ直す

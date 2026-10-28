@@ -7,7 +7,7 @@
 
 耳コピ（楽曲の自動採譜）のスキルは、音源分離と採譜の ML モデル（basic-pitch、Transkun、YourMT3+ など）を、モデルごとに分けた uv の環境で動かす。
 モデルによって PyTorch と TensorFlow のどちらを使うか、どの版を要求するかが違うので、一つの環境には同居させられない。
-どのモデルも PyPI の manylinux wheel で入るため、NixOS では [uv-mode](../howtouse/cli-tools/uv-mode.md) と同じく FHS 環境の中でしか動かない。
+どのモデルも PyPI の manylinux wheel で入るため、NixOS では FHS 環境の中でしか動かない。
 
 ## 確かめた結果
 
@@ -21,11 +21,11 @@
 - `mimikopi-env` の中では、`LD_LIBRARY_PATH` を使わずに、uv が取得した Python 3.11 の torch 2.9.1+rocm6.4 で同じ行列積と Conv1d が GPU で通った。
 - uv のキャッシュは `du` で 15GB だったが、sda1 の使用量は約 5GB しか増えなかった。`compress=zstd` で ROCm のライブラリが縮むためと考えられる。
 
-## FHS 環境を uv-mode と分ける
+## buildFHSEnv で動かす
 
-[packages/mimikopi-env](../../packages/mimikopi-env/default.nix) は uv-mode と同じ形の buildFHSEnv で、`targetPkgs` に ROCm 版の torch が読むライブラリと、音声の読み込みに使う `ffmpeg` を足している。
-uv-mode に足せば定義は一つで済むが、耳コピ以外で uv-mode を使うときにも、これらのライブラリが環境に入る。
-影響を耳コピだけに閉じるため別の環境にした。代わりに、uv-mode とほぼ同じ定義をもう一つ保守する。
+[packages/mimikopi-env](../../packages/mimikopi-env/default.nix) は buildFHSEnv で、ROCm 版の torch が読むライブラリと `ffmpeg` を FHS の配置に並べる。
+nix-ld をこのホストで有効にする案は退けた。uv が取得する Python に限らず、ダウンロードしたビルド済みのバイナリがホスト全体で動くようになり、Nix の管理外のものが入り込んでも起動の失敗で気づけなくなる。
+会社 PC では nix-ld を有効にしている（[wsl.md](./wsl.md#uv-が取得する-python-を-nix-ld-で動かす)）。
 
 環境の中では、uv のキャッシュ（`UV_CACHE_DIR`）、uv が取得する Python（`UV_PYTHON_INSTALL_DIR`）、Hugging Face と PyTorch のチェックポイント（`HF_HOME`、`TORCH_HOME`）をデータディレクトリに向ける。
 uv はキャッシュから環境へハードリンクで展開するので、キャッシュと環境を同じファイルシステムに置くと、同じ版の torch を複数のモデルの環境で共有できる。
@@ -51,11 +51,9 @@ subvol は手で作るので、作る前に switch や再起動をすると、�
 検証中にルートを埋めかけたので、`mimikopi-env` は起動時に `mountpoint -q` でデータディレクトリを確かめ、マウントされていなければ止まる。
 [tests/default.nix](../../tests/default.nix) は `nofail` が付いていることを確かめる。
 
-nix-ld をシステムで有効にする案は、[uv-mode](../howtouse/cli-tools/uv-mode.md#設計) と同じ理由で退けた。
-
 ## 代償
 
-モデルの環境の Python を実行するものは、`mimikopi-env` の中で起動する必要がある（uv-mode と同じ）。
+モデルの環境の Python を実行するものは、`mimikopi-env` の中で起動する必要がある。
 `@mimikopi` がマウントされていない間は、`mimikopi-env` は何も実行せずに止まる。
 
 ## 未確定
