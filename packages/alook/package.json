@@ -1,0 +1,9 @@
+{
+  "name": "alook-nix",
+  "version": "0.1.60",
+  "private": true,
+  "dependencies": {
+    "@alook/app": "0.1.60",
+    "quickjs-emscripten": "0.32.0"
+  }
+}

@@ -14,9 +14,10 @@
     ];
   };
 
-  # gemini-proofread が Gemini の API で校正できないときの予備の経路。
-  # 版を固定しているのは x86_64-linux の配布物だけなので、macOS には入れない。
   home.packages = lib.optionals (pkgs.stdenv.hostPlatform.system == "x86_64-linux") [
+    # gemini-proofread が Gemini の API で校正できないときの予備の経路。
+    # 版を固定しているのは x86_64-linux の配布物だけなので、macOS には入れない。
     (pkgs.callPackage ../../packages/antigravity-cli { })
+    (pkgs.callPackage ../../packages/alook { })
   ];
 }

@@ -10,6 +10,7 @@
 | ターミナル | kitty | ターミナルエミュレータの操作 | [kitty.md](./kitty.md) |
 | Git UI | lazygit | Git 向け TUI クライアント | [lazygit.md](./lazygit.md) |
 | AI リモート操作 | Happy | スマートフォンから Codex を遠隔操作 | [happy.md](./happy.md) |
+| AI Web UI | Alook | ローカル Web UI とサーバーの起動・停止・更新 | [alook.md](./alook.md) |
 | AI エージェント | Antigravity CLI (agy) | 日本語校正用のフォールバック経路 | [antigravity-cli.md](./antigravity-cli.md) |
 | Python | mimikopi-env | 耳コピ用 ML モデルの実行環境 | [mimikopi-env.md](./mimikopi-env.md) |
 | シェルツール | fzf, eza, zoxide, fd, rg, bat, btm, direnv, jq, xh | 日常的に使用する各種 CLI ツール | [shell-tools.md](./shell-tools.md) |

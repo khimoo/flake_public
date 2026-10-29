@@ -1,0 +1,20 @@
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -147,5 +147,5 @@
+ // src/lib/install.ts
+-import { cpSync, existsSync, lstatSync, mkdirSync, readdirSync } from "fs";
++import { chmodSync, cpSync, existsSync, lstatSync, mkdirSync, readdirSync } from "fs";
+ import { dirname, join as join2, relative } from "path";
+ import { fileURLToPath } from "url";
+ 
+@@ -218,6 +218,10 @@
+   const src = bundledDir();
+   mkdirSync(SELF_HOSTED_DIR, { recursive: true });
+   cpSync(src, SELF_HOSTED_DIR, { recursive: true });
++  for (const file of bundledFiles(src)) {
++    const destination = join2(SELF_HOSTED_DIR, file);
++    chmodSync(destination, lstatSync(destination).mode | 0o200);
++  }
+   console.log(`Installed to ${SELF_HOSTED_DIR}`);
+ }
+ 
