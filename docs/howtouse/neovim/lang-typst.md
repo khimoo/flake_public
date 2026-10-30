@@ -24,6 +24,17 @@ PDF は `report.typ` と同じディレクトリに `report.pdf` として出力
 
 `:TypstPreviewUpdate` は使用しない。このコマンドを実行すると tinymist と websocat が Nix store の外部にダウンロードされてしまうため、nixpkgs 版を使うように設定して無効化している。
 
+## spin713 から desktop の文書をプレビューする
+
+desktop で編集している文書を、spin713 のブラウザでプレビューできる。
+
+1. spin713 で `ssh desktop-preview` を実行して desktop に入る。この接続名は desktop のポート 23625 を spin713 の同じポートへ転送する。
+2. desktop の nvim で `:TypstPreview` を実行する。ssh で入った nvim では、プレビューはポート 23625 で起動し、desktop 側のブラウザは開かない。
+3. spin713 のブラウザで `http://127.0.0.1:23625` を開く。
+
+ssh で入ったかどうかは、nvim の環境変数 `SSH_CONNECTION` で判定する。
+ポートは 1 つに固定しているので、ssh で入った nvim から同時に開けるプレビューは 1 つだけ。`desktop-preview` の接続を 2 本開くと、2 本目はポートの転送に失敗する（ssh 自体はつながる）。
+
 ## 分割した文書を編集する
 
 `#include` されている子ファイルを開いている場合でも、診断やプレビューは文書全体の起点となるファイルからコンパイルされる。
