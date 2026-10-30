@@ -35,6 +35,29 @@ DB・秘密情報・ログは `~/.alook/self-hosted/` に保存される。
 画面が表示されても一部サービスが動かず、サービスのログに `SQLITE_BUSY` がある場合は、
 共有 DB の起動時の競合を解消するため `alook-app stop` の後に `alook-app start` で全体を再起動する。
 
+## 別の PC から開く
+
+`alook-open` は、手元または別の PC の Alook をブラウザで開く。
+spin713 では [home.nix](../../../hosts/nixos-spin713/home.nix) の `local.alookOpen` で有効にしている。
+
+| コマンド | 開く Alook |
+|----------|-----------|
+| `alook-open local` | このPCの Alook |
+| `alook-open desktop-local` | desktop の Alook。LAN の `ssh desktop` で転送する |
+| `alook-open desktop-ts` | desktop の Alook。tailnet の `ssh desktop-ts` で転送する |
+| `alook-open` | 接続先の一覧を表示する |
+
+別の PC を指定すると、ssh でその PC のポート 15210 を手元の 15210 へ転送してから開く。
+ssh の接続はコマンドが終わった後も切らずに残す。次に同じ接続先を指定したときは、新しく接続せず、残っている接続でそのままブラウザを開く。
+接続先の PC が応答しなくなると、約 30 秒で転送が閉じる。
+接続に失敗したときは、ssh のエラーを表示して終了する。別の接続先へは切り替えない。
+
+Alook のログインは `http://localhost:15210` から開いたときだけ受け付けられるので、どの接続先も同じアドレスで開く。
+このため、このPCの Alook と別の PC への転送は同時に使えない。
+接続先を切り替えると、それまでの転送を閉じる。
+このPCで Alook を起動しているときに別の PC を開くには、先に `alook-app stop` で止める。
+ログインの情報もブラウザの中で接続先どうしで共有されるので、切り替えた後はログインし直すことがある。
+
 ## 更新と復旧
 
 1. `alook-app stop` でサーバーを停止し、`~/.alook/self-hosted/` 全体を安全な場所へバックアップする。
