@@ -19,6 +19,7 @@
 | 定期実行の失敗の通知 | ユーザーの定期実行が失敗したときの通知と確認 | [failure-notify.md](./failure-notify.md) |
 | デスクトップの Windows VM | Windows VM の起動と操作 | [windows-vm.md](./windows-vm.md) |
 | 音声 | 通話用エコーキャンセルの選択と確認 | [audio-echo-cancel.md](./audio-echo-cancel.md) |
+| JJazzLab | 伴奏生成アプリの音の確認とバージョンの上げ方 | [jjazzlab.md](./jjazzlab.md) |
 | CLI ツール | シェル環境と CLI ツール | [cli-tools/README.md](./cli-tools/README.md) |
 | kitty | 端末の操作 | [cli-tools/kitty.md](./cli-tools/kitty.md) |
 | Neovim | Neovim のプラグインとキー操作 | [neovim/README.md](./neovim/README.md) |
