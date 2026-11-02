@@ -609,6 +609,22 @@ lib.genAttrs systems (
       python ${./graphify-smoke.py}
       touch "$out"
     '';
+    alook-open =
+      if system != "x86_64-linux" then
+        pkgs.runCommand "alook-open-skipped" { } "touch $out"
+      else
+        let
+          alookOpen = lib.findFirst (p: (p.name or "") == "alook-open")
+            (throw "alook-open is not installed")
+            inputs.self.nixosConfigurations.nixos-spin713.config.home-manager.users.pomu.home.packages;
+        in
+        pkgs.runCommand "alook-open" {
+          nativeBuildInputs = [ pkgs.python3 pkgs.bash pkgs.coreutils pkgs.util-linux ];
+          buildInputs = [ alookOpen ];
+        } ''
+          python ${./alook-open.py} ${../modules/home-manager/dev/alook-open.sh}
+          touch "$out"
+        '';
     cargo-remote-run =
       pkgs.runCommandCC "cargo-remote-run"
         {
