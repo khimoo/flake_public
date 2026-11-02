@@ -131,6 +131,21 @@ nixos-rebuild build --flake .#<ホスト> --build-host desktop-ts --use-substitu
 - `ping: nixos-desktop.local: System error`: 初回は Avahi のキャッシュが空なだけの場合があるため、数秒待ってから再試行してください。
 - `nixos-desktop.local` が `192.168.122.*` に解決される: デスクトップ側の libvirt 仮想ブリッジでもホスト名がアドバタイズされています。デスクトップ上で `getent hosts nixos-desktop.local` を実行し、LAN 側（`192.168.11.*`）以外が返される場合は、`modules/nixos/ssh.nix` に `services.avahi.denyInterfaces = [ "virbr0" "vnet*" ];` を追加してください。
 
+## 別のマシンから switch する（`--target-host`）
+
+デスクトップの flake_public のチェックアウトで次を実行すると、評価とビルドをデスクトップで行い、結果を spin713 にコピーして切り替えます。
+適用されるのはデスクトップのチェックアウトの内容です。
+
+```sh
+nixos-rebuild switch --flake .#nixos-spin713 --target-host pomu@nixos-spin713.local \
+  --sudo --ask-sudo-password
+```
+
+実行すると最初に spin713 の `pomu` の sudo パスワードを聞かれます。
+spin713 で実行されるアクティベートのコマンドは、NOPASSWD の対象（[users.nix](../../modules/nixos/users.nix) の `nixos-rebuild` だけ）に入らないためです。
+
+`nixos-spin713.local` は Avahi（mDNS）で解決するので、両方のマシンが同じ LAN にいるときだけ使えます。
+
 ## ホストを追加する
 
 デスクトップでビルドを行うホストを追加するときは、次の手順で進めます。
