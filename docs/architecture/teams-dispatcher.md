@@ -21,6 +21,7 @@ Junction 自体に URL フィルタリング機能がないため、シェルス
 
 `x-scheme-handler/https` をディスパッチャに向けると、Firefox が `mimeapps.list` を参照して HTTPS をディスパッチャに委譲 → ディスパッチャが Firefox を開く → 無限ループになる。
 `firefox.nix` で `network.protocol-handler.expose.{http,https} = true` を設定し、Firefox 自身に HTTP/HTTPS を内部処理させることで回避している。
+あわせて `network.protocol-handler.expose-all = true` も宣言している。これを `false` にすると、`expose.*` に書いたスキーム以外（`blob:` のダウンロードなど）がすべて外部プログラムへ回り、ダウンロードできなくなる。
 
 **検証時の注意:** この設定は `user.js` 経由で適用されるため、rebuild 後に Firefox の再起動が必要。
 
