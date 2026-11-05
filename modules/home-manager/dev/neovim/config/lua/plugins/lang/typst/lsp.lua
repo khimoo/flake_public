@@ -1,6 +1,7 @@
 -- tinymist の override。features/lsp.lua の opts.servers に deep-merge される。
 -- optional なので、lsp 機能を外すとこの spec も外れる。
 local main_file = require("plugins.lang.typst.main_file")
+local output_path = require("plugins.lang.typst.output_path")
 
 local group = vim.api.nvim_create_augroup("TypstPinMain", { clear = true })
 
@@ -35,10 +36,14 @@ return {
     servers = {
       tinymist = {
         settings = {
-          -- 出力先は既定 ($dir/$name) のままにして .typ の隣に PDF を置く。
+          -- sshfs 上以外では出力先を既定 ($dir/$name) のままにして .typ の隣に PDF を置く。
           -- tdf が同じパスを開いたまま hot reload する運用のため。
           exportPdf = "onType",
         },
+        before_init = function(_, config)
+          local root = config.root_dir or vim.fs.dirname(vim.api.nvim_buf_get_name(0))
+          config.settings.outputPath = output_path.resolve(root)
+        end,
         on_attach = function(client, bufnr)
           pin_main(client, bufnr)
 
