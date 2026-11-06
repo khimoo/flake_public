@@ -64,7 +64,7 @@ PDF は増え続ける一方で読むのは時々なので SATA に置く（最�
 
 ## memex-nix に載せない
 
-workflow 側には添付と papis の Drive 同期があり、取り込み先を vault の下にすれば Drive へ運べる。
+workflow 側には vault の資料の Drive 同期があり、取り込み先を vault の下にすれば Drive へ運べる。
 しかし既存の同期は `rclone bisync` だけで片方向の `copy` がなく、Drive 側の削除が手元に伝わる。一方向にした判断と合わない。
 Drive への同期を自動化するときは、片方向の層を足してから workflow へ移す。
 移しやすいよう、モジュールは `local.quaderno` と `config.home.homeDirectory` 以外のこのリポジトリ固有の値を読まず、`archiveDir` に既定値を置かない。

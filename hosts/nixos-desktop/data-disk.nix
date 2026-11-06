@@ -3,8 +3,8 @@
 # 役割分担（速度で 2 層に分ける）:
 #   - NVMe (Samsung 980): ホットな領域。/ ・/nix/store ・swap ・開発作業（~/sagyo）・
 #     ビルドキャッシュ等、ランダム小 IO とレイテンシが効くものを置く。
-#   - SATA (このディスク): コールド/バルク/ネットワーク律速の領域。メディア・papis の
-#     Google Drive ミラー・VM イメージ・バックアップ退避先。SATA でも体感差が出ない
+#   - SATA (このディスク): コールド/バルク/ネットワーク律速の領域。メディア・
+#     VM イメージ・バックアップ退避先。SATA でも体感差が出ない
 #     ワークロードだけを追い出し、NVMe の容量を空ける。
 #
 # なぜ /nix/store をここに置かないか: store は rebuild/GC で数万個の小ファイルへ
@@ -13,15 +13,12 @@
 #
 # 設計判断: docs/architecture/disk-tiering.md
 # 使い方:   docs/howtouse/disk-tiering.md
-{ config, pkgs, lib, settings, utils, ... }:
+{ config, pkgs, lib, settings, ... }:
 let
   hm = config.home-manager.users.${settings.primaryUser};
   # fileSystems の名前を users.users から作ると、NFS の要否の判定を通って fileSystems に戻り、
   # 評価が無限再帰になる。NixOS の既定のホームの場所から作り、一致は assertion で確かめる。
   home = "/home/${settings.primaryUser}";
-  vaultRoot = hm.local.profile.memexRoot;
-  papisOn = hm.services.memex.papis.enable;
-  papisDir = hm.services.memex.papis.libraryDir;
   # btrfs は FS 全体で 1 UUID。各 subvol は subvol= オプションで選ぶので全マウントで共有する。
   device = "/dev/disk/by-uuid/57ba3e14-4099-4708-a643-edfc45d3eb18";
 
@@ -75,45 +72,6 @@ in
         options = [ "subvol=${m.subvol}" ] ++ m.opts;
       };
     }) mounts);
-
-    # papis ライブラリは vault(Obsidian)配下の Assets/references/ に置く方針(vault で完結)。マウント先を
-    # vault の中にすることで、実体は SATA(コールド/バルク層)のまま、論理的には vault の 1 フォルダに
-    # 見える。パスは同期を所有する memex-nix が決めるので、書き写さずに papis.libraryDir から読む。
-    #
-    # ここだけ fileSystems ではなく systemd.mounts なのは、mount 先の親が vault の clone だから。
-    # 無条件に mount すると systemd が clone より先に root 所有の中間ディレクトリを作り、
-    # clone-repos の git clone が「空でない」「書けない」で失敗する。vault が実在するとき
-    # (= .git がある)だけ mount することで、clone → mount の順序を条件で表現する。
-    # 初回 clone の後は、下の path unit が .git の出現を見て mount を始める。
-    systemd.mounts = lib.optional papisOn {
-      what = device;
-      where = papisDir;
-      type = "btrfs";
-      # nofail は失敗を許すためではなく、systemd が付ける暗黙の Before=local-fs.target を外すために付ける。
-      # 外さないと、sysinit.target の後に起動する下の path unit がこのマウントより前に並び、起動順序が循環する
-      # (docs/architecture/disk-tiering.md)。
-      options = lib.concatStringsSep "," ([ "subvol=@papis" ] ++ dataOpts ++ [ "nofail" ]);
-      unitConfig.ConditionPathExists = "${vaultRoot}/.git";
-      wantedBy = [ "local-fs.target" ];
-    };
-    systemd.paths.papis-references = lib.mkIf papisOn {
-      wantedBy = [ "multi-user.target" ];
-      pathConfig = {
-        PathExists = "${vaultRoot}/.git";
-        Unit = "${utils.escapeSystemdPath papisDir}.mount";
-      };
-    };
-    # papis-sync（memex-nix の user unit）は papisDir がディレクトリであることしか確かめない。vault がこの
-    # ディレクトリを追跡しているので、マウントの前や失敗したときも、同期は NVMe 側の空のディレクトリに対して動く。
-    # AssertPathIsMountPoint= では unit が failed にならず OnFailure の通知が出ないので、ExecStartPre で失敗させる。
-    home-manager.users.${settings.primaryUser} = { config, ... }: lib.mkIf config.services.memex.papis.enable {
-      systemd.user.services.papis-sync.Service.ExecStartPre = toString (pkgs.writeShellScript "papis-mount-check" ''
-        if ! ${pkgs.util-linux}/bin/mountpoint -q ${lib.escapeShellArg papisDir}; then
-          echo "papis-sync: ${papisDir} がマウントされていません" >&2
-          exit 1
-        fi
-      '');
-    };
 
     # @backup subvol は root 所有なので、そのままではユーザーのバックアップ処理が書き込めない。
     # 用途ごとのディレクトリを primaryUser 所有で用意する（@backup の直下は root のまま残し、

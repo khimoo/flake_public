@@ -36,7 +36,7 @@
       url = "github:sadjow/claude-code-nix";
       inputs.nixpkgs.follows = "nixpkgs-unstable";
     };
-    # memex(Obsidian vault)同期の mechanism(添付/papis の Drive 同期 + secret 暗号文の
+    # memex(Obsidian vault)同期の mechanism(vault のフィルタで選んだ資料の Drive 同期 + secret 暗号文の
     # 実行時復号)。flake_public は modules/home-manager/memex.nix で clone 位置だけ注入する。
     # mechanism は public repo に切り出したので github:(https 取得)で引く。ノート本文は別の
     # private repo。git+ssh をやめたことで、この flake の eval に SSH 鍵が要らなくなる。

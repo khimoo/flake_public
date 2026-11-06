@@ -13,7 +13,6 @@ store は switch、GC、optimise で数万の小さいファイルにランダ�
 
 ## SATA に移すのはディスクの速度が効かないデータだけ
 
-- papis のライブラリ: 同期はネットワーク（Google Drive）で律速される
 - 動画、音楽、画像、ダウンロード: 再生は数〜数十 MB/s で、SATA のシーケンシャル（約 550MB/s）に十分収まる
 - VM のイメージ: デスクトップ用途の VM は起動時にまとめて読み、その後はほとんど page cache に載る。VM の中で重いデータベースやビルドを動かすなら別
 - バックアップ: 一度書いて、まれにしか読まない
@@ -31,33 +30,10 @@ zstd の圧縮も付けているが、対象の多く（jpg、mp4、mp3、PDF）
 `~/ダウンロード` などを bind mount や symlink で間接にせず、subvol をそのパスへ直接マウントする。アプリから見たパスは変わらず、中身だけが SATA に載る。
 fileSystems は `{ subvol, path, opts }` のリストから生成し、device と fsType を一か所にまとめる。
 
-`@papis` は `~/sagyo/memex/Assets/references`（NVMe の vault の clone の中）にマウントする。
-papis のライブラリの場所は memex-nix が `<vaultDir>/Assets/references` に固定しているので、マウントでその保存先だけを SATA に差し替える。
-マウント先は memex-nix が読み取り専用で公開する `services.memex.papis.libraryDir` から作り、パスを書き写さない。memex-nix が場所を変えても、マウントが古い場所を指したまま残らない。
-papis を使わない構成（`services.memex.papis.enable` が偽）ではマウントしない。
-papis を vault の中に置くことと、SATA に置くことを両立させる形で、papis の層が保存先を知らない向き（[papis-gdrive-sync.md](./papis-gdrive-sync.md)）とも合う。
+## マウントの起動順序の循環は check で見つける
 
-## `@papis` だけは vault があるときだけマウントする
-
-`fileSystems` に書くと、systemd は起動時にマウント先を無条件に作り、root のものの中間ディレクトリができる。
-すると `clone-repos` の `git clone` が「空でないディレクトリ」で失敗し、`dest` があるので以後の実行では飛ばされて、vault が届かないまま気づけない。実際にこうなった。
-そこで `@papis` だけ `systemd.mounts` にし、`ConditionPathExists = "${memexRoot}/.git"` を付ける。
-clone の後は `.git` の出現を見る path unit がマウントを始めるので、再起動は要らない。
-条件が偽の間、`Assets/references/` は vault がないのと同じ状態なので、NVMe 側に書き込まれる事故は起きない。
-
-このマウントには `nofail` を付ける。
-systemd はローカルのマウントに暗黙の `Before=local-fs.target` を付け、`nofail` があるときだけ付けない（systemd 260.4 の `systemd.mount(5)`）。
-一方で path unit は既定の依存で `sysinit.target` の後に起動し、起動するマウントを自分の後に並べる。
-`local-fs.target` は `sysinit.target` より前にあるので、`nofail` がないと起動順序が循環する。
-systemd は循環を解くために、その起動で関係するジョブのどれかを取り消す。
-`systemd-tmpfiles-setup.service` が取り消された起動では、`/run/opengl-driver` が作られずに GDM が起動しなかった。
-マウントは `wantedBy` による `Wants` で引き込むので、マウントに失敗しても起動が止まらないことは `nofail` の有無で変わらない。
+以前は `@papis` を vault の clone の中にマウントし、path unit から起動していた。そのとき `nofail` のないマウントと path unit の間で起動順序が循環し、systemd がジョブを取り消した起動では GDM が起動しなかった。
 起動順序の循環は評価でもビルドでも見つからないので、check の `systemd-ordering`（[tests/default.nix](../../tests/default.nix)）が、各ホストのユニットと fstab から作るマウントで `systemd-analyze verify` を実行し、循環があれば失敗する。
-
-条件が真でも、マウントの前と、マウントに失敗したときの `Assets/references/` は、vault が追跡する NVMe 側の空のディレクトリである。
-papis-sync（memex-nix の user unit）はディレクトリがあることしか確かめないので、そのまま動くと NVMe 側に書き込み、空のローカルと Drive を bisync する。
-`data-disk.nix` は papis-sync に、マウントされていなければ失敗する前処理を足し、失敗の通知を出させる。
-papis の CLI からの書き込みは防げない。
 
 ## データの層のマウントに `nofail` を付けない
 
@@ -66,7 +42,6 @@ papis の CLI からの書き込みは防げない。
 
 例外は、アプリを有効にしてから手で作る `@mimikopi` と `@xsaved` で、作る前の switch や再起動で起動を止めないよう `nofail` を付ける。
 代わりに、使う側の環境（`mimikopi-env`、`xsaved-env`）が起動時にマウントを確かめ、マウントされていなければ止まる。
-`@papis` の `nofail` は失敗を許すためではなく起動順序のためで、理由は上の節に書いた。
 アプリの保存先は primaryUser の Home Manager の設定（`local.mimikopi.dataDir`、`local.xsaved.dataDir`、`local.minecraftBackup.repoDir`、`local.quaderno.archiveDir`）から読み、アプリが有効なときだけマウントや tmpfiles を用意する。
 `@backup` は複数のアプリが共有するので、依存の向きが逆になる。
 マウント先は `data-disk.nix` の `local.dataDisk.backupDir` に一度だけ書き、Minecraft と Quaderno の保存先は Home Manager の設定が `osConfig` からこの値を読んで作る。

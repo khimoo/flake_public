@@ -3,7 +3,7 @@
 #
 # 責務分離:
 #   - ワークフロー本体(vault の骨格 —— 分類フォルダ・運用ドキュメント・.obsidian —— の配布と、
-#     添付フォルダ同期 / papis 本体・設定・ライブラリ同期)は inputs.memex-nix が所有する。
+#     vault の .drive-sync-filter で選んだ資料の Drive 同期)は inputs.memex-nix が所有する。
 #     Google Drive の認証情報はどちらの repo も持たず、各マシンの ~/.config/rclone/rclone.conf
 #     (`rclone config` で各自が作る)に委ねるので、sops-nix や起動順序の配線は不要。
 #   - ここが注入するのは純粋に環境固有の配線だけ: vault の clone 位置(memexRoot)、
@@ -14,12 +14,11 @@
 { config, inputs, lib, ... }:
 
 let
-  attachmentsOn = config.local.profile.features.memexSync;
-  papisOn = config.local.profile.features.referenceSync;
+  syncOn = config.local.profile.features.memexSync;
   # 既存 vault の設定と骨格は notes repo の clone が所有する。
   # obsidian feature はアプリを導入し、seed は initializeVault = true の環境に限る。
   obsidianOn = config.local.profile.features.obsidian;
-  enabled = attachmentsOn || papisOn || obsidianOn;
+  enabled = syncOn || obsidianOn;
 in
 {
   imports = [ inputs.memex-nix.homeModules.memex ];
@@ -37,23 +36,16 @@ in
       # clone-repos が clone するため、骨格の初期化・補充は行わない。
       initializeVault = false;
       vaultDir = config.local.profile.memexRoot;
-      attachments.enable = attachmentsOn;
-      originals.enable = attachmentsOn;
-      # 両PCの実Drive試験と原本の初期化・照合を完了（2026-10-19）。
-      originals.autoSync = true;
-      papis.enable = papisOn;
+      sync.enable = syncOn;
+      sync.autoSync = syncOn;
       obsidian.enable = obsidianOn;
       # vault の骨格を workflow repo へミラーする mirror-vault の宛先(環境固有 checkout)を注入。
       # null なら PATH に載らない。
       mirrorRepo = config.local.profile.vaultSkeletonRepo;
     };
     # 同期の失敗をデスクトップに通知する。サービスは外部 flake が定義するので、ここで足す。
-    systemd.user.services = lib.mkMerge [
-      (lib.mkIf attachmentsOn {
-        attachments-sync.Unit.OnFailure = config.local.failureNotify.onFailure;
-        originals-sync.Unit.OnFailure = config.local.failureNotify.onFailure;
-      })
-      (lib.mkIf papisOn { papis-sync.Unit.OnFailure = config.local.failureNotify.onFailure; })
-    ];
+    systemd.user.services = lib.mkIf syncOn {
+      memex-sync.Unit.OnFailure = config.local.failureNotify.onFailure;
+    };
   };
 }

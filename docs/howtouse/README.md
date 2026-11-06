@@ -30,8 +30,7 @@
 | エージェント設定（Claude Code / Codex） | エージェントの設定の管理と変更 | [agent-config.md](./agent-config.md) |
 | Codex のサブエージェント設定 | サブエージェントの無効化の確認と復帰 | [codex-subagents.md](./codex-subagents.md) |
 | LLM Wiki | LLM Wiki の運用 | [llm-wikis.md](./llm-wikis.md) |
-| papis の使い方 | 文献の追加と書き出し | [papis-gdrive-sync.md](./papis-gdrive-sync.md) |
-| memex の Drive 同期 | 添付と papis ライブラリの同期の設定と運用 | [memex-attachments-sync.md](./memex-attachments-sync.md) |
+| memex の Drive 同期 | 同期する資料の選び方と同期の運用 | [memex-drive-sync.md](./memex-drive-sync.md) |
 | vault 骨格の配布・ミラー | vault の骨格を公開 repo へ写す手順 | [memex-vault-skeleton.md](./memex-vault-skeleton.md) |
 | Minecraft バックアップ | インスタンスのバックアップと復元 | [minecraft-backup.md](./minecraft-backup.md) |
 | Quaderno の取り込み | 手書き PDF の取り込み | [quaderno.md](./quaderno.md) |

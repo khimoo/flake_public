@@ -75,7 +75,6 @@ switch が pull もすると、システムの世代を切り替えるつもり�
 両方を有効にすると、先にできた空のフォルダに `git clone` できずに失敗する。
 ノートはすでに GitHub にあるので、clone 側に一本化した。
 
-同じ理由で、vault の中にマウントする papis の subvol（[disk-tiering.md](./disk-tiering.md)）も、clone より先にマウント先を作らない。
 
 ## 制約
 

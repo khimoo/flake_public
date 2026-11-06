@@ -70,7 +70,6 @@ in
       "gnome"
       "ime"
       "audio"
-      "referenceSync"
       "memexSync"
       "obsidian"
     ] (name: lib.mkEnableOption "${name} in this user's environment");
@@ -172,7 +171,7 @@ in
       }
       {
         assertion =
-          !(cfg.features.memexSync || cfg.features.referenceSync || cfg.features.obsidian)
+          !(cfg.features.memexSync || cfg.features.obsidian)
           || cfg.memexRoot != null;
         message = "local.profile: vault features require memexRoot.";
       }
@@ -187,7 +186,6 @@ in
             cfg.features.gui
             || cfg.features.audio
             || cfg.features.memexSync
-            || cfg.features.referenceSync
             || cfg.features.obsidian
           );
         message = "local.profile: the desktop, audio and vault profiles currently support Linux only.";

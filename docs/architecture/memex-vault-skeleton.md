@@ -4,7 +4,7 @@
 実装: [memex.nix](../../modules/home-manager/memex.nix)、mechanism は memex-nix（`seed-vault`、`mirror-vault`、`nix/skeleton-paths.nix`）
 
 Obsidian vault の骨格（分類フォルダ、運用ドキュメント、`.obsidian`、skills へのリンク）の変更は public repo で、ノートの変更は private repo で追えるようにする。
-添付と papis の Drive 同期は別の仕組み（[memex-attachments-sync.md](./memex-attachments-sync.md)）で、骨格は Drive ではなく git に載る。
+資料の Drive 同期は別の仕組み（[memex-drive-sync.md](./memex-drive-sync.md)）で、骨格は Drive ではなく git に載る。
 
 ## 正本は vault で、public repo はその写し
 

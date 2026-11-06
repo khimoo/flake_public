@@ -12,7 +12,6 @@ in
       gui = true;
       gnome = true;
       ime = true;
-      referenceSync = true;
       memexSync = true;
       obsidian = true;
     };

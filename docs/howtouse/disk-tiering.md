@@ -7,15 +7,6 @@ nixos-desktop では NVMe（`/`、`/nix/store`、`~/sagyo`）と SATA SSD を使
 
 ## ディスクレイアウト
 
-`@papis` については vault のクローン内（`~/sagyo/memex/Assets/references`）にマウントするため、vault をクローンした状態（`~/sagyo/memex/.git` が存在する間）でのみマウントされます。
-新しいマシンで `clone-repos` によって vault がクローンされると、`.git` の存在を検知する `papis-references.path` が動作し、自動的にマウントが開始されます。
-マウントされていない場合は、ステータスを確認した上で手動でマウントしてください。
-
-```sh
-systemctl status papis-references.path home-pomu-sagyo-memex-Assets-references.mount
-sudo systemctl start home-pomu-sagyo-memex-Assets-references.mount
-```
-
 `@mimikopi` と `@xsaved` は、該当アプリケーションを有効化した後に手動作成する subvol です。作成前であってもシステムの起動が停止しないよう `nofail` オプションが付与されています。
 
 ## 状態の確認
@@ -66,9 +57,9 @@ sudo nix shell nixpkgs#btrfs-progs -c mkfs.btrfs -f -L data /dev/sda1
 
 sudo mkdir -p /mnt/sda && sudo mount /dev/sda1 /mnt/sda
 sudo nix shell nixpkgs#btrfs-progs -c bash -c \
-  'for s in papis downloads videos music pictures documents games vm backup; do btrfs subvolume create /mnt/sda/@$s; done'
+  'for s in downloads videos music pictures documents games vm backup; do btrfs subvolume create /mnt/sda/@$s; done'
 sudo chattr +C /mnt/sda/@vm
-sudo chown pomu:users /mnt/sda/@papis /mnt/sda/@downloads /mnt/sda/@videos \
+sudo chown pomu:users /mnt/sda/@downloads /mnt/sda/@videos \
                       /mnt/sda/@music /mnt/sda/@pictures /mnt/sda/@documents /mnt/sda/@games
 
 sudo blkid -s UUID -o value /dev/sda1    # 出力された UUID を data-disk.nix の device 項目に設定する

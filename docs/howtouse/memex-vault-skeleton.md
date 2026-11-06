@@ -7,7 +7,7 @@ Obsidian vault の基本骨格（分類用フォルダ構造、運用ドキュ�
 - seed: vault を新規作成する初期環境（`initializeVault = true`）にのみ骨格を展開する機能です。既存の vault を clone して利用する本環境では使用しません。
 
 設計ドキュメント: [vault の骨格の設計](../architecture/memex-vault-skeleton.md)
-※ 添付ファイルや papis の Google Drive 同期は別の仕組みで管理されています（[memex-attachments-sync.md](./memex-attachments-sync.md) 参照）。
+※ 資料の Google Drive 同期は別の仕組みで管理されています（[memex-drive-sync.md](./memex-drive-sync.md) 参照）。
 
 ## mirror: vault の骨格を公開リポジトリへ反映する
 
