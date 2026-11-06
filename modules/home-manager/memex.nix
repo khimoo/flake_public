@@ -3,7 +3,7 @@
 #
 # 責務分離:
 #   - ワークフロー本体(vault の骨格 —— 分類フォルダ・運用ドキュメント・.obsidian —— の配布と、
-#     vault の .drive-sync-filter で選んだ資料の Drive 同期)は inputs.memex-nix が所有する。
+#     vault のバイナリを git-annex で Drive に置く同期)は inputs.memex-nix が所有する。
 #     Google Drive の認証情報はどちらの repo も持たず、各マシンの ~/.config/rclone/rclone.conf
 #     (`rclone config` で各自が作る)に委ねるので、sops-nix や起動順序の配線は不要。
 #   - ここが注入するのは純粋に環境固有の配線だけ: vault の clone 位置(memexRoot)、

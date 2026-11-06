@@ -1,58 +1,66 @@
 # memex の Google Drive 同期の設計
 
 使い方: [memex の Google Drive 同期](../howtouse/memex-drive-sync.md)
-実装: mechanism は memex-nix（`nix/hm-module.nix`、`nix/sync-script.nix`、`nix/validate-sync.py`、`nix/bisync-lib.nix`、`nix/sync-job.nix`、`nix/setup.nix`）、このリポジトリの配線は [memex.nix](../../modules/home-manager/memex.nix)
+実装: mechanism は memex-nix（`nix/sync-script.nix`、`nix/setup.nix`、`nix/rclone-lib.nix`、`nix/sync-job.nix`、`nix/hm-module.nix`）、このリポジトリの配線は [memex.nix](../../modules/home-manager/memex.nix)
 
-vault の中で git に載せない資料（貼り付けた画像、読書用の PDF など）は、Google Drive と rclone bisync で同期する。
-同期の仕組みは public の memex-nix に置き、このリポジトリは vault の場所と機能の選択だけを渡す。仕組みを public に分けたので、このリポジトリの評価に SSH 鍵が要らない。ノートの本文は private の `khimoo/memex` にある。
+vault のノートは Git で、画像や PDF などのバイナリは git-annex で中身を Google Drive に置き、Git には所在だけを入れる。
+同期の仕組みは public の memex-nix に置き、このリポジトリは vault の場所と機能の選択だけを渡す。ノートの本文は private の `khimoo/memex` にある。
 
-## 認証情報はどちらの repo も持たない（各マシンの rclone.conf に委ねる）
+## 目指す状態
 
-Google Drive の認証は、各マシンで `rclone config` が作る `~/.config/rclone/rclone.conf` に任せる。
-sops で暗号化した rclone.conf を workflow repo に置く案は退けた。持ち主だけが使える形になり、fork した人は `.sops.yaml`、暗号文、受信者の鍵をすべて差し替えることになる。rclone の設定の探し方に任せれば、誰でも `rclone config` を 1 回実行するだけで自分の Drive につながる。
-OAuth のトークンはもともと宣言的に作れないので、`rclone config` を手で実行する手間は避けられない。
+2026-11-06 に次の状態を目指すと決めた。
 
-## 同期する資料は vault のホワイトリストで選ぶ
+1. 各ファイルの保存先（Git、Drive、その PC のみ）は1か所の宣言で決まり、両方に入ることもどこにも入らないことも起きない。
+2. 置き場所を選ぶときに、同期のことを考えなくてよい。
+3. Drive に置くのは宣言で選んだものだけで、宣言で決まらないファイルは黙って同期されない。
+4. 宣言を変えても、各 PC は人の操作なしで追いつく（電源が切れていた PC は再接続後に）。
+5. 保存先を変えたファイルは、新しい保存先に保存されたのを確かめてから古い側を整理する。退避と Git の履歴は対象外。
+6. 日常の作業は、ファイルを置くこととノートを書くことだけ。
 
-以前は `Assets/attachments/`、`Assets/references/`（papis のライブラリ）、`Assets/Originals/` の 3 フォルダを、それぞれ別の Drive フォルダへ同期していた。
-この形では「資料をどこに置くか」と「Drive で同期するか」が結び付き、同期したい資料は 3 フォルダのどれかに置くしかなかった。papis をやめた（2026-11-06、手で使っておらず、エージェント向けの登録の手間だけが残っていた）ことで references を置く理由もなくなった。
+Drive の画面でファイル名のまま見られること（スマホで PDF を開く、バックアップを目で確かめる）は、後から足す要件として扱う。
 
-そこで vault 全体を 1 つの Drive フォルダ（`memex-files`）と bisync し、対象は vault 直下の `.drive-sync-filter`（rclone のフィルタ構文、最後は `- **`）で選ぶ。
-フィルタは vault の git に載るので、両 PC で同じ対象を同期する。実行時に読むので、対象を変えても switch は要らない。
+## rclone bisync をやめた理由
 
-フィルタはファイル名ではなくパターンで書く（例: `+ /Knowledge/Reading/**.pdf`）。
-rclone bisync はフィルタの内容が変わると通常の同期を止め、`--resync` を要求する。ファイル名で列挙すると、資料を足すたびに両 PC で resync が要る。
+以前は vault 全体を rclone bisync で Drive と同期し、対象をフィルタで選んでいた。
+bisync は、フィルタを通したファイル一覧を前回と比べて削除を判断する。そのためフィルタを変えると比べられなくなり、各 PC で手で `--resync` するまで止まる（4 に反する）。これは bisync の作りから来ていて、上に手順を足しても残る。
+また、Git の除外（`.gitignore`）とフィルタの2か所を手で合わせていた（1 に反する）。
 
-## resync は自動で行わない
+## 保存先は中身で決める
 
-同期の履歴（baseline）がないとき、`memex-sync` は止まり、手で `--resync` を求める。履歴があるのに `--resync` するときは `MEMEX_FORCE_RESYNC=1` も要る。
-resync は両側の和集合を作るので、片方の古い版や消したはずのファイルが戻りうる。どちらが正しいかはプログラムには決められない。
+`.gitattributes` の `annex.largefiles=mimeencoding=binary` で、バイナリは git-annex、テキストは Git に入る。どのファイルもどちらかに決まるので、宣言で決まらないファイルは出ない（3）。置き場所は関係しない（2）。
+`.obsidian/**` だけは `annex.largefiles=nothing` で Git に入れる。プラグインの wasm などが clone だけで揃わないと、中身が届くまで Obsidian のプラグインが動かない。
+その PC だけに置くものは、今までどおり `.gitignore` に書く。`.gitignore` は「管理しない」、`.gitattributes` は「管理するものの行き先」で、役割が重ならない（1）。
 
-## 消える版と競合した版は退避する
+普通の `git add` で git-annex に入るよう、作業ツリーには普通のファイルとして置く（`annex.addunlocked`）。Obsidian と obsidian-git は何も変えずに使える。
+`annex.thin`（作業ツリーと `.git/annex/objects` を hardlink で共有する設定）は使わない。Drive へ送る前にファイルを上書きすると、古い版の唯一の中身も書き換わり、退避できなくなる。バイナリは各 PC に2部置かれる。
 
-`--conflict-resolve none` と `--conflict-loser num` で、競合したときは両方の版を残す。画像や PDF を自動でマージしない。
-消えたり上書きされたりする版は、同期の対象の外の退避先へ移す。手元は `${XDG_DATA_HOME}/memex/files-backups/<host>/<runid>`、Drive は `memex-files-backups/<host>/<runid>`。同じアカウント全体を失うことへの備えではない。
+`.gitignore` は追跡中のファイルには効かない（Git の仕様）。追跡中のファイルを「その PC だけ」にするには、`git rm --cached` で追跡から外す。`memex-sync` は、`.gitignore` に当たるのに追跡中のファイルを見つけると失敗にして知らせる（3）。
 
-`--resilient --recover --max-lock 2m` で、強制終了などで残ったロックは約 2 分で切れ、次の同期が直前の成功した履歴から復旧を試みる（[recover](https://rclone.org/bisync/#recover)、[max-lock](https://rclone.org/bisync/#max-lock)）。
-2 台の PC はそれぞれ別の同期履歴を持ち、手元のロックをホストの間の排他には使わない。
+## 規則と実際の保存先を合わせる
 
-## 変更の監視は貼り付け先だけにし、残りは定期実行で拾う
+`annex.largefiles` は新しく追加したファイルにだけ効き、`git add --renormalize` でも既存のファイルは移らない（2026-11-06 に確かめた）。
+規則を変えた後や、git-annex の無い環境で commit されたファイルは、規則と違う側に残る。
+`memex-sync` は前回確かめた commit からの差分と前回保留したファイル（`.gitattributes` が変わったときは全ファイル）を見て、規則と違うファイルを git-annex の公式の変換手順（[largefiles](https://git-annex.branchable.com/tips/largefiles/)）で移し、そのファイルだけを commit する（4、5）。push は利用者に任せる。
+利用者が編集中のファイルは移さない。移すと、その編集まで自動の commit に入る。中身がまだ届いていないファイルも、種類を判定できないので保留する。どちらも次の実行で見直す。
 
-systemd の path unit（`PathModified`）と launchd の `WatchPaths` は、ディレクトリを再帰的に監視しない。vault 直下を監視しても、`Knowledge/Reading/` の中の変更は拾えない。
-すぐに同期したいのは Obsidian に貼り付けた画像だけなので、監視するのは `Assets/attachments/` だけにし、それ以外は 15 分ごとの定期実行で同期する。
+## 中身の同期
 
-## 宣言できないものは、同期の直前に分かりやすく止める
+`git annex sync --only-annex --content` で、git-annex ブランチと中身を origin（GitHub）と Drive の間で同期する。ノートのブランチ（main）の pull と push はしない。
+`sync --content` は今のファイルの中身しか扱わないので、続けて `git annex copy --all --to gdrive` で、消したファイルや古い版の中身も Drive に送る。他の PC から古い版を取ったり、手元から消したりはしない。
+どの PC がどの中身を持つかは git-annex ブランチに記録されるので、PC ごとの一覧を比べる仕組みがない。オフラインだった PC も次の実行で追いつく（4）。
 
-接続の前に、フィルタの欠落、不正な構文、最後の `- **` の欠落を確かめて止める。続けて、`RCLONE_CONFIG` のファイルの有無、リモート名、`rclone about` の成否を確かめ、直し方を出して止める。
-評価時の `assertions` で確かめられるのは、`vaultDir` が絶対パスかどうかのような静的な設定だけで、トークンが有効かどうかは実行しないと分からない。
+Drive の保存先は git-annex の `backup` グループで、消したファイルや古い版の中身も保持する。これが退避の役になる。
+各 PC は `client` グループで、今のファイルの中身だけを持つ。
 
-## 実体は手元に置き、Drive へ写す
+Drive へは rclone の `rclone gitannex` を通して置く（git-annex の `type=rclone`）。認証は各マシンの `~/.config/rclone/rclone.conf` にあり、どちらの repo も持たない。
+Drive 上のファイルは中身のハッシュ名で保存される。名前を混ぜると、名前を変えるたびに別ファイル扱いになるため。
 
-Obsidian も Neovim（画像のインライン表示）も手元のパスを読むので、実体が手元にあれば軽く、オフラインでも使える。Drive だけに置いて rclone mount で使う形は、遅延とマウントへの依存が増え、ネットワークが切れると編集できない。
-同期する資料は vault の `.gitignore` で git から外す。git の履歴が画像や PDF で膨らまない。
+## 変更の監視
 
-## 運用上の性質
+`sync.autoSync` のとき、`.git/logs/HEAD`（commit、pull、checkout のたびに追記される）の変更と 15 分ごとの定期実行で `memex-sync` を起動する。
+中身を送れるのは commit 済みのファイルだけで、届いた所在から中身を取れるのは pull の後なので、作業ツリーではなく HEAD の reflog を見る。
 
-- 削除は双方向に伝わる。Google Drive のごみ箱、bisync の `--max-delete`（既定 50%）、上の退避先で守る
-- 変更の監視は手元の操作だけを見る。ほかのマシンで足したファイルは次の同期で取り込む
-- `drive.file` のスコープでは、Drive の Web UI で手で作ったディレクトリは rclone から見えない
+## git-annex を PATH に入れる
+
+git-annex で初期化した vault では、Git が add や status のたびに git-annex の filter を呼ぶ。git-annex が PATH に無い環境で Git を操作すると失敗する。
+memex-nix は git-annex を home の PATH と、Obsidian の起動環境（obsidian-git が Git を呼ぶ）の両方に入れる。vault を git-annex で初期化するのは、この switch の後にする。
