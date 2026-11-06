@@ -180,11 +180,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1793963328,
-        "narHash": "sha256-M8f5d5okJ8sFD5td2Iqc9SkhxYTCCNM6p5n0AkndC8k=",
+        "lastModified": 1793964715,
+        "narHash": "sha256-zduB2oK8obnRw7HahXq23xJoRXNcKUh/2Umpw+iwN+4=",
         "owner": "khimoo",
         "repo": "memex-nix",
-        "rev": "86719b71f03794fa90fd264e182477024fd02b95",
+        "rev": "c24c9260b4eb3601869e1447d331d5b4c963510a",
         "type": "github"
       },
       "original": {

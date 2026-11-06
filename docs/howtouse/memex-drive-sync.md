@@ -8,8 +8,8 @@ vault の画像や PDF などのバイナリは、中身を git-annex で Google
 
 ## 保存先の決まり方
 
-- バイナリ（画像、PDF など）: git-annex に入り、中身は Drive に置かれます。置き場所は関係ありません。
-- テキスト（ノートなど）と `.obsidian/` の中: Git に入ります。
+- テキスト以外（画像、PDF など）: git-annex に入り、中身は Drive に置かれます。置き場所は関係ありません。
+- テキスト（ノートなど）、空のファイル、`.obsidian/` の中: Git に入ります。
 - `.gitignore` に書いたもの: その PC だけに置かれます。ただし、既に Git で追跡しているファイルには効きません。その場合は `git rm --cached <ファイル>` で追跡から外して commit してください（`memex-sync` が該当するファイルを知らせます）。
 
 この規則は vault の `.gitattributes` にあります。普通に `git add`（Obsidian の vault backup も同じ）すれば振り分けられます。

@@ -27,7 +27,8 @@ bisync は、フィルタを通したファイル一覧を前回と比べて削�
 
 ## 保存先は中身で決める
 
-`.gitattributes` の `annex.largefiles=mimeencoding=binary` で、バイナリは git-annex、テキストは Git に入る。どのファイルもどちらかに決まるので、宣言で決まらないファイルは出ない（3）。置き場所は関係しない（2）。
+`.gitattributes` の `annex.largefiles=(largerthan=0)and(not((mimeencoding=us-ascii)or(mimeencoding=utf-8)))` で、テキスト（us-ascii、utf-8）と空のファイルは Git、それ以外は git-annex に入る。どのファイルもどちらかに決まるので、宣言で決まらないファイルは出ない（3）。置き場所は関係しない（2）。
+`mimeencoding=binary` だけを条件にすると、Typst が出す PDF（libmagic の判定は `unknown-8bit`）が Git に入る。空のファイルは libmagic が `binary` と判定するので、`largerthan=0` で除く（2026-11-06 の移行で見つけた）。
 `.obsidian/**` だけは `annex.largefiles=nothing` で Git に入れる。プラグインの wasm などが clone だけで揃わないと、中身が届くまで Obsidian のプラグインが動かない。
 その PC だけに置くものは、今までどおり `.gitignore` に書く。`.gitignore` は「管理しない」、`.gitattributes` は「管理するものの行き先」で、役割が重ならない（1）。
 
