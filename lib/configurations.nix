@@ -18,6 +18,8 @@ let
     ../modules/home-manager/failure-notify.nix
     ../modules/home-manager/memex.nix
     ../modules/home-manager/yazi.nix
+    ../modules/home-manager/sshfs.nix
+    ../modules/home-manager/relations.nix
     ../modules/home-manager/nix-index.nix
     ../modules/home-manager/minecraft-backup.nix
     ../modules/home-manager/windows-vm.nix

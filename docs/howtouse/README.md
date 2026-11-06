@@ -8,11 +8,13 @@
 |----------|------|-------------|
 | 文書整備 | 使い方・設計文書と索引を整える手順 | [documentation.md](./documentation.md) |
 | 検証 | 変更範囲に応じた検証の選び方と `check.sh` | [validation.md](./validation.md) |
+| 設定どうしの関係 | 設定の用途と動作条件の宣言と、図の出力 | [relations.md](./relations.md) |
 | ユーザー管理 | ユーザーの追加と権限、目的別の利用ユーザー | [users.md](./users.md) |
 | SSH 鍵と private repo | 鍵の配布と更新、private repo の clone と更新 | [private-repo-clone.md](./private-repo-clone.md) |
 | マシン間 SSH | マシン間の接続とマシンの追加・廃棄 | [machine-ssh.md](./machine-ssh.md) |
 | リモートビルド | ビルドをデスクトップに回す方法 | [remote-build.md](./remote-build.md) |
 | Tailscale | LAN の外からデスクトップを使う方法 | [tailscale.md](./tailscale.md) |
+| sshfs | 外出先からデスクトップのファイルを sshfs で編集する方法 | [sshfs.md](./sshfs.md) |
 | 会社PCの NixOS-WSL | 会社 PC の WSL の導入と運用 | [wsl.md](./wsl.md) |
 | ディスク階層構成 | 2 層ディスクの subvol とマウント | [disk-tiering.md](./disk-tiering.md) |
 | GUI アプリ | GUI アプリの追加・削除の変更箇所 | [gui-apps.md](./gui-apps.md) |

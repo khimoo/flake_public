@@ -6,6 +6,7 @@
     enable = true;
     host = "desktop-ts";
   };
+  local.sshfs.enable = true;
   local.alookOpen = {
     enable = true;
     remotes = {
