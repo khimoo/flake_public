@@ -67,7 +67,8 @@ func predeclaredNames() map[string]bool {
 		"luaPackages": true, "checkoutLink": true, "lua": true, "module": true,
 		"repoModule": true, "script": true, "scriptBin": true, "activation": true,
 		"inputPkg": true, "file": true, "shellApp": true, "repoPkg": true, "symlinkJoin": true,
-		"command": true, "gvariantTuple": true, "outOfStoreLink": true}
+		"command": true, "gvariantTuple": true, "outOfStoreLink": true,
+		"shellAppEnv": true, "repoText": true, "symlinkJoinBuild": true}
 }
 
 func fileOptions() *syntax.FileOptions {

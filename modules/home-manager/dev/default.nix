@@ -2,10 +2,7 @@
 
 {
   imports = [
-    ./cargo-remote-run.nix
-    ./alook-open.nix
     ./agent-compression.nix
-    ./apps.nix
     ./claude.nix
     ./codex.nix
     ./agent-sync.nix

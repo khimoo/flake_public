@@ -1,5 +1,6 @@
 # tests/default.nix の架空のユーザーが使う。
 purposes = [
+    "dev_tools",
     "shell",
     "git",
 ]

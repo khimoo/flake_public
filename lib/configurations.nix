@@ -13,7 +13,6 @@ let
     ../modules/home-manager/profile.nix
     ../modules/home-manager/secrets.nix
     ../modules/home-manager/private-repos.nix
-    ../modules/home-manager/rclone.nix
     ../modules/home-manager/failure-notify.nix
     ../modules/home-manager/minecraft-backup.nix
     ../modules/home-manager/windows-vm.nix

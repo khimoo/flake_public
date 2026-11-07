@@ -28,7 +28,7 @@ flake.lock の nixpkgs-unstable 更新時に package version とスキルの呼�
 nix build .#checks.x86_64-linux.graphify-smoke
 ```
 
-除去するときは [dev apps](../../modules/home-manager/dev/apps.nix) の Graphify と、
+除去するときは [dev apps](../../config/elements/dev_tools.star) の Graphify と、
 [overlay](../../overlays/unstable-packages.nix)、
 [smoke check](../../tests/default.nix) の対応を戻し、利用者が通常の環境適用を行う。
 個人認証や既存のエージェント設定は削除しない。

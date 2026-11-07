@@ -28,12 +28,30 @@ let
         runtimeInputs = resolve (builtins.elemAt v 1);
         text = resolve (builtins.elemAt v 2);
       };
+    "$shellAppEnv" =
+      v:
+      pkgs.writeShellApplication {
+        name = builtins.elemAt v 0;
+        runtimeInputs = resolve (builtins.elemAt v 1);
+        runtimeEnv = resolve (builtins.elemAt v 2);
+        text = resolve (builtins.elemAt v 3);
+      };
+    # repo の中のテキストのファイル（スクリプトなど）。テストが同じファイルを直接読むので、写さずに読む。
+    "$repoText" = v: builtins.readFile (../. + "/${builtins.head v}");
     "$repoPkg" = v: pkgs.callPackage (../. + "/${builtins.head v}") { };
     "$symlinkJoin" =
       v:
       pkgs.symlinkJoin {
         name = builtins.elemAt v 0;
         paths = resolve (builtins.elemAt v 1);
+      };
+    "$symlinkJoinBuild" =
+      v:
+      pkgs.symlinkJoin {
+        name = builtins.elemAt v 0;
+        paths = resolve (builtins.elemAt v 1);
+        nativeBuildInputs = resolve (builtins.elemAt v 2);
+        postBuild = resolve (builtins.elemAt v 3);
       };
     "$command" = v: pkgs.runCommand (builtins.elemAt v 0) { } (resolve (builtins.elemAt v 1));
     "$inputPkg" = v: inputs.${builtins.elemAt v 0}.packages.${pkgs.stdenv.hostPlatform.system}.${builtins.elemAt v 1};

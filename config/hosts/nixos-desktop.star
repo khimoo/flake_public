@@ -1,4 +1,5 @@
 purposes = [
+    "dev_tools",
     "daily_editing",
     "memex_sync",
     "obsidian",

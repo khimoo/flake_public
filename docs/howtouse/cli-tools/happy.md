@@ -2,7 +2,7 @@
 
 Happy 本体・Node.js 24・npm 依存関係は Nix が管理する。
 `packages/happy/` のバージョンとロックファイルを使うため、`npm install -g` は不要。
-Home Manager の `modules/home-manager/dev/apps.nix` から導入する。
+Home Manager の `config/elements/dev_tools.star` から導入する。
 
 ## 試す
 

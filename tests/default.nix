@@ -282,14 +282,8 @@ lib.genAttrs systems (
       assert builtins.elem "rustowl" (neovimFeatures system) == (system == "x86_64-linux");
       assert !(home.config.programs.uv.settings ? python-preference);
       assert !(hasLauncher home.config "cargo-remote-run");
-      assert hasLauncher (mkTestHome system [
-        {
-          local.cargoRemoteRun = {
-            enable = true;
-            host = "builder";
-          };
-        }
-      ]).config "cargo-remote-run";
+      # 目的 cargo_remote_run を選ぶ spin713 には入る（config/hosts/nixos-spin713.star）。
+      assert hasLauncher inputs.self.nixosConfigurations.nixos-spin713.config.home-manager.users.pomu "cargo-remote-run";
       assert !(builtins.any (p: (p.pname or "") == "vscode") home.config.home.packages);
       # ~/.config/nvim は checkout への live symlink なので、その下に置くファイルは home-manager-files の
       # ビルドで "outside $HOME" になる。評価だけでは見つからないので、ここで止める。

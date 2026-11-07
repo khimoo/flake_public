@@ -295,8 +295,9 @@ func builtins() starlark.StringDict {
 		"repoModule": repoModule, "script": script("script"), "scriptBin": script("scriptBin"),
 		"outOfStoreLink": generic("outOfStoreLink", 1),
 		"activation": activation, "inputPkg": inputPkg, "file": file,
-		"shellApp": generic("shellApp", 3), "repoPkg": generic("repoPkg", 1),
-		"symlinkJoin": generic("symlinkJoin", 2), "command": generic("command", 2),
+		"shellApp": generic("shellApp", 3), "shellAppEnv": generic("shellAppEnv", 4),
+		"repoPkg": generic("repoPkg", 1), "repoText": generic("repoText", 1),
+		"symlinkJoin": generic("symlinkJoin", 2), "symlinkJoinBuild": generic("symlinkJoinBuild", 4), "command": generic("command", 2),
 		"gvariantTuple": generic("gvariantTuple", 1),
 		"struct": starlark.NewBuiltin("struct", starlarkstruct.Make),
 	}
