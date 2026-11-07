@@ -38,6 +38,12 @@ let
       };
     # repo の中のテキストのファイル（スクリプトなど）。テストが同じファイルを直接読むので、写さずに読む。
     "$repoText" = v: builtins.readFile (../. + "/${builtins.head v}");
+    "$repoPkgWith" = v: pkgs.callPackage (../. + "/${builtins.elemAt v 0}") (resolve (builtins.elemAt v 1));
+    # repo の中のファイルを store に置いたパス（スクリプトをパッケージに写すときなど）。
+    "$repoPath" = v: ../. + "/${builtins.head v}";
+    # 渡したパッケージを toPythonModule で包み、import できる Python を作る。
+    "$pythonWithModules" =
+      v: pkgs.python3.withPackages (_: map pkgs.python3Packages.toPythonModule (resolve (builtins.head v)));
     "$repoPkg" = v: pkgs.callPackage (../. + "/${builtins.head v}") { };
     "$symlinkJoin" =
       v:

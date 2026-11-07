@@ -2,7 +2,7 @@
 
 Fujitsu Quaderno A4 Gen2 で作成した手書き PDF を、同じ LAN 内に接続している際に 1 時間ごとに自動でローカルへ取り込みます。
 データの同期はデバイスから手元への一方向のみであり、デバイス側のファイルを書き換えることはありません。
-設定は [home-manager-pomu.nix](../../hosts/nixos-desktop/home-manager-pomu.nix) の `local.quaderno` に記載されており、nixos-desktop のみで有効化しています。複数台で有効にすると、両方のマシンが全件を取り込む動作になります。
+[nixos-desktop.star](../../config/hosts/nixos-desktop.star) の `purposes` で `quaderno` を選び、同ファイルの `quaderno_archive` で取り込み先を指定します。nixos-desktop のみで有効化しています。複数台で有効にすると、両方のマシンが全件を取り込む動作になります。
 
 設計ドキュメント: [Quaderno の取り込みの設計](../architecture/quaderno.md)
 
@@ -19,7 +19,7 @@ Fujitsu Quaderno A4 Gen2 で作成した手書き PDF を、同じ LAN 内に接
 
 自動で処理されるため手動での操作は不要です。今すぐ取り込みを行いたい場合は `quaderno-pull` を実行してください。
 
-取り込み先は `/mnt/backup/quaderno`（`archiveDir`）であり、デバイス内のフォルダ構造がそのまま再現されます（`<archiveDir>/Document/...`）。
+取り込み先は `/mnt/backup/quaderno`（`quaderno_archive`）であり、デバイス内のフォルダ構造がそのまま再現されます（`<quaderno_archive>/Document/...`）。
 Google Drive への自動アップロードは行われません。クラウドへ保存したい場合は手動でアップロードしてください。
 
 ローカル側はアーカイブとして扱うため、デバイス側で削除された文書も手元にはそのまま残ります。
@@ -38,4 +38,4 @@ journalctl --user -u quaderno-pull
 Quaderno がスリープ状態の場合はデバイスを発見できず、「見つかりません」と表示して正常終了します。これは正常な挙動です。
 認証エラーやダウンロード処理自体に失敗した場合は、非ゼロのステータスコードで終了します。
 
-同一 LAN 内に他の Digital Paper 機器が存在し、意図しない機器へ接続されてしまう場合は、`local.quaderno.serial` にシリアル番号を指定することで特定デバイスのみに接続を限定できます。
+同一 LAN 内に他の Digital Paper 機器が存在し、意図しない機器へ接続されてしまう場合は、ホストの `quaderno_serial` にシリアル番号を指定することで特定デバイスのみに接続を限定できます。

@@ -31,20 +31,18 @@ clone 対象の repo と flake 自身に対して `git pull --ff-only` を実行
 
 ## clone する repo を変更する
 
-対象ユーザーの home モジュールの `local.profile` で、repo の URL と配置先を指定します。
-エージェント設定は [pomu.star](../../config/users/pomu.star) の `agent_config_root`（ホームからの相対パス）と `agent_config_repo`（URL）で指定します。`ai_agents` を選ぶホストで、要素が clone 用の `local.profile` に同じ値を渡します。LLM Wiki は [pomu-workstation.nix](../../profiles/home/pomu-workstation.nix)、vault と memex-nix は [memex.star](../../config/elements/memex.star) で設定します。
+ホストの `purposes` で `personal_files` を選び、同じファイルの `private_repos` に URL とホームからの相対パスを指定します。例は [nixos-desktop.star](../../config/hosts/nixos-desktop.star) を参照してください。
 
-- vault: `memexRepoUrl` と `memexRoot`
-- エージェント設定: `agentConfigRepo` と `agentConfigRoot`
-- memex-nix: `vaultSkeletonRepoUrl` と `vaultSkeletonRepo`
-- LLM Wiki: `llmWikisRepoUrl` と `llmWikisRoot`
-- それ以外: `local.profile.privateRepos` に `{ url; dest; }` を追加
+```python
+private_repos = [{"url": "git@example.org:me/project.git", "dest": "sagyo/project"}]
+```
 
-URL を設定しない（デフォルトの `null` のままにする）場合、その repo は手動で clone する運用になります。配置先パスだけを残しておけば、symlink や同期、`mirror-vault` などの機能はそのまま利用可能です。
+エージェント設定は [pomu.star](../../config/users/pomu.star) の `agent_config_root`（ホームからの相対パス）と `agent_config_repo`（URL）で指定します。`ai_agents` を選ぶホストでは `agent_links` が clone と GitHub 鍵の配置を宣言します。vault と memex-nix の URL と配置先は [memex.star](../../config/elements/memex.star) にあります。
+
+エージェント設定の `agent_config_repo` を省略した場合、その repo は手動で clone する運用になります。配置先パスだけを残しておけば、symlink や同期、`mirror-vault` などの機能はそのまま利用可能です。
 vault は `services.memex.initializeVault` で作成することも可能ですが、有効にはしません。先に空フォルダが作成されると clone が失敗するためです。
 
-clone 対象の repo がなく、`lanSsh = false` で、かつ `sshKeys` と `secrets` も空であれば、age 鍵は不要です。
-ただし pomu では `lanSsh = true` に設定されているため、repo の clone を行わない場合でも age 鍵が必要です。
+clone 対象の repo がなく、`lan_ssh` が無効で、ユーザーとホストの `secrets` も空なら、age 鍵は不要です。pomu は `lan_ssh = True` を選んでいるため、repo の clone を行わない場合でも age 鍵が必要です。
 
 ## SSH 鍵以外のシークレットを配布する
 
@@ -54,16 +52,16 @@ clone 対象の repo がなく、`lanSsh = false` で、かつ `sshKeys` と `se
 SOPS_AGE_KEY_FILE=~/.config/sops/age/keys.txt sops secrets/secrets.yaml
 ```
 
-```nix
-local.profile.secrets = [
-  { secret = "gemini_api_key"; path = "${config.home.homeDirectory}/.config/gemini/api-key"; }
-];
+ユーザーの `config/users/<名前>.star` またはホストのファイルに、ホームからの相対パスで指定します。ホストは `personal_files` を目的に含めます。
+
+```python
+secrets = [{"secret": "gemini_api_key", "path": ".config/gemini/api-key"}]
 ```
 
 `mode` のデフォルトは `600` であり、home ディレクトリ外のパスを指定すると評価時に拒否されます。
 switch を実行するたびに、宣言されたファイルは暗号化データの内容および指定された mode へ同期されます。シークレットを変更したい場合は `secrets/secrets.yaml` を編集してください。
 宣言から削除されたファイルは次回の switch 時に削除されます（symlink やディレクトリの場合は警告を出してそのまま残します）。
-なお、`~/.ssh` 配下にパーミッション `600` で配置する SSH 鍵であれば、`local.profile.sshKeys = [{ secret; name; }]` のように簡潔に記述できます。
+LAN の SSH 鍵はユーザーまたはホストの `lan_ssh = True` で選びます。GitHub の SSH 鍵は clone を宣言する要素が要求します。
 
 ## SSH 鍵を差し替える手順
 

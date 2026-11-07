@@ -1,7 +1,7 @@
 # Quaderno の取り込みの設計
 
 使い方: [Quaderno の取り込み](../howtouse/quaderno.md)
-実装: [quaderno.nix](../../modules/home-manager/quaderno.nix)、[quaderno_pull.py](../../modules/home-manager/quaderno_pull.py)、[dpt-rp1-py](../../packages/dpt-rp1-py/)
+実装: [quaderno.star](../../config/elements/quaderno.star)、[quaderno_pull.py](../../modules/home-manager/quaderno_pull.py)、[dpt-rp1-py](../../packages/dpt-rp1-py/)
 
 Fujitsu のクラウド同期は無料枠が 10MB しかなく、使うには有償のプランか、USB で Digital Paper App（Windows と macOS だけ）を使うことになる。
 同じ LAN にいるときに取り込めれば、どちらも要らない。
@@ -44,7 +44,7 @@ Quaderno はスリープすると Wi-Fi ごと消えるので、定期実行の�
 ## 機器はシリアルを書かずに mDNS で選ぶ
 
 この環境には機器が 1 台しかないので、既定では mDNS で最初に見つかった Digital Paper に接続し、設定に識別子を持たない。
-`serial` を書くのは、別の機器へ黙ってつながるのを避けたくなったときでよい。
+`quaderno_serial` を書くのは、別の機器へ黙ってつながるのを避けたくなったときでよい。
 シリアル番号は同じ LAN から認証なしで読める値なので、公開リポジトリに書いても漏洩には当たらない。書かないのは、書かずに済む値を設定に増やさないため。
 認証鍵の `~/.config/dpt/privatekey.dat` はリポジトリに置かない。
 
@@ -58,7 +58,7 @@ Quaderno はスリープすると Wi-Fi ごと消えるので、定期実行の�
 
 ## 取り込み先は SATA の `@backup` にし、vault には置かない
 
-`archiveDir` は `/mnt/backup/quaderno` で、ディレクトリは `data-disk.nix` の tmpfiles が作る。`minecraft-backup` と同じく、置き場所と書き込み権限はホストが用意し、モジュールは受け取るだけにする。
+`quaderno_archive` は `/mnt/backup/quaderno` で、ディレクトリは `data-disk.nix` の tmpfiles が作る。`minecraft-backup` と同じく、置き場所と書き込み権限はホストが用意し、モジュールは受け取るだけにする。
 PDF は増え続ける一方で読むのは時々なので SATA に置く（最初の 62 件で 428 MiB、[disk-tiering.md](./disk-tiering.md)）。
 `~/sagyo/memex`（vault の clone）には置かない。obsidian-git が 2 台で同期しているので、数百 MiB の PDF を持ち込むと同期の対象が膨らむ。
 
@@ -67,7 +67,7 @@ PDF は増え続ける一方で読むのは時々なので SATA に置く（最�
 workflow 側には vault の資料の Drive 同期があり、取り込み先を vault の下にすれば Drive へ運べる。
 しかし既存の同期は `rclone bisync` だけで片方向の `copy` がなく、Drive 側の削除が手元に伝わる。一方向にした判断と合わない。
 Drive への同期を自動化するときは、片方向の層を足してから workflow へ移す。
-移しやすいよう、モジュールは `local.quaderno` と `config.home.homeDirectory` 以外のこのリポジトリ固有の値を読まず、`archiveDir` に既定値を置かない。
+要素はホストの `quaderno_archive` とユーザーのホームを受け取り、`quaderno_archive` に既定値を置かない。失敗の通知は `failure_notify` の公開値を使う。
 
 ## まだ分からないこと
 

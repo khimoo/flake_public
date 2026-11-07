@@ -1,7 +1,7 @@
 # LLM Wiki の設計
 
 使い方: [LLM Wiki](../howtouse/llm-wikis.md)
-実装: このリポジトリは `local.profile.llmWikisRoot` と `llmWikisRepoUrl` を [private-repos.nix](../../modules/home-manager/private-repos.nix) の clone の対象に入れるだけ
+実装: ホストの `private_repos` に指定した URL とホームからの相対パスを、[personal_files.star](../../config/elements/personal_files.star) が [private_repos.star](../../config/elements/private_repos.star) に渡す
 
 ## 何を解決するか
 
@@ -67,11 +67,7 @@ skill 機構を必要としない。運用は該当ドメインのディレク�
 
 ## flake がやるのは clone だけ
 
-ユーザーの `local.profile` に clone 元と置き場所を書けば、profile のモジュールが clone のリストを作る（[private-repo-clone.md](./private-repo-clone.md)）。
-新しい home-manager のモジュールは作らず、`~/.claude` の下への symlink も張らない。
-
-`llmWikisRoot` は型付き `local.profile` のオプションだが、その利用はcloneリストの導出に限定する。
-Wiki本文を読むモジュールや自動ingestはこのflakeにはない。
+ホストの `private_repos` に clone 元とホームからの相対パスを書き、`personal_files` を選ぶと、要素が clone のリストを作る（[private-repo-clone.md](./private-repo-clone.md)）。Wiki は配置したディレクトリから利用する。
 
 ## スキーマ側に持たせる要件
 

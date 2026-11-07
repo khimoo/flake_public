@@ -42,9 +42,8 @@ fileSystems は `{ subvol, path, opts }` のリストから生成し、device �
 
 例外は、アプリを有効にしてから手で作る `@mimikopi` と `@xsaved` で、作る前の switch や再起動で起動を止めないよう `nofail` を付ける。
 代わりに、使う側の環境（`mimikopi-env`、`xsaved-env`）が起動時にマウントを確かめ、マウントされていなければ止まる。
-アプリの保存先は primaryUser の Home Manager の設定（`local.mimikopi.dataDir`、`local.xsaved.dataDir`、`local.minecraftBackup.repoDir`、`local.quaderno.archiveDir`）から読み、アプリが有効なときだけマウントや tmpfiles を用意する。
-`@backup` は複数のアプリが共有するので、依存の向きが逆になる。
-マウント先は `data-disk.nix` の `local.dataDisk.backupDir` に一度だけ書き、Minecraft と Quaderno の保存先は Home Manager の設定が `osConfig` からこの値を読んで作る。
+mimikopi のマウント先と Minecraft・Quaderno の tmpfiles のパスは `data-disk.nix` に指定する。アプリ側の保存先は [nixos-desktop.star](../../config/hosts/nixos-desktop.star) の `mimikopi_data_dir`、`minecraft_repo`、`quaderno_archive` にあるため、変更時は両方を合わせる。xsaved は primaryUser の Home Manager の `local.xsaved.dataDir` を読み、有効なときだけマウントを用意する。
+`@backup` は複数のアプリが共有し、マウント先は `data-disk.nix` の `local.dataDisk.backupDir` で指定する。
 
 ## Steam のライブラリは Steam に登録させる
 

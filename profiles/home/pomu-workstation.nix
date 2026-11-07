@@ -1,7 +1,4 @@
 { config, lib, ... }:
-let
-  work = "${config.home.homeDirectory}/sagyo";
-in
 {
   imports = [
     ./pomu.nix
@@ -12,9 +9,6 @@ in
       gnome = true;
       ime = true;
     };
-    lanSsh = true;
-    llmWikisRoot = "${work}/llm-wikis";
-    llmWikisRepoUrl = "git@github.com:khimoo/llm-wikis.git";
   };
 
   # 素のキーは us と同じで、右 Alt（AltGr）との組み合わせでアクセント付きの文字とデッドキーを打つ。

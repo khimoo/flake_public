@@ -2,7 +2,7 @@
 
 PrismLauncher のインスタンスを終了した際、restic を用いてローカルリポジトリ（`/mnt/backup/minecraft/repo`）へデータを取り込み、さらに Google Drive（`gdrive:minecraft-backups/<ホスト名>`）へ同期します。
 Drive 上のリポジトリはマシンごとに隔離されており、各マシンは自身の領域にのみ書き込みを行い、他マシンの領域は読み取り専用として扱います。
-設定は [home-manager-pomu.nix](../../hosts/nixos-desktop/home-manager-pomu.nix) の `local.minecraftBackup` で管理しており、現在は nixos-desktop でのみ有効化しています。
+[nixos-desktop.star](../../config/hosts/nixos-desktop.star) の `purposes` で `minecraft_backup` を選び、同ファイルの `minecraft_repo` と `minecraft_remote` で保存先を指定します。nixos-desktop でのみ有効化しています。
 
 設計ドキュメント: [Minecraft バックアップの設計](../architecture/minecraft-backup.md)
 
@@ -84,10 +84,10 @@ rclone about gdrive:                    # Drive の空き容量を確認
 ```
 
 `mc-sync` は、インスタンスごとに直近 3 世代、日次 14 世代、週次 8 世代、月次 12 世代を残し、それより古い世代を自動削除します。
-リポジトリ容量が `warnAtGiB`（規定値: 10 GiB）を超えると警告を出力しますが、容量超過のみを理由として強制削除することはありません。警告が出た場合は `local.minecraftBackup.retention` の保持世代設定を見直してください。
+リポジトリ容量が `minecraft_warn_gib`（規定値: 10 GiB）を超えると警告を出力しますが、容量超過のみを理由として強制削除することはありません。警告が出た場合はホストの `minecraft_retention` の保持世代設定を見直してください。
 
-```nix
-local.minecraftBackup.retention = [ "--keep-last=3" "--keep-daily=7" "--keep-monthly=6" ];
+```python
+minecraft_retention = ["--keep-last=3", "--keep-daily=7", "--keep-monthly=6"]
 ```
 
 ## restic 導入以前の ZIP アーカイブについて

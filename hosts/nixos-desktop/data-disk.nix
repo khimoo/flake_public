@@ -41,8 +41,8 @@ let
     # 耳コピの ML モデルの環境とチェックポイント。subvol は手で作るので、作る前に switch や
     # 再起動をしても起動を止めないよう nofail にする。マウントに失敗したときにルートへ書き込ませない
     # 確認は mimikopi-env が受け持つ（docs/architecture/mimikopi-env.md）。
-  ] ++ lib.optional hm.local.mimikopi.enable
-    { subvol = "@mimikopi"; path = hm.local.mimikopi.dataDir; opts = dataOpts ++ [ "nofail" ]; }
+    { subvol = "@mimikopi"; path = "/home/pomu/.local/share/mimikopi"; opts = dataOpts ++ [ "nofail" ]; }
+  ]
     # X のいいねとブックマークの保存。@mimikopi と同じく手で作る subvol なので nofail にし、マウントの確認は
     # xsaved-env が受け持つ（docs/architecture/xsaved.md）。
     ++ lib.optional hm.local.xsaved.enable
@@ -77,11 +77,10 @@ in
     # 用途ごとのディレクトリを primaryUser 所有で用意する（@backup の直下は root のまま残し、
     # 用途が増えたときに混ざらないようにする）。systemd-tmpfiles は local-fs.target の後に走るので、
     # マウント前の root ファイルシステム側に作られてマウントに隠される事故は起きない。
-    systemd.tmpfiles.rules =
-      lib.optional hm.local.minecraftBackup.enable
-        "d ${dirOf hm.local.minecraftBackup.repoDir} 0755 ${settings.primaryUser} users -"
-      ++ lib.optional hm.local.quaderno.enable
-        "d ${hm.local.quaderno.archiveDir} 0755 ${settings.primaryUser} users -";
+    systemd.tmpfiles.rules = [
+      "d /mnt/backup/minecraft 0755 ${settings.primaryUser} users -"
+      "d /mnt/backup/quaderno 0755 ${settings.primaryUser} users -"
+    ];
 
     # btrfs をカーネル/システムで扱えるように（root は ext4 なので既定では無効）+ メンテ用 CLI。
     boot.supportedFilesystems = [ "btrfs" ];

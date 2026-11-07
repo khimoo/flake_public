@@ -1,4 +1,4 @@
-purposes = [
+purposes = ["personal_files", 
     "dev_tools",
     "daily_editing",
     "shell",

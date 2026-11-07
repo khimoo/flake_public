@@ -2,7 +2,7 @@
 
 耳コピ（楽曲の自動採譜）スキルで使用する機械学習モデルを、uv 環境下で実行するためのコマンドです。
 この環境は nixos-desktop にのみ導入されています。
-[home-manager-pomu.nix](../../../hosts/nixos-desktop/home-manager-pomu.nix) の `local.mimikopi` で有効化し、データ保存先（`dataDir`）や GPU 互換性の指定（`hsaOverrideGfxVersion`）も同ファイル内で設定します。
+[nixos-desktop.star](../../../config/hosts/nixos-desktop.star) の `purposes` で `mimikopi` を選び、データ保存先（`mimikopi_data_dir`）と GPU 互換性の指定（`mimikopi_hsa_override`）も同ファイルで設定します。
 
 設計: [mimikopi-env の設計](../../architecture/mimikopi-env.md)
 

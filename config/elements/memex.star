@@ -1,6 +1,5 @@
 # memex（Obsidian の vault）。同期と Obsidian の仕組みは flake input の memex-nix が持ち、
 # ここは場所と、目的（memex_sync、obsidian）が書き込んだ選択を渡す。
-# vault と memex-nix の clone は、private-repos.nix が local.profile の値から行う。
 _VAULT_URL = "git@github.com:khimoo/memex.git"
 _SKELETON_URL = "git@github.com:khimoo/memex-nix.git"
 
@@ -14,10 +13,6 @@ def config(user, host, incoming):
     return {
         "home_imports": [module("memex-nix", "homeModules.memex")],
         "home": {
-            "local.profile.memexRoot": root,
-            "local.profile.memexRepoUrl": _VAULT_URL,
-            "local.profile.vaultSkeletonRepo": skeleton,
-            "local.profile.vaultSkeletonRepoUrl": _SKELETON_URL,
             "services.memex.enable": True,
             # vault のフォルダは clone が用意する。true にすると clone より先に空のフォルダを作る。
             "services.memex.initializeVault": False,
@@ -28,3 +23,10 @@ def config(user, host, incoming):
             "services.memex.obsidian.enable": obsidian,
         },
     }
+
+def writes(user, private_repos, secrets):
+    return [
+        write(private_repos, {"url": _VAULT_URL, "dest": user.home + "/sagyo/memex"}),
+        write(private_repos, {"url": _SKELETON_URL, "dest": user.home + "/sagyo/memex-nix"}),
+        write(secrets, private_repos.github_secret),
+    ]

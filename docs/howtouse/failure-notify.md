@@ -1,6 +1,6 @@
 # 定期実行の失敗の通知
 
-実装: [failure-notify.nix](../../modules/home-manager/failure-notify.nix)
+実装: [failure_notify.star](../../config/elements/failure_notify.star)
 
 Home Manager で定義したユーザーの定期実行が失敗すると、GNOME に通知が出る。
 通知のタイトルは「`<ユニット名>` が失敗しました」で、本文に原因を確かめるコマンドが出る。
@@ -17,17 +17,16 @@ journalctl --user -u xsaved-process.service
 Home Manager で定義したユーザーの timer のサービスすべてが対象になる。
 `tests/default.nix` の nixos-desktop の確認が、timer を持つサービスに通知が付いていることを確かめる。
 
-timer を足すときは、そのサービスの `Unit.OnFailure` に `config.local.failureNotify.onFailure` を入れる。
+要素で timer を足すときは、`config` の仮引数で `failure_notify` を受け取り、サービスの `Unit.OnFailure` に公開値 `failure_notify.on_failure` を入れます。
 
-```nix
-systemd.user.services.example = {
-  Unit = {
-    Description = "...";
-    OnFailure = config.local.failureNotify.onFailure;
-  };
-  # ...
-};
+```python
+def config(failure_notify):
+    return {"home": {
+        "systemd.user.services.example.Unit.OnFailure": failure_notify.on_failure,
+    }}
 ```
+
+Nix の既存モジュールでは `config.local.failureNotify.onFailure` を使えます。通知用のユニットは `failure_notify` 要素が生成します。
 
 外部の flake が定義するサービス（memex の同期）には、その目的の要素（[memex_sync.star](../../config/elements/memex_sync.star)）で足す。
 

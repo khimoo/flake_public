@@ -1,1 +1,1 @@
-purposes = ["ai_agents"]
+purposes = ["personal_files", "ai_agents"]

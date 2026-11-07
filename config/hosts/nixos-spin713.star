@@ -1,4 +1,4 @@
-purposes = [
+purposes = ["personal_files", 
     "ai_agents",
     "alook_open",
     "cargo_remote_run",
@@ -28,3 +28,6 @@ alook_open_remotes = {
 cargo_remote_run_host = "desktop-ts"
 
 agent_instructions = "hosts/nixos-spin713/agent-instructions.md"
+
+lan_ssh = True
+private_repos = [{"url": "git@github.com:khimoo/llm-wikis.git", "dest": "sagyo/llm-wikis"}]

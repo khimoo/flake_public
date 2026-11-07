@@ -1,3 +1,5 @@
+requires = ["private_repos"]
+
 # 目的: git と、その周りの道具（lazygit、delta）。名前とメールは config/users/<ユーザー>.star から。
 def config(user):
     home = {

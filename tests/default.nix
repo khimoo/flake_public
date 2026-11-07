@@ -143,6 +143,24 @@ let
       inherit system modules;
       stateVersion = "25.11";
     };
+  quadernoHome = system: name: configurations.mkHome {
+    inherit name system;
+    username = "test";
+    stateVersion = "25.11";
+  };
+  rejectsQuaderno = name: system: message:
+    builtins.readFile (inputs.nixpkgs.legacyPackages.x86_64-linux.runCommand
+      "reject-${name}-${system}"
+      { nativeBuildInputs = [ (import ../lib/confgen.nix { pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux; }).package ]; }
+      ''
+        if confgen build ${../config} ${lib.escapeShellArg name} ${lib.escapeShellArg system} test result.json > log 2>&1; then
+          cat log
+          exit 1
+        fi
+        cat log
+        grep -F -- ${lib.escapeShellArg message} log
+        printf passed > "$out"
+      '') == "passed";
   allAssertions = home: builtins.all (a: a.assertion) home.config.assertions;
   # confgen が作る Neovim の機能の一覧。confgen 自体は Linux で build する。
   neovimFeatures =
@@ -320,44 +338,20 @@ lib.genAttrs systems (
         ];
       };
       assert !(home.config.systemd.user.timers ? quaderno-pull);
-      assert
-        system != "x86_64-linux"
-        || ((mkTestHome system [
-          {
-            local.quaderno = {
-              enable = true;
-              archiveDir = "/home/test/quaderno";
-            };
-          }
-        ]).config.systemd.user.timers ? quaderno-pull);
-      assert
-        system != "x86_64-linux"
-        || (mkTestHome system [
-          {
-            local.quaderno = {
-              enable = true;
-              archiveDir = "/home/test/quaderno";
-            };
-          }
-        ]).config.local.quaderno.serial
-        == null;
-      assert rejects {
-        local.quaderno = {
-          enable = true;
-          archiveDir = "/home/another-user/quaderno";
-        };
-      };
+      assert system != "x86_64-linux"
+        || ((quadernoHome system "test-quaderno").config.systemd.user.timers ? quaderno-pull);
+      assert system != "x86_64-linux" || (
+        let
+          result = (import ../lib/confgen.nix { pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux; }).read "test-quaderno" system "test";
+          packages = lib.findFirst (s: s.path == [ "home" "packages" ]) null result.elements.quaderno.home;
+        in
+        (builtins.elemAt (builtins.head packages.value)."$shellAppEnv" 2).QUADERNO_SERIAL == ""
+      );
+      assert rejectsQuaderno "test-quaderno-other-home" "x86_64-linux"
+        "quaderno: archive points to another user's home";
       # home の外は許す。別ディスクへ置く構成を弾かないこと。
-      assert
-        system != "x86_64-linux"
-        || allAssertions (mkTestHome system [
-          {
-            local.quaderno = {
-              enable = true;
-              archiveDir = "/mnt/backup/quaderno";
-            };
-          }
-        ]);
+      assert system != "x86_64-linux"
+        || allAssertions (quadernoHome system "test-quaderno-backup");
       # GUI のないユーザーでは Windows VM のランチャーの評価を止める。
       assert rejects windowsVm;
       assert
@@ -366,15 +360,11 @@ lib.genAttrs systems (
           windowsVm
           { local.profile.features.gui = true; }
         ]);
-      assert rejects { local.quaderno.enable = true; };
-      assert
-        system == "x86_64-linux"
-        || rejects {
-          local.quaderno = {
-            enable = true;
-            archiveDir = "/home/test/quaderno";
-          };
-        };
+      assert rejectsQuaderno "test-quaderno-missing-archive" "x86_64-linux"
+        "quaderno_archive";
+      assert system == "x86_64-linux"
+        || rejectsQuaderno "test-quaderno" system
+          "quaderno: systemd user timers support Linux only";
       assert !badType.success;
       assert !unknownFeature.success;
       assert systemAssertionsHold laptop;
@@ -572,7 +562,7 @@ lib.genAttrs systems (
         user.services.memex.enable
         && !user.services.memex.initializeVault
         && !(user.home.activation ? seedVault)
-        && user.local.profile.memexRepoUrl != null
+        && builtins.any (repo: repo.dest == user.services.memex.vaultDir) user.local.profile.privateRepos
       ) [
         desktopUser
         inputs.self.nixosConfigurations.nixos-spin713.config.home-manager.users.pomu

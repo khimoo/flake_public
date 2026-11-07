@@ -1,7 +1,7 @@
 # mimikopi-env の設計
 
 使い方: [mimikopi-env](../howtouse/cli-tools/mimikopi-env.md)
-実装: [packages/mimikopi-env](../../packages/mimikopi-env/default.nix)、[mimikopi.nix](../../modules/home-manager/mimikopi.nix)
+実装: [packages/mimikopi-env](../../packages/mimikopi-env/default.nix)、[mimikopi.star](../../config/elements/mimikopi.star)
 
 ## 使いみち
 
@@ -31,14 +31,14 @@ nix-ld をこのホストで有効にする案は退けた。uv が取得する 
 uv はキャッシュから環境へハードリンクで展開するので、キャッシュと環境を同じファイルシステムに置くと、同じ版の torch を複数のモデルの環境で共有できる。
 スキルがモデルの環境を置く場所は `MIMIKOPI_DATA_DIR` で渡す。
 
-`HSA_OVERRIDE_GFX_VERSION` は GPU で決まる値なので、パッケージの引数にして [home-manager-pomu.nix](../../hosts/nixos-desktop/home-manager-pomu.nix) から渡す。
+`HSA_OVERRIDE_GFX_VERSION` は GPU で決まる値なので、パッケージの引数にして [nixos-desktop.star](../../config/hosts/nixos-desktop.star) の `mimikopi_hsa_override` から渡す。
 PyTorch の ROCm 版の wheel には gfx1032 向けのカーネルが入っていないので、`10.3.0` を指定して gfx1030 として扱わせる。
-データディスクも GPU も nixos-desktop に固有なので、[shell.star](../../config/elements/shell.star) ではなくこのホストの Home Manager の設定で入れる。
+データディスクも GPU も nixos-desktop に固有なので、[shell.star](../../config/elements/shell.star) ではなくこのホストの `purposes` で `mimikopi` を選ぶ。
 
 ## データを SATA の専用 subvol に置く
 
 ルートの空き約 18GB に対して、ROCm 版の torch だけで約 15GB を使う。
-[mimikopi.nix](../../modules/home-manager/mimikopi.nix) の `local.mimikopi` でパッケージと保存先を設定する。ホストの Home Manager 設定で `dataDir` を一度指定し、OS は有効な場合だけその値へマウントする。
+[mimikopi.star](../../config/elements/mimikopi.star) がホストの `mimikopi_data_dir` をパッケージに渡す。OS のマウント先は [data-disk.nix](../../hosts/nixos-desktop/data-disk.nix) にあるため、保存先を変えるときは両方を合わせる。
 
 SATA SSD に `@mimikopi` を作り、`~/.local/share/mimikopi` にマウントする（[data-disk.nix](../../hosts/nixos-desktop/data-disk.nix)）。
 モデルの読み込みはシーケンシャル読みが中心で、[disk-tiering.md](./disk-tiering.md) の分け方ではコールド層に当たる。

@@ -1,7 +1,7 @@
 # Minecraft バックアップの設計
 
 使い方: [Minecraft バックアップ](../howtouse/minecraft-backup.md)
-実装: [minecraft-backup.nix](../../modules/home-manager/minecraft-backup.nix)、[minecraft-common.sh](../../modules/home-manager/minecraft-common.sh) と各コマンドの本体
+実装: [minecraft_backup.star](../../config/elements/minecraft_backup.star)、[minecraft-common.sh](../../modules/home-manager/minecraft-common.sh) と各コマンドの本体
 
 ## 終了時のフックで取り込む
 
@@ -47,7 +47,7 @@ SATA は 1 台で冗長性がないので、Drive の写しがその役を担う
 まとめて数えると、よく遊ぶワールドの世代が、放置しているワールドの世代を押し出す。
 
 容量が上限を超えたら古い順に消す形は退けた。保持ポリシーとぶつかり、どの世代が残るかが遊んだ量で変わって読めなくなる。
-上限（`warnAtGiB`）は警告だけにし、どうするかはユーザーが決める。
+上限（`minecraft_warn_gib`）は警告だけにし、どうするかはユーザーが決める。
 
 ## リポジトリにパスワードを付けない
 
@@ -70,15 +70,15 @@ Drive の一覧が取れなければ、その旨を出して 0 で返す。
 
 ## リポジトリの場所と送り先はホストで指定する
 
-`repoDir` と `remote` には既定値を置かない。既定があると、書けない場所や存在しない remote へ黙って向かう。
+`minecraft_repo` と `minecraft_remote` には既定値を置かない。既定があると、書けない場所や存在しない remote へ黙って向かう。
 `/mnt/backup` は nixos-desktop にしかない。
-`instancesDir` は PrismLauncher が決めるパスなので既定を持つ。
+インスタンスの場所は PrismLauncher が決める `~/.local/share/PrismLauncher/instances` を使う。
 
-`/mnt/backup` は root のものなので、`data-disk.nix` の tmpfiles が `repoDir` の親を primaryUser のものとして作る。
+`/mnt/backup` は root のものなので、`data-disk.nix` の tmpfiles が `minecraft_repo` の親を primaryUser のものとして作る。
 `/mnt/backup` の直下は、用途ごとに所有者を分けられるよう root のまま残す。
 tmpfiles は `local-fs.target` の後に実行されるので、マウント前のルートにディレクトリができてマウントに隠されることはない。
 
-モジュールは全ホスト共通の `homeModules` に入れず、PrismLauncher を宣言している `home-manager-pomu.nix` から import する。1 ホストのためのトグルを共通の側に増やさないため。
+ホストの `purposes` で `minecraft_backup` を選ぶ。保存先も同じホストのファイルで指定し、要素がコマンドと timer を生成する。
 
 ## `prismlauncher.cfg` は Nix で管理しない
 
@@ -88,7 +88,7 @@ PrismLauncher はウィンドウの位置や最後に使ったインスタンス
 ## 共通部分はビルド時に連結する
 
 4 つのコマンドは同じ環境変数、インスタンスの走査、Drive のパスの規則を使う。
-`minecraft-common.sh` を各本体の先頭に `builtins.readFile` で連結し、1 つのファイルとして shellcheck を通す。
+`minecraft-common.sh` を各本体の先頭に `repoText` で連結し、1 つのファイルとして shellcheck を通す。
 別のコマンドを `source` する形は、store パスを実行時に解決することになり、shellcheck も追えなくなるので退けた。
 
-GUI から起動したランチャーの子プロセスとして動くので、PATH に何があるか分からない。`writeShellApplication` の `runtimeInputs` で `restic` や `rclone` を PATH に入れる。
+GUI から起動したランチャーの子プロセスとして動くので、PATH に何があるか分からない。`shellAppEnv` の runtimeInputs で `restic` や `rclone` を PATH に入れる。

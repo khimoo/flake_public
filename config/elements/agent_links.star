@@ -2,14 +2,11 @@ def public(user):
     root = getattr(user, "agent_config_root", None)
     return {"root": user.home + "/" + root if root != None else None}
 
-def config(user, agent_links):
+def config(agent_links):
     root = agent_links.root
     if root == None:
         return {}
-    home = {
-        "local.profile.agentConfigRoot": root,
-        "local.profile.agentConfigRepo": getattr(user, "agent_config_repo", None),
-    }
+    home = {}
     links = {
         ".claude/CLAUDE.md": "claude/CLAUDE.md",
         ".claude/skills": "shared/skills",
@@ -25,3 +22,14 @@ def config(user, agent_links):
     for target, source in links.items():
         home[("home", "file", target, "source")] = outOfStoreLink(root + "/" + source)
     return {"home": home}
+
+def writes(user, agent_links, private_repos, secrets):
+    url = getattr(user, "agent_config_repo", None)
+    if url != None and agent_links.root == None:
+        fail("agent_links: a clone URL requires its corresponding checkout path")
+    if agent_links.root == None or url == None:
+        return []
+    return [
+        write(private_repos, {"url": url, "dest": agent_links.root}),
+        write(secrets, private_repos.github_secret),
+    ]
