@@ -147,7 +147,8 @@ let
   mkTestHome =
     system: modules:
     configurations.mkHome {
-      name = "test";
+      # confgen は評価中に build するので、macOS の構成は Linux の検査では confgen なしで評価する。
+      name = if lib.hasSuffix "-darwin" system then "test-darwin" else "test";
       username = "test";
       inherit system modules;
       stateVersion = "25.11";

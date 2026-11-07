@@ -40,7 +40,7 @@ admin のユーザーは、`/run/current-system/sw/bin/nixos-rebuild` をパス�
 
 ### 共通グループの一括付与
 
-全ユーザーには `networkmanager` を付与する。`audio` は `local.music.users`、`libvirtd` は `local.vm.users` の対象者に、各機能が有効なときだけ付与する（[構成の境界](configuration.md)）。
+全ユーザーには `networkmanager` を付与する。`audio` は `music_production` を選んだホストの primaryUser に、`libvirtd` は `local.vm.users` の対象者に、各機能が有効なときだけ付与する（[構成の境界](configuration.md)）。
 
 ### home-manager との境界
 

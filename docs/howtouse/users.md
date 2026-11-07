@@ -101,11 +101,11 @@ modules/home-manager/   ← 全ユーザー共通（lib/configurations.nix の h
 hosts/<hostname>/home-manager-<username>.nix  ← ユーザー固有設定（homeFile で指定）
 ```
 
-`dev/`、`gui/`、`audio/` の配下にある子モジュールは、それぞれのディレクトリの `default.nix` 経由で読み込まれます。共通モジュールとして読み込まれていても、GUI などのオプショナル機能はユーザー自身の `local.profile.features` で明示的に有効化しない限り適用されません。詳細は [GUI アプリの管理](gui-apps.md) を参照してください。
+GUI と音楽アプリは `config/hosts/<ホスト>.star` の `purposes` で選びます。音楽制作には `music_production` を指定します。詳細は [GUI アプリの管理](gui-apps.md) を参照してください。
 
 ## 音楽制作環境・VM を利用するユーザーの設定
 
-ホスト単位の機能有効化は `local.music.enable` および `local.vm.enable` で行います。対象ユーザーはそれぞれ `local.music.users` と `local.vm.users` で指定し、未指定時のデフォルトは primaryUser となります。`audio` や `libvirtd` グループへの所属はこれらの対象ユーザーにのみ限定して付与されます。音楽制作アプリや Windows VM のランチャーは、該当ユーザーのうち Home Manager を利用しているユーザーに対してセットアップされます。VM に関する詳細は [Windows VM](windows-vm.md) を参照してください。
+音楽制作は `music_production` を選んだホストの primaryUser に audio グループを付与し、Home Manager に音楽アプリを設定します。VM は `local.vm.enable` で有効化し、`local.vm.users`（既定は primaryUser）に libvirtd グループを付与します。そのうち Home Manager を利用するユーザーには Windows VM のランチャーも設定します。詳細は [Windows VM](windows-vm.md) を参照してください。
 
 ## 反映
 

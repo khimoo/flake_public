@@ -11,7 +11,7 @@ MIME タイプに対するデフォルトアプリケーションは `xdg.mimeAp
 
 | 対象 MIME | 設定ファイル | 方式 |
 |-----------|-------------|------|
-| PDF, 画像, 動画, 音声, メール等 | [gui/apps.nix](../../modules/home-manager/gui/apps.nix) | `guiApps` の `mimeTypes` 属性から導出 |
+| PDF, 画像, 動画, 音声, メール等 | [gui/apps.nix](../../config/elements/gui_apps.star) | `guiApps` の `mimeTypes` 属性から導出 |
 | text/html, text/xml, about 等 | `gui/firefox.nix` | `programs.firefox` + 直接指定 |
 | HTTP/HTTPS | `gui/teams-dispatcher.nix` | Teams URL ディスパッチャ経由 |
 | Slack・Discord・Spotify・Zoom のスキーム | `gui/apps.nix` | アプリごとの `mimeTypes` から導出（[理由](./xdg-scheme-workaround.md)） |

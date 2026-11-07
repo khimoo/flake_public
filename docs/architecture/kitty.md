@@ -1,7 +1,7 @@
 # kitty の設計
 
 使い方: [kitty](../howtouse/cli-tools/kitty.md)
-実装: [kitty.nix](../../modules/home-manager/gui/kitty.nix)、[kitty.conf](../../modules/home-manager/gui/kitty/kitty.conf)
+実装: [kitty.star](../../config/elements/kitty.star)、[kitty.conf](../../modules/home-manager/gui/kitty/kitty.conf)
 
 ## 端末は kitty にする
 

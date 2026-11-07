@@ -1,7 +1,7 @@
 # comma
 
 インストールしていないコマンドを、先頭に `,` を付けて一度だけ実行する。
-Home Manager を使う全環境に入る。設定は [modules/home-manager/nix-index.nix](../../../modules/home-manager/nix-index.nix)。
+Home Manager を使う全環境に入る。設定は [nix_index.star](../../../config/elements/nix_index.star)。
 
 ## 実行する
 
@@ -97,7 +97,7 @@ nix-index の handler は `.bashrc` で定義されるので、対話シェル�
 （[claude-code-node.nix](../../../overlays/claude-code-node.nix)）ので、`node` の案内が出るのはそれ以外から実行したときになる。
 
 非対話の bash は、ログインシェルとして起動されても環境変数 `BASH_ENV` のファイルを読む。そこで
-`command_not_found_handle` を定義するファイルを [nix-index.nix](../../../modules/home-manager/nix-index.nix) で作り、
+`command_not_found_handle` を定義するファイルを [nix_index.star](../../../config/elements/nix_index.star) で作り、
 `home.sessionVariables.BASH_ENV` に設定した。特定のエージェントの起動経路に依存せず、Happy や IDE から
 起動したエージェントにも届く。
 

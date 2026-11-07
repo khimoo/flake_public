@@ -1,8 +1,8 @@
 # JJazzLab
 
 JJazzLab は、コード進行とリズムのスタイルから伴奏を生成するアプリ。
-パッケージは [packages/jjazzlab](../../packages/jjazzlab/default.nix) で、[audio/accompaniment.nix](../../modules/home-manager/audio/accompaniment.nix) が `features.audio` を有効にしたユーザーに入れる。
-`features.audio` は `local.music.enable` から有効になるので、NixOS ホストでは desktop にだけ入る。
+パッケージは [packages/jjazzlab](../../packages/jjazzlab/default.nix) で、[music_production.star](../../config/elements/music_production.star) がホストの `purposes` で選ばれると導入する。
+`music_production` は nixos-desktop と standalone Home Manager の pomu-nixos で選んでいる。
 
 ## 起動する
 

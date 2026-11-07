@@ -17,7 +17,7 @@
 | Nix | comma (`,`), nix-locate | 未インストールコマンドの一時実行とパッケージ検索 | [comma.md](./comma.md) |
 | PDF ビューア | tdf | ターミナル内での PDF 閲覧 | [shell-tools.md#tdf](./shell-tools.md#tdf) |
 
-## シェルエイリアス (core.nix)
+## シェルエイリアス (shell.star)
 
 日常的に使う標準コマンドは、モダンな代替ツールに置き換えています。
 
@@ -124,4 +124,4 @@ noise                         # ~/音楽/noise/ をシャッフル再生 (デフ
 noise ~/音楽/rain 30          # ディレクトリと音量を指定して再生
 ```
 
-> `noise` は bash 関数として定義されています (core.nix)。内部で mpv をバックグラウンド実行します。
+> `noise` は bash 関数として定義されています (shell.star)。内部で mpv をバックグラウンド実行します。

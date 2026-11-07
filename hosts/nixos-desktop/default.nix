@@ -6,7 +6,6 @@
     ../../modules/nixos/common.nix
   ];
   boot.kernelParams = [ "btusb.enable_autosuspend=n" ];
-  local.gnome.transparentFullscreen.enable = true;
 
   # 外出先から tailnet 経由で SSH とリモートビルドに使うので、無操作でサスペンドさせない。
   # サスペンドすると外から起こす手段がない（docs/architecture/tailscale.md）。
@@ -48,7 +47,6 @@
   # ユニットの [Install] と同じ graphical.target に繋いで enabled にする。nixpkgs のモジュールが同じことをするようになったら消す。
   systemd.services.gnome-remote-desktop.wantedBy = [ "graphical.target" ];
 
-  local.music.enable = true;
   # Windows は必要なときだけランチャーから起動する。
   local.vm = { enable = true; windowsDomain = "win11"; };
 
@@ -58,10 +56,6 @@
   programs.steam.enable = true;
 
   # 音声設定（PipeWire）
-  local.audio.echoCancel = {
-    enable = true;
-    source = "alsa_input.usb-Kingston_HyperX_SoloCast-00.analog-stereo";
-  };
   services.pulseaudio.enable = false;
   security.rtkit.enable = true;
   services.pipewire = {

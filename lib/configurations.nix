@@ -11,22 +11,16 @@ let
     ++ [ (import ../overlays/claude-code-node.nix) ];
   homeModules = [
     ../modules/home-manager/profile.nix
-    ../modules/home-manager/core.nix
-    ../modules/home-manager/git.nix
     ../modules/home-manager/secrets.nix
     ../modules/home-manager/private-repos.nix
     ../modules/home-manager/rclone.nix
     ../modules/home-manager/failure-notify.nix
-    ../modules/home-manager/yazi.nix
-    ../modules/home-manager/nix-index.nix
     ../modules/home-manager/minecraft-backup.nix
     ../modules/home-manager/windows-vm.nix
     ../modules/home-manager/mimikopi.nix
     ../modules/home-manager/xsaved.nix
     ../modules/home-manager/quaderno.nix
     ../modules/home-manager/dev
-    ../modules/home-manager/gui
-    ../modules/home-manager/audio
   ];
 in
 {
@@ -107,6 +101,13 @@ in
           };
         }
       ]
+      ++ lib.optional (builtins.pathExists ../config/hosts/${hostname}.star) (
+        import ../modules/nixos/confgen.nix {
+          host = hostname;
+          inherit system;
+          user = primaryUser;
+        }
+      )
       ++ modules;
     };
 

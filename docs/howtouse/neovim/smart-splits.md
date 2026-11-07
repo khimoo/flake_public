@@ -19,4 +19,4 @@
 
 kitty は、現在フォーカスしているペイン内で Neovim が動作しているかどうかを、Neovim 側が設定するユーザー変数 `IS_NVIM` によって判定する。Neovim が動いている場合は `Ctrl+h` などのキーストロークを Neovim 側にそのまま渡し、それ以外の場合は kitty 自身がペインのフォーカスを移動する。Neovim の最端のウィンドウから kitty のペインへ移動する際には、Neovim が `kitty @` コマンドを介してペインを切り替える。
 
-Neovim と kitty ペイン間を移動できない場合は、kitty 側の設定を確認する。smart-splits の kitten は [kitty.nix](../../../modules/home-manager/gui/kitty.nix) によって配置され、`kitty @` が通信に使うソケット設定（`listen_on`）は kitty.conf に記述されている。`listen_on` の設定を変更した場合は、kitty を再起動するまで反映されないため注意すること（[kitty の使い方](../cli-tools/kitty.md)）。
+Neovim と kitty ペイン間を移動できない場合は、kitty 側の設定を確認する。smart-splits の kitten は [kitty.star](../../../config/elements/kitty.star) によって配置され、`kitty @` が通信に使うソケット設定（`listen_on`）は kitty.conf に記述されている。`listen_on` の設定を変更した場合は、kitty を再起動するまで反映されないため注意すること（[kitty の使い方](../cli-tools/kitty.md)）。

@@ -13,7 +13,7 @@ Home Managerはユーザーごとに `config.local.profile` を評価する。�
 
 ## 機能の実装をたどる
 
-factory の `homeModules` は共通機能の入口を列挙する。GUI の子モジュールは [gui/default.nix](../../modules/home-manager/gui/default.nix) がまとめて import し、factory 側には重ねて列挙しない。GUI 全体・GNOME・IME の有効化条件は各モジュールの `mkIf` に残し、WSLg のように GUI だけを使う構成を維持する。アプリの変更箇所は [GUI アプリの管理](../howtouse/gui-apps.md) を参照。
+factory の `homeModules` は共通機能の入口を列挙する。GUI の子モジュールは [gui/default.nix](../../config/elements/gui.star) がまとめて import し、factory 側には重ねて列挙しない。GUI 全体・GNOME・IME の有効化条件は各モジュールの `mkIf` に残し、WSLg のように GUI だけを使う構成を維持する。アプリの変更箇所は [GUI アプリの管理](../howtouse/gui-apps.md) を参照。
 
 Home Manager への `extraSpecialArgs` は `inputs` を渡す。アプリ専用の引数や derivation を factory で作らず、その機能のモジュールが必要な input を参照する。
 
@@ -33,7 +33,7 @@ RustOwl は x86_64 Linux のホストでだけ入る（[rustowl.md](rustowl.md)�
 
 ## 目的ごとの OS とホームの選択
 
-[music.nix](../../modules/nixos/music.nix) の `local.music.enable` は musnix・JACK・低レイテンシー設定を有効にし、`users`（既定は primaryUser）を audio グループに入れる。そのうち Home Manager を持つユーザーの `features.audio` も有効にする。PipeWire の基本設定と通話用のエコーキャンセルの選択はホストに置く。standalone Home Manager の音楽アプリは `features.audio` で直接選ぶ。
+[music_production.star](../../config/elements/music_production.star) をホストの `purposes` で選ぶと、musnix・JACK・低レイテンシー設定を有効にし、primaryUser を audio グループに入れる。同じ要素が Home Manager の音楽アプリとプラグイン用リンクも設定する。nixos-desktop と standalone Home Manager の pomu-nixos が選択している。PipeWire の基本設定はホストに置き、通話用のエコーキャンセルは `call_audio` で選ぶ。
 
 [vm.nix](../../modules/nixos/vm.nix) の `local.vm.enable` は libvirt・OVMF・virt-manager・default ネットワークの自動起動を有効にし、`users` を libvirtd グループに入れる。`windowsDomain` が null でなければ、Home Manager を持つ対象ユーザーに Windows ランチャーを設定する。両機能とも Home Manager の対象は `settings.users` の `manageHome` で選び、OS アカウントのみのユーザーにホーム構成を作らない。
 

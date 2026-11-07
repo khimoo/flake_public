@@ -11,7 +11,6 @@
     ../../modules/nixos/common.nix
   ];
 
-  local.gnome.transparentFullscreen.enable = true;
 
   # スワップパーティションは eMMC 上にあり読み戻しが遅いので、優先度の高い zram を先に使う。
   # パーティションは hibernate のイメージを書き込む場所（sleep.nix）なので残す。
@@ -23,10 +22,6 @@
   # GNOME の画面の自動回転に要る。NixOS の GNOME モジュールは有効にしない。
   hardware.sensor.iio.enable = true;
 
-  local.audio.echoCancel = {
-    enable = true;
-    source = "alsa_input.platform-avs_dmic.19.auto.stereo-fallback";
-  };
 
   # ビルドはデスクトップに回す。このマシンは 4 スレッドで、/nix も SD カード上にある。
   # デスクトップに繋がらないときに黙って手元でビルドさせず、失敗させて人が判断する。

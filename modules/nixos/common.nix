@@ -7,17 +7,10 @@
     ./base.nix
     ./boot.nix
     ./networking.nix
-    ./desktop.nix
-    ./printing.nix
     ./ssh.nix
     ./tailscale.nix
     ./remote-builders.nix
-    ./bluetooth.nix
-    ./music.nix
     ./vm.nix
-    ./audio.nix
-    ./sns-block.nix
-    ./gnome-transparent-fullscreen.nix
     ./xsaved.nix
   ];
 }

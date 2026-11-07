@@ -180,6 +180,105 @@ func builtins() starlark.StringDict {
 		}
 		return &marker{json: map[string]any{"$module": []any{input, attr}}, text: "module " + input + "#" + attr}, nil
 	})
+	strArg := func(name string, args starlark.Tuple, kw []starlark.Tuple, n int) ([]string, error) {
+		vals := make([]string, n)
+		ptrs := make([]any, n)
+		for i := range vals {
+			ptrs[i] = &vals[i]
+		}
+		return vals, starlark.UnpackPositionalArgs(name, args, kw, n, ptrs...)
+	}
+	textArg := func(name string, v starlark.Value) (any, error) {
+		switch x := v.(type) {
+		case starlark.String:
+			return string(x), nil
+		case *marker:
+			return x.json, nil
+		}
+		return nil, fmt.Errorf("%s: text must be a string or concat(...)", name)
+	}
+	inputPkg := starlark.NewBuiltin("inputPkg", func(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kw []starlark.Tuple) (starlark.Value, error) {
+		v, err := strArg(b.Name(), args, kw, 2)
+		if err != nil {
+			return nil, err
+		}
+		return &marker{json: map[string]any{"$inputPkg": []any{v[0], v[1]}}, text: "inputPkg " + v[0] + "#" + v[1]}, nil
+	})
+	file := starlark.NewBuiltin("file", func(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kw []starlark.Tuple) (starlark.Value, error) {
+		if len(args) != 2 || len(kw) > 0 {
+			return nil, fmt.Errorf("file takes (name, text)")
+		}
+		name, ok := args[0].(starlark.String)
+		if !ok {
+			return nil, fmt.Errorf("file: name must be a string")
+		}
+		text, err := textArg("file", args[1])
+		if err != nil {
+			return nil, err
+		}
+		return &marker{json: map[string]any{"$file": []any{string(name), text}}, text: "file " + string(name)}, nil
+	})
+	// generic wraps a builder whose arguments are already JSON-able values (strings, lists,
+	// markers): the bridge calls the matching Nix function with them.
+	generic := func(kind string, n int) *starlark.Builtin {
+		return starlark.NewBuiltin(kind, func(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kw []starlark.Tuple) (starlark.Value, error) {
+			if len(args) != n || len(kw) > 0 {
+				return nil, fmt.Errorf("%s takes %d arguments", kind, n)
+			}
+			vals := []any{}
+			for _, a := range args {
+				j, err := toJSON(a)
+				if err != nil {
+					return nil, fmt.Errorf("%s: %w", kind, err)
+				}
+				vals = append(vals, j)
+			}
+			return &marker{json: map[string]any{"$" + kind: vals}, text: kind}, nil
+		})
+	}
+	repoModule := starlark.NewBuiltin("repoModule", func(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kw []starlark.Tuple) (starlark.Value, error) {
+		v, err := strArg(b.Name(), args, kw, 1)
+		if err != nil {
+			return nil, err
+		}
+		return &marker{json: map[string]any{"$repoModule": v[0]}, text: "repoModule " + v[0]}, nil
+	})
+	script := func(kind string) *starlark.Builtin {
+		return starlark.NewBuiltin(kind, func(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kw []starlark.Tuple) (starlark.Value, error) {
+			if len(args) != 2 || len(kw) > 0 {
+				return nil, fmt.Errorf("%s takes (name, text)", kind)
+			}
+			name, ok := args[0].(starlark.String)
+			if !ok {
+				return nil, fmt.Errorf("%s: name must be a string", kind)
+			}
+			text, err := textArg(kind, args[1])
+			if err != nil {
+				return nil, err
+			}
+			return &marker{json: map[string]any{"$" + kind: []any{string(name), text}}, text: kind + " " + string(name)}, nil
+		})
+	}
+	activation := starlark.NewBuiltin("activation", func(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kw []starlark.Tuple) (starlark.Value, error) {
+		var after *starlark.List
+		var body starlark.Value
+		if err := starlark.UnpackPositionalArgs(b.Name(), args, kw, 2, &after, &body); err != nil {
+			return nil, err
+		}
+		names := []any{}
+		for i := 0; i < after.Len(); i++ {
+			s, ok := after.Index(i).(starlark.String)
+			if !ok {
+				return nil, fmt.Errorf("activation: after must be a list of strings")
+			}
+			names = append(names, string(s))
+		}
+		text, err := textArg("activation", body)
+		if err != nil {
+			return nil, err
+		}
+		return &marker{json: map[string]any{"$activation": []any{names, text}}, text: "activation"}, nil
+	})
 	lua := starlark.NewBuiltin("lua", func(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kw []starlark.Tuple) (starlark.Value, error) {
 		if len(args) != 1 || len(kw) > 0 {
 			return nil, fmt.Errorf("lua takes one value")
@@ -193,6 +292,12 @@ func builtins() starlark.StringDict {
 	return starlark.StringDict{
 		"pkg": pkg, "exe": exe, "concat": concat, "write": write,
 		"luaPackages": luaPackages, "checkoutLink": checkoutLink, "lua": lua, "module": module,
+		"repoModule": repoModule, "script": script("script"), "scriptBin": script("scriptBin"),
+		"outOfStoreLink": generic("outOfStoreLink", 1),
+		"activation": activation, "inputPkg": inputPkg, "file": file,
+		"shellApp": generic("shellApp", 3), "repoPkg": generic("repoPkg", 1),
+		"symlinkJoin": generic("symlinkJoin", 2), "command": generic("command", 2),
+		"gvariantTuple": generic("gvariantTuple", 1),
 		"struct": starlark.NewBuiltin("struct", starlarkstruct.Make),
 	}
 }
@@ -223,7 +328,7 @@ type graphEntry struct {
 	Options  []string `json:"options"`
 }
 
-func evaluate(host, system, user string, elems map[string]*element, purposes []string) (*hostResult, error) {
+func evaluate(host, system, user string, hostFileValues, userFileValues starlark.StringDict, elems map[string]*element, purposes []string) (*hostResult, error) {
 	g := generated(elems, purposes)
 	thread := &starlark.Thread{Name: host, Print: func(*starlark.Thread, string) {}}
 	predeclared := builtins()
@@ -258,20 +363,28 @@ func evaluate(host, system, user string, elems map[string]*element, purposes []s
 	}
 
 	// public, in dependency order over the parameters of public.
-	facts := starlarkstruct.FromStringDict(starlarkstruct.Default, starlark.StringDict{
+	hostValues := starlark.StringDict{
 		"system": starlark.String(system),
 		"linux":  starlark.Bool(strings.HasSuffix(system, "-linux")),
 		"darwin": starlark.Bool(strings.HasSuffix(system, "-darwin")),
-	})
+	}
+	for k, v := range hostFileValues {
+		hostValues[k] = v
+	}
+	facts := starlarkstruct.FromStringDict(starlarkstruct.Default, hostValues)
 	facts.Freeze()
 	home := "/home/" + user
 	if strings.HasSuffix(system, "-darwin") {
 		home = "/Users/" + user
 	}
-	userFacts := starlarkstruct.FromStringDict(starlarkstruct.Default, starlark.StringDict{
+	userValues := starlark.StringDict{
 		"name": starlark.String(user),
 		"home": starlark.String(home),
-	})
+	}
+	for k, v := range userFileValues {
+		userValues[k] = v
+	}
+	userFacts := starlarkstruct.FromStringDict(starlarkstruct.Default, userValues)
 	userFacts.Freeze()
 	refs := map[string]*elementRef{
 		hostElement: {name: hostElement, public: facts},
@@ -428,16 +541,16 @@ func configJSON(e *element, v starlark.Value) (outputs, error) {
 	out := outputs{}
 	for _, item := range d.Items() {
 		k, ok := item[0].(starlark.String)
-		if ok && k == "home_imports" {
+		if ok && (k == "home_imports" || k == "nixos_imports") {
 			imports, err := moduleList(item[1])
 			if err != nil {
-				return nil, fmt.Errorf("%s: home_imports: %w", e.file, err)
+				return nil, fmt.Errorf("%s: %s: %w", e.file, k, err)
 			}
 			out[string(k)] = imports
 			continue
 		}
 		if !ok || (k != "home" && k != "nixos") {
-			return nil, fmt.Errorf("%s: config keys must be \"home\", \"nixos\" or \"home_imports\"", e.file)
+			return nil, fmt.Errorf("%s: config keys must be home, nixos, home_imports or nixos_imports", e.file)
 		}
 		opts, ok := item[1].(*starlark.Dict)
 		if !ok {
@@ -472,11 +585,13 @@ func moduleList(v starlark.Value) ([]any, error) {
 	for i := 0; i < list.Len(); i++ {
 		m, ok := list.Index(i).(*marker)
 		if !ok {
-			return nil, fmt.Errorf("must be a list of module(...)")
+			return nil, fmt.Errorf("must be a list of module(...) or repoModule(...)")
 		}
-		j, ok := m.json.(map[string]any)["$module"]
-		if !ok {
-			return nil, fmt.Errorf("must be a list of module(...)")
+		j := m.json.(map[string]any)
+		_, isModule := j["$module"]
+		_, isRepo := j["$repoModule"]
+		if !isModule && !isRepo {
+			return nil, fmt.Errorf("must be a list of module(...) or repoModule(...)")
 		}
 		out = append(out, j)
 	}

@@ -106,7 +106,7 @@ Nix の python3 で venv を作る案は退けた。nixpkgs 26.05 には Python 
 2026-10-14 に nixos-desktop で、Nix の Python 3.13 に入れた shapely 2.1.2 の import が `ImportError: libstdc++.so.6: cannot open shared object file` で失敗した。
 nix-ld はこの場合を助けない。Nix の Python は `/nix/store` のローダーを使うので、nix-ld を経由しない。
 
-uv が取得した Python だけを使わせるため、[core.nix](../../modules/home-manager/core.nix) は nix-ld のあるホストで `programs.uv.settings.python-preference` を `only-managed` にする。
+uv が取得した Python だけを使わせるため、[shell.star](../../config/elements/shell.star) は nix-ld のあるホストで `programs.uv.settings.python-preference` を `only-managed` にする。
 uv の既定の `managed` は、取得済みの Python がないと、ダウンロードより PATH 上の Python を優先する（uv の文書の「Python versions」）。PATH には core.nix の Nix の python3 があるので、そのままでは上の venv ができる。
 逆に `only-managed` は、nix-ld がないと起動できない Python しか選ばない。二つは一緒にしか意味がないので、uv の設定は NixOS の `programs.nix-ld.enable` から導き、ホストで切り替えるのは nix-ld だけにする。
 環境変数の `UV_PYTHON_PREFERENCE` ではなく uv の設定ファイル（`~/.config/uv/uv.toml`）に書くのは、環境変数がログインシェルから起動したプロセスにしか設定されないから。

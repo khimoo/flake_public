@@ -64,7 +64,10 @@ var identRe = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
 
 func predeclaredNames() map[string]bool {
 	return map[string]bool{"pkg": true, "exe": true, "concat": true, "write": true, "struct": true,
-		"luaPackages": true, "checkoutLink": true, "lua": true, "module": true}
+		"luaPackages": true, "checkoutLink": true, "lua": true, "module": true,
+		"repoModule": true, "script": true, "scriptBin": true, "activation": true,
+		"inputPkg": true, "file": true, "shellApp": true, "repoPkg": true, "symlinkJoin": true,
+		"command": true, "gvariantTuple": true, "outOfStoreLink": true}
 }
 
 func fileOptions() *syntax.FileOptions {
@@ -380,41 +383,58 @@ func checkGraph(elems map[string]*element) error {
 	return nil
 }
 
-func loadHost(file string, elems map[string]*element) ([]string, error) {
+// loadHost reads config/hosts/<host>.star: `purposes = [...]` (string literals) and other
+// `name = value` lines that become host facts (host.<name>), such as device names.
+func loadHost(file string, elems map[string]*element) ([]string, starlark.StringDict, error) {
 	src, err := os.ReadFile(file)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	f, err := fileOptions().Parse(file, src, 0)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	if len(f.Stmts) != 1 {
-		return nil, fmt.Errorf("%s: a host file holds only `purposes = [...]`", file)
-	}
-	s, ok := f.Stmts[0].(*syntax.AssignStmt)
 	var list []string
-	if ok {
-		id, isIdent := s.LHS.(*syntax.Ident)
-		if isIdent && id.Name == "purposes" && s.Op == syntax.EQ {
-			list, ok = directStrings(s.RHS)
-		} else {
-			ok = false
+	found := false
+	for _, stmt := range f.Stmts {
+		s, ok := stmt.(*syntax.AssignStmt)
+		if !ok || s.Op != syntax.EQ {
+			start, _ := stmt.Span()
+			return nil, nil, fmt.Errorf("%s: a host file holds only `name = value` lines", start)
+		}
+		id, ok := s.LHS.(*syntax.Ident)
+		if !ok {
+			return nil, nil, fmt.Errorf("%s: a host file holds only `name = value` lines", s.OpPos)
+		}
+		switch id.Name {
+		case "purposes":
+			if list, ok = directStrings(s.RHS); !ok {
+				return nil, nil, fmt.Errorf("%s: purposes must be a list of string literals", s.OpPos)
+			}
+			found = true
+		case "system", "linux", "darwin":
+			return nil, nil, fmt.Errorf("%s: %s is set by confgen", s.OpPos, id.Name)
 		}
 	}
-	if !ok {
-		return nil, fmt.Errorf("%s: a host file holds only `purposes = [...]` with string literals", file)
+	if !found {
+		return nil, nil, fmt.Errorf("%s: purposes is missing", file)
 	}
 	for _, p := range list {
-		e, found := elems[p]
-		if !found {
-			return nil, fmt.Errorf("%s: unknown element %q", file, p)
+		e, ok := elems[p]
+		if !ok {
+			return nil, nil, fmt.Errorf("%s: unknown element %q", file, p)
 		}
 		if e.derived() {
-			return nil, fmt.Errorf("%s: derived element %q cannot be selected", file, p)
+			return nil, nil, fmt.Errorf("%s: derived element %q cannot be selected", file, p)
 		}
 	}
-	return list, nil
+	values, err := starlark.ExecFileOptions(fileOptions(), &starlark.Thread{Name: file}, file, src, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+	delete(values, "purposes")
+	values.Freeze()
+	return list, values, nil
 }
 
 func sortedKeys[V any](m map[string]V) []string {
@@ -440,4 +460,37 @@ func uniq(xs []string) []string {
 		set[x] = true
 	}
 	return sortedKeys(set)
+}
+
+// loadUserFile reads config/users/<user>.star: top-level `name = literal` lines that
+// become attributes of the user facts element (user.<name>). A missing file is empty.
+func loadUserFile(file string) (starlark.StringDict, error) {
+	src, err := os.ReadFile(file)
+	if os.IsNotExist(err) {
+		return starlark.StringDict{}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	f, err := fileOptions().Parse(file, src, 0)
+	if err != nil {
+		return nil, err
+	}
+	for _, stmt := range f.Stmts {
+		s, ok := stmt.(*syntax.AssignStmt)
+		if !ok || s.Op != syntax.EQ {
+			start, _ := stmt.Span()
+			return nil, fmt.Errorf("%s: a user file holds only `name = value`", start)
+		}
+		if id, ok := s.LHS.(*syntax.Ident); !ok || id.Name == "name" || id.Name == "home" {
+			return nil, fmt.Errorf("%s: name and home are set by confgen", s.OpPos)
+		}
+	}
+	thread := &starlark.Thread{Name: file}
+	values, err := starlark.ExecFileOptions(fileOptions(), thread, file, src, nil)
+	if err != nil {
+		return nil, err
+	}
+	values.Freeze()
+	return values, nil
 }

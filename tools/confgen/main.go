@@ -48,11 +48,15 @@ func buildHost(dir, host, system, user string) (*hostResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	purposes, err := loadHost(filepath.Join(dir, "hosts", host+".star"), elems)
+	purposes, hostValues, err := loadHost(filepath.Join(dir, "hosts", host+".star"), elems)
 	if err != nil {
 		return nil, err
 	}
-	return evaluate(host, system, user, elems, purposes)
+	userValues, err := loadUserFile(filepath.Join(dir, "users", user+".star"))
+	if err != nil {
+		return nil, err
+	}
+	return evaluate(host, system, user, hostValues, userValues, elems, purposes)
 }
 
 // explain prints what a change to one element can affect on one host.

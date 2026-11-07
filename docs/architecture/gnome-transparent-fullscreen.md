@@ -1,6 +1,6 @@
 # 全画面の半透明ウィンドウを透かす mutter パッチ
 
-設定ファイル: `modules/nixos/gnome-transparent-fullscreen.nix`、`packages/mutter-transparent-fullscreen/`
+設定ファイル: `config/elements/gnome.star`、`packages/mutter-transparent-fullscreen/`
 
 使い方は [docs/howtouse/cli-tools/kitty.md](../howtouse/cli-tools/kitty.md) の「透明度」を参照。
 
@@ -30,7 +30,7 @@ X11 クライアント用の `meta-window-actor-x11.c` にはこの処理がな�
 ## 判断
 
 mutter にパッチを当て、`system.replaceDependencies` で差し替える。
-desktop と spin713 で `local.gnome.transparentFullscreen.enable` を有効にした。
+desktop と spin713 が選ぶ `gnome` 要素で置換を設定する。
 
 パッチは `meta-window-actor-wayland.c` の 2 か所を変える。
 

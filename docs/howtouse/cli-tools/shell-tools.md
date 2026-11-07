@@ -2,7 +2,7 @@
 
 日常的に使うモダン CLI ツール群のリファレンス。エイリアスで元コマンドを置き換えているため、意識せず使えるものが多いが、オプションを知ると活用の幅が広がる。
 
-> 設定: `modules/home-manager/core.nix`
+> 設定: `config/elements/shell.star`
 
 ---
 
@@ -327,7 +327,7 @@ gh api /repos/:owner/:repo     # GitHub API を直接叩く
 
 端末内で PDF を表示するビューア。kitty では kitty graphics protocol で画像として描画される。
 
-> パッケージ: `modules/home-manager/gui/apps.nix`
+> パッケージ: `config/elements/gui_apps.star`
 
 ```bash
 tdf paper.pdf              # 表示
@@ -376,4 +376,4 @@ tdf に設定ファイルの読み込みはないため、恒久化したい場�
 - 直前のコマンドの成功/失敗 (成功: `❯` / 失敗: `✗`)
 - direnv によるシェル環境の検出
 
-設定不要で機能する。表示がうるさい場合は `core.nix` で `disabled` フラグを追加できる。
+設定不要で機能する。表示がうるさい場合は `shell.star` の starship の設定で `disabled` を足せる。
