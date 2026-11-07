@@ -3,7 +3,7 @@
 外出先のラップトップ（`nixos-spin713`）から、デスクトップ（`nixos-desktop`）のファイルを sshfs でマウントして編集します。
 デスクトップで動いているエージェントと同じファイルを、手元のエディタとツールで扱えます。
 
-設定: [sshfs.nix](../../modules/home-manager/sshfs.nix)（`local.sshfs.enable`、`nixos-spin713` で有効）
+設定: [sshfs_editing.star](../../config/elements/sshfs_editing.star) と [direnv_on_sshfs.star](../../config/elements/direnv_on_sshfs.star)。目的 `sshfs_editing` を選んだホスト（[nixos-spin713.star](../../config/hosts/nixos-spin713.star)）で入る（[confgen.md](./confgen.md)）。
 
 ## マウントする
 
@@ -30,7 +30,7 @@ direnv のキャッシュを作り直したいときは、該当するディレ�
 
 ## 設計
 
-sshfs 上かどうかの条件（`fuse.sshfs` と `findmnt`）は、`local.relations.conditions.onSshfs` に1か所だけ宣言します。tinymist の PDF 対策と direnv の対策は、どちらもこの宣言から値を受け取ります（[relations.md](./relations.md)）。
+findmnt のパスは `util_linux` の要素が公開し、tinymist の PDF 対策（`sshfs_editing` から Neovim への書き込み）と direnv の対策（派生要素 `direnv_on_sshfs`）がそれを読みます。direnv の対策は、`sshfs_editing` と `direnv` の両方が入るホストでだけ入ります。
 判定を FUSE 全体に広げないのは、FUSE であること自体は遅さや下記の問題と関係しないためです。
 
 direnv のキャッシュを手元に置くのは、sshfs ではキャッシュが毎回作り直されるためです。

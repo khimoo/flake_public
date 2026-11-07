@@ -1,7 +1,7 @@
 -- sshfs 上の文書だけ、tinymist の PDF 出力先を手元の tmpfs に移す。
 -- 理由は docs/howtouse/neovim/lang-typst.md の「設計」にある。
--- 判定に使う種別とコマンドは Nix の local.relations.conditions から受け取る（docs/howtouse/relations.md）。
--- ここに "findmnt" や "fuse.sshfs" を直接書くと、宣言を通らない依存になる。
+-- 判定に使う種別とコマンドは config/elements/sshfs_editing.star が Nix 経由で渡す。
+-- ここに "findmnt" や "fuse.sshfs" を直接書くと、参照を通らない依存になる。
 
 local M = {}
 

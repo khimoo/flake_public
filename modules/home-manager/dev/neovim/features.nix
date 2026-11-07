@@ -25,21 +25,8 @@ let
     unpackPhase = "gzip -d < $src > $out";
     dontInstall = true;
   };
-
-  relations = config.local.relations;
-  hasSshfsCondition = relations.conditions ? onSshfs;
-  typstPdfCondition = relations.conditions.${relations.measures.typstPdfOnSshfs.condition}.mountType;
 in
 {
-  local.relations.measures = lib.mkIf hasSshfsCondition {
-    typstPdfOnSshfs = {
-      description = "tinymist の PDF を手元の tmpfs に出す";
-      source = "modules/home-manager/dev/neovim/config/lua/plugins/lang/typst/output_path.lua";
-      purpose = "sshfsEditing";
-      condition = "onSshfs";
-    };
-  };
-
   local.neovim.features = {
     clipboard.packages = lib.optionals isLinux [
       pkgs.xclip
@@ -56,13 +43,8 @@ in
 
     lsp = {
       packages = map (s: s.pkg) lspServers ++ [ pkgs.nixfmt ];
-      data = {
-        servers = map (s: s.lsp) lspServers;
-      }
-      // lib.optionalAttrs hasSshfsCondition {
-        # lua/plugins/lang/typst/output_path.lua が読む。
-        tinymistOutput = { inherit (typstPdfCondition) findmnt fsType; };
-      };
+      # tinymistOutput は config/elements/neovim.star が入れる。
+      data.servers = map (s: s.lsp) lspServers;
     };
 
     # denops が deno で動く。
