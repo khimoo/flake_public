@@ -11,9 +11,6 @@ let
     ++ [ (import ../overlays/claude-code-node.nix) ];
   homeModules = [
     ../modules/home-manager/profile.nix
-    ../modules/home-manager/failure-notify.nix
-    ../modules/home-manager/windows-vm.nix
-    ../modules/home-manager/xsaved.nix
     ../modules/home-manager/dev
   ];
 in

@@ -4,7 +4,7 @@ X で「いいね」またはブックマークしたポストを、本文・画
 ツール本体には、プライベートリポジトリ [khimoo/xsaved](https://github.com/khimoo/xsaved) の本番用チェックアウト（`~/.local/share/xsaved-app`）を使用します。開発用チェックアウトは `~/sagyo/xsaved` に配置します。利用可能なコマンド一覧はリポジトリ本体の README を参照してください。
 nixos-desktop の pomu 環境では、開発用チェックアウトのみが `clone-repos` の対象です。本番用チェックアウトの作成・更新手順は「[本番用チェックアウトの更新](#本番用チェックアウトの更新)」を、新規環境のセットアップ手順は [SSH 鍵の配布と private repo の clone](private-repo-clone.md) を、保存済みポストとデータベースの復元方法は「[バックアップ](#バックアップ)」をそれぞれ参照してください。
 
-設定箇所は [home-manager-pomu.nix](../../hosts/nixos-desktop/home-manager-pomu.nix) の `local.xsaved` です。
+設定箇所は [nixos-desktop.star](../../config/hosts/nixos-desktop.star) の `xsaved_users` です。`purposes` の `xsaved` で有効にします。
 
 設計ドキュメント: [X のいいねとブックマークの保存の設計](../architecture/xsaved.md)
 
@@ -106,11 +106,11 @@ journalctl -u caddy
 
 アクセスはローカルマシンからのみ可能です。URL スキームには `http://` を指定してください。
 Caddy が起動していない場合は、<http://127.0.0.1:8765/> へ直接アクセスすることで問題の切り分けが可能です。
-内部接続先ポートは `local.xsaved.webPort` で変更でき、Caddy のリバースプロキシ先も自動追従します。Web サーバー本体はその次のポート番号で待機します。
+内部接続先ポートは `xsaved_users["pomu"]["web_port"]` で変更でき、Caddy のリバースプロキシ先も自動追従します。Web サーバー本体はその次のポート番号で待機します。
 
 ## 定期実行
 
-以下の systemd ユーザータイマーを設定しています。なお、`xsaved-backup` は `local.xsaved.backup.repository` が設定されている場合のみ有効化されます。
+以下の systemd ユーザータイマーを設定しています。なお、`xsaved-backup` は `xsaved_users["pomu"]["backup_repository"]` が設定されている場合のみ有効化されます。
 
 | タイマー | 実行時刻 | 実行内容 |
 |-------|------|-------------|

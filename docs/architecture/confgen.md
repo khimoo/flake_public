@@ -35,7 +35,7 @@ B を保証できるのは `config/elements/` の要素の中だけ。Nix のモ
 
 ## Nix との分担
 
-confgen は Nix の評価の途中で build して実行し（import from derivation）、ホストごとの JSON を作る。手で実行する手順や、生成物の commit をなくすため。[confgen.nix](../../modules/home-manager/confgen.nix) は JSON を Home Manager の設定にし、印（`$pkg`、`$exe`、`$concat`）をそのホストの `pkgs` の値に置き換える。
+confgen は Nix の評価の途中で build して実行し（import from derivation）、ホストごとの JSON を作る。手で実行する手順や、生成物の commit をなくすため。[confgen.nix](../../modules/home-manager/confgen.nix) と [NixOS 側](../../modules/nixos/confgen.nix) は JSON をそれぞれの設定にし、印（`$pkg`、`$exe`、`$concat`）をそのホストの `pkgs` の値に置き換える。
 
 ホスト名、system、ユーザー名は、`lib/configurations.nix` が import するときに渡す。目的はホストごとに1つのファイルで選ぶので、同じホストのユーザーは同じ目的を受け取る。`config` や module 引数の `pkgs` から決めると、設定の名前の一覧を決めるのに設定そのものが要り、無限再帰になる。confgen の build には specialArgs の `inputs` の nixpkgs を使う。
 
@@ -45,4 +45,3 @@ confgen は Nix の評価の途中で build して実行し（import from deriva
 
 - 実行時の依存（Lua やシェルが名前で呼ぶコマンド、環境変数）と、実行時に作られる状態（キャッシュ）。
 - nixpkgs や Home Manager のモジュールの中身。
-- NixOS の option（第1版は Home Manager だけを扱い、`nixos` を出す要素は止める）。

@@ -3,7 +3,7 @@
 設計: [confgen.md](../architecture/confgen.md)
 実装: [config/](../../config/)（要素とホスト）/ [tools/confgen](../../tools/confgen/)（評価と検査）/ [confgen.nix](../../modules/home-manager/confgen.nix)（Home Manager への反映）
 
-`config/elements/` の Starlark のファイルが、設定の要素を1つずつ定義します。ホストは `config/hosts/<ホスト名>.star`（standalone の Home Manager では `<構成名>.star`）で目的を選び、選んだ目的から参照をたどれる要素と、条件がそろった派生要素だけが Home Manager の設定になります。switch の評価の途中で confgen が動くので、手で実行する手順はありません。
+`config/elements/` の Starlark のファイルが、設定の要素を1つずつ定義します。ホストは `config/hosts/<ホスト名>.star`（standalone の Home Manager では `<構成名>.star`）で目的を選び、選んだ目的から参照をたどれる要素と、条件がそろった派生要素だけが Home Manager と NixOS の設定になります。switch の評価の途中で confgen が動くので、手で実行する手順はありません。
 
 ## 目的を選ぶ・外す
 
@@ -24,7 +24,7 @@ purposes = ["daily_editing", "sshfs_editing"]
 | `requires = [...]` | 値を読まずに使う要素（目的が使う道具など） |
 | `def public(...)` | 他の要素が読める値の辞書を返す |
 | `def writes(...)` | `write(相手, 値)` のリストを返す |
-| `def config(..., incoming)` | `{"home": {"option.path": 値}}` を返す。`incoming` は自分への書き込みの一覧（`w.source`、`w.value`） |
+| `def config(..., incoming)` | `{"home": {"option.path": 値}, "nixos": {"option.path": 値}}` を返す。`incoming` は自分への書き込みの一覧（`w.source`、`w.value`） |
 | `when = [...]` | 派生要素の条件。挙げた要素がすべて入るときだけ、この要素が入る |
 
 関数の仮引数の名前が、参照する要素の名前です。仮引数には相手の公開値が属性として渡ります（`util_linux.findmnt`）。`write` の第1引数には、`writes` の仮引数の名前をそのまま書きます。

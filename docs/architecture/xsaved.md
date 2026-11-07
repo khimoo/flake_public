@@ -1,7 +1,7 @@
 # X のいいねとブックマークの保存の設計
 
 使い方: [X のいいねとブックマークの保存と意味検索](../howtouse/xsaved.md)
-実装: [xsaved.nix](../../modules/home-manager/xsaved.nix)（コマンドと定期実行）、[modules/nixos/xsaved.nix](../../modules/nixos/xsaved.nix)（データベース）、[xsaved-env](../../packages/xsaved-env/default.nix)
+実装: [xsaved.star](../../config/elements/xsaved.star)（コマンド・定期実行・データベース）、[xsaved-env](../../packages/xsaved-env/default.nix)
 
 ツール本体（取得、登録、OCR、埋め込み、検索）の設計は xsaved の `docs/design.md` にあり、この文書は nixos-desktop で動かすための環境、データベース、定期実行を扱う。
 
@@ -31,14 +31,14 @@ subvol を分ければスナップショットやバックアップの単位を�
 バックアップを作るときは `tweets/` だけを対象にする。
 
 マウントの扱いは `@mimikopi` と同じで、作る前の switch や再起動で起動を止めないよう `nofail` を付け、`xsaved-env` が起動時に `mountpoint -q` で確かめて、マウントされていなければ止まる。
-この確認は、NixOS 側の `fileSystems` が `local.xsaved.dataDir` のマウントを定義しているときだけ入れる。
+この確認は、ホストの `xsaved_users` の該当ユーザーで `check_mount = True` にしたときに入る。`data-disk.nix` に保存先のマウントを定義する構成で指定する。
 確認の目的は、nofail のマウントに失敗したときにルート側を埋めないことで、マウントを定義していないホストやユーザーには守るものがない。そうした構成では、データはホームの下にそのまま置かれる。
 [tests/default.nix](../../tests/default.nix) は `nofail` が付いていることを確かめる。
 
 ## Postgres を OS のサービスで動かす
 
-[modules/nixos/xsaved.nix](../../modules/nixos/xsaved.nix) が、Home Manager で `local.xsaved` を有効にしたユーザーごとに、NixOS の `services.postgresql` でデータベースを作る。
-データベースの名前は Home Manager 側の `local.xsaved.database` が正本で、NixOS 側はそれを読む。データディレクトリを Home Manager 側で決めて OS のマウントがそれを読むのと同じ向きにした。
+[xsaved.star](../../config/elements/xsaved.star) が、ホストの `xsaved_users` に指定したユーザーごとに、NixOS の `services.postgresql` でデータベースを作る。
+データベース名はホストの `xsaved_users` の `database` が正本で、同じ要素が OS の作成処理とホームの接続先に渡す。
 名前は、NixOS 側が superuser として実行する SQL と、xsaved の接続文字列に埋め込むので、英小文字、数字、`_` だけの 63 バイトまでに限る（先頭は数字以外）。
 [tests/default.nix](../../tests/default.nix) は、Home Manager 側の名前のデータベースを Postgres が作ることを確かめる。
 
@@ -47,7 +47,7 @@ nixpkgs の `ensureDBOwnership` はユーザーと同じ名前のデータベー
 拡張は所有者には作れないので、同じ所で superuser として作る。pgvector と PGroonga の control ファイルには `trusted = true` がなく、superuser でないロールは `CREATE EXTENSION` を実行できない（Postgres 17.11、pgvector 0.8.2、PGroonga 4.0.5、nixpkgs 26.05 の 4feb8eb で確認）。superuser が拡張を作ったデータベースを一般ロールに所有させれば、そのロールで migrate、全文検索、距離計算が通る。xsaved の migrate の `CREATE EXTENSION IF NOT EXISTS` は、作成済みなら何もしない。
 
 拡張を作るには superuser が要るので、Home Manager だけではデータベースを用意できない。
-`local.xsaved` は NixOS の Home Manager モジュールとして使うときだけ有効にでき、Home Manager を単独で使う構成では assertion で止まる。
+`xsaved` は NixOS の Home Manager モジュールとして使うときだけ有効にでき、Home Manager を単独で使う構成では assertion で止まる。
 
 Postgres のメジャー版は 17 に固定する。既定値は `system.stateVersion` で決まり、メジャー版が変わるとデータディレクトリの移行が要るからである。
 
@@ -59,7 +59,7 @@ Postgres のメジャー版は 17 に固定する。既定値は `system.stateVe
 
 二つの実行が同時に埋め込みのモデルを VRAM に載せると、どちらかが足りなくなる。
 夜間の `xsaved-process` と手で始めた `xsaved embed` が重なったときや、同じホストのほかのユーザーが使ったときに起きる。
-[modules/nixos/xsaved.nix](../../modules/nixos/xsaved.nix) が、ロックファイル `/run/xsaved-gpu.lock` を tmpfiles で作り、`xsaved-env` が `XSAVED_GPU_LOCK` でその場所を渡す。
+[xsaved.star](../../config/elements/xsaved.star) が、ロックファイル `/run/xsaved-gpu.lock` を tmpfiles で作り、`xsaved-env` が `XSAVED_GPU_LOCK` でその場所を渡す。
 `xsaved embed` は、計算の前にこのファイルの排他ロックを取り、ほかの実行が終わるまで待つ。
 
 ロックファイルは root が持つ 0644 のファイルにする。flock は読み取りで開いたファイルにも掛けられるので、どのユーザーも使え、消したり書き換えたりはできない。
@@ -77,7 +77,7 @@ Postgres のメジャー版は 17 に固定する。既定値は `system.stateVe
 
 ## checkout をそのまま実行する
 
-`xsaved` は `local.xsaved.projectDir` の checkout を `uv run --project ... --frozen` で実行する。
+`xsaved` は `xsaved_users["pomu"]["project_dir"]` の checkout を `uv run --project ... --frozen` で実行する。
 ML の依存（ROCm 版の torch の wheel など）は xsaved の `uv.lock` で決まっていて、Nix のパッケージにすると uv の lock と二重に管理することになる。
 
 `xsaved` は、埋め込みと OCR を使うサブコマンド（`ocr`、`embed`、`tag`、`frames`、`search`、`serve`）のときだけ `--extra ml` を付ける。
@@ -96,7 +96,7 @@ nixos-desktop では、本番用の checkout を `~/sagyo` の外の `~/.local/s
 
 ## 定期実行
 
-[xsaved.nix](../../modules/home-manager/xsaved.nix) が取得、OCR・埋め込み、バックアップの systemd user timer を定義する。
+[xsaved.star](../../config/elements/xsaved.star) が取得、OCR・埋め込み、バックアップの systemd user timer を定義する。
 
 `xsaved-sync` は毎時、いいね欄とブックマーク欄と、返信先と引用元を取得して登録する。
 gallery-dl は取得済みのツイートが 20 件続いたら止まるので、普段の実行は数秒から十数秒で終わる。
@@ -161,7 +161,7 @@ xsaved の `xsaved serve` は、ポートを開いて待ち受けるだけの普
 
 nixos-desktop では、ポート番号を覚えずに開けるよう、常駐する Caddy を `http://xsaved.localhost/` の入口にする。
 名前は `/etc/hosts` でループバックへ解決し、Caddy も IPv4・IPv6 のループバックだけで待ち受ける。
-転送先は Home Manager の `local.xsaved.webPort` を参照する。サーバー本体へ直接転送するとソケットによる起動を迂回するため、既存の起動用ソケットへ渡す。
+転送先は `xsaved_proxy` が指定するユーザーの `web_port` を同じ要素内で参照する。サーバー本体へ直接転送するとソケットによる起動を迂回するため、既存の起動用ソケットへ渡す。
 自マシン内の HTTP 接続とし、証明書の配布は行わない。Tailscale 経由でノート PC から開けるようにするのは、あとで決める。
 
 ## バックアップを Google Drive に restic で写す

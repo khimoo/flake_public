@@ -35,7 +35,7 @@ RustOwl は x86_64 Linux のホストでだけ入る（[rustowl.md](rustowl.md)�
 
 [music_production.star](../../config/elements/music_production.star) をホストの `purposes` で選ぶと、musnix・JACK・低レイテンシー設定を有効にし、primaryUser を audio グループに入れる。同じ要素が Home Manager の音楽アプリとプラグイン用リンクも設定する。nixos-desktop と standalone Home Manager の pomu-nixos が選択している。PipeWire の基本設定はホストに置き、通話用のエコーキャンセルは `call_audio` で選ぶ。
 
-[vm.nix](../../modules/nixos/vm.nix) の `local.vm.enable` は libvirt・OVMF・virt-manager・default ネットワークの自動起動を有効にし、`users` を libvirtd グループに入れる。`windowsDomain` が null でなければ、Home Manager を持つ対象ユーザーに Windows ランチャーを設定する。両機能とも Home Manager の対象は `settings.users` の `manageHome` で選び、OS アカウントのみのユーザーにホーム構成を作らない。
+[windows_vm.star](../../config/elements/windows_vm.star) をホストの `purposes` で選ぶと、libvirt・OVMF・virt-manager・default ネットワークの自動起動を有効にし、`windows_vm_users` を libvirtd グループに入れる。`windows_vm_domain` が null でなければ `gui` も必要になり、[windows_vm_gui.star](../../config/elements/windows_vm_gui.star) が対象ユーザーの Home Manager にランチャーを設定する。Home Manager のユーザー自体は `settings.users` の `manageHome` で選び、OS アカウントのみのユーザーにホーム構成を作らない。
 
 ## OSとの接点
 

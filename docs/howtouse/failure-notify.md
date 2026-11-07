@@ -26,7 +26,7 @@ def config(failure_notify):
     }}
 ```
 
-Nix の既存モジュールでは `config.local.failureNotify.onFailure` を使えます。通知用のユニットは `failure_notify` 要素が生成します。
+通知用のユニットは `failure_notify` 要素が生成します。
 
 外部の flake が定義するサービス（memex の同期）には、その目的の要素（[memex_sync.star](../../config/elements/memex_sync.star)）で足す。
 

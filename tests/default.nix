@@ -42,13 +42,11 @@ let
   desktopWindowsVm = lib.findFirst (
     p: (p.name or "") == "windows-vm"
   ) (throw "windows-vm is not installed") desktopUser.home.packages;
-  windowsVm = {
-    imports = [ ../modules/home-manager/windows-vm.nix ];
-    local.windowsVm = {
-      enable = true;
-      domain = "win11";
-    };
-  };
+  desktopGenerated = (import ../lib/confgen.nix { pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux; }).read "nixos-desktop" "x86_64-linux" "pomu";
+  generatedPackages = element: (lib.findFirst (s: s.path == [ "home" "packages" ]) null element.home).value;
+  desktopXsavedEnv = builtins.elemAt (builtins.head (generatedPackages desktopGenerated.elements.xsaved))."$repoPkgWith" 1;
+  desktopXsavedBackupEnv = builtins.elemAt (builtins.elemAt (generatedPackages desktopGenerated.elements.xsaved) 3)."$shellAppEnv" 2;
+  desktopVmEnv = builtins.elemAt (builtins.head (generatedPackages desktopGenerated.elements.windows_vm_gui))."$shellAppEnv" 2;
   nixosHost =
     hostname: module:
     (configurations.mkSystem {
@@ -110,26 +108,13 @@ let
   # 二人のユーザーが xsaved を使う架空のホスト。どちらにもデータ用のマウントはない。
   xsavedHost =
     (configurations.mkSystem {
-      hostname = "example";
+      hostname = "test-xsaved";
       system = "x86_64-linux";
       timezone = "Asia/Tokyo";
       stateVersion = "25.11";
-      hostModule.imports = [
-        ../examples/new-host.nix
-        ../modules/nixos/xsaved.nix
-      ];
+      hostModule = ../examples/new-host.nix;
       users = map (username: {
         inherit username;
-        homeModules = [
-          {
-            local.xsaved = {
-              enable = true;
-              dataDir = "/home/${username}/.local/share/xsaved";
-              projectDir = "/home/${username}/xsaved";
-              database = "xsaved_${username}";
-            };
-          }
-        ];
       }) [ "alice" "bob" ];
     }).config;
   codexConfig = host: builtins.fromTOML host.environment.etc."codex/config.toml".text;
@@ -143,12 +128,12 @@ let
       inherit system modules;
       stateVersion = "25.11";
     };
-  quadernoHome = system: name: configurations.mkHome {
+  purposeHome = system: name: configurations.mkHome {
     inherit name system;
     username = "test";
     stateVersion = "25.11";
   };
-  rejectsQuaderno = name: system: message:
+  rejectsPurpose = name: system: message:
     builtins.readFile (inputs.nixpkgs.legacyPackages.x86_64-linux.runCommand
       "reject-${name}-${system}"
       { nativeBuildInputs = [ (import ../lib/confgen.nix { pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux; }).package ]; }
@@ -339,7 +324,7 @@ lib.genAttrs systems (
       };
       assert !(home.config.systemd.user.timers ? quaderno-pull);
       assert system != "x86_64-linux"
-        || ((quadernoHome system "test-quaderno").config.systemd.user.timers ? quaderno-pull);
+        || ((purposeHome system "test-quaderno").config.systemd.user.timers ? quaderno-pull);
       assert system != "x86_64-linux" || (
         let
           result = (import ../lib/confgen.nix { pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux; }).read "test-quaderno" system "test";
@@ -347,23 +332,22 @@ lib.genAttrs systems (
         in
         (builtins.elemAt (builtins.head packages.value)."$shellAppEnv" 2).QUADERNO_SERIAL == ""
       );
-      assert rejectsQuaderno "test-quaderno-other-home" "x86_64-linux"
+      assert rejectsPurpose "test-quaderno-other-home" "x86_64-linux"
         "quaderno: archive points to another user's home";
       # home の外は許す。別ディスクへ置く構成を弾かないこと。
       assert system != "x86_64-linux"
-        || allAssertions (quadernoHome system "test-quaderno-backup");
+        || allAssertions (purposeHome system "test-quaderno-backup");
       # GUI のないユーザーでは Windows VM のランチャーの評価を止める。
-      assert rejects windowsVm;
-      assert
-        system != "x86_64-linux"
-        || allAssertions (mkTestHome system [
-          windowsVm
-          { local.profile.features.gui = true; }
-        ]);
-      assert rejectsQuaderno "test-quaderno-missing-archive" "x86_64-linux"
+      assert rejectsPurpose "test-windows-vm-no-gui" "x86_64-linux"
+        "windows_vm: launcher requires gui";
+      assert system != "x86_64-linux"
+        || allAssertions (purposeHome system "test-windows-vm");
+      assert system == "x86_64-linux"
+        || rejectsPurpose "test-windows-vm" system "windows_vm: supports Linux only";
+      assert rejectsPurpose "test-quaderno-missing-archive" "x86_64-linux"
         "quaderno_archive";
       assert system == "x86_64-linux"
-        || rejectsQuaderno "test-quaderno" system
+        || rejectsPurpose "test-quaderno" system
           "quaderno: systemd user timers support Linux only";
       assert !badType.success;
       assert !unknownFeature.success;
@@ -389,15 +373,16 @@ lib.genAttrs systems (
       # 複数のユーザーとマウントのないホストでも使える。GPU は共有のロックファイルで順番にする。
       assert systemAssertionsHold xsavedHost;
       assert xsavedHost.services.postgresql.ensureDatabases == [ "xsaved_alice" "xsaved_bob" ];
-      assert builtins.elem "f ${xsavedHost.local.xsaved.gpuLock} 0644 root root -" xsavedHost.systemd.tmpfiles.rules;
+      assert builtins.elem "f /run/xsaved-gpu.lock 0644 root root -" xsavedHost.systemd.tmpfiles.rules;
       # データベースは NixOS 側が作るので、Home Manager 単独では有効にできない。
-      assert rejects {
-        local.xsaved = {
-          enable = true;
-          dataDir = "/home/test/.local/share/xsaved";
-          projectDir = "/home/test/xsaved";
-        };
-      };
+      # Home Manager は失敗した assertion を評価のエラーにすることがあるので、tryEval で受ける。
+      assert
+        let
+          r = builtins.tryEval (allAssertions (purposeHome "x86_64-linux" "test-xsaved-standalone"));
+        in
+        !r.success || !r.value;
+      assert system == "x86_64-linux"
+        || rejectsPurpose "test-xsaved-standalone" system "xsaved: supports Linux only";
       assert !(codexConfig (agentHost "test-agent-empty") ? developer_instructions);
       "module contracts passed";
     # 会社 PC（nixos-work-wsl）の実際の構成に固有の確認（docs/architecture/wsl.md）。
@@ -432,7 +417,7 @@ lib.genAttrs systems (
       assert !(desktopUser.programs.uv.settings ? python-preference);
       # Windows VM のランチャーはデスクトップだけで有効にする。
       assert hasLauncher desktopUser "windows-vm";
-      assert desktopUser.local.windowsVm.domain == "win11";
+      assert desktopVmEnv.WINDOWS_VM_DOMAIN == "win11";
       assert hasLauncher desktopUser "mimikopi-env";
       # @mimikopi は手で作る subvol なので、作る前の switch や再起動で起動を止めないよう nofail を外さない。
       assert builtins.elem "nofail"
@@ -440,9 +425,9 @@ lib.genAttrs systems (
       assert hasLauncher desktopUser "xsaved";
       assert hasLauncher desktopUser "xsaved-restore-check";
       assert builtins.elem "nofail"
-        inputs.self.nixosConfigurations.nixos-desktop.config.fileSystems.${desktopUser.local.xsaved.dataDir}.options;
+        inputs.self.nixosConfigurations.nixos-desktop.config.fileSystems.${desktopXsavedEnv.dataDir}.options;
       # xsaved が接続するデータベースを、OS 側の Postgres が作る。
-      assert builtins.elem desktopUser.local.xsaved.database
+      assert builtins.elem desktopXsavedEnv.database
         inputs.self.nixosConfigurations.nixos-desktop.config.services.postgresql.ensureDatabases;
       # ログイン画面のまま放置されても、ユーザーの timer を起動時から動かす。
       assert inputs.self.nixosConfigurations.nixos-desktop.config.users.users.pomu.linger == true;
@@ -457,10 +442,10 @@ lib.genAttrs systems (
       assert !(desktopUser.systemd.user.services.xsaved-web-server ? Install);
       # X で消えたツイートは取り直せないので、保存先と別の場所へ毎日写す。
       assert desktopUser.systemd.user.timers ? xsaved-backup;
-      assert builtins.any (s: s.path == desktopUser.local.xsaved.backup.passwordFile) desktopUser.local.profile.secrets;
+      assert builtins.any (s: s.path == desktopXsavedBackupEnv.RESTIC_PASSWORD_FILE) desktopUser.local.profile.secrets;
       # 定期実行が失敗したら気づけるよう、どの timer のサービスにも失敗の通知を付ける。
       assert lib.all
-        (name: desktopUser.systemd.user.services.${name}.Unit.OnFailure or [ ] == desktopUser.local.failureNotify.onFailure)
+        (name: desktopUser.systemd.user.services.${name}.Unit.OnFailure or [ ] == [ "notify-failure@%n.service" ])
         (lib.attrNames desktopUser.systemd.user.timers);
       # sdl-freerdp は右 Alt（AltGr）の単独押しで、次のショートカット一回だけキーボードを掴む。右 Alt が AltGr に
       # なる配列を既定にし、keyd は普段の右 Alt を書き換えず、ターボの連打は ◇ + 右 Alt で入れるレイヤーに置く
@@ -719,10 +704,7 @@ lib.genAttrs systems (
         pkgs.runCommand "windows-vm-package-skipped" { } "touch $out"
       else
         lib.findFirst (p: (p.name or "") == "windows-vm") (throw "windows-vm is not installed")
-          (mkTestHome system [
-            windowsVm
-            { local.profile.features.gui = true; }
-          ]).config.home.packages;
+          (purposeHome system "test-windows-vm").config.home.packages;
     wsl-contracts = pkgs.runCommand "wsl-contracts" { } ''
       echo ${lib.escapeShellArg wslContracts} > "$out"
     '';

@@ -1,4 +1,6 @@
 purposes = [
+    "xsaved",
+    "windows_vm",
     "minecraft_backup",
     "quaderno",
     "mimikopi",
@@ -35,3 +37,19 @@ quaderno_archive = "/mnt/backup/quaderno"
 mimikopi_data_dir = "/home/pomu/.local/share/mimikopi"
 mimikopi_hsa_override = "10.3.0"
 secrets = [{"secret": "xsaved_restic_password", "path": ".config/xsaved/restic-password"}]
+
+xsaved_users = {
+    "pomu": {
+        "data_dir": "/home/pomu/.local/share/xsaved",
+        "project_dir": "/home/pomu/.local/share/xsaved-app",
+        "database": "xsaved",
+        "hsa_override": "10.3.0",
+        "web_port": 8765,
+        "check_mount": True,
+        "backup_repository": "rclone:gdrive:xsaved-backup",
+        "backup_password_file": "/home/pomu/.config/xsaved/restic-password",
+    },
+}
+windows_vm_users = ["pomu"]
+windows_vm_domain = "win11"
+xsaved_proxy = {"user": "pomu", "name": "xsaved.localhost"}

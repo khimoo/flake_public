@@ -69,7 +69,8 @@ func predeclaredNames() map[string]bool {
 		"inputPkg": true, "file": true, "shellApp": true, "repoPkg": true, "symlinkJoin": true,
 		"command": true, "gvariantTuple": true, "outOfStoreLink": true,
 		"shellAppEnv": true, "repoText": true, "symlinkJoinBuild": true, "toJSON": true,
-		"repoPkgWith": true, "repoPath": true, "pythonWithModules": true}
+		"repoPkgWith": true, "repoPath": true, "pythonWithModules": true,
+		"pkgSetFn": true, "pkgWithPackages": true, "mkAfter": true, "mkBefore": true, "flakeRev": true}
 }
 
 func fileOptions() *syntax.FileOptions {

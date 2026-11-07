@@ -1,7 +1,7 @@
 # デスクトップの Windows VM
 
 nixos-desktop 上の libvirt VM は、必要なときだけ起動し、画面はホスト側の FreeRDP で表示します。
-VM 名は [hosts/nixos-desktop/default.nix](../../hosts/nixos-desktop/default.nix) の `local.vm.windowsDomain` で指定されており、`local.vm.users`（デフォルトは primaryUser）のうち Home Manager を利用しているユーザーにランチャーが追加されます。
+VM 名と利用者は [nixos-desktop.star](../../config/hosts/nixos-desktop.star) の `windows_vm_domain` と `windows_vm_users` で指定します。`purposes` の `windows_vm` で有効になり、`gui` も選んだ構成で対象ユーザーの Home Manager にランチャーを追加します。
 
 設計: [デスクトップの Windows VM の設計](../architecture/windows-vm.md)
 
@@ -22,7 +22,7 @@ VM が停止している場合は自動で起動し、RDP の応答を待って�
 
 RDP サインインでは PIN を利用できません（[設計判断](../architecture/windows-vm.md#パスワードを-gnome-キーリングから渡してサインインする)）。
 代わりに、Windows のユーザー名とパスワードを GNOME キーリングに保存しておくことで、ランチャー経由で FreeRDP に渡され自動サインインが可能になります。
-`vm` の値には `local.windowsVm.domain`（このデスクトップ環境では `win11`）を指定します。
+`vm` の値には `windows_vm_domain`（このデスクトップ環境では `win11`）を指定します。
 
 ```sh
 # ユーザー名。.\AzureAD\ に続けてメールアドレス形式のユーザー名（UPN）を入力
@@ -88,12 +88,12 @@ Windows 側で以下の 2 点を設定します。
 2. 同画面の有効化スイッチ横を展開し、「ネットワーク レベル認証（NLA）」を必須とするチェックを外す。
 
 NLA を無効化する理由については、[設計判断](../architecture/windows-vm.md#nla-を切る) を参照してください。
-libvirt 上の VM 名（`virsh list` で表示される名前）が変更された場合は、ホスト側の `local.vm.windowsDomain` の設定も合わせて修正してください。
+libvirt 上の VM 名（`virsh list` で表示される名前）が変更された場合は、ホスト側の `windows_vm_domain` の設定も合わせて修正してください。
 
 ## トラブルシューティング
 
 「Windows に接続できません」と通知された場合、タイムアウト時間（既定は 600 秒）内に RDP の応答がありませんでした。
-起動に時間がかかっている場合は、右クリックメニューの「SPICE で開く」で画面の進捗を確認し、起動が完了してから再度接続してください。毎回タイムアウトする場合は、`local.windowsVm.bootTimeoutSeconds` の値を延ばします。
+起動に時間がかかっている場合は、右クリックメニューの「SPICE で開く」で画面の進捗を確認し、起動が完了してから再度接続してください。毎回タイムアウトする場合は、`windows_vm_boot_timeout` の値を延ばします。
 Windows 側のリモートデスクトップ機能が無効になっている場合も、同様の通知が表示されます。
 
 「Windows は起動待機中または接続中です」と通知された場合は、別で開いた「Windows」がすでに起動待機中か接続中であることを示しています。

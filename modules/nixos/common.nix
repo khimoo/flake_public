@@ -10,7 +10,5 @@
     ./ssh.nix
     ./tailscale.nix
     ./remote-builders.nix
-    ./vm.nix
-    ./xsaved.nix
   ];
 }

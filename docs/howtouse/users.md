@@ -105,7 +105,7 @@ GUI と音楽アプリは `config/hosts/<ホスト>.star` の `purposes` で選�
 
 ## 音楽制作環境・VM を利用するユーザーの設定
 
-音楽制作は `music_production` を選んだホストの primaryUser に audio グループを付与し、Home Manager に音楽アプリを設定します。VM は `local.vm.enable` で有効化し、`local.vm.users`（既定は primaryUser）に libvirtd グループを付与します。そのうち Home Manager を利用するユーザーには Windows VM のランチャーも設定します。詳細は [Windows VM](windows-vm.md) を参照してください。
+音楽制作は `music_production` を選んだホストの primaryUser に audio グループを付与し、Home Manager に音楽アプリを設定します。VM はホストの `purposes` の `windows_vm` で有効化し、`windows_vm_users` に指定したユーザーに libvirtd グループを付与します。そのうち Home Manager を利用するユーザーには Windows VM のランチャーも設定します。詳細は [Windows VM](windows-vm.md) を参照してください。
 
 ## 反映
 

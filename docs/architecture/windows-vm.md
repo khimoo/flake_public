@@ -1,7 +1,7 @@
 # デスクトップの Windows VM の設計
 
 使い方: [デスクトップの Windows VM](../howtouse/windows-vm.md)
-実装: [vm.nix](../../modules/nixos/vm.nix)、[windows-vm.nix](../../modules/home-manager/windows-vm.nix)、[windows-vm.sh](../../modules/home-manager/windows-vm.sh)、[freerdp-grab-once](../../packages/freerdp-grab-once/default.nix)
+実装: [windows_vm.star](../../config/elements/windows_vm.star)、[windows_vm_gui.star](../../config/elements/windows_vm_gui.star)、[windows-vm.sh](../../modules/home-manager/windows-vm.sh)、[freerdp-grab-once](../../packages/freerdp-grab-once/default.nix)
 
 nixos-desktop の libvirt VM（`win11`）は、VM の中の MotionPro（Array Networks の SSL VPN クライアント）と mstsc で会社 PC に接続するときと、たまに Windows を使うときに起動する。
 画面は SPICE ではなくホストの FreeRDP から RDP で表示し、VM は使うときだけランチャー（`windows-vm`）で起動する。
@@ -55,7 +55,7 @@ FreeRDP は `/u:` の値を最初の `\` で区切り、前をドメイン、後
 この形は、FreeRDP の作者が NLA を切って Entra ID に参加した PC に入るときの形として勧めている（[Devolutions のフォーラム](https://forum.devolutions.net/topics/32024/how-do-you-rdplogon-to-a-azure-active-directory-aad-joined-system)）。
 Windows がこの形だけを受け付ける理由は確かめていない。
 
-キーリングには項目を二つ置き、属性 `service=windows-vm`、`vm=<local.windowsVm.domain>`、`field=user` または `field=password` で引く。
+キーリングには項目を二つ置き、属性 `service=windows-vm`、`vm=<windows_vm_domain>`、`field=user` または `field=password` で引く。
 ユーザー名もキーリングに置くのは、UPN を公開している repo に書かないためである。
 二つのうち片方でも引けなければ、資格情報を渡さずに今までどおりサインイン画面を出す。FreeRDP は空の `/p:` でも自動サインインを試みるので、空のパスワードも渡さない。
 

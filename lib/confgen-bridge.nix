@@ -44,6 +44,14 @@ let
     # 渡したパッケージを toPythonModule で包み、import できる Python を作る。
     "$pythonWithModules" =
       v: pkgs.python3.withPackages (_: map pkgs.python3Packages.toPythonModule (resolve (builtins.head v)));
+    # option の値が「パッケージの集合を受け取ってリストを返す関数」のとき（PostgreSQL の拡張など）。
+    "$pkgSetFn" = v: ps: map (name: lib.getAttrFromPath (lib.splitString "." name) ps) (builtins.head v);
+    "$pkgWithPackages" =
+      v: (pkgByName (builtins.elemAt v 0)).withPackages (ps: map (name: lib.getAttrFromPath (lib.splitString "." name) ps) (builtins.elemAt v 1));
+    "$mkAfter" = v: lib.mkAfter (resolve (builtins.head v));
+    "$mkBefore" = v: lib.mkBefore (resolve (builtins.head v));
+    # この flake の commit（作業ツリーが dirty なら -dirty 付き）。
+    "$flakeRev" = _: inputs.self.rev or inputs.self.dirtyRev or "unknown";
     "$repoPkg" = v: pkgs.callPackage (../. + "/${builtins.head v}") { };
     "$symlinkJoin" =
       v:

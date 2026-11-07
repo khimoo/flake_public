@@ -15,7 +15,6 @@
 # 使い方:   docs/howtouse/disk-tiering.md
 { config, pkgs, lib, settings, ... }:
 let
-  hm = config.home-manager.users.${settings.primaryUser};
   # fileSystems の名前を users.users から作ると、NFS の要否の判定を通って fileSystems に戻り、
   # 評価が無限再帰になる。NixOS の既定のホームの場所から作り、一致は assertion で確かめる。
   home = "/home/${settings.primaryUser}";
@@ -45,8 +44,8 @@ let
   ]
     # X のいいねとブックマークの保存。@mimikopi と同じく手で作る subvol なので nofail にし、マウントの確認は
     # xsaved-env が受け持つ（docs/architecture/xsaved.md）。
-    ++ lib.optional hm.local.xsaved.enable
-    { subvol = "@xsaved"; path = hm.local.xsaved.dataDir; opts = dataOpts ++ [ "nofail" ]; };
+    # 保存先は config/hosts/nixos-desktop.star の xsaved_users.pomu.data_dir と合わせる。
+    ++ [ { subvol = "@xsaved"; path = "/home/pomu/.local/share/xsaved"; opts = dataOpts ++ [ "nofail" ]; } ];
 in
 {
   options.local.dataDisk.backupDir = lib.mkOption {

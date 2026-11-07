@@ -20,21 +20,6 @@
   # Persistent な timer が逃した分も、ログインを待たずに起動時に実行される。
   users.users.pomu.linger = true;
 
-  networking.hosts = {
-    "127.0.0.1" = [ "xsaved.localhost" ];
-    "::1" = [ "xsaved.localhost" ];
-  };
-  services.caddy = {
-    enable = config.home-manager.users.pomu.local.xsaved.enable;
-    openFirewall = false;
-    virtualHosts."http://xsaved.localhost" = {
-      listenAddresses = [ "127.0.0.1" "[::1]" ];
-      extraConfig = ''
-        reverse_proxy 127.0.0.1:${toString config.home-manager.users.pomu.local.xsaved.webPort}
-      '';
-    };
-  };
-
   # GNOME のリモートデスクトップ（RDP）を tailnet からだけ受ける。LAN とインターネットには開けない。
   # 有効化とパスワードは GNOME の設定で行い、repo には置かない（docs/howtouse/tailscale.md）。
   # 既定のポートは 3389 で、使用中なら negotiate-port により後続の 10 ポートから空きを探す。
@@ -46,9 +31,6 @@
   # リモートデスクトップの項目を出す。nixpkgs のモジュールはユニットを置くだけなので状態が linked になり、項目が隠れる。
   # ユニットの [Install] と同じ graphical.target に繋いで enabled にする。nixpkgs のモジュールが同じことをするようになったら消す。
   systemd.services.gnome-remote-desktop.wantedBy = [ "graphical.target" ];
-
-  # Windows は必要なときだけランチャーから起動する。
-  local.vm = { enable = true; windowsDomain = "win11"; };
 
   # steam パッケージ単体でも FHS ラッパなので起動はするが、コントローラ/VR の udev ルール
   # (hardware.steam-hardware) と 32bit ドライバはこのモジュールが設定する。
