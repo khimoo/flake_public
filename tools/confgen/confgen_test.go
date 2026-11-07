@@ -27,20 +27,21 @@ func writeConfig(t *testing.T, elements map[string]string, hosts map[string]stri
 
 func buildHosts(t *testing.T, elements, hosts map[string]string) map[string]*hostResult {
 	t.Helper()
-	results, err := buildAll(writeConfig(t, elements, hosts))
-	if err != nil {
-		t.Fatal(err)
-	}
+	dir := writeConfig(t, elements, hosts)
 	out := map[string]*hostResult{}
-	for _, r := range results {
-		out[r.Host] = r
+	for h := range hosts {
+		r, err := buildHost(dir, h, "x86_64-linux")
+		if err != nil {
+			t.Fatal(err)
+		}
+		out[h] = r
 	}
 	return out
 }
 
 func buildError(t *testing.T, elements map[string]string) string {
 	t.Helper()
-	_, err := buildAll(writeConfig(t, elements, map[string]string{"h": `purposes = ["p"]`}))
+	_, err := buildHost(writeConfig(t, elements, map[string]string{"h": `purposes = ["p"]`}), "h", "x86_64-linux")
 	if err == nil {
 		t.Fatal("build succeeded, want an error")
 	}
@@ -108,6 +109,21 @@ def writes(sink):
 	}
 }
 
+func TestHostFactsDescribeTheBuiltSystem(t *testing.T) {
+	dir := writeConfig(t, map[string]string{
+		"p": "def config(host):\n    return {\"home\": {\"a\": host.linux, (\"b\", \"c.d\"): host.system}}",
+	}, map[string]string{"h": `purposes = ["p"]`})
+	r, err := buildHost(dir, "h", "aarch64-darwin")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := r.Elements["p"]["home"]
+	want := []setting{{Path: []string{"a"}, Value: false}, {Path: []string{"b", "c.d"}, Value: "aarch64-darwin"}}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %#v, want %#v", got, want)
+	}
+}
+
 func TestRejected(t *testing.T) {
 	cases := []struct {
 		name     string
@@ -142,6 +158,8 @@ func TestRejected(t *testing.T) {
 			"base": "def public():\n    return {\"items\": []}"}, "frozen"},
 		{"marker turned into text", map[string]string{
 			"p": "def config():\n    return {\"home\": {\"a\": \"run %s\" % exe(\"x\", \"y\")}}"}, "turned into text"},
+		{"element named host", map[string]string{
+			"p": ``, "host": ``}, "reserved"},
 		{"write outside writes", map[string]string{
 			"p": "def config(q):\n    return {\"home\": {\"a\": write(q, 1)}}", "q": ``}, "only be called inside writes"},
 	}

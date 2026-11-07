@@ -38,7 +38,7 @@ confgen は Nix の評価の途中で build して実行し（import from deriva
 
 ホスト名と system は、`lib/configurations.nix` が import するときに渡す。`config` や module 引数の `pkgs` から決めると、設定の名前の一覧を決めるのに設定そのものが要り、無限再帰になる。confgen の build には specialArgs の `inputs` の nixpkgs を使う。
 
-この build もほかの build と同じく、`nixos-spin713` ではデスクトップに回る。
+この build もほかの build と同じく、`nixos-spin713` ではデスクトップに回る。macOS の Home Manager 構成では aarch64-darwin の confgen を build するので、Linux の `check.sh` からは評価できない。Mac を使い始めるまで、`flake.nix` でその構成を外している。
 
 ## 対象外
 

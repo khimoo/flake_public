@@ -5,6 +5,7 @@ let
   overlays =
     import ../overlays
     ++ [ (import ../overlays/unstable-packages.nix inputs) ]
+    ++ [ (import ../overlays/neovim-tools.nix inputs) ]
     ++ [ inputs.codex-cli-nix.overlays.default ]
     ++ [ inputs.claude-code-nix.overlays.default ]
     ++ [ (import ../overlays/claude-code-node.nix) ];
@@ -111,6 +112,7 @@ in
 
   mkHome =
     {
+      name,
       username,
       system,
       stateVersion,
@@ -134,6 +136,12 @@ in
             }
           )
         ]
+        ++ lib.optional (builtins.pathExists ../config/hosts/${name}.star) (
+          import ../modules/home-manager/confgen.nix {
+            host = name;
+            inherit system;
+          }
+        )
         ++ lib.optional (homeFile != null) homeFile
         ++ modules;
     };

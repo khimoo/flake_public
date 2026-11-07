@@ -3,7 +3,7 @@
 設計: [confgen.md](../architecture/confgen.md)
 実装: [config/](../../config/)（要素とホスト）/ [tools/confgen](../../tools/confgen/)（評価と検査）/ [confgen.nix](../../modules/home-manager/confgen.nix)（Home Manager への反映）
 
-`config/elements/` の Starlark のファイルが、設定の要素を1つずつ定義します。ホストは `config/hosts/<ホスト名>.star` で目的を選び、選んだ目的から参照をたどれる要素と、条件がそろった派生要素だけが Home Manager の設定になります。switch の評価の途中で confgen が動くので、手で実行する手順はありません。
+`config/elements/` の Starlark のファイルが、設定の要素を1つずつ定義します。ホストは `config/hosts/<ホスト名>.star`（standalone の Home Manager では `<構成名>.star`）で目的を選び、選んだ目的から参照をたどれる要素と、条件がそろった派生要素だけが Home Manager の設定になります。switch の評価の途中で confgen が動くので、手で実行する手順はありません。
 
 ## 目的を選ぶ・外す
 

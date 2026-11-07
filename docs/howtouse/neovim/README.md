@@ -7,7 +7,7 @@
 
 `~/.config/nvim` はチェックアウトした `modules/home-manager/dev/neovim/config/` へのシンボリックリンクになっているため、Lua ファイルを編集すれば、Home Manager を switch（反映）しなくても次回の Neovim 起動時から反映されます。
 
-外部コマンドや Nix の値を利用するプラグインは、`lua/features/<名前>.lua` の spec と、`features.nix` 内の同名機能がペアになっています。
+外部コマンドや Nix の値を利用するプラグインは、`lua/features/<名前>.lua` の spec と、要素 `config/elements/nvim_<名前>.star` がペアになっています（[confgen](../confgen.md)）。
 機能の追加・削除や、利用するツール・設定値の変更は、Home Manager の適用（switch）によって反映されます。
 spec ファイル名と機能名が一致しない場合、Nix の評価時に assertion エラーで停止します。
 なお、機能の spec ファイルを削除した際は、Neovim を起動する前に switch を実行してください。先に起動してしまうと、前世代の機能一覧が削除済みのファイルを読み込もうとして import エラーが発生します。

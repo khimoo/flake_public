@@ -1,7 +1,7 @@
 # Neovim のプラグインの管理
 
 使い方: [プラグインの更新](../../howtouse/neovim/README.md#プラグインの更新)
-実装: [default.nix](../../../modules/home-manager/dev/neovim/default.nix)、[lazy.lua](../../../modules/home-manager/dev/neovim/config/lua/config/lazy.lua)
+実装: [neovim.star](../../../config/elements/neovim.star)、[lazy.lua](../../../modules/home-manager/dev/neovim/config/lua/config/lazy.lua)
 
 ## lazy.nvim がプラグインを取り、lazy-lock.json で固定する
 

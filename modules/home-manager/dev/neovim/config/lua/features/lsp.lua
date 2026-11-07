@@ -36,7 +36,7 @@ return {
       local capabilities = require('blink.cmp').get_lsp_capabilities()
 
       -- Nix 生成ファイルから有効化対象のサーバー一覧を取得
-      -- (生成元・リスト定義: modules/home-manager/dev/neovim/features.nix)
+      -- (生成元・リスト定義: config/elements/nvim_lsp.star)
       local servers = require("config.nix").data.lsp.servers
       local overrides = opts.servers or {}
 

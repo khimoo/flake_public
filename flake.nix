@@ -75,13 +75,17 @@
         (nixpkgs.lib.filterAttrs (_: m: m ? nixos) (import ./hosts/machines.nix).machines);
 
       homeConfigurations = {
-        "pomu-macos" = mkHome {
-          username = "pomu";
-          system = "aarch64-darwin";
-          stateVersion = "25.05";
-          homeFile = ./profiles/home/pomu.nix;
-        };
+        # Mac は会社のインターンで使い始めるまで外す。confgen を aarch64-darwin で build する
+        # ため、戻すと Linux の check.sh からはこの構成を評価できなくなる（docs/architecture/confgen.md）。
+        # "pomu-macos" = mkHome {
+        #   name = "pomu-macos";
+        #   username = "pomu";
+        #   system = "aarch64-darwin";
+        #   stateVersion = "25.05";
+        #   homeFile = ./profiles/home/pomu.nix;
+        # };
         "pomu-nixos" = mkHome {
+          name = "pomu-nixos";
           username = "pomu";
           system = "x86_64-linux";
           stateVersion = "25.05";

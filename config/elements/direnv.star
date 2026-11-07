@@ -4,6 +4,10 @@ def config(incoming):
         if parts:
             parts.append("\n")
         parts.append(w.value)
-    if not parts:
-        return {}
-    return {"home": {"programs.direnv.stdlib": concat(*parts)}}
+    home = {
+        "programs.direnv.enable": True,
+        "programs.direnv.nix-direnv.enable": True,
+    }
+    if parts:
+        home["programs.direnv.stdlib"] = concat(*parts)
+    return {"home": home}

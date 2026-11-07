@@ -2,7 +2,6 @@
 
 {
   imports = [
-    ./neovim
     ./cargo-remote-run.nix
     ./alook-open.nix
     ./agent-compression.nix

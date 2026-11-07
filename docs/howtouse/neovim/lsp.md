@@ -6,7 +6,7 @@
 
 ## サーバーの追加
 
-1. [features.nix](../../../modules/home-manager/dev/neovim/features.nix) の `lspServers` に `{ pkg = pkgs.foo; lsp = "foo_ls"; }` を追加する（`lsp` には nvim-lspconfig のサーバー名を指定）。
+1. [nvim_lsp.star](../../../config/elements/nvim_lsp.star) の `_SERVERS` に `("foo", "foo_ls")` を追加する（1つ目は nixpkgs のパッケージ名、2つ目は nvim-lspconfig のサーバー名）。
 2. Home Manager を switch する。
 
 `lspServers` に 1 行追加するだけで、サーバーが Neovim の PATH に追加され、同時に `vim.lsp.enable("foo_ls")` による有効化処理も行われるため、他の箇所を修正する必要はありません。

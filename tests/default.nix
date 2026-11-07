@@ -147,11 +147,20 @@ let
   mkTestHome =
     system: modules:
     configurations.mkHome {
+      name = "test";
       username = "test";
       inherit system modules;
       stateVersion = "25.11";
     };
   allAssertions = home: builtins.all (a: a.assertion) home.config.assertions;
+  # confgen が作る Neovim の機能の一覧。confgen 自体は Linux で build する。
+  neovimFeatures =
+    system:
+    let
+      result = (import ../lib/confgen.nix { pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux; }).read "pomu-nixos" system;
+      featuresLua = lib.findFirst (s: s.path == [ "xdg" "dataFile" "nvim/nix/features.lua" "text" ]) null result.elements.neovim.home;
+    in
+    (lib.elemAt featuresLua.value."$concat" 1)."$lua".features;
   tagged = set: lib.mapAttrs (_: check: check // { checkSet = set; });
   # activation の after / before が存在しないノードを指しても、Home Manager はエラーにせず順序も保証しない。
   activationDepsExist =
@@ -269,9 +278,8 @@ lib.genAttrs systems (
       };
       assert !(home.config.home.activation ? rustowl);
       assert !(builtins.any (p: (p.pname or "") == "rustowl") home.config.home.packages);
-      assert home.config.local.neovim.features.rustowl.enable == (system == "x86_64-linux");
+      assert builtins.elem "rustowl" (neovimFeatures system) == (system == "x86_64-linux");
       assert !(home.config.programs.uv.settings ? python-preference);
-      assert !(mkTestHome system [{ local.rustowl.enable = false; }]).config.local.neovim.features.rustowl.enable;
       assert !(hasLauncher home.config "cargo-remote-run");
       assert hasLauncher (mkTestHome system [
         {
@@ -307,7 +315,6 @@ lib.genAttrs systems (
           }
         ];
       };
-      assert system == "x86_64-linux" || rejects { local.rustowl.enable = true; };
       assert !(home.config.systemd.user.timers ? quaderno-pull);
       assert
         system != "x86_64-linux"

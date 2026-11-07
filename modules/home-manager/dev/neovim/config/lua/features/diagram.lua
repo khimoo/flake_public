@@ -3,7 +3,7 @@
 --       image.nvim が kitty の graphics protocol 経由で表示。
 --
 -- 依存 (Nix 側で注入済み):
---   - mermaid-cli (mmdc):       modules/home-manager/dev/neovim/features.nix
+--   - mermaid-cli (mmdc):       config/elements/nvim_diagram.star
 --   - imagemagick (magick CLI): 同上
 
 -- mmdc は 1 図あたり Chromium ヘッドレスを起動する重い処理 (≈3秒, 数百MB)。

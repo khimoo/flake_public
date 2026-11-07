@@ -4,7 +4,7 @@ return {
     version = '^5',
     lazy = false,
     init = function()
-      -- 生成元: modules/home-manager/dev/neovim/features.nix
+      -- 生成元: config/elements/nvim_rust.star
       local codelldb_path = require("config.nix").data.rust.codelldb
       local suffix = vim.fn.has('macunix') == 1 and 'dylib' or 'so'
       local liblldb_path = vim.fn.fnamemodify(codelldb_path, ':h:h') .. '/lldb/lib/liblldb.' .. suffix

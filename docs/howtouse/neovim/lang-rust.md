@@ -24,4 +24,4 @@ rustaceanvim が rust-analyzer を管理し、RustOwl が所有権とライフ�
 
 Rust ファイルを開くと自動的に RustOwl サーバーへ接続されるが、コード上の表示は `<leader>lo` で有効化するまで表示されない。有効化している間は、カーソルの動きを 500ms 静止すると表示が自動更新される。ハイライト部分にマウスカーソルを合わせると、詳細情報がフロートウィンドウで表示される。
 
-RustOwl は `local.rustowl.enable` オプションで有効化できる。x86_64 Linux ではデフォルトで有効、それ以外の環境では無効になっており、無効時はプラグイン本体や `<leader>lo` のキーマッピング自体が読み込まれない。詳細な仕組みについては [RustOwl の設計](../../architecture/rustowl.md) を参照。
+RustOwl は x86_64 Linux のホストで自動的に入り、それ以外では入らない。入らない環境では、プラグイン本体や `<leader>lo` のキーマッピング自体が読み込まれない。詳細な仕組みについては [RustOwl の設計](../../architecture/rustowl.md) を参照。

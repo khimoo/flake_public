@@ -1,5 +1,5 @@
-// confgen evaluates the Starlark elements under config/ and writes one JSON file per
-// host for lib/confgen.nix. Design: docs/architecture/confgen.md.
+// confgen evaluates the Starlark elements under config/ for one host and writes the
+// JSON that modules/home-manager/confgen.nix reads. Design: docs/architecture/confgen.md.
 package main
 
 import (
@@ -18,65 +18,46 @@ func main() {
 }
 
 const usage = `usage:
-  confgen build <config-dir> <out-dir>
-  confgen explain <config-dir> <host> <element>`
+  confgen build <config-dir> <host> <system> <out.json>
+  confgen explain <config-dir> <host> <system> <element>`
 
 func run(args []string) error {
-	if len(args) == 0 {
+	if len(args) != 5 {
 		return fmt.Errorf("%s", usage)
 	}
-	switch {
-	case args[0] == "build" && len(args) == 3:
-		results, err := buildAll(args[1])
+	dir, host, system := args[1], args[2], args[3]
+	switch args[0] {
+	case "build":
+		r, err := buildHost(dir, host, system)
 		if err != nil {
 			return err
 		}
-		if err := os.MkdirAll(args[2], 0o755); err != nil {
+		data, err := json.MarshalIndent(r, "", "  ")
+		if err != nil {
 			return err
 		}
-		for _, r := range results {
-			data, err := json.MarshalIndent(r, "", "  ")
-			if err != nil {
-				return err
-			}
-			if err := os.WriteFile(filepath.Join(args[2], r.Host+".json"), append(data, '\n'), 0o644); err != nil {
-				return err
-			}
-		}
-		return nil
-	case args[0] == "explain" && len(args) == 4:
-		return explain(args[1], args[2], args[3])
+		return os.WriteFile(args[4], append(data, '\n'), 0o644)
+	case "explain":
+		return explain(dir, host, system, args[4])
 	}
 	return fmt.Errorf("%s", usage)
 }
 
-func buildAll(dir string) ([]*hostResult, error) {
+func buildHost(dir, host, system string) (*hostResult, error) {
 	elems, err := loadElements(filepath.Join(dir, "elements"))
 	if err != nil {
 		return nil, err
 	}
-	hosts, err := filepath.Glob(filepath.Join(dir, "hosts", "*.star"))
+	purposes, err := loadHost(filepath.Join(dir, "hosts", host+".star"), elems)
 	if err != nil {
 		return nil, err
 	}
-	var results []*hostResult
-	for _, h := range hosts {
-		purposes, err := loadHost(h, elems)
-		if err != nil {
-			return nil, err
-		}
-		r, err := evaluate(strings.TrimSuffix(filepath.Base(h), ".star"), elems, purposes)
-		if err != nil {
-			return nil, err
-		}
-		results = append(results, r)
-	}
-	return results, nil
+	return evaluate(host, system, elems, purposes)
 }
 
 // explain prints what a change to one element can affect on one host.
-func explain(dir, host, name string) error {
-	results, err := buildAll(dir)
+func explain(dir, host, system, name string) error {
+	r, err := buildHost(dir, host, system)
 	if err != nil {
 		return err
 	}
@@ -87,15 +68,6 @@ func explain(dir, host, name string) error {
 	e, ok := elems[name]
 	if !ok {
 		return fmt.Errorf("unknown element %q", name)
-	}
-	var r *hostResult
-	for _, x := range results {
-		if x.Host == host {
-			r = x
-		}
-	}
-	if r == nil {
-		return fmt.Errorf("unknown host %q", host)
 	}
 	var readBy, writtenBy, conditionOf, requiredBy []string
 	for _, other := range sortedElems(elems) {

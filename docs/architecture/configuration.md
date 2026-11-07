@@ -17,7 +17,7 @@ factory の `homeModules` は共通機能の入口を列挙する。GUI の子�
 
 Home Manager への `extraSpecialArgs` は `inputs` を渡す。アプリ専用の引数や derivation を factory で作らず、その機能のモジュールが必要な input を参照する。
 
-- Neovim のプラグインが使う道具と、Lua に渡す生成物（SKK 辞書、LSP の一覧など）は、[dev/neovim/features.nix](../../modules/home-manager/dev/neovim/features.nix) が機能ごとに持つ（[設計](neovim/features.md)）。SKK 辞書の取得元は `inputs.skk-jisyo` で、展開には overlay を通さない `inputs.nixpkgs.legacyPackages` を使う。
+- Neovim のプラグインが使う道具と、Lua に渡す生成物（SKK 辞書、LSP の一覧など）は、`config/elements/nvim_<名前>.star` の要素が機能ごとに持つ（[設計](neovim/features.md)）。SKK 辞書の取得元は `inputs.skk-jisyo` で、展開には overlay を通さない `inputs.nixpkgs.legacyPackages` を使う。
 
 生成した Lua は Home Manager の適用で XDG data 配下に配置する。Neovim の設定ディレクトリは live symlink なので、生成物をその中へ混ぜない。端末フォントの `terminalFont` は GUI 内の `_module.args` から kitty に渡す。GUI 無効時も kitty モジュールが引数として受け取るため、この定義は `mkIf` の外に置く。
 
@@ -29,7 +29,7 @@ Home Manager への `extraSpecialArgs` は `inputs` を渡す。アプリ専用�
 
 名前付き checkout のパスと URL の対応は `profile.nix` の `pairs` にまとめ、clone 対象の生成、URL に対応するパスの必須判定、home 配下の制約に共用する。URL を省いた手動 clone 用のパスも home 配下の制約対象に含める。追加の `privateRepos` の宛先も同じ制約を受ける。
 
-`local.rustowl.enable` は対応するx86_64 Linuxで既定true、それ以外でfalse。未対応OSへの明示的有効化は拒否する。GUI等の現在のLinux専用プロファイルもDarwinでは拒否する。
+RustOwl は x86_64 Linux のホストでだけ入る（[rustowl.md](rustowl.md)）。GUI等の現在のLinux専用プロファイルもDarwinでは拒否する。
 
 ## 目的ごとの OS とホームの選択
 
