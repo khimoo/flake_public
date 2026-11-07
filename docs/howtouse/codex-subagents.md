@@ -1,7 +1,7 @@
 # Codex のサブエージェント
 
 Codex CLI のサブエージェント（`spawn_agent` などのマルチエージェントツール）は、全マシン共通で無効化されています。
-NixOS では [modules/nixos/codex.nix](../../modules/nixos/codex.nix) によって `/etc/codex/config.toml` にその設定が書き込まれます。
+NixOS では [ai_agents.star](../../config/elements/ai_agents.star) によって `/etc/codex/config.toml` にその設定が書き込まれます。
 例外として、`codex-astra` は agents-private の `codex/astra.config.toml` で `multi_agent_v2 = true` に設定し、sol-handoff の `sol-worker` を spawn できるようにしています（詳細は [agent-config.md](./agent-config.md) を参照）。
 
 設計：[Codex のサブエージェントの設計](../architecture/codex-subagents.md)
@@ -39,7 +39,7 @@ codex debug prompt-input | python3 -c 'import sys; print(sys.stdin.read().count(
 
 ## 有効に戻す手順
 
-NixOS の場合は `modules/nixos/codex.nix` 内の `enabled` を `true` に変更して switch を実行します。それ以外の環境では `~/.codex/config.toml` の該当行を削除します。
+NixOS の場合は `config/elements/ai_agents.star` 内の `enabled` を `true` に変更して switch を実行します。それ以外の環境では `~/.codex/config.toml` の該当行を削除します。
 
 有効に戻したうえでトークン消費量を抑えたい場合は、`spawn_agent` の `fork_turns` パラメータを指定させます。
 

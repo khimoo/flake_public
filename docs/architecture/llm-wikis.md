@@ -27,8 +27,7 @@ ingest / query / lint の三操作からなる。
   書き換わる。CLAUDE.md や skills は意図的な低頻度の編集で、同居すると設定の履歴が
   自動生成コミットに埋もれる。[memex-vault-skeleton.md](./memex-vault-skeleton.md)
   で同居方式を退けたのと同じ理由
-- **レイアウト規約が壊れる。** [dev/claude.nix](../../modules/home-manager/dev/claude.nix) と
-  [dev/codex.nix](../../modules/home-manager/dev/codex.nix) は `<root>/shared/` `<root>/claude/`
+- **レイアウト規約が壊れる。** [agent_links.star](../../config/elements/agent_links.star) は `<root>/shared/` `<root>/claude/`
   `<root>/codex/` という配置を前提にしている（[agent-config.md](./agent-config.md)）。
   `wikis/` を足すと、どのハーネスも読まないディレクトリが repo に生まれ、規約が実態とずれる
 - **指示ファイルの役割が二重になる。** agents-private の `shared/AGENTS.md` はグローバル指示、

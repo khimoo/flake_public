@@ -9,8 +9,6 @@ in
     ./locale.nix
     ./users.nix
     ./nix-settings.nix
-    ./codex.nix
-    ./agent-instructions.nix
     ./restricted-host.nix
   ];
 

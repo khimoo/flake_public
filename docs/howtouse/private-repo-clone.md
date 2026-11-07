@@ -32,7 +32,7 @@ clone 対象の repo と flake 自身に対して `git pull --ff-only` を実行
 ## clone する repo を変更する
 
 対象ユーザーの home モジュールの `local.profile` で、repo の URL と配置先を指定します。
-pomu では [pomu-workstation.nix](../../profiles/home/pomu-workstation.nix) に定義されており、`agentConfigRoot` のみ [pomu-agents.nix](../../profiles/home/pomu-agents.nix) で設定します。
+エージェント設定は [pomu.star](../../config/users/pomu.star) の `agent_config_root`（ホームからの相対パス）と `agent_config_repo`（URL）で指定します。`ai_agents` を選ぶホストで、要素が clone 用の `local.profile` に同じ値を渡します。LLM Wiki は [pomu-workstation.nix](../../profiles/home/pomu-workstation.nix)、vault と memex-nix は [memex.star](../../config/elements/memex.star) で設定します。
 
 - vault: `memexRepoUrl` と `memexRoot`
 - エージェント設定: `agentConfigRepo` と `agentConfigRoot`

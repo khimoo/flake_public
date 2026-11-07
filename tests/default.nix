@@ -6,7 +6,7 @@ let
     "aarch64-darwin"
   ];
   fixture = configurations.mkSystem {
-    hostname = "example";
+    hostname = "test-agents-users";
     system = "x86_64-linux";
     timezone = "Asia/Tokyo";
     stateVersion = "25.11";
@@ -19,8 +19,6 @@ let
             local.profile = {
               gitUsername = "Alice";
               gitUserEmail = "alice@example.org";
-              agentConfigRoot = "/home/alice/claude-config";
-              agentConfigRepo = "git@example.org:alice/config.git";
               lanSsh = true;
             };
           }
@@ -80,15 +78,7 @@ let
       local.remoteBuilders.enable = true;
     };
   laptop = remoteBuildHost "nixos-spin713";
-  agentHost =
-    instructions:
-    nixosHost "example" {
-      imports = [
-        ../modules/nixos/codex.nix
-        ../modules/nixos/agent-instructions.nix
-      ];
-      local.agentInstructions = instructions;
-    };
+  agentHost = hostname: nixosHost hostname { };
   # 会社 PC 向けの制限（modules/nixos/restricted-host.nix）を立てた架空のホスト。
   restrictedHost =
     hostModule: homeModules:
@@ -169,7 +159,6 @@ let
     builtins.all (
       entry: builtins.all (dep: activation ? ${dep}) (entry.after ++ entry.before)
     ) (builtins.attrValues activation);
-  # Launchers are writeShellScriptBin outputs whose name is the executable name.
   hasLauncher = user: name: builtins.any (p: (p.name or "") == name) user.home.packages;
 in
 lib.genAttrs systems (
@@ -177,14 +166,32 @@ lib.genAttrs systems (
   let
     pkgs = inputs.nixpkgs.legacyPackages.${system};
     home = mkTestHome system [ ];
-    activationHome = mkTestHome "x86_64-linux" [
-      {
-        local.profile = {
-          agentConfigRoot = "/home/test/config";
-          agentConfigRepo = "git@example.org:test/config.git";
-        };
-      }
-    ];
+    activationHome = configurations.mkHome {
+      name = "test-agents";
+      username = "test";
+      system = "x86_64-linux";
+      stateVersion = "25.11";
+    };
+    agentSyncSpec =
+      let
+        result = (import ../lib/confgen.nix { pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux; }).read "test-agents" "x86_64-linux" "test";
+        packages = lib.findFirst (s: s.path == [ "home" "packages" ]) null result.elements.agent_sync.home;
+      in
+      (builtins.head packages.value)."$shellAppEnv";
+    agentSyncText =
+      let
+        resolveEnv = value:
+          if builtins.isString value then value else
+          let
+            spec = value."$exe";
+            package = lib.getAttrFromPath (lib.splitString "." (builtins.elemAt spec 0)) activationHome.pkgs;
+          in
+          "${package}/bin/${builtins.elemAt spec 1}";
+      in
+      lib.concatStrings (lib.mapAttrsToList (name: value:
+        "export ${name}=${lib.escapeShellArg (resolveEnv value)}\n"
+      ) (builtins.elemAt agentSyncSpec 2))
+      + builtins.readFile (../. + "/${builtins.head (builtins.elemAt agentSyncSpec 3)."$repoText"}");
     # These are shell-source tests using fake tools, not builds of the target
     # platform packages. Discard context only for these mocked script strings.
     mockPaths =
@@ -203,10 +210,13 @@ lib.genAttrs systems (
     # コマンドの本文。道具は PATH から呼ぶので、テストが偽の道具を PATH の先頭に置く。
     commandText =
       name:
-      mockPaths
-        (lib.findFirst (p: (p.name or "") == name) (throw "${name} is not installed")
-          activationHome.config.home.packages
-        ).text;
+      if name == "agent-sync" then
+        mockPaths agentSyncText
+      else
+        mockPaths
+          (lib.findFirst (p: (p.name or "") == name) (throw "${name} is not installed")
+            activationHome.config.home.packages
+          ).text;
     rejects =
       module:
       let
@@ -376,16 +386,16 @@ lib.genAttrs systems (
       assert builtins.all (m: m.sshKey == "/home/alice/.ssh/id_lan") laptop.nix.buildMachines;
       # builders に自分しかいないホストでは回す先がない。黙って何もしない設定にしない。
       assert !systemAssertionsHold (remoteBuildHost "nixos-desktop");
-      # developer_instructions が codex.nix のテーブルに入らず、エスケープも崩れないこと。
+      # developer_instructions が [agents] のテーブルに入らず、エスケープも崩れないこと。
       assert
         let
           instructions = "一行目 \"quoted\" back\\slash\n二行目\n";
-          host = agentHost instructions;
+          host = agentHost "test-agent-instructions";
         in
         (codexConfig host).developer_instructions == instructions
         && (codexConfig host).agents.enabled == false
         && host.environment.etc."claude-code/CLAUDE.md".text == instructions;
-      assert !((agentHost "").environment.etc ? "claude-code/CLAUDE.md");
+      assert !((agentHost "test-agent-empty").environment.etc ? "claude-code/CLAUDE.md");
       # 複数のユーザーとマウントのないホストでも使える。GPU は共有のロックファイルで順番にする。
       assert systemAssertionsHold xsavedHost;
       assert xsavedHost.services.postgresql.ensureDatabases == [ "xsaved_alice" "xsaved_bob" ];
@@ -398,7 +408,7 @@ lib.genAttrs systems (
           projectDir = "/home/test/xsaved";
         };
       };
-      assert !(codexConfig (agentHost "") ? developer_instructions);
+      assert !(codexConfig (agentHost "test-agent-empty") ? developer_instructions);
       "module contracts passed";
     # 会社 PC（nixos-work-wsl）の実際の構成に固有の確認（docs/architecture/wsl.md）。
     wslContracts =

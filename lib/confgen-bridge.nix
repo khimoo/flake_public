@@ -53,6 +53,8 @@ let
         nativeBuildInputs = resolve (builtins.elemAt v 2);
         postBuild = resolve (builtins.elemAt v 3);
       };
+    # 中の印を置き換えた後の値を JSON の文字列にする（TOML や JSON の設定に埋め込むため）。
+    "$toJSON" = v: builtins.toJSON (resolve (builtins.head v));
     "$command" = v: pkgs.runCommand (builtins.elemAt v 0) { } (resolve (builtins.elemAt v 1));
     "$inputPkg" = v: inputs.${builtins.elemAt v 0}.packages.${pkgs.stdenv.hostPlatform.system}.${builtins.elemAt v 1};
   };

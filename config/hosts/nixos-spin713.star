@@ -1,4 +1,5 @@
 purposes = [
+    "ai_agents",
     "alook_open",
     "cargo_remote_run",
     "dev_tools",
@@ -25,3 +26,5 @@ alook_open_remotes = {
     "desktop-ts": "desktop-ts",
 }
 cargo_remote_run_host = "desktop-ts"
+
+agent_instructions = "hosts/nixos-spin713/agent-instructions.md"

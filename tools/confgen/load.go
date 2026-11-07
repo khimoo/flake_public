@@ -68,7 +68,7 @@ func predeclaredNames() map[string]bool {
 		"repoModule": true, "script": true, "scriptBin": true, "activation": true,
 		"inputPkg": true, "file": true, "shellApp": true, "repoPkg": true, "symlinkJoin": true,
 		"command": true, "gvariantTuple": true, "outOfStoreLink": true,
-		"shellAppEnv": true, "repoText": true, "symlinkJoinBuild": true}
+		"shellAppEnv": true, "repoText": true, "symlinkJoinBuild": true, "toJSON": true}
 }
 
 func fileOptions() *syntax.FileOptions {

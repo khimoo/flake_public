@@ -1,12 +1,12 @@
 # エージェント設定の設計
 
 使い方: [エージェント設定](../howtouse/agent-config.md)
-実装: [claude.nix](../../modules/home-manager/dev/claude.nix)、[codex.nix](../../modules/home-manager/dev/codex.nix)、[agent-sync.nix](../../modules/home-manager/dev/agent-sync.nix)、[agent-instructions.nix](../../modules/nixos/agent-instructions.nix)
+実装: [ai_agents.star](../../config/elements/ai_agents.star)、[agent_links.star](../../config/elements/agent_links.star)、[agent_sync.star](../../config/elements/agent_sync.star)、[同期スクリプト](../../modules/home-manager/dev/agent-sync.sh)
 
 ## 設定 repo の clone へ out-of-store symlink する
 
 エージェントの設定は private な内容を含むので、公開している flake_public には置けない。
-設定 repo を持たない人には何も影響しないように、clone の場所をユーザーの `local.profile.agentConfigRoot`（既定は `null`）から渡し、`null` なら何もしない。
+設定 repo を持たない人には何も影響しないように、clone の場所を `config/users/<ユーザー>.star` の `agent_config_root` から渡し、未指定ならリンクも同期も作らない。`ai_agents` を選んだホストでのみ反映し、clone の仕組みには同じ値を `local.profile.agentConfigRoot` / `agentConfigRepo` として渡す。
 flake_public が設定 repo について知るのは、`shared/`、`claude/`、`codex/` の分け方とファイル名だけにした。
 
 退けた案と理由:
@@ -66,7 +66,7 @@ Codex には系列を指す別名がない。0.160.0 の `codex debug models` �
 
 名簿は設定 repo の `claude/profiles/*.json` と `codex/*.config.toml` そのものとし、`agent-sync` が実行時に読んで起動コマンドと Codex のリンクを作る。
 flake_public にプロファイル名を並べると、設定 repo にファイルを足すたびに同じ名前を手で書き足すことになる。評価時に設定 repo を読む（flake input にする）と、評価と lock の更新に SSH 鍵が要る。
-何をどこへ張るか（`claude.nix`、`codex.nix`）は、ツールの仕様が変わったときにしか変わらないので Nix の `home.file` に残した。
+何をどこへ張るかは、ツールの仕様が変わったときにしか変わらないので、`agent_links.star` が Home Manager の `home.file` を生成する。
 
 - 起動コマンドは Nix の世代の外に置くので、世代を戻しても戻らない。起動コマンドが指す `claude` と `codex` の store パスは switch のたびに書き直す
 - 起動コマンドには生成した印の行を入れ、印のあるファイルだけを後始末で消す。Codex のリンクは、設定 repo の `codex/` を指すものだけを消す
@@ -78,13 +78,13 @@ flake_public にプロファイル名を並べると、設定 repo にファイ�
 設定 repo の指示は全マシンで同じファイルなので、マシンによって変わる指示を書く場所がない。
 例として spin713 には「メモリや GPU を多く使う処理はまずデスクトップで実行できるか確かめ、できなければフリーズしないか概算してから手元で実行する」という指示が要る（[remote-build.md](./remote-build.md#spin713-では手元でビルドしないmax-jobs--0)）。
 
-NixOS のホスト設定 `local.agentInstructions` から、両方のエージェントのシステム層に同じ本文を書き出す。
+`config/hosts/<ホスト>.star` の `agent_instructions` に本文ファイルのパスを指定し、`ai_agents.star` が `repoText` で読んで両方のエージェントのシステム層に同じ本文を書き出す。
 
 - Claude Code: `/etc/claude-code/CLAUDE.md`。公式文書（[How Claude remembers your project](https://code.claude.com/docs/en/memory)、2026-09-24 に参照）が Linux の managed policy の指示ファイルとして挙げるパスで、「Managed policy CLAUDE.md files cannot be excluded」とある
 - Codex: `/etc/codex/config.toml` の `developer_instructions`（0.154.0 にこのキーがある）。ユーザーの層とプロファイルはこのキーを設定していないので、system 層の値が使われる
 
 TOML では、テーブルの見出しの後に書いたキーはそのテーブルに入る。
-そこで `developer_instructions` は `lib.mkBefore` で `codex.nix` の `[agents]` より前に置き、値は `builtins.toJSON` で TOML の basic string にする。引用符、バックスラッシュ、改行、日本語を含む本文が元に戻ることは `tests/default.nix` で確かめている。
+そこで `ai_agents.star` は `developer_instructions` を `[agents]` より前に連結し、値は `toJSON(repoText(path))` で TOML の basic string にする。`toJSON` は本文を読み込んだ後に Nix の `builtins.toJSON` を適用する。引用符、バックスラッシュ、改行、日本語を含む本文が元に戻ることは `tests/default.nix` で確かめている。
 両方のエージェントが実機でこの本文を読むかは、2026-09-24 の時点では確かめていない。
 
 退けた案と理由:

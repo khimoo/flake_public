@@ -5,7 +5,6 @@ in
 {
   imports = [
     ./pomu.nix
-    ./pomu-agents.nix
   ];
   local.profile = {
     features = {
@@ -14,7 +13,6 @@ in
       ime = true;
     };
     lanSsh = true;
-    agentConfigRepo = "git@github.com:khimoo/agents-private.git";
     llmWikisRoot = "${work}/llm-wikis";
     llmWikisRepoUrl = "git@github.com:khimoo/llm-wikis.git";
   };

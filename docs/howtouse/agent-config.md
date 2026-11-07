@@ -38,7 +38,7 @@ Claude Code と Codex のユーザー設定（共通の指示、スキル、Clau
 - `~/.codex/config.toml`: 信頼済みディレクトリや選択されたモデルが記録されます。全マシン共通の設定は `/etc/codex/config.toml`（[codex-subagents.md](./codex-subagents.md) 参照）に、モデルごとの設定はプロファイルに記述します。
 - `~/.codex/rules/default.rules`: 承認プロンプトで「always allow」を選択した際に追記されます。永続的なルールとして残したい行は `base.rules` に移動してください。なお、`base.rules` で定義された `forbidden` や `prompt` が、`default.rules` の `allow` によって緩和されることはありません。
 
-Claude Code や Codex が新しい種別の設定ディレクトリを読み込むようになった場合のみ、`claude.nix` の `claudeDirs` や `codex.nix` の `home.file` に追加して switch を実行します。
+Claude Code や Codex が新しい種別の設定ディレクトリを読み込むようになった場合のみ、[agent_links.star](../../config/elements/agent_links.star) のリンク一覧に追加して switch を実行します。
 これらの設定は Nix の世代を戻してもロールバックされないため、設定リポジトリ側の Git 履歴を用いて復元してください。
 
 ## モデル系列を指定して起動する
@@ -65,15 +65,20 @@ Claude Code や Codex が新しい種別の設定ディレクトリを読み込�
 ## マシンへの導入とアンインストール
 
 1. 設定リポジトリを clone します（[private-repo-clone.md](./private-repo-clone.md) を使って自動化することも可能です）。
-2. 対象ユーザーの home モジュールで clone 先のパスを指定し、switch を実行します。pomu では [pomu-agents.nix](../../profiles/home/pomu-agents.nix) に記述されています。
+2. `config/users/<ユーザー>.star` でホームディレクトリからの相対パスを指定します。pomu は [pomu.star](../../config/users/pomu.star) に記述されています。自動 clone を利用する場合は `agent_config_repo` に URL も指定します。
 
-   ```nix
-   local.profile.agentConfigRoot = "/home/pomu/sagyo/agents-private";
+   ```python
+   agent_config_root = "sagyo/agents-private"
+   agent_config_repo = "git@example.org:user/agents-private.git"
    ```
+
+3. 対象の `config/hosts/<ホスト>.star` の `purposes` に `"ai_agents"` を追加して switch を実行します。同じユーザーの値を、この目的を選んだホストで共有します。
+
+圧縮プラグインの既定モードは、同じユーザーファイルの `agent_compression = {"caveman": "off", "genshijin": "normal"}` で指定します。キーを省略するか値を `None` にすると、そのプラグインの設定ファイルを生成しません。
 
 すでに存在する `~/.claude/skills` などのディレクトリは、Home Manager によって `.bak` 拡張子付きで自動退避されます。
 
-設定を解除（アンインストール）する際は、`agentConfigRoot` と（自動 clone を利用している場合は）`agentConfigRepo` の両方を削除してから switch してください（URL だけを残すと評価時にエラーになります）。
+設定を解除（アンインストール）する際は、ユーザーファイルの `agent_config_root` と（自動 clone を利用している場合は）`agent_config_repo` の両方を削除してから switch してください。
 switch 実行によって削除されるのは Home Manager が管理するリンクと `agent-sync` の path unit のみで、生成済みの起動コマンド、Codex プロファイルへのリンク、および `~/.claude/settings.json` に反映されたキーは残ります。
 これらも完全に削除したい場合は、Claude Code と Codex を終了させたうえで以下のクリーンアップ処理を実行してください（`<root>` は解除した `agentConfigRoot` のパスに置き換えてください）。
 
@@ -93,7 +98,7 @@ rm -r ~/.local/state/agent-sync
 設定例としては spin713 の [agent-instructions.md](../../hosts/nixos-spin713/agent-instructions.md) を参照してください。
 
 1. `hosts/<host>/agent-instructions.md` に指示内容を記述します。
-2. 該当ホストの `default.nix` で `local.agentInstructions = builtins.readFile ./agent-instructions.md;` として読み込みます。
+2. `config/hosts/<host>.star` で `agent_instructions = "hosts/<host>/agent-instructions.md"` と指定します。`purposes` には `"ai_agents"` が必要です。
 3. switch を実行します。テキスト内容は Nix store を経由して配置されるため、ファイルを編集するたびに switch が必要です。
 
 Claude Code では `/etc/claude-code/CLAUDE.md` として、Codex では `/etc/codex/config.toml` の `developer_instructions` 項目として反映されます。

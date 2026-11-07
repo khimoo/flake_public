@@ -1,4 +1,5 @@
 purposes = [
+    "ai_agents",
     "dev_tools",
     "daily_editing",
     "memex_sync",

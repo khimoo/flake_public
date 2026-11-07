@@ -29,6 +29,4 @@
     enable = true;
     localBuilds = false;
   };
-
-  local.agentInstructions = builtins.readFile ./agent-instructions.md;
 }
