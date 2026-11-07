@@ -8,7 +8,7 @@
 スピーカーの音をマイクから除くため、既存の PipeWire に `libpipewire-module-echo-cancel` と `aec/libspa-aec-webrtc` を足す。
 `monitor.mode = true` で既定の出力の monitor を参照する。アプリを仮想の出力に振り分ける方式より、動画、音楽、通話の音をまとめて参照しやすい。代わりに、既定以外の出力で同時に鳴らした音は参照されない。
 
-- 入力はホストの `config/hosts/<ホスト>.star` の `echo_cancel_source` で実マイクを指定する。仮想マイクを既定の入力にしても、AEC の入力が自分自身に向かないようにするため
+- 入力はホストの `config/hosts/<ホスト>.toml` の `echo_cancel_source` で実マイクを指定する。仮想マイクを既定の入力にしても、AEC の入力が自分自身に向かないようにするため
 - `node.dont-fallback = true` で、指定したマイクがないときに別の入力へつながるのを防ぐ
 - `node.linger = true` で、起動時の USB 機器の列挙や再接続を待つ間にストリームが捨てられるのを防ぐ
 - 仮想マイクは自動で選ばれる優先度を低くし、使うアプリが明示的に選ぶ

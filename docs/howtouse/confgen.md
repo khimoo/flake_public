@@ -3,11 +3,11 @@
 設計: [confgen.md](../architecture/confgen.md)
 実装: [config/](../../config/)（要素とホスト）/ [tools/confgen](../../tools/confgen/)（評価と検査）/ [confgen.nix](../../modules/home-manager/confgen.nix)（Home Manager への反映）
 
-`config/elements/` の Starlark のファイルが、設定の要素を1つずつ定義します。ホストは `config/hosts/<ホスト名>.star`（standalone の Home Manager では `<構成名>.star`）で目的を選び、選んだ目的から参照をたどれる要素と、条件がそろった派生要素だけが Home Manager と NixOS の設定になります。switch の評価の途中で confgen が動くので、手で実行する手順はありません。
+`config/elements/` の Starlark のファイルが、設定の要素を1つずつ定義します。ホストは `config/hosts/<ホスト名>.toml`（standalone の Home Manager では `<構成名>.star`）で目的を選び、選んだ目的から参照をたどれる要素と、条件がそろった派生要素だけが Home Manager と NixOS の設定になります。switch の評価の途中で confgen が動くので、手で実行する手順はありません。
 
 ## 目的を選ぶ・外す
 
-`config/hosts/<ホスト名>.star` の `purposes` に、目的の要素の名前を足すか消します。
+`config/hosts/<ホスト名>.toml` の `purposes` に、目的の要素の名前を足すか消します。
 
 ```python
 purposes = ["daily_editing", "sshfs_editing"]

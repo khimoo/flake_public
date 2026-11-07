@@ -5,7 +5,7 @@
 
 ## 追加・削除の手順と場所
 
-GUI は、ホストの目的のファイル（`config/hosts/<ホスト>.star`）で目的 `gui` を選ぶと入ります（[confgen.md](./confgen.md)）。GNOME と IME は目的 `gnome`、`japanese_input` として分かれていて、WSLg の環境では `gui` だけを選んでいます。
+GUI は、ホストの目的のファイル（`config/hosts/<ホスト>.toml`）で目的 `gui` を選ぶと入ります（[confgen.md](./confgen.md)）。GNOME と IME は目的 `gnome`、`japanese_input` として分かれていて、WSLg の環境では `gui` だけを選んでいます。
 
 [gui_apps.star](../../config/elements/gui_apps.star) の `_apps` に登録されたアプリは、各エントリ内でパッケージの導入、Wayland 起動設定、自動起動、MIME タイプの関連付けを一元管理します。例えば、PDF の既定アプリは次のように定義します。
 

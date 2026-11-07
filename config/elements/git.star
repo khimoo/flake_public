@@ -1,6 +1,6 @@
 requires = ["private_repos"]
 
-# 目的: git と、その周りの道具（lazygit、delta）。名前とメールは config/users/<ユーザー>.star から。
+# 目的: git と、その周りの道具（lazygit、delta）。名前とメールは config/users/<ユーザー>.toml から。
 def config(user):
     home = {
         "programs.lazygit.enable": True,

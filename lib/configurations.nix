@@ -13,9 +13,15 @@ let
     ../modules/home-manager/profile.nix
     ../modules/home-manager/dev
   ];
+  # config/hosts/<host>.toml。kind を持つファイルが実際のホストで、持たないものは tests の
+  # 架空のホスト（目的と値だけを持つ）。
+  hosts = lib.mapAttrs' (
+    file: _: lib.nameValuePair (lib.removeSuffix ".toml" file) (builtins.fromTOML (builtins.readFile (../config/hosts + "/${file}")))
+  ) (lib.filterAttrs (file: type: type == "regular" && lib.hasSuffix ".toml" file) (builtins.readDir ../config/hosts));
+  repoFile = rel: ../. + "/${rel}";
 in
-{
-  inherit overlays;
+rec {
+  inherit overlays hosts;
 
   # Machine settings are only passed to NixOS. Each home owns its local.profile.
   mkSystem =
@@ -51,6 +57,7 @@ in
             primaryUser
             ;
           locale = "ja_JP.UTF-8";
+          machines = hosts;
         };
       };
       modules = [
@@ -75,7 +82,7 @@ in
                 value = {
                   imports =
                     homeModules
-                    ++ lib.optional (builtins.pathExists ../config/hosts/${hostname}.star) (
+                    ++ lib.optional (builtins.pathExists ../config/hosts/${hostname}.toml) (
                       import ../modules/home-manager/confgen.nix {
                         host = hostname;
                         inherit system;
@@ -92,7 +99,7 @@ in
           };
         }
       ]
-      ++ lib.optional (builtins.pathExists ../config/hosts/${hostname}.star) (
+      ++ lib.optional (builtins.pathExists ../config/hosts/${hostname}.toml) (
         import ../modules/nixos/confgen.nix {
           host = hostname;
           inherit system;
@@ -101,6 +108,40 @@ in
       )
       ++ modules;
     };
+
+  # ホストのファイルから mkSystem / mkHome の引数を作る。
+  nixosHosts = lib.mapAttrs (
+    hostname: h:
+    mkSystem {
+      inherit hostname;
+      inherit (h) system timezone;
+      stateVersion = h.state_version;
+      users = map (
+        u:
+        {
+          username = u.name;
+          isAdmin = u.admin or false;
+          manageHome = u.home_manager or true;
+        }
+        // lib.optionalAttrs (u ? initial_hashed_password) { initialHashedPassword = u.initial_hashed_password; }
+        // lib.optionalAttrs (u ? home_file) { homeFile = repoFile u.home_file; }
+      ) h.users;
+    }
+  ) (lib.filterAttrs (_: h: (h.kind or null) == "nixos") hosts);
+
+  homeHosts = lib.mapAttrs (
+    name: h:
+    let
+      u = builtins.head h.users;
+    in
+    mkHome {
+      inherit name;
+      inherit (h) system;
+      username = u.name;
+      stateVersion = h.state_version;
+      homeFile = if u ? home_file then repoFile u.home_file else null;
+    }
+  ) (lib.filterAttrs (_: h: (h.kind or null) == "home") hosts);
 
   mkHome =
     {
@@ -128,7 +169,7 @@ in
             }
           )
         ]
-        ++ lib.optional (builtins.pathExists ../config/hosts/${name}.star) (
+        ++ lib.optional (builtins.pathExists ../config/hosts/${name}.toml) (
           import ../modules/home-manager/confgen.nix {
             host = name;
             inherit system;

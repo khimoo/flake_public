@@ -6,11 +6,12 @@
 #     LAN の外からは tailnet 経由の `ssh desktop-ts` を使う（tailscale.nix）。
 #     remote-builders.nix の nix-daemon も `desktop-ts` の設定で接続する。
 #
-# マシンの追加/廃棄は hosts/machines.nix の 1 エントリ増減だけで完結する。
+# マシンの追加/廃棄は config/hosts/<host>.toml の 1 ファイルの増減だけで完結する。
 { config, lib, settings, ... }:
 let
-  # LAN 共通鍵の公開鍵とホスト一覧（単一の情報源）
-  machines = import ../../hosts/machines.nix;
+  # ~/.ssh/id_lan に対応する公開鍵。各ホストの authorized_keys に入る。
+  # 差し替え手順は docs/howtouse/machine-ssh.md を参照。
+  lanPublicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMsQXfS2j/9NtGDBz7EAP4I3DamWH1I6cromNqWOZ2pb pomu@lan";
   # `nixos-` プレフィックスを剥がした短縮エイリアス（nixos-desktop → desktop）
   shortName = host: lib.removePrefix "nixos-" host;
 
@@ -40,9 +41,9 @@ in {
   # LAN 共通鍵 1 本で primaryUser のログインを許可する。全マシンが同じ鍵を持つので
   # マシンを増やしても authorized_keys は変わらない。
   users.users.${settings.primaryUser}.openssh.authorizedKeys.keys =
-    [ machines.lanPublicKey ];
+    [ lanPublicKey ];
 
-  # 各マシンへ短縮名で SSH できるクライアント設定を machines.nix から生成する。
+  # 各マシンへ短縮名で SSH できるクライアント設定を config/hosts/*.toml から生成する。
   # 初回接続のホスト鍵は accept-new で自動信頼（未登録の新規のみ受理し、変更は拒否）。
   #
   # ~/.ssh/id_lan は ssh を実行したユーザーの home で解決される。root はこの鍵を持たないので、
@@ -52,10 +53,10 @@ in {
   # `-ts` の接続名は MagicDNS の短縮名で引く。`.local` の接続名は mDNS だけに依存させ、
   # tailnet に入っていないときも LAN 内で繋がるように残す。
   programs.ssh.extraConfig = lib.concatStrings (map (host:
-    hostBlock machines.machines.${host}.sshUser "${shortName host} ${host} ${host}.local" "${host}.local"
+    hostBlock settings.machines.${host}.ssh_user "${shortName host} ${host} ${host}.local" "${host}.local"
     + lib.optionalString config.services.tailscale.enable
-      (hostBlock machines.machines.${host}.sshUser "${shortName host}-ts" host)
-  ) (builtins.attrNames (lib.filterAttrs (_: m: m ? sshUser) machines.machines))) + ''
+      (hostBlock settings.machines.${host}.ssh_user "${shortName host}-ts" host)
+  ) (builtins.attrNames (lib.filterAttrs (_: m: m ? ssh_user) settings.machines))) + ''
     Host github.com
       User git
       IdentityFile ~/.ssh/id_github

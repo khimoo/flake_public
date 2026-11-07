@@ -3,7 +3,7 @@
 外出先のラップトップ（`nixos-spin713`）から、デスクトップ（`nixos-desktop`）のファイルを sshfs でマウントして編集します。
 デスクトップで動いているエージェントと同じファイルを、手元のエディタとツールで扱えます。
 
-設定: [sshfs_editing.star](../../config/elements/sshfs_editing.star) と [direnv_on_sshfs.star](../../config/elements/direnv_on_sshfs.star)。目的 `sshfs_editing` を選んだホスト（[nixos-spin713.star](../../config/hosts/nixos-spin713.star)）で入る（[confgen.md](./confgen.md)）。
+設定: [sshfs_editing.star](../../config/elements/sshfs_editing.star) と [direnv_on_sshfs.star](../../config/elements/direnv_on_sshfs.star)。目的 `sshfs_editing` を選んだホスト（[nixos-spin713.toml](../../config/hosts/nixos-spin713.toml)）で入る（[confgen.md](./confgen.md)）。
 
 ## マウントする
 

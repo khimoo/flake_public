@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/BurntSushi/toml"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -54,8 +55,9 @@ const incomingParam = "incoming"
 // describe the host (system, linux, darwin) and the Home Manager user (name, home) being
 // built, so elements need no per-host or per-user flags.
 const (
-	hostElement = "host"
-	userElement = "user"
+	hostElement     = "host"
+	userElement     = "user"
+	machinesElement = "machines"
 )
 
 var elementFuncs = map[string]bool{"public": true, "writes": true, "config": true}
@@ -90,7 +92,7 @@ func loadElements(dir string) (map[string]*element, error) {
 		}
 		elems[e.name] = e
 	}
-	for _, n := range []string{hostElement, userElement} {
+	for _, n := range []string{hostElement, userElement, machinesElement} {
 		if _, ok := elems[n]; ok {
 			return nil, fmt.Errorf("%s.star: the name %q is reserved for facts confgen provides", n, n)
 		}
@@ -386,58 +388,126 @@ func checkGraph(elems map[string]*element) error {
 	return nil
 }
 
-// loadHost reads config/hosts/<host>.star: `purposes = [...]` (string literals) and other
-// `name = value` lines that become host facts (host.<name>), such as device names.
+// loadHost reads config/hosts/<host>.toml: `purposes` (a list of element names) and the
+// other keys, which become host facts (host.<key>). flake.nix reads the same file for the
+// host's structure (system, users), so each value about a host lives in one place.
 func loadHost(file string, elems map[string]*element) ([]string, starlark.StringDict, error) {
-	src, err := os.ReadFile(file)
+	values, err := loadTOML(file)
 	if err != nil {
 		return nil, nil, err
 	}
-	f, err := fileOptions().Parse(file, src, 0)
-	if err != nil {
-		return nil, nil, err
-	}
-	var list []string
-	found := false
-	for _, stmt := range f.Stmts {
-		s, ok := stmt.(*syntax.AssignStmt)
-		if !ok || s.Op != syntax.EQ {
-			start, _ := stmt.Span()
-			return nil, nil, fmt.Errorf("%s: a host file holds only `name = value` lines", start)
-		}
-		id, ok := s.LHS.(*syntax.Ident)
-		if !ok {
-			return nil, nil, fmt.Errorf("%s: a host file holds only `name = value` lines", s.OpPos)
-		}
-		switch id.Name {
-		case "purposes":
-			if list, ok = directStrings(s.RHS); !ok {
-				return nil, nil, fmt.Errorf("%s: purposes must be a list of string literals", s.OpPos)
-			}
-			found = true
-		case "system", "linux", "darwin":
-			return nil, nil, fmt.Errorf("%s: %s is set by confgen", s.OpPos, id.Name)
-		}
-	}
-	if !found {
+	raw, ok := values["purposes"]
+	if !ok {
 		return nil, nil, fmt.Errorf("%s: purposes is missing", file)
 	}
-	for _, p := range list {
-		e, ok := elems[p]
+	var list []string
+	l, ok := raw.(*starlark.List)
+	if !ok {
+		return nil, nil, fmt.Errorf("%s: purposes must be a list of element names", file)
+	}
+	for i := 0; i < l.Len(); i++ {
+		name, ok := l.Index(i).(starlark.String)
 		if !ok {
-			return nil, nil, fmt.Errorf("%s: unknown element %q", file, p)
+			return nil, nil, fmt.Errorf("%s: purposes must be a list of element names", file)
+		}
+		e, found := elems[string(name)]
+		if !found {
+			return nil, nil, fmt.Errorf("%s: unknown element %q", file, name)
 		}
 		if e.derived() {
-			return nil, nil, fmt.Errorf("%s: derived element %q cannot be selected", file, p)
+			return nil, nil, fmt.Errorf("%s: derived element %q cannot be selected", file, name)
+		}
+		list = append(list, string(name))
+	}
+	for _, k := range []string{"linux", "darwin"} {
+		if _, ok := values[k]; ok {
+			return nil, nil, fmt.Errorf("%s: %s is set by confgen", file, k)
 		}
 	}
-	values, err := starlark.ExecFileOptions(fileOptions(), &starlark.Thread{Name: file}, file, src, nil)
-	if err != nil {
-		return nil, nil, err
-	}
 	delete(values, "purposes")
-	values.Freeze()
 	return list, values, nil
+}
+
+// loadMachines reads every host file, so elements that configure links between machines
+// (ssh, remote builds) can read all of them as machines.all[<host>].
+func loadMachines(dir string) (starlark.StringDict, error) {
+	files, err := filepath.Glob(filepath.Join(dir, "*.toml"))
+	if err != nil {
+		return nil, err
+	}
+	all := starlark.NewDict(len(files))
+	for _, f := range files {
+		v, err := loadTOML(f)
+		if err != nil {
+			return nil, err
+		}
+		d := starlark.NewDict(len(v))
+		for _, k := range sortedKeys(v) {
+			d.SetKey(starlark.String(k), v[k])
+		}
+		all.SetKey(starlark.String(strings.TrimSuffix(filepath.Base(f), ".toml")), d)
+	}
+	return starlark.StringDict{"all": all}, nil
+}
+
+func loadTOML(file string) (starlark.StringDict, error) {
+	var raw map[string]any
+	if _, err := toml.DecodeFile(file, &raw); err != nil {
+		return nil, err
+	}
+	out := starlark.StringDict{}
+	for k, v := range raw {
+		sv, err := fromTOML(v)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %s: %w", file, k, err)
+		}
+		out[k] = sv
+	}
+	return out, nil
+}
+
+func fromTOML(v any) (starlark.Value, error) {
+	switch x := v.(type) {
+	case string:
+		return starlark.String(x), nil
+	case bool:
+		return starlark.Bool(x), nil
+	case int64:
+		return starlark.MakeInt64(x), nil
+	case float64:
+		return starlark.Float(x), nil
+	case []any:
+		var items []starlark.Value
+		for _, y := range x {
+			sv, err := fromTOML(y)
+			if err != nil {
+				return nil, err
+			}
+			items = append(items, sv)
+		}
+		return starlark.NewList(items), nil
+	case []map[string]any:
+		var items []starlark.Value
+		for _, y := range x {
+			sv, err := fromTOML(y)
+			if err != nil {
+				return nil, err
+			}
+			items = append(items, sv)
+		}
+		return starlark.NewList(items), nil
+	case map[string]any:
+		d := starlark.NewDict(len(x))
+		for _, k := range sortedKeys(x) {
+			sv, err := fromTOML(x[k])
+			if err != nil {
+				return nil, err
+			}
+			d.SetKey(starlark.String(k), sv)
+		}
+		return d, nil
+	}
+	return nil, fmt.Errorf("unsupported TOML value %T", v)
 }
 
 func sortedKeys[V any](m map[string]V) []string {
@@ -465,35 +535,20 @@ func uniq(xs []string) []string {
 	return sortedKeys(set)
 }
 
-// loadUserFile reads config/users/<user>.star: top-level `name = literal` lines that
-// become attributes of the user facts element (user.<name>). A missing file is empty.
+// loadUserFile reads config/users/<user>.toml; its keys become user facts (user.<key>).
+// A missing file is empty.
 func loadUserFile(file string) (starlark.StringDict, error) {
-	src, err := os.ReadFile(file)
-	if os.IsNotExist(err) {
+	if _, err := os.Stat(file); os.IsNotExist(err) {
 		return starlark.StringDict{}, nil
 	}
+	values, err := loadTOML(file)
 	if err != nil {
 		return nil, err
 	}
-	f, err := fileOptions().Parse(file, src, 0)
-	if err != nil {
-		return nil, err
-	}
-	for _, stmt := range f.Stmts {
-		s, ok := stmt.(*syntax.AssignStmt)
-		if !ok || s.Op != syntax.EQ {
-			start, _ := stmt.Span()
-			return nil, fmt.Errorf("%s: a user file holds only `name = value`", start)
-		}
-		if id, ok := s.LHS.(*syntax.Ident); !ok || id.Name == "name" || id.Name == "home" {
-			return nil, fmt.Errorf("%s: name and home are set by confgen", s.OpPos)
+	for _, k := range []string{"name", "home"} {
+		if _, ok := values[k]; ok {
+			return nil, fmt.Errorf("%s: %s is set by confgen", file, k)
 		}
 	}
-	thread := &starlark.Thread{Name: file}
-	values, err := starlark.ExecFileOptions(fileOptions(), thread, file, src, nil)
-	if err != nil {
-		return nil, err
-	}
-	values.Freeze()
 	return values, nil
 }

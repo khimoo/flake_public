@@ -65,14 +65,14 @@ Claude Code や Codex が新しい種別の設定ディレクトリを読み込�
 ## マシンへの導入とアンインストール
 
 1. 設定リポジトリを clone します（[private-repo-clone.md](./private-repo-clone.md) を使って自動化することも可能です）。
-2. `config/users/<ユーザー>.star` でホームディレクトリからの相対パスを指定します。pomu は [pomu.star](../../config/users/pomu.star) に記述されています。自動 clone を利用する場合は `agent_config_repo` に URL も指定します。
+2. `config/users/<ユーザー>.toml` でホームディレクトリからの相対パスを指定します。pomu は [pomu.toml](../../config/users/pomu.toml) に記述されています。自動 clone を利用する場合は `agent_config_repo` に URL も指定します。
 
    ```python
    agent_config_root = "sagyo/agents-private"
    agent_config_repo = "git@example.org:user/agents-private.git"
    ```
 
-3. 対象の `config/hosts/<ホスト>.star` の `purposes` に `"ai_agents"` を追加して switch を実行します。同じユーザーの値を、この目的を選んだホストで共有します。
+3. 対象の `config/hosts/<ホスト>.toml` の `purposes` に `"ai_agents"` を追加して switch を実行します。同じユーザーの値を、この目的を選んだホストで共有します。
 
 圧縮プラグインの既定モードは、同じユーザーファイルの `agent_compression = {"caveman": "off", "genshijin": "normal"}` で指定します。キーを省略するか値を `None` にすると、そのプラグインの設定ファイルを生成しません。
 
@@ -98,7 +98,7 @@ rm -r ~/.local/state/agent-sync
 設定例としては spin713 の [agent-instructions.md](../../hosts/nixos-spin713/agent-instructions.md) を参照してください。
 
 1. `hosts/<host>/agent-instructions.md` に指示内容を記述します。
-2. `config/hosts/<host>.star` で `agent_instructions = "hosts/<host>/agent-instructions.md"` と指定します。`purposes` には `"ai_agents"` が必要です。
+2. `config/hosts/<host>.toml` で `agent_instructions = "hosts/<host>/agent-instructions.md"` と指定します。`purposes` には `"ai_agents"` が必要です。
 3. switch を実行します。テキスト内容は Nix store を経由して配置されるため、ファイルを編集するたびに switch が必要です。
 
 Claude Code では `/etc/claude-code/CLAUDE.md` として、Codex では `/etc/codex/config.toml` の `developer_instructions` 項目として反映されます。

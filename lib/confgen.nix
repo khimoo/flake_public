@@ -7,7 +7,7 @@ let
     pname = "confgen";
     version = "0.3.0";
     src = ../tools/confgen;
-    vendorHash = "sha256-AqNYeem4YcsS0EMsn85r3SGknzf66t39hsV69KMTOWA=";
+    vendorHash = "sha256-W6XlFDDA3ynfrM39PaZjoBwGrHaRM8pr7R5I0PkIDCo=";
   };
 in
 {

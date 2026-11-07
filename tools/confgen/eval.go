@@ -334,7 +334,7 @@ type graphEntry struct {
 	Options  []string `json:"options"`
 }
 
-func evaluate(host, system, user string, hostFileValues, userFileValues starlark.StringDict, elems map[string]*element, purposes []string) (*hostResult, error) {
+func evaluate(host, system, user string, hostFileValues, userFileValues, machineValues starlark.StringDict, elems map[string]*element, purposes []string) (*hostResult, error) {
 	g := generated(elems, purposes)
 	thread := &starlark.Thread{Name: host, Print: func(*starlark.Thread, string) {}}
 	predeclared := builtins()
@@ -375,6 +375,9 @@ func evaluate(host, system, user string, hostFileValues, userFileValues starlark
 		"darwin": starlark.Bool(strings.HasSuffix(system, "-darwin")),
 	}
 	for k, v := range hostFileValues {
+		if k == "system" && v != starlark.String(system) {
+			return nil, fmt.Errorf("host %s: system is %s in its file but %s was requested", host, v, system)
+		}
 		hostValues[k] = v
 	}
 	facts := starlarkstruct.FromStringDict(starlarkstruct.Default, hostValues)
@@ -395,7 +398,9 @@ func evaluate(host, system, user string, hostFileValues, userFileValues starlark
 	refs := map[string]*elementRef{
 		hostElement: {name: hostElement, public: facts},
 		userElement: {name: userElement, public: userFacts},
+		machinesElement: {name: machinesElement, public: starlarkstruct.FromStringDict(starlarkstruct.Default, machineValues)},
 	}
+	refs[machinesElement].public.Freeze()
 	var visiting = map[string]bool{}
 	var publicOf func(name string) (*elementRef, error)
 	publicOf = func(name string) (*elementRef, error) {

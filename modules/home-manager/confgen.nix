@@ -1,4 +1,4 @@
-# config/hosts/<host>.star で選んだ目的から confgen が生成した Home Manager の設定を入れる。
+# config/hosts/<host>.toml で選んだ目的から confgen が生成した Home Manager の設定を入れる。
 # 設計: docs/architecture/confgen.md
 #
 # host、system、user は import するときに渡す。config.* や pkgs から決めると、設定の名前の一覧を

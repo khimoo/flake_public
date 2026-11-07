@@ -8,16 +8,17 @@ import (
 	"testing"
 )
 
-// writeConfig lays out config/elements/*.star and config/hosts/*.star in a temp dir.
+// writeConfig lays out config/elements/*.star and config/hosts/*.toml in a temp dir.
 func writeConfig(t *testing.T, elements map[string]string, hosts map[string]string) string {
 	t.Helper()
 	dir := t.TempDir()
 	for sub, files := range map[string]map[string]string{"elements": elements, "hosts": hosts} {
+		ext := map[string]string{"elements": ".star", "hosts": ".toml"}[sub]
 		if err := os.MkdirAll(filepath.Join(dir, sub), 0o755); err != nil {
 			t.Fatal(err)
 		}
 		for name, src := range files {
-			if err := os.WriteFile(filepath.Join(dir, sub, name+".star"), []byte(src), 0o644); err != nil {
+			if err := os.WriteFile(filepath.Join(dir, sub, name+ext), []byte(src), 0o644); err != nil {
 				t.Fatal(err)
 			}
 		}

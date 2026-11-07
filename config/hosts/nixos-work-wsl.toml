@@ -1,0 +1,10 @@
+system = "x86_64-linux"
+kind = "nixos"
+state_version = "26.05"
+timezone = "Asia/Tokyo"
+purposes = ["ai_agents", "dev_tools", "daily_editing", "shell", "git", "nix_ld", "gui"]
+
+[[users]]
+name = "nixos"
+admin = true
+home_file = "hosts/nixos-work-wsl/home.nix"

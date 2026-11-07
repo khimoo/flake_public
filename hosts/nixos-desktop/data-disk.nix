@@ -44,7 +44,7 @@ let
   ]
     # X のいいねとブックマークの保存。@mimikopi と同じく手で作る subvol なので nofail にし、マウントの確認は
     # xsaved-env が受け持つ（docs/architecture/xsaved.md）。
-    # 保存先は config/hosts/nixos-desktop.star の xsaved_users.pomu.data_dir と合わせる。
+    # 保存先は config/hosts/nixos-desktop.toml の xsaved_users.pomu.data_dir と合わせる。
     ++ [ { subvol = "@xsaved"; path = "/home/pomu/.local/share/xsaved"; opts = dataOpts ++ [ "nofail" ]; } ];
 in
 {

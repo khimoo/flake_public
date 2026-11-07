@@ -1,7 +1,7 @@
 # マイクへのスピーカー音の回り込みを抑える（エコーキャンセル）
 
 nixos-desktop および nixos-spin713 の PipeWire に、WebRTC ベースのエコーキャンセル（AEC）を設定している。デフォルトのスピーカー出力を参照し、その音声をマイク入力から取り除く。
-処理後の仮想マイクは `Echo-Cancel Microphone`（node.name は `echo-cancel-source`）となり、AEC に入力する実マイクはホストごとの `config/hosts/<ホスト>.star` の `echo_cancel_source` で指定する（desktop は HyperX SoloCast、spin713 は内蔵マイクの `alsa_input.platform-avs_dmic.19.auto.stereo-fallback`）。
+処理後の仮想マイクは `Echo-Cancel Microphone`（node.name は `echo-cancel-source`）となり、AEC に入力する実マイクはホストごとの `config/hosts/<ホスト>.toml` の `echo_cancel_source` で指定する（desktop は HyperX SoloCast、spin713 は内蔵マイクの `alsa_input.platform-avs_dmic.19.auto.stereo-fallback`）。
 
 設計: [WebRTC エコーキャンセルの設計](../architecture/audio-echo-cancel.md)
 実装: [call_audio.star](../../config/elements/call_audio.star)
@@ -25,7 +25,7 @@ nixos-desktop および nixos-spin713 の PipeWire に、WebRTC ベースのエ�
 
 仮想マイクが表示されない場合は `journalctl --user -u pipewire -b` でログを確認する。
 指定した実マイクが存在しない場合、自動で他の入力へ切り替わることはなく、対象のマイクが認識されるまで待機する。
-OS アップデート等で内蔵マイクの node.name が変更された場合は、`wpctl status -n` で名称を確認し、`config/hosts/<ホスト>.star` の `echo_cancel_source` の設定を修正する。
+OS アップデート等で内蔵マイクの node.name が変更された場合は、`wpctl status -n` で名称を確認し、`config/hosts/<ホスト>.toml` の `echo_cancel_source` の設定を修正する。
 
 ## 入力デバイスの変更・無効化
 
@@ -36,7 +36,7 @@ OS アップデート等で内蔵マイクの node.name が変更された場合
 3. `Echo-Cancel Sink`（`echo-cancel-reference`）の入力元として、除去したい音が出力されている monitor を選択する。これは参照音の指定であり、スピーカーへの再生出力先は変更されない。アプリの再生先を変更する場合は「再生」タブで設定する。
 4. アプリの入力設定を `Echo-Cancel Microphone` のままにし、選択した実マイクからの音声が正しく届いているか録音して確認する。
 
-起動時に使用される実マイクは `config/hosts/<ホスト>.star` の `echo_cancel_source` の設定に依存する。`wpctl status -n` で確認できる実マイクの node.name を記述し、仮想マイクや出力 monitor の名称は指定しないこと。
+起動時に使用される実マイクは `config/hosts/<ホスト>.toml` の `echo_cancel_source` の設定に依存する。`wpctl status -n` で確認できる実マイクの node.name を記述し、仮想マイクや出力 monitor の名称は指定しないこと。
 機能を無効化するには ホストの `purposes` から `call_audio` を外して適用後、PipeWire を再起動する。
 
 ## GNOME のマイク使用インジケーターについて

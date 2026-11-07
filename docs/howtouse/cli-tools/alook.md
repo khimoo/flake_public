@@ -38,7 +38,7 @@ DB・秘密情報・ログは `~/.alook/self-hosted/` に保存される。
 ## 別の PC から開く
 
 `alook-open` は、手元または別の PC の Alook をブラウザで開く。
-spin713 では [ホストの設定](../../../config/hosts/nixos-spin713.star) の `purposes` に `alook_open` を指定し、`alook_open_remotes` で接続先を設定する。
+spin713 では [ホストの設定](../../../config/hosts/nixos-spin713.toml) の `purposes` に `alook_open` を指定し、`alook_open_remotes` で接続先を設定する。
 
 | コマンド | 開く Alook |
 |----------|-----------|

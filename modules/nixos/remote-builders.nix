@@ -1,16 +1,15 @@
-# nix-daemon のビルドを hosts/machines.nix の各マシンの builder に常設で回す（nix.buildMachines）。
+# nix-daemon のビルドを config/hosts/*.toml の各マシンの builder に常設で回す（nix.buildMachines）。
 # nixos-rebuild だけでなく nix build / nix develop / direnv のビルドも回る。
 # 設計判断は docs/architecture/remote-build.md、使い方は docs/howtouse/remote-build.md。
 { config, lib, settings, ... }:
 let
-  machines = import ../../hosts/machines.nix;
   cfg = config.local.remoteBuilders;
-  builders = lib.filterAttrs (host: m: host != settings.hostname && m ? builder) machines.machines;
-  thisMachine = machines.machines.${settings.hostname} or { };
+  builders = lib.filterAttrs (host: m: host != settings.hostname && m ? builder) settings.machines;
+  thisMachine = settings.machines.${settings.hostname} or { };
 in
 {
   options.local.remoteBuilders = {
-    enable = lib.mkEnableOption "remote builds on the other hosts with builder in hosts/machines.nix";
+    enable = lib.mkEnableOption "remote builds on the other hosts with builder in config/hosts/*.toml";
     localBuilds = lib.mkOption {
       type = lib.types.bool;
       default = true;
@@ -26,15 +25,15 @@ in
     # feature をビルダーが必ず受けられるようにする。system-features はリスト型なので NixOS の
     # 既定値に結合され、既定値の feature は消えない。
     (lib.mkIf (thisMachine ? builder) {
-      nix.settings.max-jobs = thisMachine.builder.maxJobs;
-      nix.settings.system-features = thisMachine.builder.supportedFeatures;
+      nix.settings.max-jobs = thisMachine.builder.max_jobs;
+      nix.settings.system-features = thisMachine.builder.supported_features;
     })
 
     (lib.mkIf cfg.enable {
       assertions = [
         {
           assertion = builders != { };
-          message = "local.remoteBuilders: hosts/machines.nix に ${settings.hostname} 以外で builder を持つホストがない";
+          message = "local.remoteBuilders: config/hosts/*.toml に ${settings.hostname} 以外で builder を持つホストがない";
         }
         {
           assertion = config.services.tailscale.enable;
@@ -49,7 +48,8 @@ in
         hostName = "${lib.removePrefix "nixos-" host}-ts";
         protocol = "ssh-ng";
         inherit (builder) system;
-        inherit (builder.builder) maxJobs supportedFeatures;
+        maxJobs = builder.builder.max_jobs;
+        supportedFeatures = builder.builder.supported_features;
         # SSH を張るのは nix-daemon（root）で、root の ~/.ssh に id_lan はない。
         sshKey = "${config.users.users.${settings.primaryUser}.home}/.ssh/id_lan";
       }) builders;

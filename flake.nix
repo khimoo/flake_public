@@ -63,45 +63,19 @@
     inputs@{ nixpkgs, ... }:
     let
       configurations = import ./lib/configurations.nix { inherit inputs; };
-      inherit (configurations) mkSystem mkHome overlays;
+      inherit (configurations) overlays;
     in
     {
       packages.x86_64-linux = {
         inherit (inputs.rustowl.packages.x86_64-linux) rustowl rustowl-nvim;
       };
 
-      nixosConfigurations = nixpkgs.lib.mapAttrs
-        (hostname: m: mkSystem ({ inherit hostname; inherit (m) system; } // m.nixos))
-        (nixpkgs.lib.filterAttrs (_: m: m ? nixos) (import ./hosts/machines.nix).machines);
+      nixosConfigurations = configurations.nixosHosts;
 
-      homeConfigurations = {
-        # Mac は会社のインターンで使い始めるまで外す。confgen を aarch64-darwin で build する
-        # ため、戻すと Linux の check.sh からはこの構成を評価できなくなる（docs/architecture/confgen.md）。
-        # "pomu-macos" = mkHome {
-        #   name = "pomu-macos";
-        #   username = "pomu";
-        #   system = "aarch64-darwin";
-        #   stateVersion = "25.05";
-        #   homeFile = ./profiles/home/pomu.nix;
-        # };
-        "pomu-nixos" = mkHome {
-          name = "pomu-nixos";
-          username = "pomu";
-          system = "x86_64-linux";
-          stateVersion = "25.05";
-          homeFile = ./profiles/home/pomu.nix;
-          modules = [
-            {
-              local.profile.features = {
-                gui = true;
-                gnome = true;
-                ime = true;
-                audio = true;
-              };
-            }
-          ];
-        };
-      };
+      # Mac のホストのファイル（config/hosts/pomu-macos.toml）は、会社のインターンで使い始めるまで置かない。
+      # confgen を aarch64-darwin で build するため、置くと Linux の check.sh からはこの構成を評価できなくなる
+      # （docs/architecture/confgen.md）。
+      homeConfigurations = configurations.homeHosts;
 
       checks = import ./tests { inherit inputs configurations; };
 

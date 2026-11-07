@@ -1,7 +1,7 @@
 # デスクトップの Windows VM
 
 nixos-desktop 上の libvirt VM は、必要なときだけ起動し、画面はホスト側の FreeRDP で表示します。
-VM 名と利用者は [nixos-desktop.star](../../config/hosts/nixos-desktop.star) の `windows_vm_domain` と `windows_vm_users` で指定します。`purposes` の `windows_vm` で有効になり、`gui` も選んだ構成で対象ユーザーの Home Manager にランチャーを追加します。
+VM 名と利用者は [nixos-desktop.toml](../../config/hosts/nixos-desktop.toml) の `windows_vm_domain` と `windows_vm_users` で指定します。`purposes` の `windows_vm` で有効になり、`gui` も選んだ構成で対象ユーザーの Home Manager にランチャーを追加します。
 
 設計: [デスクトップの Windows VM の設計](../architecture/windows-vm.md)
 

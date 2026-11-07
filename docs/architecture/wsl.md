@@ -45,7 +45,7 @@ Git は Home Manager の `~/.config/git/config` と `~/.gitconfig` の両方を�
 以前は agents-private を読み取り専用の deploy key で入れていた（4c54a17 と 1d685c5）。戻すときは次の判断を引き継ぐ。
 
 - deploy key は GitHub に repo ごとに登録する鍵で、`khimoo` の権限と切り離せる。代わりに agents-private の中身（指示、設定、`decisions/` の履歴）は会社から読める
-- `config/users/nixos.star` に `agent_config_root` だけを指定し、`agent_config_repo` は省略して手で clone する。ホストでは既に `ai_agents` を選んでいる。`agent_config_repo` を指定すると `profile.nix` が `sshKeys` に `id_github` を足し、age 鍵のないこのホストでは activation が止まる
+- `config/users/nixos.toml` に `agent_config_root` だけを指定し、`agent_config_repo` は省略して手で clone する。ホストでは既に `ai_agents` を選んでいる。`agent_config_repo` を指定すると `profile.nix` が `sshKeys` に `id_github` を足し、age 鍵のないこのホストでは activation が止まる
 - deploy key は `github.com` ではなく、別名のホスト `github-agents-private`（`HostName github.com`、`IdentitiesOnly yes`）に結び付け、clone の URL を `git@github-agents-private:khimoo/agents-private.git` にする。GitHub は最初に認証が通った鍵でアカウントを決めるので、`github.com` 全体に deploy key を使うと、会社のリポジトリへの接続まで deploy key で認証されて失敗する
 - この別名は `/etc/ssh/ssh_config`（NixOS の `programs.ssh.extraConfig`）に書く。Home Manager の `programs.ssh` を使うと `~/.ssh/config` が読み取り専用になり、会社の設定を書けなくなる
 - 会社の鍵を `~/.ssh/config` の `Host *` に書くと分離が崩れる。OpenSSH は `~/.ssh/config` を先に読み、一致したブロックの `IdentityFile` をすべて候補に足すので（OpenSSH 10.3p1 の `ssh_config(5)`）、`github-agents-private` への接続でも会社の鍵が先に試される。会社の鍵は `Host github.com` に限って書く。ブロックの一致は `HostName` で置き換える前の名前で判断されるので、`github-agents-private` は `Host github.com` に一致しない。これはリポジトリから強制できないので、戻すときは `ssh -G github-agents-private` で使われる鍵を確かめる手順を使い方の文書に書く
@@ -72,7 +72,7 @@ NixOS-WSL は既定で `wheel` のユーザーにパスワードなしの `sudo`
 
 ## Home Manager の個人設定を読まない
 
-`nixos` ユーザーは `pomu.nix` を import せず、`config/users/pomu.star` の値も受け取らない。`khimoo` の Git の identity、Gemini の秘密、`antigravity-cli`、agents-private の設定は入らない。
+`nixos` ユーザーは `pomu.nix` を import せず、`config/users/pomu.toml` の値も受け取らない。`khimoo` の Git の identity、Gemini の秘密、`antigravity-cli`、agents-private の設定は入らない。
 home は [hosts/nixos-work-wsl/home.nix](../../hosts/nixos-work-wsl/home.nix) で、機能は `gui` だけを有効にする。
 `flakeRoot` は既定の `~/sagyo/flake_public` のまま。Neovim の設定がこのパスへの symlink なので、WSL でも同じ場所に clone する。
 

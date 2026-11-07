@@ -31,13 +31,13 @@ clone 対象の repo と flake 自身に対して `git pull --ff-only` を実行
 
 ## clone する repo を変更する
 
-ホストの `purposes` で `personal_files` を選び、同じファイルの `private_repos` に URL とホームからの相対パスを指定します。例は [nixos-desktop.star](../../config/hosts/nixos-desktop.star) を参照してください。
+ホストの `purposes` で `personal_files` を選び、同じファイルの `private_repos` に URL とホームからの相対パスを指定します。例は [nixos-desktop.toml](../../config/hosts/nixos-desktop.toml) を参照してください。
 
 ```python
 private_repos = [{"url": "git@example.org:me/project.git", "dest": "sagyo/project"}]
 ```
 
-エージェント設定は [pomu.star](../../config/users/pomu.star) の `agent_config_root`（ホームからの相対パス）と `agent_config_repo`（URL）で指定します。`ai_agents` を選ぶホストでは `agent_links` が clone と GitHub 鍵の配置を宣言します。vault と memex-nix の URL と配置先は [memex.star](../../config/elements/memex.star) にあります。
+エージェント設定は [pomu.toml](../../config/users/pomu.toml) の `agent_config_root`（ホームからの相対パス）と `agent_config_repo`（URL）で指定します。`ai_agents` を選ぶホストでは `agent_links` が clone と GitHub 鍵の配置を宣言します。vault と memex-nix の URL と配置先は [memex.star](../../config/elements/memex.star) にあります。
 
 エージェント設定の `agent_config_repo` を省略した場合、その repo は手動で clone する運用になります。配置先パスだけを残しておけば、symlink や同期、`mirror-vault` などの機能はそのまま利用可能です。
 vault は `services.memex.initializeVault` で作成することも可能ですが、有効にはしません。先に空フォルダが作成されると clone が失敗するためです。
@@ -52,7 +52,7 @@ clone 対象の repo がなく、`lan_ssh` が無効で、ユーザーとホス�
 SOPS_AGE_KEY_FILE=~/.config/sops/age/keys.txt sops secrets/secrets.yaml
 ```
 
-ユーザーの `config/users/<名前>.star` またはホストのファイルに、ホームからの相対パスで指定します。ホストは `personal_files` を目的に含めます。
+ユーザーの `config/users/<名前>.toml` またはホストのファイルに、ホームからの相対パスで指定します。ホストは `personal_files` を目的に含めます。
 
 ```python
 secrets = [{"secret": "gemini_api_key", "path": ".config/gemini/api-key"}]

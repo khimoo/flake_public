@@ -2,7 +2,7 @@
 
 Fujitsu Quaderno A4 Gen2 で作成した手書き PDF を、同じ LAN 内に接続している際に 1 時間ごとに自動でローカルへ取り込みます。
 データの同期はデバイスから手元への一方向のみであり、デバイス側のファイルを書き換えることはありません。
-[nixos-desktop.star](../../config/hosts/nixos-desktop.star) の `purposes` で `quaderno` を選び、同ファイルの `quaderno_archive` で取り込み先を指定します。nixos-desktop のみで有効化しています。複数台で有効にすると、両方のマシンが全件を取り込む動作になります。
+[nixos-desktop.toml](../../config/hosts/nixos-desktop.toml) の `purposes` で `quaderno` を選び、同ファイルの `quaderno_archive` で取り込み先を指定します。nixos-desktop のみで有効化しています。複数台で有効にすると、両方のマシンが全件を取り込む動作になります。
 
 設計ドキュメント: [Quaderno の取り込みの設計](../architecture/quaderno.md)
 

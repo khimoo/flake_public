@@ -4,7 +4,7 @@ X で「いいね」またはブックマークしたポストを、本文・画
 ツール本体には、プライベートリポジトリ [khimoo/xsaved](https://github.com/khimoo/xsaved) の本番用チェックアウト（`~/.local/share/xsaved-app`）を使用します。開発用チェックアウトは `~/sagyo/xsaved` に配置します。利用可能なコマンド一覧はリポジトリ本体の README を参照してください。
 nixos-desktop の pomu 環境では、開発用チェックアウトのみが `clone-repos` の対象です。本番用チェックアウトの作成・更新手順は「[本番用チェックアウトの更新](#本番用チェックアウトの更新)」を、新規環境のセットアップ手順は [SSH 鍵の配布と private repo の clone](private-repo-clone.md) を、保存済みポストとデータベースの復元方法は「[バックアップ](#バックアップ)」をそれぞれ参照してください。
 
-設定箇所は [nixos-desktop.star](../../config/hosts/nixos-desktop.star) の `xsaved_users` です。`purposes` の `xsaved` で有効にします。
+設定箇所は [nixos-desktop.toml](../../config/hosts/nixos-desktop.toml) の `xsaved_users` です。`purposes` の `xsaved` で有効にします。
 
 設計ドキュメント: [X のいいねとブックマークの保存の設計](../architecture/xsaved.md)
 

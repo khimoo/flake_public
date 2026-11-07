@@ -101,7 +101,7 @@ modules/home-manager/   ← 全ユーザー共通（lib/configurations.nix の h
 hosts/<hostname>/home-manager-<username>.nix  ← ユーザー固有設定（homeFile で指定）
 ```
 
-GUI と音楽アプリは `config/hosts/<ホスト>.star` の `purposes` で選びます。音楽制作には `music_production` を指定します。詳細は [GUI アプリの管理](gui-apps.md) を参照してください。
+GUI と音楽アプリは `config/hosts/<ホスト>.toml` の `purposes` で選びます。音楽制作には `music_production` を指定します。詳細は [GUI アプリの管理](gui-apps.md) を参照してください。
 
 ## 音楽制作環境・VM を利用するユーザーの設定
 
