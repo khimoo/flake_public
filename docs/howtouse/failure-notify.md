@@ -29,7 +29,7 @@ systemd.user.services.example = {
 };
 ```
 
-外部の flake が定義するサービス（memex の同期）には、取り込む側のモジュール（[memex.nix](../../modules/home-manager/memex.nix)）で足す。
+外部の flake が定義するサービス（memex の同期）には、その目的の要素（[memex_sync.star](../../config/elements/memex_sync.star)）で足す。
 
 ## 確かめる
 

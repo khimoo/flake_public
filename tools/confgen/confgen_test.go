@@ -30,7 +30,7 @@ func buildHosts(t *testing.T, elements, hosts map[string]string) map[string]*hos
 	dir := writeConfig(t, elements, hosts)
 	out := map[string]*hostResult{}
 	for h := range hosts {
-		r, err := buildHost(dir, h, "x86_64-linux")
+		r, err := buildHost(dir, h, "x86_64-linux", "test")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -41,7 +41,7 @@ func buildHosts(t *testing.T, elements, hosts map[string]string) map[string]*hos
 
 func buildError(t *testing.T, elements map[string]string) string {
 	t.Helper()
-	_, err := buildHost(writeConfig(t, elements, map[string]string{"h": `purposes = ["p"]`}), "h", "x86_64-linux")
+	_, err := buildHost(writeConfig(t, elements, map[string]string{"h": `purposes = ["p"]`}), "h", "x86_64-linux", "test")
 	if err == nil {
 		t.Fatal("build succeeded, want an error")
 	}
@@ -111,14 +111,14 @@ def writes(sink):
 
 func TestHostFactsDescribeTheBuiltSystem(t *testing.T) {
 	dir := writeConfig(t, map[string]string{
-		"p": "def config(host):\n    return {\"home\": {\"a\": host.linux, (\"b\", \"c.d\"): host.system}}",
+		"p": "def config(host, user):\n    return {\"home\": {\"a\": host.linux, (\"b\", \"c.d\"): host.system, \"h\": user.home}}",
 	}, map[string]string{"h": `purposes = ["p"]`})
-	r, err := buildHost(dir, "h", "aarch64-darwin")
+	r, err := buildHost(dir, "h", "aarch64-darwin", "alice")
 	if err != nil {
 		t.Fatal(err)
 	}
 	got := r.Elements["p"]["home"]
-	want := []setting{{Path: []string{"a"}, Value: false}, {Path: []string{"b", "c.d"}, Value: "aarch64-darwin"}}
+	want := []setting{{Path: []string{"a"}, Value: false}, {Path: []string{"b", "c.d"}, Value: "aarch64-darwin"}, {Path: []string{"h"}, Value: "/Users/alice"}}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %#v, want %#v", got, want)
 	}
@@ -160,6 +160,8 @@ func TestRejected(t *testing.T) {
 			"p": "def config():\n    return {\"home\": {\"a\": \"run %s\" % exe(\"x\", \"y\")}}"}, "turned into text"},
 		{"element named host", map[string]string{
 			"p": ``, "host": ``}, "reserved"},
+		{"element named user", map[string]string{
+			"p": ``, "user": ``}, "reserved"},
 		{"write outside writes", map[string]string{
 			"p": "def config(q):\n    return {\"home\": {\"a\": write(q, 1)}}", "q": ``}, "only be called inside writes"},
 	}

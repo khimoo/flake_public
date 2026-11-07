@@ -70,8 +70,6 @@ in
       "gnome"
       "ime"
       "audio"
-      "memexSync"
-      "obsidian"
     ] (name: lib.mkEnableOption "${name} in this user's environment");
     memexRoot = optionalPath "User's vault checkout.";
     memexRepoUrl = optionalUrl "Vault clone URL; null means manual clone.";
@@ -170,25 +168,14 @@ in
         message = "local.profile: mutable checkouts must belong to this user's home directory.";
       }
       {
-        assertion =
-          !(cfg.features.memexSync || cfg.features.obsidian)
-          || cfg.memexRoot != null;
-        message = "local.profile: vault features require memexRoot.";
-      }
-      {
         assertion = !(cfg.features.gnome || cfg.features.ime) || cfg.features.gui;
         message = "local.profile: gnome and ime require gui.";
       }
       {
         assertion =
           pkgs.stdenv.isLinux
-          || !(
-            cfg.features.gui
-            || cfg.features.audio
-            || cfg.features.memexSync
-            || cfg.features.obsidian
-          );
-        message = "local.profile: the desktop, audio and vault profiles currently support Linux only.";
+          || !(cfg.features.gui || cfg.features.audio);
+        message = "local.profile: the desktop and audio profiles currently support Linux only.";
       }
       {
         assertion =

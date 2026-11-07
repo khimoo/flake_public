@@ -5,7 +5,7 @@ let
   inherit (pkgs) lib;
   package = pkgs.buildGoModule {
     pname = "confgen";
-    version = "0.2.0";
+    version = "0.3.0";
     src = ../tools/confgen;
     vendorHash = "sha256-AqNYeem4YcsS0EMsn85r3SGknzf66t39hsV69KMTOWA=";
   };
@@ -13,10 +13,10 @@ in
 {
   inherit package;
   read =
-    host: system:
+    host: system: user:
     lib.importJSON (
-      pkgs.runCommand "confgen-${host}.json" { nativeBuildInputs = [ package ]; } ''
-        confgen build ${../config} ${host} ${system} $out
+      pkgs.runCommand "confgen-${host}-${user}.json" { nativeBuildInputs = [ package ]; } ''
+        confgen build ${../config} ${host} ${system} ${user} $out
       ''
     );
 }

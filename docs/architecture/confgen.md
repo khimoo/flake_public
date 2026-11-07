@@ -25,7 +25,8 @@
 
 B は言語と confgen の検査で守る。Nix では守れない。Nix のモジュールは `config` 全体を読め、要素に `pkgs` を渡すとその中の関数でファイルを読めるため。
 
-- Starlark にはファイル、環境変数、時刻を読む手段が無い。confgen は `load` を止め、要素に渡す組み込みの名前を `pkg`、`exe`、`concat`、`write`、`struct` に限る。
+- Starlark にはファイル、環境変数、時刻を読む手段が無い。confgen は `load` を止め、要素に渡す組み込みの名前を `write`、`struct` と印を作る関数（[使い方](../howtouse/confgen.md)の表）に限る。
+- ホストとユーザーの情報（system、ユーザー名、home）は、confgen が要素 `host` と `user` として渡す。要素がホスト名やフラグで分岐しなくて済むようにするため。
 - 仮引数には、confgen が作る要素の値を渡す。Starlark の中では作れないので、`write` の相手は仮引数でしか指せない。この値を公開値や書き込みの値に入れて渡すことは止める。
 - 公開値は凍結してから渡す。読んだ側が書き換えて、同じ値を読む別の要素の結果を変えることを防ぐ。
 - 評価の順は、`public`（読む相手の `public` が先）、`writes`、`config`（自分への書き込みを受け取る）。`public` は自分への書き込みを受け取れない。
@@ -36,7 +37,7 @@ B を保証できるのは `config/elements/` の要素の中だけ。Nix のモ
 
 confgen は Nix の評価の途中で build して実行し（import from derivation）、ホストごとの JSON を作る。手で実行する手順や、生成物の commit をなくすため。[confgen.nix](../../modules/home-manager/confgen.nix) は JSON を Home Manager の設定にし、印（`$pkg`、`$exe`、`$concat`）をそのホストの `pkgs` の値に置き換える。
 
-ホスト名と system は、`lib/configurations.nix` が import するときに渡す。`config` や module 引数の `pkgs` から決めると、設定の名前の一覧を決めるのに設定そのものが要り、無限再帰になる。confgen の build には specialArgs の `inputs` の nixpkgs を使う。
+ホスト名、system、ユーザー名は、`lib/configurations.nix` が import するときに渡す。目的はホストごとに1つのファイルで選ぶので、同じホストのユーザーは同じ目的を受け取る。`config` や module 引数の `pkgs` から決めると、設定の名前の一覧を決めるのに設定そのものが要り、無限再帰になる。confgen の build には specialArgs の `inputs` の nixpkgs を使う。
 
 この build もほかの build と同じく、`nixos-spin713` ではデスクトップに回る。macOS の Home Manager 構成では aarch64-darwin の confgen を build するので、Linux の `check.sh` からは評価できない。Mac を使い始めるまで、`flake.nix` でその構成を外している。
 

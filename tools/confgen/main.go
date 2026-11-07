@@ -18,17 +18,17 @@ func main() {
 }
 
 const usage = `usage:
-  confgen build <config-dir> <host> <system> <out.json>
-  confgen explain <config-dir> <host> <system> <element>`
+  confgen build <config-dir> <host> <system> <user> <out.json>
+  confgen explain <config-dir> <host> <system> <user> <element>`
 
 func run(args []string) error {
-	if len(args) != 5 {
+	if len(args) != 6 {
 		return fmt.Errorf("%s", usage)
 	}
-	dir, host, system := args[1], args[2], args[3]
+	dir, host, system, user := args[1], args[2], args[3], args[4]
 	switch args[0] {
 	case "build":
-		r, err := buildHost(dir, host, system)
+		r, err := buildHost(dir, host, system, user)
 		if err != nil {
 			return err
 		}
@@ -36,14 +36,14 @@ func run(args []string) error {
 		if err != nil {
 			return err
 		}
-		return os.WriteFile(args[4], append(data, '\n'), 0o644)
+		return os.WriteFile(args[5], append(data, '\n'), 0o644)
 	case "explain":
-		return explain(dir, host, system, args[4])
+		return explain(dir, host, system, user, args[5])
 	}
 	return fmt.Errorf("%s", usage)
 }
 
-func buildHost(dir, host, system string) (*hostResult, error) {
+func buildHost(dir, host, system, user string) (*hostResult, error) {
 	elems, err := loadElements(filepath.Join(dir, "elements"))
 	if err != nil {
 		return nil, err
@@ -52,12 +52,12 @@ func buildHost(dir, host, system string) (*hostResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	return evaluate(host, system, elems, purposes)
+	return evaluate(host, system, user, elems, purposes)
 }
 
 // explain prints what a change to one element can affect on one host.
-func explain(dir, host, system, name string) error {
-	r, err := buildHost(dir, host, system)
+func explain(dir, host, system, user, name string) error {
+	r, err := buildHost(dir, host, system, user)
 	if err != nil {
 		return err
 	}

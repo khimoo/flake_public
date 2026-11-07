@@ -1,7 +1,7 @@
 # memex の Google Drive 同期の設計
 
 使い方: [memex の Google Drive 同期](../howtouse/memex-drive-sync.md)
-実装: mechanism は memex-nix（`nix/sync-script.nix`、`nix/setup.nix`、`nix/rclone-lib.nix`、`nix/sync-job.nix`、`nix/hm-module.nix`）、このリポジトリの配線は [memex.nix](../../modules/home-manager/memex.nix)
+実装: mechanism は memex-nix（`nix/sync-script.nix`、`nix/setup.nix`、`nix/rclone-lib.nix`、`nix/sync-job.nix`、`nix/hm-module.nix`）、このリポジトリの配線は [memex.star](../../config/elements/memex.star)
 
 vault のノートは Git で、画像や PDF などのバイナリは git-annex で中身を Google Drive に置き、Git には所在だけを入れる。
 同期の仕組みは public の memex-nix に置き、このリポジトリは vault の場所と機能の選択だけを渡す。ノートの本文は private の `khimoo/memex` にある。

@@ -17,7 +17,6 @@ let
     ../modules/home-manager/private-repos.nix
     ../modules/home-manager/rclone.nix
     ../modules/home-manager/failure-notify.nix
-    ../modules/home-manager/memex.nix
     ../modules/home-manager/yazi.nix
     ../modules/home-manager/nix-index.nix
     ../modules/home-manager/minecraft-backup.nix
@@ -95,6 +94,7 @@ in
                       import ../modules/home-manager/confgen.nix {
                         host = hostname;
                         inherit system;
+                        user = user.username;
                       }
                     )
                     ++ lib.optional ((user.homeFile or null) != null) user.homeFile
@@ -140,6 +140,7 @@ in
           import ../modules/home-manager/confgen.nix {
             host = name;
             inherit system;
+            user = username;
           }
         )
         ++ lib.optional (homeFile != null) homeFile

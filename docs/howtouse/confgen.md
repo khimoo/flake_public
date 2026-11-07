@@ -29,7 +29,23 @@ purposes = ["daily_editing", "sshfs_editing"]
 
 関数の仮引数の名前が、参照する要素の名前です。仮引数には相手の公開値が属性として渡ります（`util_linux.findmnt`）。`write` の第1引数には、`writes` の仮引数の名前をそのまま書きます。
 
-パッケージとコマンドのパスは `pkg("sshfs")`、`exe("util-linux", "findmnt")` と書きます。文字列の中に入れるときは `concat("前", exe(...), "後")` を使います。`str()` や `%` で文字列にすると、confgen がエラーにします。
+仮引数 `host` と `user` は confgen が渡す要素で、ファイルはありません。`host.system`、`host.linux`、`host.darwin` と、`user.name`、`user.home` を読めます。
+
+option のパスに `.` を含む名前があるときは、タプルで書きます（`("xdg", "dataFile", "nvim/nix/features.lua", "text")`）。外部の flake の Home Manager モジュールが要るときは、`config` が `"home_imports": [module("memex-nix", "homeModules.memex")]` を返します。
+
+Nix にしか作れない値は印で書きます。
+
+| 印 | 値 |
+|---|---|
+| `pkg("sshfs")`、`pkg("vimPlugins.lazy-nvim")` | パッケージ |
+| `exe("util-linux", "findmnt")` | パッケージの中のコマンドのパス |
+| `concat("前", exe(...), "後")` | 印を含む文字列 |
+| `luaPackages(["lpeg"])` | Neovim の Lua のパッケージを選ぶ関数 |
+| `checkoutLink("modules/...")` | checkout への symlink |
+| `lua(値)` | 値を Lua の式にした文字列 |
+| `module("input", "homeModules.x")` | flake input の Home Manager モジュール（`home_imports` に入れる） |
+
+`str()` や `%` で印を文字列にすると、confgen がエラーにします。
 
 ## 止められる書き方
 

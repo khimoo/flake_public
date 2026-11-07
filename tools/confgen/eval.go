@@ -173,6 +173,13 @@ func builtins() starlark.StringDict {
 		}
 		return &marker{json: map[string]any{"$checkoutLink": rel}, text: "checkoutLink " + rel}, nil
 	})
+	module := starlark.NewBuiltin("module", func(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kw []starlark.Tuple) (starlark.Value, error) {
+		var input, attr string
+		if err := starlark.UnpackPositionalArgs(b.Name(), args, kw, 2, &input, &attr); err != nil {
+			return nil, err
+		}
+		return &marker{json: map[string]any{"$module": []any{input, attr}}, text: "module " + input + "#" + attr}, nil
+	})
 	lua := starlark.NewBuiltin("lua", func(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kw []starlark.Tuple) (starlark.Value, error) {
 		if len(args) != 1 || len(kw) > 0 {
 			return nil, fmt.Errorf("lua takes one value")
@@ -185,7 +192,7 @@ func builtins() starlark.StringDict {
 	})
 	return starlark.StringDict{
 		"pkg": pkg, "exe": exe, "concat": concat, "write": write,
-		"luaPackages": luaPackages, "checkoutLink": checkoutLink, "lua": lua,
+		"luaPackages": luaPackages, "checkoutLink": checkoutLink, "lua": lua, "module": module,
 		"struct": starlark.NewBuiltin("struct", starlarkstruct.Make),
 	}
 }
@@ -199,8 +206,9 @@ type hostResult struct {
 	Graph     map[string]graphEntry `json:"graph"`
 }
 
-// outputs maps a class ("home" or "nixos") to the settings an element sets.
-type outputs map[string][]setting
+// outputs maps "home" and "nixos" to the settings an element sets, and "home_imports"
+// to the Home Manager modules from flake inputs that those settings need.
+type outputs map[string]any
 
 type setting struct {
 	Path  []string `json:"path"`
@@ -215,7 +223,7 @@ type graphEntry struct {
 	Options  []string `json:"options"`
 }
 
-func evaluate(host, system string, elems map[string]*element, purposes []string) (*hostResult, error) {
+func evaluate(host, system, user string, elems map[string]*element, purposes []string) (*hostResult, error) {
 	g := generated(elems, purposes)
 	thread := &starlark.Thread{Name: host, Print: func(*starlark.Thread, string) {}}
 	predeclared := builtins()
@@ -256,7 +264,19 @@ func evaluate(host, system string, elems map[string]*element, purposes []string)
 		"darwin": starlark.Bool(strings.HasSuffix(system, "-darwin")),
 	})
 	facts.Freeze()
-	refs := map[string]*elementRef{hostElement: {name: hostElement, public: facts}}
+	home := "/home/" + user
+	if strings.HasSuffix(system, "-darwin") {
+		home = "/Users/" + user
+	}
+	userFacts := starlarkstruct.FromStringDict(starlarkstruct.Default, starlark.StringDict{
+		"name": starlark.String(user),
+		"home": starlark.String(home),
+	})
+	userFacts.Freeze()
+	refs := map[string]*elementRef{
+		hostElement: {name: hostElement, public: facts},
+		userElement: {name: userElement, public: userFacts},
+	}
 	var visiting = map[string]bool{}
 	var publicOf func(name string) (*elementRef, error)
 	publicOf = func(name string) (*elementRef, error) {
@@ -388,7 +408,8 @@ func evaluate(host, system string, elems map[string]*element, purposes []string)
 		}
 		var options []string
 		for _, class := range []string{"home", "nixos"} {
-			for _, s := range out[class] {
+			settings, _ := out[class].([]setting)
+			for _, s := range settings {
 				options = append(options, class+":"+strings.Join(s.Path, "."))
 			}
 		}
@@ -407,8 +428,16 @@ func configJSON(e *element, v starlark.Value) (outputs, error) {
 	out := outputs{}
 	for _, item := range d.Items() {
 		k, ok := item[0].(starlark.String)
+		if ok && k == "home_imports" {
+			imports, err := moduleList(item[1])
+			if err != nil {
+				return nil, fmt.Errorf("%s: home_imports: %w", e.file, err)
+			}
+			out[string(k)] = imports
+			continue
+		}
 		if !ok || (k != "home" && k != "nixos") {
-			return nil, fmt.Errorf("%s: config keys must be \"home\" or \"nixos\"", e.file)
+			return nil, fmt.Errorf("%s: config keys must be \"home\", \"nixos\" or \"home_imports\"", e.file)
 		}
 		opts, ok := item[1].(*starlark.Dict)
 		if !ok {
@@ -430,6 +459,26 @@ func configJSON(e *element, v starlark.Value) (outputs, error) {
 			return strings.Join(settings[i].Path, "\x00") < strings.Join(settings[j].Path, "\x00")
 		})
 		out[string(k)] = settings
+	}
+	return out, nil
+}
+
+func moduleList(v starlark.Value) ([]any, error) {
+	list, ok := v.(*starlark.List)
+	if !ok {
+		return nil, fmt.Errorf("must be a list of module(...)")
+	}
+	out := []any{}
+	for i := 0; i < list.Len(); i++ {
+		m, ok := list.Index(i).(*marker)
+		if !ok {
+			return nil, fmt.Errorf("must be a list of module(...)")
+		}
+		j, ok := m.json.(map[string]any)["$module"]
+		if !ok {
+			return nil, fmt.Errorf("must be a list of module(...)")
+		}
+		out = append(out, j)
 	}
 	return out, nil
 }

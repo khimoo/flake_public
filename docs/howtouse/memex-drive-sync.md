@@ -2,7 +2,7 @@
 
 vault の画像や PDF などのバイナリは、中身を git-annex で Google Drive に置き、Git には所在だけを入れます。ノートは今までどおり Git で同期します。
 
-機能フラグ `memexSync` で有効になります。`nixos-desktop` と `nixos-spin713` では有効です。スタンドアロンの home-manager 環境では、ユーザーごとの home モジュールで `local.profile.features` と `local.profile.memexRoot` を設定してください。現在の vault プロファイルは Linux 環境にのみ対応しています。
+目的 `memex_sync` を選んだホストで有効になります（`config/hosts/<ホスト>.star`、[confgen.md](./confgen.md)）。`nixos-desktop` と `nixos-spin713` で選んでいます。vault の場所は [memex.star](../../config/elements/memex.star) が決めます。Linux 環境にのみ対応しています。
 
 設計ドキュメント: [memex の Google Drive 同期の設計](../architecture/memex-drive-sync.md)
 

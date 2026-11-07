@@ -1,7 +1,7 @@
 # vault の骨格の設計
 
 使い方: [vault の骨格の配布とミラー](../howtouse/memex-vault-skeleton.md)
-実装: [memex.nix](../../modules/home-manager/memex.nix)、mechanism は memex-nix（`seed-vault`、`mirror-vault`、`nix/skeleton-paths.nix`）
+実装: [memex.star](../../config/elements/memex.star)、mechanism は memex-nix（`seed-vault`、`mirror-vault`、`nix/skeleton-paths.nix`）
 
 Obsidian vault の骨格（分類フォルダ、運用ドキュメント、`.obsidian`、skills へのリンク）の変更は public repo で、ノートの変更は private repo で追えるようにする。
 資料の Drive 同期は別の仕組み（[memex-drive-sync.md](./memex-drive-sync.md)）で、骨格は Drive ではなく git に載る。
@@ -47,7 +47,7 @@ typst のプラグインは WSL の Obsidian を落とし、26MB の wasm を持
 ## 写し先は引数で受け取る
 
 `mirror-vault` は vault と写し先を引数か環境変数で受け取り、owner を書き込まない。
-自分の写し先はユーザーのオプション `local.profile.vaultSkeletonRepo` にだけ置き、`memex.nix` が `services.memex.mirrorRepo` に渡す。
+自分の写し先は要素 `memex` が決め、`local.profile.vaultSkeletonRepo`（clone の宛先）と `services.memex.mirrorRepo` の両方に同じ値を入れる。
 写し先を mechanism に書き込むと、mechanism が特定の環境のパスを知ることになる。骨格の写しは秘密を扱わないので、誰の環境でもそのまま動く。
 
 ## 正本を public に移す案は退けた

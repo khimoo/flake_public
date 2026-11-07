@@ -12,15 +12,9 @@ in
       gui = true;
       gnome = true;
       ime = true;
-      memexSync = true;
-      obsidian = true;
     };
     lanSsh = true;
-    memexRoot = "${work}/memex";
-    memexRepoUrl = "git@github.com:khimoo/memex.git";
     agentConfigRepo = "git@github.com:khimoo/agents-private.git";
-    vaultSkeletonRepo = "${work}/memex-nix";
-    vaultSkeletonRepoUrl = "git@github.com:khimoo/memex-nix.git";
     llmWikisRoot = "${work}/llm-wikis";
     llmWikisRepoUrl = "git@github.com:khimoo/llm-wikis.git";
   };

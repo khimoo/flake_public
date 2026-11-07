@@ -1,1 +1,1 @@
-purposes = ["daily_editing", "sshfs_editing"]
+purposes = ["daily_editing", "sshfs_editing", "memex_sync", "obsidian"]

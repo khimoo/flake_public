@@ -157,7 +157,7 @@ let
   neovimFeatures =
     system:
     let
-      result = (import ../lib/confgen.nix { pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux; }).read "pomu-nixos" system;
+      result = (import ../lib/confgen.nix { pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux; }).read "pomu-nixos" system "pomu";
       featuresLua = lib.findFirst (s: s.path == [ "xdg" "dataFile" "nvim/nix/features.lua" "text" ]) null result.elements.neovim.home;
     in
     (lib.elemAt featuresLua.value."$concat" 1)."$lua".features;
@@ -301,7 +301,6 @@ lib.genAttrs systems (
       assert !(users.alice.home.file ? ".codex/astra.config.toml");
       assert rejects { local.profile.agentConfigRepo = "git@example.org:test/config.git"; };
       assert rejects { local.profile.agentConfigRoot = "/home/another-user/config"; };
-      assert rejects { local.profile.features.memexSync = true; };
       assert rejects { local.profile.features.gnome = true; };
       assert rejects {
         local.profile.privateRepos = [

@@ -50,9 +50,13 @@ func (e *element) refs() []string {
 
 const incomingParam = "incoming"
 
-// hostElement is provided by confgen, not by a file: its public values describe the
-// host being built (system, linux, darwin), so elements need no per-host flags.
-const hostElement = "host"
+// hostElement and userElement are provided by confgen, not by files: their public values
+// describe the host (system, linux, darwin) and the Home Manager user (name, home) being
+// built, so elements need no per-host or per-user flags.
+const (
+	hostElement = "host"
+	userElement = "user"
+)
 
 var elementFuncs = map[string]bool{"public": true, "writes": true, "config": true}
 var elementLists = map[string]bool{"requires": true, "when": true}
@@ -60,7 +64,7 @@ var identRe = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
 
 func predeclaredNames() map[string]bool {
 	return map[string]bool{"pkg": true, "exe": true, "concat": true, "write": true, "struct": true,
-		"luaPackages": true, "checkoutLink": true, "lua": true}
+		"luaPackages": true, "checkoutLink": true, "lua": true, "module": true}
 }
 
 func fileOptions() *syntax.FileOptions {
@@ -80,10 +84,12 @@ func loadElements(dir string) (map[string]*element, error) {
 		}
 		elems[e.name] = e
 	}
-	if _, ok := elems[hostElement]; ok {
-		return nil, fmt.Errorf("%s.star: the name %q is reserved for host facts", hostElement, hostElement)
+	for _, n := range []string{hostElement, userElement} {
+		if _, ok := elems[n]; ok {
+			return nil, fmt.Errorf("%s.star: the name %q is reserved for facts confgen provides", n, n)
+		}
+		elems[n] = &element{virtual: true, name: n, file: "<" + n + " facts>", funcs: map[string]*funcInfo{}}
 	}
-	elems[hostElement] = &element{virtual: true, name: hostElement, file: "<host facts>", funcs: map[string]*funcInfo{}}
 	if err := checkGraph(elems); err != nil {
 		return nil, err
 	}
