@@ -9,7 +9,6 @@ let
   inherit (helpers)
     home
     purposeHome
-    rejectsPurpose
     allAssertions
     ;
 in
@@ -17,8 +16,6 @@ in
   windows_vm-contracts =
     (lib.lazyDerivation {
       derivation = (
-        # GUI のないユーザーでは Windows VM のランチャーの評価を止める。
-        assert rejectsPurpose "test-windows-vm-no-gui" "x86_64-linux" "windows_vm: launcher requires gui";
         assert system != "x86_64-linux" || allAssertions (purposeHome system "test-windows-vm");
         pkgs.runCommand "windows_vm-contracts" { } ''
           echo "windows_vm contracts passed" > "$out"

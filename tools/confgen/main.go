@@ -20,7 +20,8 @@ func main() {
 const usage = `usage:
   confgen build <config-dir> <host> <system> <user> <out.json>
   confgen explain <config-dir> <host> <system> <user> <element>
-  confgen affected <repo-root> <changed-path>...   (prints {"elements": [...], "hosts": [...]}; elements is ["ALL"] when every check must run)`
+  confgen affected <repo-root> <changed-path>...   (prints {"elements": [...], "hosts": [...]}; elements is ["ALL"] when every check must run)
+  confgen alone <config-dir>   (fails if an element cannot be generated as a host's only purpose)`
 
 func run(args []string) error {
 	if len(args) >= 2 && args[0] == "affected" {
@@ -37,6 +38,19 @@ func run(args []string) error {
 			return err
 		}
 		fmt.Println(string(data))
+		return nil
+	}
+	if len(args) == 2 && args[0] == "alone" {
+		failures, err := alone(args[1])
+		if err != nil {
+			return err
+		}
+		for _, f := range failures {
+			fmt.Println(f)
+		}
+		if len(failures) > 0 {
+			return fmt.Errorf("%d elements cannot be generated alone", len(failures))
+		}
 		return nil
 	}
 	if len(args) != 6 {

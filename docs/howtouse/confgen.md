@@ -48,6 +48,8 @@ purposes = ["daily_editing", "sshfs_editing"]
 
 option のパスに `.` を含む名前があるときは、タプルで書きます（`("xdg", "dataFile", "nvim/nix/features.lua", "text")`）。外部の flake の Home Manager モジュールが要るときは、`config` が `"home_imports": [module("memex-nix", "homeModules.memex")]` を返します。
 
+書いた値を confgen の外（Lua やシェルスクリプト）が読み、その読み手が別の要素で有効になるときは、confgen はその依存を見つけられません。読み手を有効にする要素を `requires` に書くか、両方がそろうときだけ入る派生要素（`when`）に分けます。例: [tinymist_on_sshfs.star](../../config/elements/tinymist_on_sshfs.star) は `nvim_lsp` が有効にする Lua が読む値を書くので、`when = ["sshfs_editing", "nvim_lsp"]` にしています。
+
 Nix にしか作れない値は印で書きます。
 
 | 印 | 値 |
@@ -91,5 +93,7 @@ nix shell nixpkgs#go -c go run . explain ../../config nixos-spin713 x86_64-linux
 ## 検査
 
 confgen の build がテスト（[confgen_test.go](../../tools/confgen/confgen_test.go)）を実行します。規則に反する書き方を止めること、目的を外すと専用の要素が消えること、派生要素が条件のそろったときだけ入ることを確かめます。switch の評価はこの build を通るので、テストが失敗すると switch できません。
+
+check `elements-alone`（[tests/elements/confgen.nix](../../tests/elements/confgen.nix)）は `confgen alone` を実行し、どの要素も、それ1つだけを選んだホストで生成できることを確かめます。ホストの値は、その要素を生成している既存のホストのものを使います。上の依存を書き忘れた要素はここで止まります。2つの要素が同じ値に書いて衝突する場合は見つけられません。
 
 `nixos-spin713` は手元で build しないので、デスクトップが止まっているときは `--max-jobs 1` を付けて switch します（[remote-build.md](./remote-build.md)）。

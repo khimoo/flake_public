@@ -1,8 +1,5 @@
 when = ["windows_vm", "gui"]
 
-def writes(windows_vm):
-    return [write(windows_vm, True)]
-
 def config(user, windows_vm):
     if user.name not in windows_vm.users or windows_vm.domain == None:
         return {}

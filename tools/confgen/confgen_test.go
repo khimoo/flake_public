@@ -229,3 +229,31 @@ func TestAffectedCoversReadersWriteTargetsAndDerivedElementsOnly(t *testing.T) {
 		}
 	}
 }
+
+func TestAloneReportsElementsThatFailWithoutAnotherSelectedElement(t *testing.T) {
+	dir := writeConfig(t, map[string]string{
+		"sink": `
+def config(incoming):
+    if len(incoming) == 1:
+        fail("sink: half of the pair")
+    return {}
+`,
+		"needs_partner": "def writes(sink):\n    return [write(sink, 1)]",
+		"partner":       "def writes(sink):\n    return [write(sink, 2)]",
+		"never_chosen":  ``,
+		"derived":       `when = ["needs_partner", "partner"]`,
+	}, map[string]string{
+		"h":        `purposes = ["needs_partner", "partner"]`,
+		"rejected": `purposes = ["needs_partner"]`,
+	})
+	failures, err := alone(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(failures) != 3 ||
+		!strings.HasPrefix(failures[0], "needs_partner alone (values of host h)") ||
+		!strings.HasPrefix(failures[1], "partner alone (values of host h)") ||
+		!strings.HasPrefix(failures[2], "never_chosen: no host generates it") {
+		t.Errorf("failures %q", failures)
+	}
+}

@@ -6,9 +6,32 @@
   ...
 }:
 let
-  inherit (helpers) inputs rejectsPurpose;
+  inherit (helpers) inputs rejectsPurpose configDir;
 in
 {
+  # どの要素も、ホストでそれ1つだけを選んで生成できること（docs/architecture/confgen.md の規則 A）。
+  elements-alone =
+    (lib.lazyDerivation {
+      derivation = (
+        pkgs.runCommand "elements-alone"
+          {
+            nativeBuildInputs = [
+              (import ../../lib/confgen.nix {
+                pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux;
+                inherit configDir;
+              }).package
+            ];
+          }
+          ''
+            confgen alone ${configDir}
+            touch "$out"
+          ''
+      );
+    })
+    // {
+      always = true;
+    };
+
   confgen-contracts =
     (lib.lazyDerivation {
       derivation = (

@@ -5,10 +5,7 @@ def public(host):
         "boot_timeout": getattr(host, "windows_vm_boot_timeout", 600),
     }
 
-def config(host, incoming):
-    domain = getattr(host, "windows_vm_domain", None)
-    if domain != None and not incoming:
-        fail("windows_vm: launcher requires gui")
+def config(host):
     nixos = {
         "virtualisation.spiceUSBRedirection.enable": True,
         "virtualisation.libvirtd.enable": True,
