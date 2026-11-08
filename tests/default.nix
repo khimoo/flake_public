@@ -5,42 +5,43 @@ let
     "x86_64-linux"
     "aarch64-darwin"
   ];
+  configDir = inputs.nixpkgs.legacyPackages.x86_64-linux.runCommand "test-config" { } ''
+    mkdir -p "$out/hosts" "$out/users"
+    ln -s ${../config/elements} "$out/elements"
+    cp ${../config/hosts}/*.toml ${./hosts}/*.toml "$out/hosts/"
+    cp ${../config/users}/*.toml ${./users}/*.toml "$out/users/"
+  '';
+  configurations = import ../lib/configurations.nix { inherit inputs configDir; };
   fixture = configurations.mkSystem {
     hostname = "test-agents-users";
     modules = [ ../examples/new-host.nix ];
   };
   users = fixture.config.home-manager.users;
-  # 会社 PC の制限は、架空のホストではなく実際の nixos-work-wsl で確かめる（docs/architecture/wsl.md）。
-  wsl = inputs.self.nixosConfigurations.nixos-work-wsl.config;
-  wslUser = wsl.home-manager.users.nixos;
-  wslSshConfig = wsl.environment.etc."ssh/ssh_config".text;
-  desktopUser = inputs.self.nixosConfigurations.nixos-desktop.config.home-manager.users.pomu;
-  desktopKeyd = inputs.self.nixosConfigurations.nixos-desktop.config.services.keyd.keyboards.default.settings;
-  desktopPkgs = inputs.self.nixosConfigurations.nixos-desktop.pkgs;
-  desktopWindowsVm = lib.findFirst (
-    p: (p.name or "") == "windows-vm"
-  ) (throw "windows-vm is not installed") desktopUser.home.packages;
-  desktopGenerated = (import ../lib/confgen.nix { pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux; }).read "nixos-desktop" "x86_64-linux" "pomu";
-  generatedPackages = element: (lib.findFirst (s: s.path == [ "home" "packages" ]) null element.home).value;
-  desktopXsavedEnv = builtins.elemAt (builtins.head (generatedPackages desktopGenerated.elements.xsaved))."$repoPkgWith" 1;
-  desktopXsavedBackupEnv = builtins.elemAt (builtins.elemAt (generatedPackages desktopGenerated.elements.xsaved) 3)."$shellAppEnv" 2;
-  desktopVmEnv = builtins.elemAt (builtins.head (generatedPackages desktopGenerated.elements.windows_vm_gui))."$shellAppEnv" 2;
-  nixosHost = hostname: (configurations.mkSystem {
-    inherit hostname;
-    modules = [ ../examples/new-host.nix ];
-  }).config;
+  nixosHost =
+    hostname:
+    (configurations.mkSystem {
+      inherit hostname;
+      modules = [ ../examples/new-host.nix ];
+    }).config;
   laptop = nixosHost "test-remote-build";
   agentHost = nixosHost;
   xsavedHost = nixosHost "test-xsaved";
   codexConfig = host: builtins.fromTOML host.environment.etc."codex/config.toml".text;
   systemAssertionsHold = config: builtins.all (a: a.assertion) config.assertions;
-  hostForSystem = system: name:
-    if lib.hasSuffix "-darwin" system && builtins.pathExists (../config/hosts + "/${name}-darwin.toml")
-    then "${name}-darwin" else name;
-  mkTestHome = system: modules:
+  hostForSystem =
+    system: name:
+    if lib.hasSuffix "-darwin" system && builtins.pathExists (./hosts + "/${name}-darwin.toml") then
+      "${name}-darwin"
+    else
+      name;
+  mkTestHome =
+    system: modules:
     if lib.hasSuffix "-darwin" system then
       inputs.home-manager.lib.homeManagerConfiguration {
-        pkgs = import inputs.nixpkgs { inherit system; inherit (configurations) overlays; };
+        pkgs = import inputs.nixpkgs {
+          inherit system;
+          inherit (configurations) overlays;
+        };
         extraSpecialArgs = { inherit inputs; };
         modules = [
           {
@@ -49,56 +50,101 @@ let
             home.stateVersion = configurations.hosts.test-darwin.state_version;
             nixpkgs.config.allowUnfree = true;
           }
-          ({ config, lib, pkgs, ... }: import ../lib/confgen-bridge.nix {
-            inherit lib pkgs inputs;
-            class = "home";
-            # Linux の検査では生成器だけ Linux で動かし、Darwin のパッケージは評価にとどめる。
-            result = (import ../lib/confgen.nix { pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux; }).read "test-darwin" system "test";
-            special = resolve: {
-              "$outOfStoreLink" = v: config.lib.file.mkOutOfStoreSymlink (builtins.head v);
-              "$activation" = v: lib.hm.dag.entryAfter (builtins.elemAt v 0) (resolve (builtins.elemAt v 1));
-              "$gvariantTuple" = v: lib.hm.gvariant.mkTuple (builtins.head v);
-            };
-          })
-        ] ++ modules;
+          (
+            {
+              config,
+              lib,
+              pkgs,
+              ...
+            }:
+            import ../lib/confgen-bridge.nix {
+              inherit lib pkgs inputs;
+              class = "home";
+              # Linux の検査では生成器だけ Linux で動かし、Darwin のパッケージは評価にとどめる。
+              result =
+                (import ../lib/confgen.nix {
+                  pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux;
+                  inherit configDir;
+                }).read
+                  "test-darwin"
+                  system
+                  "test";
+              special = resolve: {
+                "$outOfStoreLink" = v: config.lib.file.mkOutOfStoreSymlink (builtins.head v);
+                "$activation" = v: lib.hm.dag.entryAfter (builtins.elemAt v 0) (resolve (builtins.elemAt v 1));
+                "$gvariantTuple" = v: lib.hm.gvariant.mkTuple (builtins.head v);
+              };
+            }
+          )
+        ]
+        ++ modules;
       }
-    else configurations.mkHome { name = "test"; inherit modules; };
-  purposeHome = system: name: configurations.mkHome {
-    name = hostForSystem system name;
-  };
-  rejectsPurpose = name: system: message:
+    else
+      configurations.mkHome {
+        name = "test";
+        inherit modules;
+      };
+  purposeHome =
+    system: name:
+    configurations.mkHome {
+      name = hostForSystem system name;
+    };
+  rejectsPurpose =
+    name: system: message:
     let
       selected = hostForSystem system name;
       username = (builtins.head (configurations.hosts.${selected}.users or [ { name = "test"; } ])).name;
     in
-    builtins.readFile (inputs.nixpkgs.legacyPackages.x86_64-linux.runCommand
-      "reject-${name}-${system}"
-      { nativeBuildInputs = [ (import ../lib/confgen.nix { pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux; }).package ]; }
-      ''
-        if confgen build ${../config} ${lib.escapeShellArg selected} ${lib.escapeShellArg system} ${lib.escapeShellArg username} result.json > log 2>&1; then
+    builtins.readFile (
+      inputs.nixpkgs.legacyPackages.x86_64-linux.runCommand "reject-${name}-${system}"
+        {
+          nativeBuildInputs = [
+            (import ../lib/confgen.nix {
+              pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux;
+              inherit configDir;
+            }).package
+          ];
+        }
+        ''
+          if confgen build ${configDir} ${lib.escapeShellArg selected} ${lib.escapeShellArg system} ${lib.escapeShellArg username} result.json > log 2>&1; then
+            cat log
+            exit 1
+          fi
           cat log
-          exit 1
-        fi
-        cat log
-        grep -F -- ${lib.escapeShellArg message} log
-        printf passed > "$out"
-      '') == "passed";
+          grep -F -- ${lib.escapeShellArg message} log
+          printf passed > "$out"
+        ''
+    ) == "passed";
   allAssertions = home: builtins.all (a: a.assertion) home.config.assertions;
   # confgen が作る Neovim の機能の一覧。confgen 自体は Linux で build する。
   neovimFeatures =
     system:
     let
-      result = (import ../lib/confgen.nix { pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux; }).read "test-neovim-features" system "pomu";
-      featuresLua = lib.findFirst (s: s.path == [ "xdg" "dataFile" "nvim/nix/features.lua" "text" ]) null result.elements.neovim.home;
+      result =
+        (import ../lib/confgen.nix {
+          pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux;
+          inherit configDir;
+        }).read
+          "test-neovim-features"
+          system
+          "pomu";
+      featuresLua = lib.findFirst (
+        s:
+        s.path == [
+          "xdg"
+          "dataFile"
+          "nvim/nix/features.lua"
+          "text"
+        ]
+      ) null result.elements.neovim.home;
     in
     (lib.elemAt featuresLua.value."$concat" 1)."$lua".features;
-  tagged = set: lib.mapAttrs (_: check: check // { checkSet = set; });
   # activation の after / before が存在しないノードを指しても、Home Manager はエラーにせず順序も保証しない。
   activationDepsExist =
     activation:
-    builtins.all (
-      entry: builtins.all (dep: activation ? ${dep}) (entry.after ++ entry.before)
-    ) (builtins.attrValues activation);
+    builtins.all (entry: builtins.all (dep: activation ? ${dep}) (entry.after ++ entry.before)) (
+      builtins.attrValues activation
+    );
   hasLauncher = user: name: builtins.any (p: (p.name or "") == name) user.home.packages;
 in
 lib.genAttrs systems (
@@ -111,23 +157,41 @@ lib.genAttrs systems (
     };
     agentSyncSpec =
       let
-        result = (import ../lib/confgen.nix { pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux; }).read "test-agents" "x86_64-linux" "test";
-        packages = lib.findFirst (s: s.path == [ "home" "packages" ]) null result.elements.agent_sync.home;
+        result =
+          (import ../lib/confgen.nix {
+            pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux;
+            inherit configDir;
+          }).read
+            "test-agents"
+            "x86_64-linux"
+            "test";
+        packages = lib.findFirst (
+          s:
+          s.path == [
+            "home"
+            "packages"
+          ]
+        ) null result.elements.agent_sync.home;
       in
       (builtins.head packages.value)."$shellAppEnv";
     agentSyncText =
       let
-        resolveEnv = value:
-          if builtins.isString value then value else
-          let
-            spec = value."$exe";
-            package = lib.getAttrFromPath (lib.splitString "." (builtins.elemAt spec 0)) activationHome.pkgs;
-          in
-          "${package}/bin/${builtins.elemAt spec 1}";
+        resolveEnv =
+          value:
+          if builtins.isString value then
+            value
+          else
+            let
+              spec = value."$exe";
+              package = lib.getAttrFromPath (lib.splitString "." (builtins.elemAt spec 0)) activationHome.pkgs;
+            in
+            "${package}/bin/${builtins.elemAt spec 1}";
       in
-      lib.concatStrings (lib.mapAttrsToList (name: value:
-        "export ${name}=${lib.escapeShellArg (resolveEnv value)}\n"
-      ) (builtins.elemAt agentSyncSpec 2))
+      lib.concatStrings (
+        lib.mapAttrsToList (name: value: "export ${name}=${lib.escapeShellArg (resolveEnv value)}\n") (
+          builtins.elemAt agentSyncSpec 2
+        )
+      )
       + builtins.readFile (../. + "/${builtins.head (builtins.elemAt agentSyncSpec 3)."$repoText"}");
     # These are shell-source tests using fake tools, not builds of the target
     # platform packages. Discard context only for these mocked script strings.
@@ -151,457 +215,48 @@ lib.genAttrs systems (
         mockPaths agentSyncText
       else
         mockPaths
-          (lib.findFirst (p: (p.name or "") == name) (throw "${name} is not installed")
-            activationHome.config.home.packages
-          ).text;
-    contracts =
-      assert allAssertions home;
-      assert activationDepsExist activationHome.config.home.activation;
-      assert systemAssertionsHold (nixosHost "test-restricted-ok");
-      assert builtins.all (name: rejectsPurpose "test-restricted-${name}" "x86_64-linux" "restricted host:") [
-        "machine-ssh" "tailscale" "remote-build" "lan" "git" "clone" "secrets"
-      ];
-      assert users.alice.programs.git.settings.user.name == "Alice";
-      assert !(users.bob.programs.git.settings ? user);
-      assert !(lib.hasInfix "id_lan" users.bob.home.activation.secrets.data);
-      assert !(lib.hasInfix "id_github" users.bob.home.activation.secrets.data);
-      assert !(users.bob.home.file ? ".claude/CLAUDE.md");
-      assert lib.hasInfix "/home/bob/sagyo/flake_public"
-        (lib.findFirst (p: (p.name or "") == "pull-repos") (throw "pull-repos is not installed") users.bob.home.packages).text;
-      assert !(hasLauncher users.bob "clone-repos");
-      assert hasLauncher users.alice "clone-repos";
-      assert !(users.alice.home.file ? ".claude/settings.json");
-      assert !(users ? unmanaged);
-      assert lib.hasInfix "/home/alice/.ssh/id_github" users.alice.home.activation.secrets.data;
-      assert lib.hasInfix "/home/alice/.ssh/id_lan" users.alice.home.activation.secrets.data;
-      assert users.bob.home.activation ? secrets;
-      assert !(lib.hasInfix "SOPS_AGE_KEY_FILE" users.bob.home.activation.secrets.data);
-      assert !(lib.hasInfix "age_key=" users.bob.home.activation.secrets.data);
-      assert users.alice.home.activation ? secrets;
-      # 暗号文が世代の closure に入る（GC 後の起動時の activation でも復号できる）。
-      assert lib.any (lib.hasSuffix "-secrets.yaml") (
-        lib.attrNames (builtins.getContext users.alice.home.activation.secrets.data)
-      );
-      assert rejectsPurpose "test-duplicate-secret" "x86_64-linux" "personal_files: duplicate secret destination";
-      assert rejectsPurpose "test-outside-secret" "x86_64-linux" "personal_files: destinations must live below";
-      assert rejectsPurpose "test-ssh-duplicate" "x86_64-linux" "personal_files: duplicate SSH key filename";
-      assert rejectsPurpose "test-ssh-collision" "x86_64-linux" "secrets: duplicate SSH key filename";
-      assert !(home.config.home.activation ? rustowl);
-      assert !(builtins.any (p: (p.pname or "") == "rustowl") home.config.home.packages);
-      assert builtins.elem "rustowl" (neovimFeatures system) == (system == "x86_64-linux");
-      assert !(home.config.programs.uv.settings ? python-preference);
-      assert !(hasLauncher home.config "cargo-remote-run");
-      # 目的 cargo_remote_run を選ぶ spin713 には入る（config/hosts/nixos-spin713.toml）。
-      assert hasLauncher inputs.self.nixosConfigurations.nixos-spin713.config.home-manager.users.pomu "cargo-remote-run";
-      assert !(builtins.any (p: (p.pname or "") == "vscode") home.config.home.packages);
-      # ~/.config/nvim は checkout への live symlink なので、その下に置くファイルは home-manager-files の
-      # ビルドで "outside $HOME" になる。評価だけでは見つからないので、ここで止める。
-      assert !(builtins.any (f: f.enable && lib.hasPrefix ".config/nvim/" f.target) (builtins.attrValues home.config.home.file));
-      # プロファイルの起動コマンドは agent-sync が実行時に作る。設定 repo のないユーザーには入れない。
-      assert hasLauncher users.alice "agent-sync";
-      assert users.alice.home.activation ? agentSync;
-      assert !(hasLauncher users.bob "agent-sync");
-      assert !(users.bob.home.activation ? agentSync);
-      assert !(users.alice.home.file ? ".codex/astra.config.toml");
-      assert rejectsPurpose "test-agent-url" "x86_64-linux" "agent_links: a clone URL requires";
-      assert rejectsPurpose "test-agent-outside" "x86_64-linux" "agent_links: mutable checkouts must belong";
-      assert system != "x86_64-linux" || builtins.any (p: (p.pname or "") == "kitty") (purposeHome system "test-gnome").config.home.packages;
-      assert system != "x86_64-linux" || builtins.any (p: (p.pname or "") == "kitty") (purposeHome system "test-ime").config.home.packages;
-      assert system == "x86_64-linux" || rejectsPurpose "test-gnome" system "gui: supports Linux only";
-      assert system == "x86_64-linux" || rejectsPurpose "test-audio" system "music_production: supports Linux only";
-      assert system == "x86_64-linux" || rejectsPurpose "test-call-audio" system "call_audio: supports Linux only";
-      assert rejectsPurpose "test-duplicate-clone" "x86_64-linux" "private_repos: duplicate clone destination";
-      assert rejectsPurpose "test-outside-clone" "x86_64-linux" "personal_files: destinations must live below";
-      assert !(home.config.systemd.user.timers ? quaderno-pull);
-      assert system != "x86_64-linux"
-        || ((purposeHome system "test-quaderno").config.systemd.user.timers ? quaderno-pull);
-      assert system != "x86_64-linux" || (
-        let
-          result = (import ../lib/confgen.nix { pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux; }).read "test-quaderno" system "test";
-          packages = lib.findFirst (s: s.path == [ "home" "packages" ]) null result.elements.quaderno.home;
-        in
-        (builtins.elemAt (builtins.head packages.value)."$shellAppEnv" 2).QUADERNO_SERIAL == ""
-      );
-      assert rejectsPurpose "test-quaderno-other-home" "x86_64-linux"
-        "quaderno: archive points to another user's home";
-      # home の外は許す。別ディスクへ置く構成を弾かないこと。
-      assert system != "x86_64-linux"
-        || allAssertions (purposeHome system "test-quaderno-backup");
-      # GUI のないユーザーでは Windows VM のランチャーの評価を止める。
-      assert rejectsPurpose "test-windows-vm-no-gui" "x86_64-linux"
-        "windows_vm: launcher requires gui";
-      assert system != "x86_64-linux"
-        || allAssertions (purposeHome system "test-windows-vm");
-      assert system == "x86_64-linux"
-        || rejectsPurpose "test-windows-vm-os" system "windows_vm: supports Linux only";
-      assert rejectsPurpose "test-quaderno-missing-archive" "x86_64-linux"
-        "quaderno_archive";
-      assert system == "x86_64-linux"
-        || rejectsPurpose "test-quaderno" system
-          "quaderno: systemd user timers support Linux only";
-      assert rejectsPurpose "test-bad-purpose-type" "x86_64-linux" "purposes must be a list of element names";
-      assert rejectsPurpose "test-unknown-purpose" "x86_64-linux" "unknown element";
-      assert systemAssertionsHold laptop;
-      assert laptop.nix.buildMachines != [ ];
-      # nix-daemon は Host ブロックを経由して接続するため、buildMachines と SSH の接続名が一致する必要がある。
-      assert builtins.all (
-        m: lib.hasInfix "Host ${m.hostName}\n" laptop.programs.ssh.extraConfig
-      ) laptop.nix.buildMachines;
-      assert builtins.all (m: m.sshKey == "/home/alice/.ssh/id_lan") laptop.nix.buildMachines;
-      # builders に自分しかいないホストでは回す先がない。黙って何もしない設定にしない。
-      assert rejectsPurpose "test-remote-build-self" "x86_64-linux" "remote_build: no other host has a builder";
-      # developer_instructions が [agents] のテーブルに入らず、エスケープも崩れないこと。
-      assert
-        let
-          instructions = "一行目 \"quoted\" back\\slash\n二行目\n";
-          host = agentHost "test-agent-instructions";
-        in
-        (codexConfig host).developer_instructions == instructions
-        && (codexConfig host).agents.enabled == false
-        && host.environment.etc."claude-code/CLAUDE.md".text == instructions;
-      assert !((agentHost "test-agent-empty").environment.etc ? "claude-code/CLAUDE.md");
-      # 複数のユーザーとマウントのないホストでも使える。GPU は共有のロックファイルで順番にする。
-      assert systemAssertionsHold xsavedHost;
-      assert xsavedHost.services.postgresql.ensureDatabases == [ "xsaved_alice" "xsaved_bob" ];
-      assert builtins.elem "f /run/xsaved-gpu.lock 0644 root root -" xsavedHost.systemd.tmpfiles.rules;
-      # データベースは NixOS 側が作るので、Home Manager 単独では有効にできない。
-      # Home Manager は失敗した assertion を評価のエラーにすることがあるので、tryEval で受ける。
-      assert
-        let
-          r = builtins.tryEval (allAssertions (purposeHome "x86_64-linux" "test-xsaved-standalone"));
-        in
-        !r.success || !r.value;
-      assert system == "x86_64-linux"
-        || rejectsPurpose "test-xsaved-standalone" system "xsaved: supports Linux only";
-      assert !(codexConfig (agentHost "test-agent-empty") ? developer_instructions);
-      "module contracts passed";
-    # 会社 PC（nixos-work-wsl）の実際の構成に固有の確認（docs/architecture/wsl.md）。
-    wslContracts =
-      # /etc/nixos を checkout へのリンクにして、--flake なしの nixos-rebuild がこの flake を使うようにする。
-      assert builtins.elem "L+ /etc/nixos - - - - /home/nixos/sagyo/flake_public" wsl.systemd.tmpfiles.rules;
-      assert configurations.hosts.nixos-work-wsl.restricted;
-      assert systemAssertionsHold wsl;
-      assert wsl.wsl.enable && wsl.wsl.defaultUser == "nixos";
-      # 社用の AI アカウントがない会社の PC なので、自分用のエージェントの設定（agents-private）を置かない。
-      assert !(wslUser.home.file ? ".claude/CLAUDE.md");
-      assert !(wsl.environment.etc ? "claude-code/managed-settings.json");
-      assert !(lib.hasInfix "IdentityFile" wslSshConfig);
-      assert wslUser.home.activation ? secrets;
-      assert !(lib.hasInfix "SOPS_AGE_KEY_FILE" wslUser.home.activation.secrets.data);
-      assert !(lib.hasInfix "age_key=" wslUser.home.activation.secrets.data);
-      assert !(hasLauncher wslUser "clone-repos");
-      # 会社 PC でも kitty を使うため、GUI アプリは WSLg で表示する（docs/architecture/wsl.md）。
-      assert !(wslUser.dconf.settings ? "org/gnome/shell");
-      assert !wslUser.i18n.inputMethod.enable;
-      assert builtins.any (p: (p.pname or "") == "kitty") wslUser.home.packages;
-      assert wsl.wsl.startMenuLaunchers;
-      assert !(hasLauncher wslUser "agent-sync");
-      # uv が取得した Python だけを使わせる設定は、nix-ld があって初めて意味を持つ。
-      assert wsl.programs.nix-ld.enable;
-      assert wslUser.programs.uv.settings.python-preference == "only-managed";
-      "nixos-work-wsl contracts passed";
-    # デスクトップ（nixos-desktop）の実際の構成に固有の確認。
-    desktopContracts =
-      assert activationDepsExist desktopUser.home.activation;
-      assert builtins.elem "L+ /etc/nixos - - - - /home/pomu/sagyo/flake_public"
-        inputs.self.nixosConfigurations.nixos-desktop.config.systemd.tmpfiles.rules;
-      assert !(desktopUser.programs.uv.settings ? python-preference);
-      # Windows VM のランチャーはデスクトップだけで有効にする。
-      assert hasLauncher desktopUser "windows-vm";
-      assert desktopVmEnv.WINDOWS_VM_DOMAIN == "win11";
-      assert hasLauncher desktopUser "mimikopi-env";
-      # @mimikopi は手で作る subvol なので、作る前の switch や再起動で起動を止めないよう nofail を外さない。
-      assert builtins.elem "nofail"
-        inputs.self.nixosConfigurations.nixos-desktop.config.fileSystems."/home/pomu/.local/share/mimikopi".options;
-      assert hasLauncher desktopUser "xsaved";
-      assert hasLauncher desktopUser "xsaved-restore-check";
-      assert builtins.elem "nofail"
-        inputs.self.nixosConfigurations.nixos-desktop.config.fileSystems.${desktopXsavedEnv.dataDir}.options;
-      # xsaved が接続するデータベースを、OS 側の Postgres が作る。
-      assert builtins.elem desktopXsavedEnv.database
-        inputs.self.nixosConfigurations.nixos-desktop.config.services.postgresql.ensureDatabases;
-      # ログイン画面のまま放置されても、ユーザーの timer を起動時から動かす。
-      assert inputs.self.nixosConfigurations.nixos-desktop.config.users.users.pomu.linger == true;
-      # 何時間も続く定期実行を、switch で止めて起動し直さない。
-      assert builtins.all (n: desktopUser.systemd.user.services.${n}.Unit.X-SwitchMethod == "keep-old") [
-        "xsaved-sync"
-        "xsaved-process"
-        "xsaved-backup"
-      ];
-      # Web UI は常駐させず、ブラウザで開いたときにソケットから起動する。
-      assert desktopUser.systemd.user.sockets.xsaved-web.Install.WantedBy == [ "sockets.target" ];
-      assert !(desktopUser.systemd.user.services.xsaved-web-server ? Install);
-      # X で消えたツイートは取り直せないので、保存先と別の場所へ毎日写す。
-      assert desktopUser.systemd.user.timers ? xsaved-backup;
-      assert lib.hasInfix desktopXsavedBackupEnv.RESTIC_PASSWORD_FILE desktopUser.home.activation.secrets.data;
-      # 定期実行が失敗したら気づけるよう、どの timer のサービスにも失敗の通知を付ける。
-      assert lib.all
-        (name: desktopUser.systemd.user.services.${name}.Unit.OnFailure or [ ] == [ "notify-failure@%n.service" ])
-        (lib.attrNames desktopUser.systemd.user.timers);
-      # sdl-freerdp は右 Alt（AltGr）の単独押しで、次のショートカット一回だけキーボードを掴む。右 Alt が AltGr に
-      # なる配列を既定にし、keyd は普段の右 Alt を書き換えず、ターボの連打は ◇ + 右 Alt で入れるレイヤーに置く
-      # （docs/architecture/windows-vm.md）。
-      # 一回だけ掴む動作はパッチを当てた FreeRDP にしかないので、ランチャーがそれを使っていることを確かめる。
-      assert lib.hasInfix (builtins.unsafeDiscardStringContext "${
-        desktopPkgs.callPackage ../packages/freerdp-grab-once { }
-      }/bin") desktopWindowsVm.text;
-      assert
-        builtins.fromJSON desktopUser.xdg.configFile."freerdp/sdl-freerdp.json".text == {
-          SDL_KeyModMask = [ "KMOD_MODE" ];
-          SDL_Grab = "SDL_SCANCODE_RALT";
-        };
-      assert lib.hasInfix "('xkb','us+altgr-intl')" (
-        toString desktopUser.dconf.settings."org/gnome/desktop/input-sources".sources
-      );
-      assert !(desktopKeyd.main or { } ? rightalt);
-      "nixos-desktop contracts passed";
+          (lib.findFirst (
+            p: (p.name or "") == name
+          ) (throw "${name} is not installed") activationHome.config.home.packages).text;
+    helpers = {
+      inherit
+        inputs
+        configDir
+        configurations
+        home
+        activationHome
+        users
+        nixosHost
+        laptop
+        agentHost
+        xsavedHost
+        codexConfig
+        systemAssertionsHold
+        mkTestHome
+        purposeHome
+        rejectsPurpose
+        allAssertions
+        neovimFeatures
+        activationDepsExist
+        hasLauncher
+        commandText
+        snippet
+        mockPaths
+        ;
+    };
+    args = {
+      inherit
+        lib
+        pkgs
+        system
+        helpers
+        ;
+    };
+    elementFiles = lib.filterAttrs (name: type: type == "regular" && lib.hasSuffix ".nix" name) (
+      builtins.readDir ./elements
+    );
   in
-  # どの変更でも確かめる共通の契約（common）と、ホストや機能に固有の確認（feature）に分ける。
-  # scripts/check.sh は checkSet を見て build する集合を選ぶ。
-  tagged "common" {
-    module-contracts = pkgs.runCommand "module-contracts" { } ''
-      echo ${lib.escapeShellArg contracts} > "$out"
-    '';
-    docs = pkgs.runCommand "documentation-links" { nativeBuildInputs = [ pkgs.python3 ]; } ''
-      python ${../scripts/check-docs.py} ${../.}
-      touch "$out"
-    '';
-    activation =
-      pkgs.runCommand "activation-contracts"
-        {
-          nativeBuildInputs = [
-            pkgs.python3
-            pkgs.bash
-          ];
-          cloneScript = commandText "clone-repos";
-          secretsScript = snippet "secrets";
-          emptySecretsScript = mockPaths (mkTestHome "x86_64-linux" [ ]).config.home.activation.secrets.data;
-          passAsFile = [
-            "cloneScript"
-            "secretsScript"
-            "emptySecretsScript"
-          ];
-        }
-        ''
-          python ${./activation.py}
-          touch "$out"
-        '';
-    # 設定 repo のファイルから起動コマンドと Claude Code の設定を作る agent-sync の動作。
-    agent-sync =
-      pkgs.runCommand "agent-sync"
-        {
-          nativeBuildInputs = [
-            pkgs.python3
-            pkgs.bash
-            pkgs.jq
-          ];
-        }
-        ''
-          python ${./agent-sync.py} ${pkgs.writeText "agent-sync.sh" (commandText "agent-sync")}
-          touch "$out"
-        '';
-    # agent-sync の shellcheck。
-    agent-sync-package = lib.findFirst (p: (p.name or "") == "agent-sync") (throw "agent-sync is not installed") activationHome.config.home.packages;
-    # private repo を持たないユーザーでも pull-repos のビルド（shellcheck）が通ること。
-    # standalone の Home Manager は評価しかしないので、ここでビルドしないと見つからない。
-    pull-repos = lib.findFirst (p: (p.name or "") == "pull-repos") (throw "pull-repos is not installed") home.config.home.packages;
-    # clone-repos の shellcheck。本文の動作は activation の check が偽の git で確かめる。
-    clone-repos = lib.findFirst (p: (p.name or "") == "clone-repos") (throw "clone-repos is not installed") activationHome.config.home.packages;
-    # 非対話の bash（エージェントのシェル）が、見つからないコマンドに入手方法を添え、127 のまま終わる。
-    # 実際の nix-locate と同梱の DB を使う。ビルド環境に node が無いことを前提にする。
-    command-not-found-hint =
-      if system != "x86_64-linux" then
-        pkgs.runCommand "command-not-found-hint-skipped" { } "touch $out"
-      else
-        pkgs.runCommand "command-not-found-hint" { hint = home.config.home.sessionVariables.BASH_ENV; } ''
-          status=0
-          BASH_ENV=$hint ${pkgs.bash}/bin/bash -euo pipefail -c 'node --version' 2> err || status=$?
-          cat err
-          [ "$status" = 127 ]
-          grep -q 'nix shell nixpkgs#nodejs' err
-          # This pinned small database has exactly one executable candidate for figlet.
-          candidates=$(${home.config.programs.nix-index.package}/bin/nix-locate \
-            --minimal --no-group --type x --type s --whole-name --at-root /bin/figlet)
-          [ "$candidates" = figlet.out ]
-          status=0
-          BASH_ENV=$hint ${pkgs.bash}/bin/bash -euo pipefail -c 'figlet --version' 2> err || status=$?
-          cat err
-          [ "$status" = 127 ]
-          grep -q 'nix shell nixpkgs#figlet' err
-          touch "$out"
-        '';
-  }
-  // tagged "feature" {
-    # clone 済みの両PCへ、配布元の骨格を補充しない。古い workflow の pin も検出する。
-    vault-seed-isolation =
-      assert lib.all (user:
-        user.services.memex.enable
-        && !user.services.memex.initializeVault
-        && !(user.home.activation ? seedVault)
-        && lib.hasInfix user.services.memex.vaultDir
-          (lib.findFirst (p: (p.name or "") == "clone-repos") (throw "clone-repos is not installed") user.home.packages).text
-      ) [
-        desktopUser
-        inputs.self.nixosConfigurations.nixos-spin713.config.home-manager.users.pomu
-      ];
-      pkgs.runCommand "vault-seed-isolation" { } ''
-        echo "Cloned vaults have no seed activation on either host" > "$out"
-      '';
-    # GNOME は metadata.json の shell-version に自分のメジャー版がない拡張を読み込まない（OUT OF DATE）。
-    # nixpkgs を上げて GNOME と拡張の版がずれても評価とビルドは通るので、ここで止める。
-    # 対応版は拡張のパッケージの中にしかないので、評価ではなくビルドの段階で読む。
-    gnome-extensions =
-      if system != "x86_64-linux" then
-        pkgs.runCommand "gnome-extensions-skipped" { } "touch $out"
-      else
-        let
-          checkHost =
-            hostname:
-            let
-              host = inputs.self.nixosConfigurations.${hostname};
-              shellMajor = lib.versions.major host.pkgs.gnome-shell.version;
-              extensions = builtins.filter (p: p ? extensionUuid) host.config.home-manager.users.pomu.home.packages;
-            in
-            lib.concatMapStrings (p: ''
-              check ${hostname} ${shellMajor} ${lib.escapeShellArg p.extensionUuid} ${p}
-            '') extensions;
-        in
-        pkgs.runCommand "gnome-extensions" { nativeBuildInputs = [ pkgs.jq ]; } ''
-          fail=0
-          check() {
-            metadata="$4/share/gnome-shell/extensions/$3/metadata.json"
-            if ! jq -e --arg v "$2" '.["shell-version"] | index($v) != null' "$metadata" > /dev/null; then
-              echo "$1: $3 does not support GNOME $2 (shell-version: $(jq -c '.["shell-version"]' "$metadata"))" >&2
-              fail=1
-            fi
-          }
-          ${checkHost "nixos-desktop"}
-          ${checkHost "nixos-spin713"}
-          [ "$fail" = 0 ]
-          touch "$out"
-        '';
-    graphify-smoke = pkgs.runCommand "graphify-smoke" {
-      nativeBuildInputs = [ pkgs.python3 inputs.nixpkgs-unstable.legacyPackages.${system}.graphify ];
-    } ''
-      export HOME="$TMPDIR"
-      python ${./graphify-smoke.py}
-      touch "$out"
-    '';
-    alook-open =
-      if system != "x86_64-linux" then
-        pkgs.runCommand "alook-open-skipped" { } "touch $out"
-      else
-        let
-          alookOpen = lib.findFirst (p: (p.name or "") == "alook-open")
-            (throw "alook-open is not installed")
-            inputs.self.nixosConfigurations.nixos-spin713.config.home-manager.users.pomu.home.packages;
-        in
-        pkgs.runCommand "alook-open" {
-          nativeBuildInputs = [ pkgs.python3 pkgs.bash pkgs.coreutils pkgs.util-linux ];
-          buildInputs = [ alookOpen ];
-        } ''
-          python ${./alook-open.py} ${../modules/home-manager/dev/alook-open.sh}
-          touch "$out"
-        '';
-    cargo-remote-run =
-      pkgs.runCommandCC "cargo-remote-run"
-        {
-          nativeBuildInputs = [
-            pkgs.python3
-            pkgs.cargo
-            pkgs.rustc
-            pkgs.rsync
-          ];
-        }
-        ''
-          python ${./cargo-remote-run.py} ${../modules/home-manager/dev/cargo-remote-run.sh}
-          touch "$out"
-        '';
-    quaderno-plan = pkgs.runCommand "quaderno-plan" { nativeBuildInputs = [ pkgs.python3 ]; } ''
-      cp ${../modules/home-manager/quaderno_plan.py} quaderno_plan.py
-      cp ${./quaderno-plan.py} test_quaderno_plan.py
-      python test_quaderno_plan.py
-      touch "$out"
-    '';
-    # mc-setup-hooks が prismlauncher.cfg の [General] だけを書き換え、起動中は触らないこと。
-    minecraft-setup-hooks = pkgs.runCommand "minecraft-setup-hooks" { nativeBuildInputs = [ pkgs.python3 pkgs.gawk ]; } ''
-      python ${./minecraft-setup-hooks.py} ${../modules/home-manager/minecraft-setup-hooks.sh}
-      touch "$out"
-    '';
-    # コミット前の hook が、ステージした docs/howtouse の文書だけを校正し、印があれば通し、校正に失敗したら止めること。
-    proofread-howtouse = pkgs.runCommand "proofread-howtouse" { nativeBuildInputs = [ pkgs.python3 pkgs.git ]; } ''
-      python ${./proofread-howtouse.py} ${../.agents/hooks/proofread-howtouse.py}
-      touch "$out"
-    '';
-    # windows-vm の起動、待機、ロック、止め忘れの通知を、偽の virsh と FreeRDP で確かめる。
-    # flock は util-linux にしかなく、ランチャー自体も Linux 専用なので、Darwin では省く。
-    windows-vm =
-      if system != "x86_64-linux" then
-        pkgs.runCommand "windows-vm-skipped" { } "touch $out"
-      else
-        pkgs.runCommand "windows-vm" { nativeBuildInputs = [ pkgs.python3 pkgs.util-linux ]; } ''
-          python ${./windows-vm.py} ${../modules/home-manager/windows-vm.sh}
-          touch "$out"
-        '';
-    # デスクトップの keyd の設定を keyd 自身で検証する。存在しないレイヤーへの toggle などは評価では
-    # 見つからず、switch したあとで keyd が設定を読めずにキーボードの変換が止まる。
-    keyd-config =
-      if system != "x86_64-linux" then
-        pkgs.runCommand "keyd-config-skipped" { } "touch $out"
-      else
-        pkgs.runCommand "keyd-config" { nativeBuildInputs = [ pkgs.keyd ]; } ''
-          keyd check ${pkgs.writeText "default.conf" inputs.self.nixosConfigurations.nixos-desktop.config.environment.etc."keyd/default.conf".text}
-          touch "$out"
-        '';
-    # 起動順序の循環は評価でもビルドでも見つからず、起動のたびに systemd が循環の中のジョブを一つ取り消すだけで
-    # 起動が続く（docs/architecture/disk-tiering.md）。
-    # fileSystems のマウントはユニットのディレクトリになく、起動時に fstab から generator が作るので、ここでも作る。
-    # SYSTEMD_PROC_CMDLINE を空にして、ビルドするマシンのカーネルのコマンドラインを generator に読ませない。
-    # systemd-analyze verify は循環を見つけても 0 で終わるので、出力で判定する。
-    # ビルドのサンドボックスには /run がなく、verify は /run/systemd を作れずに止まるので、bwrap で /run を用意する。
-    systemd-ordering =
-      if system != "x86_64-linux" then
-        pkgs.runCommand "systemd-ordering-skipped" { } "touch $out"
-      else
-        pkgs.runCommand "systemd-ordering" { nativeBuildInputs = [ pkgs.bubblewrap ]; } (
-          lib.concatMapStrings (
-            name:
-            let
-              host = inputs.self.nixosConfigurations.${name}.config;
-              systemd = host.systemd.package;
-            in
-            ''
-              gen=$PWD/${name}
-              mkdir -p "$gen"/normal "$gen"/early "$gen"/late
-              SYSTEMD_FSTAB=${pkgs.writeText "${name}-fstab" host.environment.etc.fstab.text} \
-                SYSTEMD_PROC_CMDLINE= SYSTEMD_IN_INITRD=0 \
-                ${systemd}/lib/systemd/system-generators/systemd-fstab-generator "$gen"/normal "$gen"/early "$gen"/late
-              SYSTEMD_UNIT_PATH="$gen/early:${host.environment.etc."systemd/system".source}:$gen/normal:$gen/late" \
-                bwrap --bind /nix /nix --bind "$PWD" "$PWD" --proc /proc --dev /dev --tmpfs /run --tmpfs /tmp \
-                ${systemd}/bin/systemd-analyze verify --man=no --generators=no default.target 2>&1 | tee "$gen.log"
-              if grep -q 'ordering cycle' "$gen.log"; then
-                echo "${name}: 起動順序が循環している" >&2
-                exit 1
-              fi
-            ''
-          ) (builtins.attrNames inputs.self.nixosConfigurations)
-          + ''
-            touch "$out"
-          ''
-        );
-    # windows-vm のビルド（writeShellApplication の shellcheck）を CI で通す。
-    # デスクトップの構成は評価しかしないので、ここでビルドしないと見つからない。
-    windows-vm-package =
-      if system != "x86_64-linux" then
-        pkgs.runCommand "windows-vm-package-skipped" { } "touch $out"
-      else
-        lib.findFirst (p: (p.name or "") == "windows-vm") (throw "windows-vm is not installed")
-          (purposeHome system "test-windows-vm").config.home.packages;
-    wsl-contracts = pkgs.runCommand "wsl-contracts" { } ''
-      echo ${lib.escapeShellArg wslContracts} > "$out"
-    '';
-    desktop-contracts = pkgs.runCommand "desktop-contracts" { } ''
-      echo ${lib.escapeShellArg desktopContracts} > "$out"
-    '';
-  }
+  lib.foldl' (
+    checks: file: checks // import (./elements + "/${file}") args
+  ) (import ./hosts.nix args) (builtins.attrNames elementFiles)
 )

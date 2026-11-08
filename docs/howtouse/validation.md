@@ -11,7 +11,7 @@
 |---|---|
 | ドキュメントのみ | `python3 scripts/check-docs.py .` および `git diff --check` |
 | パッケージ | 変更したパッケージを単体でビルドし、既存の installCheck まで確認（後述参照） |
-| ホスト・Home Manager モジュール | `bash scripts/check.sh`（該当ホストや機能固有の check がある場合は `--all`） |
+| ホスト・Home Manager モジュール | `bash scripts/check.sh`（変更が影響するホストと check を選択） |
 | エディタ設定 | 対象設定ファイルや Lua の構文チェックと、実機での機能確認 |
 | システム構成の組み立て、overlay、IFD を伴う評価の変更 | `bash scripts/check.sh --full` |
 
@@ -24,17 +24,28 @@
 実行には Nix（Flakes 有効）、Python 3、Git、Bash が必要です。なお、世代の切り替え（switch）は行いません。
 
 ```sh
-bash scripts/check.sh          # ドキュメント検証、全ホストおよび全 home の軽量評価、共通 check
-bash scripts/check.sh --all    # ホストや個別機能に固有の check も含めてビルド
+bash scripts/check.sh          # 変更が影響する要素・ホスト・check を検証
+bash scripts/check.sh --all    # 全ホストと全 home の軽量評価、全 check のビルド
 bash scripts/check.sh --full   # toplevel の評価、nix flake check、全システムの check 評価も実施
 ```
 
-check は [tests/default.nix](../../tests/default.nix) で 2 つのグループに分類されており、`check.sh` は各 check の `checkSet` を参照してビルド対象を決定します。個々の check がどちらに属するかは、該当ファイル内の定義が正本となります。
+引数なしでは、`git merge-base HEAD @{upstream}` を基準にした差分と、未コミット・ステージ済み・未追跡ファイルの和を対象にします。上流がない場合は未コミットの変更だけを対象にします。confgen は flake と同じ nixpkgs から `nix build` で用意し、`confgen affected <repo-root> <変更ファイル>...` の JSON 出力にある `elements` と `hosts` から検証範囲を選びます。`elements = ["ALL"]` の場合は `--all` と同じ範囲を検証します。
 
-- `common`：すべての変更で確認すべき基本的な契約。架空のホストおよび Home Manager 構成を用い、ユーザー分離、オプションの型と必須パス、非対応 OS での機能の拒否、activation の依存関係名、モック Git や sops による clone および機密情報の配置・更新動作などを検証します。
-- `feature`：実機ホストや個別機能に特化した確認。WSL やデスクトップ構成の契約、GNOME 拡張機能の対応バージョン、モックツールに対する各コマンドの実行テストなどを行います。
+選んだ要素、ホスト、check の名前をそれぞれ1行で表示してから、ドキュメント検証、`tools/confgen` の `go test ./...`、選択したホストの軽量評価と check のビルド、`git diff --check` を実行します。Go は confgen と同じ nixpkgs のものを使います。ホストの軽量評価は `hosts` に入った名前に限定します。変更ファイルがなければ、ドキュメント検証、Go テスト、差分の空白検査だけを実行します。
 
-引数なしで実行した場合、全 NixOS ホストの assertions と `system.path` の drvPath、および `homeConfigurations` の activation の drvPath を評価します。このとき `system.build.toplevel` は評価されません。desktop や spin713 で全画面透過を行う mutter のパッチには `system.replaceDependencies` が使われており、toplevel の評価中にシステムクロージャの参照を生成する IFD（Import-From-Derivation）が発生してパッチ適用済み mutter のビルド待ちが生じるためです。`--full` を指定した場合は、先に全ホストの toplevel を評価してから `nix flake check --no-build --no-update-lock-file` を実行します（未生成の `references.nix.drv` に対して `nix flake check` を実行すると失敗するため）。なお、`--no-build` を指定してもこの評価依存は解消されません。全画面透過の見た目については、switch 後に実機上で目視確認してください。
+### check を追加する
+
+共通の補助関数と check の集約は [tests/default.nix](../../tests/default.nix)、要素の検査は `tests/elements/<主な要素>.nix`、実在ホストの検査は [tests/hosts.nix](../../tests/hosts.nix) に置きます。要素のファイルは `{ lib, pkgs, system, helpers, ... }: { <名前> = <derivation>; }` の形でテストの attrset を返します。架空のホストは `tests/hosts/`、ユーザーは `tests/users/` に置きます。テスト用の設定ディレクトリは、実在と架空のホスト・ユーザー、および `config/elements/` を合わせて作られます。
+
+各 check には次の札を1つ以上付けます。`check.sh` は札のない check の名前を表示して停止します。札の読み取りで未選択の構成まで評価しないよう、既存のテストと同じく `lib.lazyDerivation { derivation = <検査>; } // { <札>; }` で包みます。
+
+- `elements = [ "要素名" ... ];`：生成結果を確かめる要素をすべて挙げます。影響する要素と重なればビルドします。例えば activation は `private_repos` と `secrets` です。シェルや Python を直接検査する場合も、そのファイルを読む要素を指定します。例えば windows-vm は `windows_vm` です。
+- `hosts = [ "ホスト名" ... ];`：評価する実在ホストを挙げます。影響するホストと重なればビルドします。
+- `always = true;`：読む要素のない graphify-smoke や proofread-howtouse などに使います。変更がある場合と `--all` / `--full` で、常にビルドします。
+
+### 評価の範囲
+
+軽量評価では、選択した NixOS ホストの assertions と `system.path` の drvPath、および選択した `homeConfigurations` の activation の drvPath を評価します。`--all` と `--full` は全ホストを選びます。このとき `system.build.toplevel` は評価されません。desktop や spin713 で全画面透過を行う mutter のパッチには `system.replaceDependencies` が使われており、toplevel の評価中にシステムクロージャの参照を生成する IFD（Import-From-Derivation）が発生してパッチ適用済み mutter のビルド待ちが生じるためです。`--full` を指定した場合は、先に全ホストの toplevel を評価してから `nix flake check --no-build --no-update-lock-file` を実行します（未生成の `references.nix.drv` に対して `nix flake check` を実行すると失敗するため）。なお、`--no-build` を指定してもこの評価依存は解消されません。全画面透過の見た目については、switch 後に実機上で目視確認してください。
 
 [CI](../../.github/workflows/check.yml) は Linux runner 上で `--full` を実行します。キャッシュのない新規の CI 環境では、GUI や音楽制作関連を含む膨大なストア依存のダウンロードやビルドが発生するため、十分なディスク容量と実行時間が必要です。リモートでの CI 実行結果は、push 後にご確認ください。
 

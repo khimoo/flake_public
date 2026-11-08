@@ -20,7 +20,7 @@ func main() {
 const usage = `usage:
   confgen build <config-dir> <host> <system> <user> <out.json>
   confgen explain <config-dir> <host> <system> <user> <element>
-  confgen affected <repo-root> <changed-path>...`
+  confgen affected <repo-root> <changed-path>...   (prints {"elements": [...], "hosts": [...]}; elements is ["ALL"] when every check must run)`
 
 func run(args []string) error {
 	if len(args) >= 2 && args[0] == "affected" {
@@ -28,7 +28,15 @@ func run(args []string) error {
 		if err != nil {
 			return err
 		}
-		fmt.Println(strings.Join(names, "\n"))
+		hosts, err := affectedHosts(args[1], names)
+		if err != nil {
+			return err
+		}
+		data, err := json.Marshal(map[string][]string{"elements": nonNil(names), "hosts": nonNil(hosts)})
+		if err != nil {
+			return err
+		}
+		fmt.Println(string(data))
 		return nil
 	}
 	if len(args) != 6 {

@@ -1,6 +1,7 @@
 # confgen（tools/confgen）を build し、config/ の Starlark の要素から1つのホストの JSON を作る。
 # 評価の途中でこの JSON を読む（IFD）。設計: docs/architecture/confgen.md
-{ pkgs }:
+# configDir は既定で config/。テストは架空のホスト（tests/hosts）を足したディレクトリを渡す。
+{ pkgs, configDir ? ../config }:
 let
   inherit (pkgs) lib;
   package = pkgs.buildGoModule {
@@ -16,7 +17,7 @@ in
     host: system: user:
     lib.importJSON (
       pkgs.runCommand "confgen-${host}-${user}.json" { nativeBuildInputs = [ package ]; } ''
-        confgen build ${../config} ${host} ${system} ${user} $out
+        confgen build ${configDir} ${host} ${system} ${user} $out
       ''
     );
 }

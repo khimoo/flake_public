@@ -83,3 +83,32 @@ func elementsUsingPath(elems map[string]*element, p string) []string {
 	}
 	return found
 }
+
+// affectedHosts lists the hosts whose selected elements (after requires and derived elements)
+// include one of names. Only these hosts can evaluate differently.
+func affectedHosts(root string, names []string) ([]string, error) {
+	dir := filepath.Join(root, "config")
+	elems, err := loadElements(filepath.Join(dir, "elements"))
+	if err != nil {
+		return nil, err
+	}
+	files, err := filepath.Glob(filepath.Join(dir, "hosts", "*.toml"))
+	if err != nil {
+		return nil, err
+	}
+	var hosts []string
+	for _, f := range files {
+		purposes, _, err := loadHost(f, elems)
+		if err != nil {
+			return nil, err
+		}
+		selected := generated(elems, purposes)
+		for _, n := range names {
+			if n == allElements || n == hostElement || n == machinesElement || n == userElement || selected[n] {
+				hosts = append(hosts, strings.TrimSuffix(filepath.Base(f), ".toml"))
+				break
+			}
+		}
+	}
+	return hosts, nil
+}

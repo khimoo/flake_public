@@ -211,4 +211,21 @@ func TestAffectedCoversReadersWriteTargetsAndDerivedElementsOnly(t *testing.T) {
 			t.Errorf("affected(%v) = %v, want %v", c.paths, got, c.want)
 		}
 	}
+	for _, c := range []struct {
+		names []string
+		want  []string
+	}{
+		{[]string{"a"}, []string{"h"}},
+		{[]string{"unrelated"}, nil},
+		{[]string{"host"}, []string{"h"}},
+		{[]string{allElements}, []string{"h"}},
+	} {
+		got, err := affectedHosts(root, c.names)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !reflect.DeepEqual(nonNil(got), nonNil(c.want)) {
+			t.Errorf("affectedHosts(%v) = %v, want %v", c.names, got, c.want)
+		}
+	}
 }

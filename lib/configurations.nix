@@ -1,4 +1,4 @@
-{ inputs }:
+{ inputs, configDir ? ../config }:
 let
   inherit (inputs) nixpkgs home-manager;
   inherit (nixpkgs) lib;
@@ -10,8 +10,8 @@ let
     ++ [ inputs.claude-code-nix.overlays.default ]
     ++ [ (import ../overlays/claude-code-node.nix) ];
   hosts = lib.mapAttrs' (
-    file: _: lib.nameValuePair (lib.removeSuffix ".toml" file) (builtins.fromTOML (builtins.readFile (../config/hosts + "/${file}")))
-  ) (lib.filterAttrs (file: type: type == "regular" && lib.hasSuffix ".toml" file) (builtins.readDir ../config/hosts));
+    file: _: lib.nameValuePair (lib.removeSuffix ".toml" file) (builtins.fromTOML (builtins.readFile "${configDir}/hosts/${file}"))
+  ) (lib.filterAttrs (file: type: type == "regular" && lib.hasSuffix ".toml" file) (builtins.readDir "${configDir}/hosts"));
 in
 rec {
   inherit overlays hosts;
@@ -49,7 +49,7 @@ rec {
                   imports = [
                     (import ../modules/home-manager/confgen.nix {
                       host = hostname;
-                      inherit system;
+                      inherit system configDir;
                       user = user.name;
                     })
                   ];
@@ -61,7 +61,7 @@ rec {
         }
         (import ../modules/nixos/confgen.nix {
           host = hostname;
-          inherit system;
+          inherit system configDir;
           user = primaryUser;
         })
       ] ++ modules;
@@ -91,7 +91,7 @@ rec {
         })
         (import ../modules/home-manager/confgen.nix {
           host = name;
-          inherit system;
+          inherit system configDir;
           user = username;
         })
       ] ++ modules;

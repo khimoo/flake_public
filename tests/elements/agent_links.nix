@@ -1,0 +1,32 @@
+{
+  lib,
+  pkgs,
+  system,
+  helpers,
+  ...
+}:
+let
+  inherit (helpers) home users rejectsPurpose;
+in
+{
+  agent_links-contracts =
+    (lib.lazyDerivation {
+      derivation = (
+        assert !(users.bob.home.file ? ".claude/CLAUDE.md");
+        assert !(users.alice.home.file ? ".claude/settings.json");
+        assert !(users.alice.home.file ? ".codex/astra.config.toml");
+        assert rejectsPurpose "test-agent-url" "x86_64-linux" "agent_links: a clone URL requires";
+        assert rejectsPurpose "test-agent-outside" "x86_64-linux"
+          "agent_links: mutable checkouts must belong";
+        pkgs.runCommand "agent_links-contracts" { } ''
+          echo "agent_links contracts passed" > "$out"
+        ''
+      );
+    })
+    // {
+      elements = [
+        "agent_links"
+        "agent_sync"
+      ];
+    };
+}

@@ -43,6 +43,12 @@ confgen は Nix の評価の途中で build して実行し（import from deriva
 
 この build もほかの build と同じく、`nixos-spin713` ではデスクトップに回る。macOS の Home Manager 構成では aarch64-darwin の confgen を build するので、Linux の `check.sh` からは評価できない。Mac を使い始めるまで、そのホストのファイルを置いていない。
 
+## 変更が影響する範囲
+
+`confgen affected <repo-root> <変更ファイル>...` は1行の JSON `{"elements": [...], "hosts": [...]}` を返す。`elements` は変更した要素、その公開値を読む要素、書き込み先、派生条件にその要素を含む要素。`hosts` は、それらを生成する実在ホストの名前。ホスト・ユーザーの情報を変更した場合は、それぞれ `host`・`machines`・`user` への影響として扱う。要素から影響を辿れない変更は `elements = ["ALL"]` とする。
+
+[scripts/check.sh](../../scripts/check.sh) はこの結果と各 check の札を照合して、ホストの評価とテストのビルドを選ぶ。札と実行範囲は [検証ガイド](../howtouse/validation.md#checksh) を参照。
+
 ## 対象外
 
 - 実行時の依存（Lua やシェルが名前で呼ぶコマンド、環境変数）と、実行時に作られる状態（キャッシュ）。
