@@ -1,0 +1,10 @@
+system = "x86_64-linux"
+state_version = "25.11"
+timezone = "Asia/Tokyo"
+hostname = "test-remote-build"
+purposes = ["machine_base", "remote_build"]
+
+
+[[users]]
+name = "alice"
+home_manager = false

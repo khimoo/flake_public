@@ -9,7 +9,7 @@
 ## 普段使う
 
 両ホストが tailnet に参加しており（[tailscale.md](./tailscale.md) 参照）、デスクトップが起動していれば利用できます。
-ラップトップの `pomu` ユーザーには `~/.ssh/id_lan` が必要です（`local.profile.lanSsh = true` を設定して switch すると自動で書き出されます）。
+ラップトップの `pomu` ユーザーには `~/.ssh/id_lan` が必要です（`lan_ssh = true` を設定して switch すると自動で書き出されます）。
 
 ```sh
 nix develop
@@ -49,7 +49,7 @@ journalctl -u nix-daemon --since -10min | grep ssh
 
 - `Could not resolve hostname nixos-desktop`: ラップトップが tailnet に接続されていません。`tailscale status` を確認してください。
 - 接続がタイムアウトする: デスクトップの電源が切れているか、サスペンド状態になっています。
-- `Permission denied (publickey)`: `/home/pomu/.ssh/id_lan` が存在しません。`local.profile.lanSsh = true` を設定して switch してください。
+- `Permission denied (publickey)`: `/home/pomu/.ssh/id_lan` が存在しません。`lan_ssh = true` を設定して switch してください。
 - `Host key verification failed`: デスクトップのホスト鍵が変更されています。`sudo ssh-keygen -R nixos-desktop -f /root/.ssh/known_hosts` で古いエントリを削除すれば、次回接続時に新しい鍵が登録されます。
 
 問題をすぐに解決できない場合は、そのコマンドにだけ手元のジョブ数を指定してローカルでビルドします。
@@ -63,7 +63,7 @@ nix develop --max-jobs 4
 
 cargo は nix-daemon を経由しないため、通常の `cargo run` では上述のリモートビルドが機能しません。
 `cargo remote-run` は `cargo run` と同等の引数を受け取り、デスクトップ上でビルドを行った上で、生成された実行ファイルを手元で実行します。GUI アプリケーションの画面も手元に表示されます。
-direnv で devShell に入ったプロジェクト内で利用します（spin713 の `pomu` では、[home.nix](../../hosts/nixos-spin713/home.nix) の代わりに [ホストの目的と値](../../config/hosts/nixos-spin713.toml) で有効化されています）。
+direnv で devShell に入ったプロジェクト内で利用します（spin713 の `pomu` では、[ホストの目的と値](../../config/hosts/nixos-spin713.toml) で有効化されています）。
 
 ```sh
 cargo remote-run
@@ -94,7 +94,7 @@ ssh desktop-ts rm -rf .cache/cargo-remote-run/nixos-spin713/home/pomu/sagyo/aqua
 
 ## `--build-host` でビルドする
 
-`local.remoteBuilders` を有効にしていないホストでは、`nixos-rebuild` に `--build-host` を指定してビルドします。
+目的 `remote_build` を選んでいないホストでは、`nixos-rebuild` に `--build-host` を指定してビルドします。
 コマンド全体に `sudo` を付けるのではなく、オプションとして `--sudo` を渡してください。
 全体を `sudo` で実行すると SSH 接続が root ユーザーとして試行され、`Permission denied (publickey)` で失敗します。
 
@@ -126,10 +126,10 @@ nixos-rebuild build --flake .#<ホスト> --build-host desktop-ts --use-substitu
 ### 失敗するとき
 
 - `Permission denied (publickey)`: コマンド先頭の `sudo` を外し、`--sudo` で実行してください。`sudo` なしでも失敗する場合は、手元に `~/.ssh/id_lan` が存在するかを確認します。
-- `Host key verification failed`: デスクトップが `hosts/machines.nix` に登録されているか確認してください。手動で受け入れる場合は `ssh-keyscan -H nixos-desktop.local >> ~/.ssh/known_hosts` を実行します。
+- `Host key verification failed`: デスクトップが `config/hosts/<ホスト>.toml` に登録されているか確認してください。手動で受け入れる場合は `ssh-keyscan -H nixos-desktop.local >> ~/.ssh/known_hosts` を実行します。
 - `error: cannot add path '/nix/store/...' because it lacks a signature`: いずれかのホストで `pomu` ユーザーが trusted ユーザーになっていません。両ホストで `nix store info --store daemon` を実行し、`Trusted: 1` になるか確認してください（`pomu` が `wheel` グループに所属していれば `Trusted: 1` になります）。
 - `ping: nixos-desktop.local: System error`: 初回は Avahi のキャッシュが空なだけの場合があるため、数秒待ってから再試行してください。
-- `nixos-desktop.local` が `192.168.122.*` に解決される: デスクトップ側の libvirt 仮想ブリッジでもホスト名がアドバタイズされています。デスクトップ上で `getent hosts nixos-desktop.local` を実行し、LAN 側（`192.168.11.*`）以外が返される場合は、`modules/nixos/ssh.nix` に `services.avahi.denyInterfaces = [ "virbr0" "vnet*" ];` を追加してください。
+- `nixos-desktop.local` が `192.168.122.*` に解決される: デスクトップ側の libvirt 仮想ブリッジでもホスト名がアドバタイズされています。デスクトップ上で `getent hosts nixos-desktop.local` を実行し、LAN 側（`192.168.11.*`）以外が返される場合は、`config/elements/machine_ssh.star` の `nixos` に `"services.avahi.denyInterfaces": ["virbr0", "vnet*"]` を追加してください。
 
 ## 別のマシンから switch する（`--target-host`）
 
@@ -142,7 +142,7 @@ nixos-rebuild switch --flake .#nixos-spin713 --target-host pomu@nixos-spin713.lo
 ```
 
 実行すると最初に spin713 の `pomu` の sudo パスワードを聞かれます。
-spin713 で実行されるアクティベートのコマンドは、NOPASSWD の対象（[users.nix](../../modules/nixos/users.nix) の `nixos-rebuild` だけ）に入らないためです。
+spin713 で実行されるアクティベートのコマンドは、NOPASSWD の対象（[machine_base.star](../../config/elements/machine_base.star) の `nixos-rebuild` だけ）に入らないためです。
 
 `nixos-spin713.local` は Avahi（mDNS）で解決するので、両方のマシンが同じ LAN にいるときだけ使えます。
 
@@ -150,14 +150,14 @@ spin713 で実行されるアクティベートのコマンドは、NOPASSWD の
 
 デスクトップでビルドを行うホストを追加するときは、次の手順で進めます。
 
-1. [machine-ssh.md](./machine-ssh.md) の「マシンを追加するとき」に従い、age 鍵を配置して `hosts/machines.nix` に項目を追加します。
-2. そのホストの `default.nix` に `local.remoteBuilders.enable = true;` を記述します。接続できないときに手元でビルドさせない場合は、併せて `localBuilds = false;` も指定します。
-3. そのホストを tailnet に参加させてから switch します。Tailscale を有効にしていないと、評価時の assertion でエラーになります。
+1. [machine-ssh.md](./machine-ssh.md) の「マシンを追加するとき」に従い、age 鍵を配置して `config/hosts/<ホスト>.toml` を追加します。
+2. そのホストの TOML の `purposes` に `remote_build` を追加します。接続できないときに手元でビルドさせない場合は、同じ TOML に `local_builds = false` を指定します。
+3. switch してから、そのホストを tailnet に参加させます。`remote_build` は `tailscale` を依存として含めます。
 
 2 の設定を省くと、`--build-host` を明示的に指定したときだけデスクトップでビルドするホストになります。
 
-ビルダーを追加するときは、`hosts/machines.nix` の該当マシンに `builder` 設定を記述します。
-`maxJobs` にはそのホストのスレッド数（`nproc`）を、`supportedFeatures` にはそのホストが実際に満たせる feature を書いてください（`kvm` には `/dev/kvm` が要ります）。
-ビルダー自身の `max-jobs` はこの `maxJobs` になり、`system-features` には `supportedFeatures` が足されます。
+ビルダーを追加するときは、`config/hosts/<ホスト>.toml` に `[builder]` 設定を記述します。
+`max_jobs` にはそのホストのスレッド数（`nproc`）を、`supported_features` にはそのホストが実際に満たせる feature を書いてください（`kvm` には `/dev/kvm` が要ります）。
+ビルダー自身の `max-jobs` はこの `max_jobs` になり、`system-features` には `supported_features` が足されます。
 switch 後にビルダーで `nix config show max-jobs` と `nix config show system-features` を実行すると、反映を確かめられます。
-`local.remoteBuilders.enable` が有効なホストは、次回の switch 以降、`builder` を持つ自身以外の全ホストをビルダーとして利用するようになります。
+目的 `remote_build` を選んだホストは、次回の switch 以降、`builder` を持つ自身以外の全ホストをビルダーとして利用するようになります。

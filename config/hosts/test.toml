@@ -1,2 +1,7 @@
+system = "x86_64-linux"
+state_version = "25.11"
 # tests/default.nix の架空のユーザーが使う。
 purposes = ["dev_tools", "shell", "git"]
+
+[[users]]
+name = "test"

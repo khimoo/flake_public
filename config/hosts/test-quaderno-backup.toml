@@ -1,2 +1,7 @@
+system = "x86_64-linux"
+state_version = "25.11"
 purposes = ["quaderno"]
 quaderno_archive = "/mnt/backup/quaderno"
+
+[[users]]
+name = "test"

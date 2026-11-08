@@ -19,9 +19,18 @@ func main() {
 
 const usage = `usage:
   confgen build <config-dir> <host> <system> <user> <out.json>
-  confgen explain <config-dir> <host> <system> <user> <element>`
+  confgen explain <config-dir> <host> <system> <user> <element>
+  confgen affected <repo-root> <changed-path>...`
 
 func run(args []string) error {
+	if len(args) >= 2 && args[0] == "affected" {
+		names, err := affected(args[1], args[2:])
+		if err != nil {
+			return err
+		}
+		fmt.Println(strings.Join(names, "\n"))
+		return nil
+	}
 	if len(args) != 6 {
 		return fmt.Errorf("%s", usage)
 	}

@@ -1,113 +1,59 @@
 # ユーザー管理
 
-NixOS ホストにおけるユーザーの追加と設定方法について解説します。
-
-設計ドキュメント: [ユーザー管理の設計](../architecture/users.md)
+設計: [ユーザー管理](../architecture/users.md)
 
 ## ユーザーの追加
 
-`hosts/machines.nix` の `machines.<ホスト>.nixos.users` リストに設定を追加します。
+`config/hosts/<ホスト>.toml` の `[[users]]` に追加します。Home Manager を使うユーザーには、そのホストの `purposes` が適用されます。個人の値は `config/users/<ユーザー>.toml` に置きます。
 
-### 基本的なユーザー（管理者権限 + Home Manager 管理）
-
-```nix
-{
-  username = "pomu";
-  isAdmin = true;
-  homeFile = ./nixos-desktop/home-manager-pomu.nix;
-  # 各ユーザーは専用の homeFile を指定してください。pomu 用の設定を共用してはいけません。
-}
+```toml
+[[users]]
+name = "alice"
+admin = true
 ```
 
-### OS アカウントのみのユーザー（Home Manager 管理なし）
+OS アカウントだけを作る場合は `home_manager = false` にします。
 
-```nix
-{
-  username = "mase";
-  isAdmin = false;
-  manageHome = false;
-  initialHashedPassword = "$6$...";
-}
+```toml
+[[users]]
+name = "guest"
+home_manager = false
+initial_hashed_password = "$6$..."
 ```
 
-`manageHome = false` を指定すると Home Manager の管理対象外となります。
-Nix で環境を管理せず、シェルやホーム環境を手動でカスタマイズしたいユーザー向けの設定です。
+| キー | 既定値 | 用途 |
+|---|---|---|
+| `name` | 必須 | ユーザー名 |
+| `admin` | `false` | wheel と nixos-rebuild の NOPASSWD |
+| `home_manager` | `true` | Home Manager の管理対象にする |
+| `description` | ユーザー名 | 表示名 |
+| `shell` | `"bash"` | nixpkgs 内のシェルのパッケージ名 |
+| `extra_groups` | `[]` | 追加グループ |
+| `initial_hashed_password` | 未指定 | 初回ログイン用のハッシュ |
+| `hashed_password` | 未指定 | rebuild ごとに設定するハッシュ |
 
-## 属性一覧
+ハッシュは `mkpasswd -m sha-512` で作ります。初回用のパスワードはログイン後に `passwd` で変更できます。
 
-| 属性名 | 型 | デフォルト値 | 説明 |
-|------|-----|-----------|------|
-| `username` | string | (必須) | ユーザー名 |
-| `isAdmin` | bool | `false` | `true` で sudo 権限を付与 |
-| `manageHome` | bool | `true` | `false` で Home Manager による管理をスキップ |
-| `homeFile` | path または null | `null` | ユーザー固有の Home Manager モジュールパス |
-| `homeModules` | list | `[]` | 該当ユーザーにのみ追加するモジュールのリスト |
-| `description` | string | `username` | ユーザーの表示名・説明 |
-| `shell` | package | `pkgs.bash` | デフォルトのログインシェル |
-| `initialPassword` | string | `null` | 初期パスワード（平文） |
-| `initialHashedPassword` | string | `null` | 初期パスワード（ハッシュ済み文字列） |
-| `hashedPassword` | string | `null` | 固定パスワード（ハッシュ済み文字列） |
-| `extraGroups` | list | `[]` | 所属させる追加グループ |
+## 個人の値と機能の選択
 
-## ユーザープロファイル
+Git identity、checkout の場所、LAN 鍵の配布は、そのユーザーの TOML に書きます。別のユーザーのファイルは引き継ぎません。
 
-新規追加されたユーザーのホーム環境は最小限の CLI 構成から始まり、既存ユーザーの Git identity、プライベートリポジトリ、SSH 鍵などを自動で引き継ぐことはありません。
-個人設定は `homeFile` 内で個別に指定します:
-
-```nix
-{ config, ... }: {
-  local.profile = {
-    gitUsername = "Alice";
-    gitUserEmail = "alice@example.org";
-    flakeRoot = "${config.home.homeDirectory}/sagyo/flake_public";
-    features = { gui = true; gnome = true; ime = true; };
-    # 共有 LAN 鍵の配布が必要なユーザーのみ、明示的に true を指定します。
-    lanSsh = false;
-  };
-}
+```toml
+git_username = "Alice"
+git_email = "alice@example.org"
+flake_root = "sagyo/flake_public"
+lan_ssh = false
 ```
 
-全オプションの型定義およびデフォルト値は [profile.nix](../../modules/home-manager/profile.nix) が正本となります。
-2 台のマシンで共有される pomu の個人設定は [pomu-workstation.nix](../../profiles/home/pomu-workstation.nix)、スタンドアロン環境用の identity は [pomu.nix](../../profiles/home/pomu.nix) に定義されています。
-`mkHome` を利用する場合も、同様に `homeFile` や `modules` を通じて設定します。
+パスはホームからの相対パスです。`lan_ssh = true` は、ホストが `personal_files` を選んでいる場合に共有鍵を配布します。共有鍵を持つ人は他のマシンにもログインできるので、配布するユーザーを選んでください。
 
-### パスワードの設定方針
+GUI と音楽アプリはホストの `purposes` に `gui`、`gnome`、`japanese_input`、`music_production` などを指定します。`gnome` と `japanese_input` は `gui` を自動で含めます。詳細は [confgen](confgen.md) と [GUI アプリ](gui-apps.md) を参照してください。
 
-- `initialPassword` / `initialHashedPassword`: 初回ログイン用の一時パスワードです。ユーザー自身がログイン後に `passwd` コマンドで変更できます。
-- `hashedPassword`: rebuild を実行するたびに強制的に上書きされる固定パスワードです。
+音楽制作は最初のユーザーに audio グループを付与します。VM の利用者は `windows_vm_users` で指定します（[Windows VM](windows-vm.md)）。
 
-パスワードハッシュの生成コマンド:
+## 管理者の権限と反映
 
-```sh
-mkpasswd -m sha-512
-```
-
-## 管理者（admin）ユーザーの権限
-
-`isAdmin = true` を設定すると、以下の特権が付与されます:
-
-- `wheel` グループに追加され、`sudo` コマンドが利用可能になる
-- `sudo nixos-rebuild` をパスワードなしで実行可能になる（`nix flake update && sudo nixos-rebuild switch --flake .#hostname` などの一連の更新作業をスムーズに行えます）
-
-※ `nixos-rebuild` 以外のコマンドで sudo を実行する際は、通常どおりパスワードが要求されます。
-
-## Home Manager 設定ファイルの配置規則
-
-`homeFile` に指定するファイルには、そのユーザー固有の Home Manager 設定を記述します。
-共通モジュール（`modules/home-manager/` 配下）は、全ユーザーへ自動的に読み込まれます。
-
-```
-modules/home-manager/   ← 全ユーザー共通（lib/configurations.nix の homeModules が起点）
-hosts/<hostname>/home-manager-<username>.nix  ← ユーザー固有設定（homeFile で指定）
-```
-
-GUI と音楽アプリは `config/hosts/<ホスト>.toml` の `purposes` で選びます。音楽制作には `music_production` を指定します。詳細は [GUI アプリの管理](gui-apps.md) を参照してください。
-
-## 音楽制作環境・VM を利用するユーザーの設定
-
-音楽制作は `music_production` を選んだホストの primaryUser に audio グループを付与し、Home Manager に音楽アプリを設定します。VM はホストの `purposes` の `windows_vm` で有効化し、`windows_vm_users` に指定したユーザーに libvirtd グループを付与します。そのうち Home Manager を利用するユーザーには Windows VM のランチャーも設定します。詳細は [Windows VM](windows-vm.md) を参照してください。
-
-## 反映
+`admin = true` は wheel グループと、`/run/current-system/sw/bin/nixos-rebuild` だけを対象とした NOPASSWD ルールを設定します。管理者として信頼するユーザーだけに付与してください。
 
 ```sh
 sudo nixos-rebuild switch --flake .#hostname

@@ -1,14 +1,14 @@
 # 会社 PC の NixOS-WSL の設計
 
 使い方: [会社 PC の NixOS-WSL](../howtouse/wsl.md)
-実装: [hosts/nixos-work-wsl/](../../hosts/nixos-work-wsl/default.nix)、[restricted-host.nix](../../modules/nixos/restricted-host.nix)、[base.nix](../../modules/nixos/base.nix)
+実装: [machine_nixos_work_wsl.star](../../config/elements/machine_nixos_work_wsl.star)、[nixos-work-wsl.toml](../../config/hosts/nixos-work-wsl.toml)、[machine_base.star](../../config/elements/machine_base.star)
 
 会社の Windows PC の NixOS-WSL を、`sudo nixos-rebuild switch --flake .#nixos-work-wsl` 一回で Home Manager まで揃うホストにする。
 このホストは会社 PC の中で完結させ、個人の秘密と自宅のマシンへの接続経路を持たせない。
 
 ## 自宅への接続経路と秘密を持たせない
 
-`ssh.nix`、`tailscale.nix`、`remote-builders.nix` を入れず、`lanSsh` も有効にしない。会社 PC から `ssh desktop-ts` のように自宅のマシンへつながる経路を作らない。
+`machine_ssh`、`tailscale`、`remote_build` を選ばず、`lan_ssh` も有効にしない。会社 PC から `ssh desktop-ts` のように自宅のマシンへつながる経路を作らない。
 自宅のデスクトップでビルドできないので、ビルドは WSL の中で完結させる。
 
 age 鍵は置かない。この flake の age 鍵は 1 本で、同じ鍵から GitHub の `git_ssh_key` と自宅へログインする `lan_ssh_key` も復号できる（[.sops.yaml](../../.sops.yaml)）。そのため Gemini の API キーもない。
@@ -19,16 +19,15 @@ Git は Home Manager の `~/.config/git/config` と `~/.gitconfig` の両方を�
 
 `khimoo` の push 権限を持つ認証情報も置かない。WSL の仮想ディスクは Windows のファイルで、会社の管理ツールや管理者から読める。flake_public は HTTPS で clone して pull だけをし、変更はすべて自宅で行う。
 
-## 制限をオプションと assertion で表す
+## 制限を設定生成時に確かめる
 
-制限は `local.restrictedHost.enable` で表し、`nixos-work-wsl` だけが有効にする。有効にすると、次のどれかを含む構成は理由を示す assertion で評価が止まる。
+ホストの TOML に `restricted = true` を指定する。制限を破る側の要素が `restricted host:` で始まる理由を示して confgen の build を止める。
 
-- 外からの SSH（`services.openssh`）、tailnet（`services.tailscale`）、リモートビルド（`nix.buildMachines`、`nix.distributedBuilds`）
-- Home Manager のユーザーの秘密の復号（`local.profile.secrets`、`sshKeys`）、`lanSsh`、private repo の clone（`privateRepos`）
-- Home Manager のユーザーの Git の identity（`gitUsername`、`gitUserEmail`）
+- `machine_ssh`、`tailscale`、`remote_build` は選ばれると拒否する。
+- `secrets` は復号する秘密があるとき、`private_repos` は clone する repo があるときに拒否する。
+- `personal_files` は LAN 鍵を配る場合、`git` はユーザーの TOML に identity がある場合に拒否する。
 
-`ssh.nix` などを import しないだけでは、制限していることが設定から読み取れず、後からうっかり足しても評価が通る。
-`tests/default.nix` は、実際の `nixos-work-wsl` がこのオプションを有効にしていることと、制限を破る架空のホストで assertion が止まることを確かめる。
+[tests/default.nix](../../tests/default.nix) は、実際の WSL の生成結果と、制限を破る架空のホストの build が指定の理由で失敗することを確かめる。制限は要素が出す設定を対象とするため、別の Nix モジュールに直接書いた設定の検査は含まない。
 
 ホスト名は既存の `nixos-desktop`、`nixos-spin713` に合わせて `nixos-` で始め、`work` で会社の機械であることを示す。`pomu-wsl` や `nixos-wsl` では個人の WSL と区別がつかない。
 
@@ -45,7 +44,7 @@ Git は Home Manager の `~/.config/git/config` と `~/.gitconfig` の両方を�
 以前は agents-private を読み取り専用の deploy key で入れていた（4c54a17 と 1d685c5）。戻すときは次の判断を引き継ぐ。
 
 - deploy key は GitHub に repo ごとに登録する鍵で、`khimoo` の権限と切り離せる。代わりに agents-private の中身（指示、設定、`decisions/` の履歴）は会社から読める
-- `config/users/nixos.toml` に `agent_config_root` だけを指定し、`agent_config_repo` は省略して手で clone する。ホストでは既に `ai_agents` を選んでいる。`agent_config_repo` を指定すると `profile.nix` が `sshKeys` に `id_github` を足し、age 鍵のないこのホストでは activation が止まる
+- `config/users/nixos.toml` に `agent_config_root` だけを指定し、`agent_config_repo` は省略して手で clone する。ホストでは既に `ai_agents` を選んでいる。`agent_config_repo` を指定すると `private_repos` が clone を要求し、このホストでは `restricted host:` で生成が止まる
 - deploy key は `github.com` ではなく、別名のホスト `github-agents-private`（`HostName github.com`、`IdentitiesOnly yes`）に結び付け、clone の URL を `git@github-agents-private:khimoo/agents-private.git` にする。GitHub は最初に認証が通った鍵でアカウントを決めるので、`github.com` 全体に deploy key を使うと、会社のリポジトリへの接続まで deploy key で認証されて失敗する
 - この別名は `/etc/ssh/ssh_config`（NixOS の `programs.ssh.extraConfig`）に書く。Home Manager の `programs.ssh` を使うと `~/.ssh/config` が読み取り専用になり、会社の設定を書けなくなる
 - 会社の鍵を `~/.ssh/config` の `Host *` に書くと分離が崩れる。OpenSSH は `~/.ssh/config` を先に読み、一致したブロックの `IdentityFile` をすべて候補に足すので（OpenSSH 10.3p1 の `ssh_config(5)`）、`github-agents-private` への接続でも会社の鍵が先に試される。会社の鍵は `Host github.com` に限って書く。ブロックの一致は `HostName` で置き換える前の名前で判断されるので、`github-agents-private` は `Host github.com` に一致しない。これはリポジトリから強制できないので、戻すときは `ssh -G github-agents-private` で使われる鍵を確かめる手順を使い方の文書に書く
@@ -55,30 +54,23 @@ Git は Home Manager の `~/.config/git/config` と `~/.gitconfig` の両方を�
 Home Manager のモジュールは、パスを `home.homeDirectory` から組み立てる。`/home/pomu` を直接書いているのは desktop と spin713 のホスト設定だけ。
 ユーザー名を `pomu` に変えても、ほかのマシンと絶対パスが揃うだけで、作った後の NixOS-WSL でユーザー名を変えるには `nixos-rebuild boot` と WSL の再起動が要る。
 
-## 共通の設定を `base.nix` に分ける
+## 共通の設定を `machine_base` に分ける
 
-`base.nix` には、どのホストにも要る最小限（locale、users、GUI を除く nix-settings、codex、agent-instructions、`networking.hostName`、`system.stateVersion`）を置く。
-`common.nix` は `base.nix` を import したうえで、boot、NetworkManager、GNOME、printing、ssh、tailscale、remote-builders、Bluetooth など、WSL では要らないか WSL 自身の仕組みとぶつかるものを持つ。
-WSL のホスト設定は、NixOS-WSL のモジュールと `base.nix` だけを import する。
+locale、ユーザー、Nix の設定などは `machine_base` にまとめる。`machine_nixos_work_wsl` はこの要素だけを依存に含め、NixOS-WSL のモジュールを import する。物理マシン用のブート、NetworkManager、マシン間 SSH は含めない。ホストの種類による分岐を共通処理に散らさず、ホストが要る要素を選ぶ。
 
-退けた案と理由:
-
-- 各モジュールを WSL から個別に import する: `common.nix` に基礎的な設定が足されたとき、WSL だけ取り残される
-- `common.nix` の中で `local.wsl.enable` のようなフラグで分岐する: WSL 固有の分岐が多くのモジュールに散り、ホストの種類が増えるたびに分岐が増える
-
-`users.nix` は WSL にない `networkmanager` や `libvirtd` のグループをユーザーに付けるが、変えていない。NixOS はグループの側からメンバーを数えるので（`elem config.name u.extraGroups`、nixos-25.11 の `users-groups.nix`）、定義されていないグループは無視される。
+`machine_base` は WSL にも networkmanager グループを指定する。NixOS はグループの側からメンバーを数えるので（`elem config.name u.extraGroups`、nixos-25.11 の `users-groups.nix`）、定義されていないグループは無視される。
 
 NixOS-WSL は既定で `wheel` のユーザーにパスワードなしの `sudo` を許す（release-26.05 の b98199a、`modules/wsl-distro.nix` の `security.sudo.wheelNeedsPassword = mkDefault false`）。変えない。Windows から `wsl -u root` でパスワードなしに root になれるので、WSL の中だけパスワードを求めても意味がない。
 
 ## Home Manager の個人設定を読まない
 
-`nixos` ユーザーは `pomu.nix` を import せず、`config/users/pomu.toml` の値も受け取らない。`khimoo` の Git の identity、Gemini の秘密、`antigravity-cli`、agents-private の設定は入らない。
-home は [hosts/nixos-work-wsl/home.nix](../../hosts/nixos-work-wsl/home.nix) で、機能は `gui` だけを有効にする。
-`flakeRoot` は既定の `~/sagyo/flake_public` のまま。Neovim の設定がこのパスへの symlink なので、WSL でも同じ場所に clone する。
+`nixos` ユーザーは `config/users/pomu.toml` の値を受け取らない。`khimoo` の Git の identity、Gemini の秘密、`antigravity-cli`、agents-private の設定は入らない。
+ホームの目的も [ホストの TOML](../../config/hosts/nixos-work-wsl.toml) で選ぶ。GUI は `gui` だけを選び、GNOME や fcitx5 は入れない。
+`flake_root` は既定の `~/sagyo/flake_public` のまま。Neovim の設定がこのパスへの symlink なので、WSL でも同じ場所に clone する。
 
 ## GUI アプリを WSLg で表示する
 
-会社 PC でも自宅と同じ kitty のキー体系と、Neovim との smart-splits の連携で作業するため、`features.gui` を有効にする。
+会社 PC でも自宅と同じ kitty のキー体系と、Neovim との smart-splits の連携で作業するため、目的 `gui` を選ぶ。
 kitty は Windows 向けの配布物がないので WSL の中で動かし、WSLg で表示する。`wsl.startMenuLaunchers` で `.desktop` ファイルを Windows のスタートメニューに並べる。
 
 2026-10-14 に会社 PC で確かめたこと:
@@ -93,7 +85,7 @@ WSL に fcitx5-skk を入れる案は退けた。WSLg の Wayland では IME の
 kitty と端末のフォントだけを入れる機能を新しく作る案も退け、既存の `gui` を使った。
 代償として OBS、Chrome、IntelliJ、LibreOffice、Zoom なども入り、ダウンロードと WSL のディスクが数 GB 単位で増える。どれも binary cache から取るので、会社 PC でのビルドは起きない。
 Slack などの自動起動は `graphical-session.target` に結び付いていて、WSL ではこの target に到達しないので起動しない。
-kitty の remote control はローカルのソケット（`unix:${XDG_RUNTIME_DIR}/kitty.sock`）だけを使うので、`local.restrictedHost` の制限は変えない。
+kitty の remote control はローカルのソケット（`unix:${XDG_RUNTIME_DIR}/kitty.sock`）だけを使うので、`restricted = true` の制限は変えない。
 描画は mesa のソフトウェア描画のままにし、遅いと感じたら `wsl.useWindowsDriver` で Windows の GPU ドライバーを使う。
 
 ## uv が取得する Python を nix-ld で動かす

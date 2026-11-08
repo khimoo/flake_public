@@ -1,0 +1,3 @@
+purposes = ["ai_agents", "personal_files"]
+[[users]]
+name = "test-ssh-collision"

@@ -1,5 +1,15 @@
-purposes = ["xsaved"]
+system = "x86_64-linux"
+state_version = "25.11"
+timezone = "Asia/Tokyo"
+hostname = "test-xsaved"
+purposes = ["machine_base", "xsaved"]
 
+
+[[users]]
+name = "alice"
+
+[[users]]
+name = "bob"
 [xsaved_users.alice]
 data_dir = "/home/alice/.local/share/xsaved"
 project_dir = "/home/alice/xsaved"

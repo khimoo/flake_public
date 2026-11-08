@@ -7,29 +7,7 @@ let
   ];
   fixture = configurations.mkSystem {
     hostname = "test-agents-users";
-    system = "x86_64-linux";
-    timezone = "Asia/Tokyo";
-    stateVersion = "25.11";
-    hostModule = ../examples/new-host.nix;
-    users = [
-      {
-        username = "alice";
-        homeModules = [
-          {
-            local.profile = {
-              gitUsername = "Alice";
-              gitUserEmail = "alice@example.org";
-              lanSsh = true;
-            };
-          }
-        ];
-      }
-      { username = "bob"; }
-      {
-        username = "unmanaged";
-        manageHome = false;
-      }
-    ];
+    modules = [ ../examples/new-host.nix ];
   };
   users = fixture.config.home-manager.users;
   # 会社 PC の制限は、架空のホストではなく実際の nixos-work-wsl で確かめる（docs/architecture/wsl.md）。
@@ -47,98 +25,57 @@ let
   desktopXsavedEnv = builtins.elemAt (builtins.head (generatedPackages desktopGenerated.elements.xsaved))."$repoPkgWith" 1;
   desktopXsavedBackupEnv = builtins.elemAt (builtins.elemAt (generatedPackages desktopGenerated.elements.xsaved) 3)."$shellAppEnv" 2;
   desktopVmEnv = builtins.elemAt (builtins.head (generatedPackages desktopGenerated.elements.windows_vm_gui))."$shellAppEnv" 2;
-  nixosHost =
-    hostname: module:
-    (configurations.mkSystem {
-      inherit hostname;
-      system = "x86_64-linux";
-      timezone = "Asia/Tokyo";
-      stateVersion = "25.11";
-      hostModule.imports = [
-        ../examples/new-host.nix
-        module
-      ];
-      users = [
-        {
-          username = "alice";
-          manageHome = false;
-        }
-      ];
-    }).config;
-  remoteBuildHost =
-    hostname:
-    nixosHost hostname {
-      imports = [
-        ../modules/nixos/ssh.nix
-        ../modules/nixos/tailscale.nix
-        ../modules/nixos/remote-builders.nix
-      ];
-      local.remoteBuilders.enable = true;
-    };
-  laptop = remoteBuildHost "nixos-spin713";
-  agentHost = hostname: nixosHost hostname { };
-  # 会社 PC 向けの制限（modules/nixos/restricted-host.nix）を立てた架空のホスト。
-  restrictedHost =
-    hostModule: homeModules:
-    (configurations.mkSystem {
-      hostname = "example";
-      system = "x86_64-linux";
-      timezone = "Asia/Tokyo";
-      stateVersion = "25.11";
-      hostModule.imports = [
-        ../examples/new-host.nix
-        ../modules/nixos/restricted-host.nix
-        hostModule
-      ];
-      users = [
-        {
-          username = "alice";
-          inherit homeModules;
-        }
-      ];
-    }).config;
-  # 制限を破った構成では、落ちる assertion がすべて restrictedHost のものでなければならない。
-  # ほかの assertion が落ちただけでも「止まった」とみなすと、制限が壊れても気づけない。
-  stoppedByRestriction =
-    config:
-    let
-      failed = map (a: a.message) (builtins.filter (a: !a.assertion) config.assertions);
-    in
-    failed != [ ] && builtins.all (lib.hasPrefix "local.restrictedHost:") failed;
-  # 二人のユーザーが xsaved を使う架空のホスト。どちらにもデータ用のマウントはない。
-  xsavedHost =
-    (configurations.mkSystem {
-      hostname = "test-xsaved";
-      system = "x86_64-linux";
-      timezone = "Asia/Tokyo";
-      stateVersion = "25.11";
-      hostModule = ../examples/new-host.nix;
-      users = map (username: {
-        inherit username;
-      }) [ "alice" "bob" ];
-    }).config;
+  nixosHost = hostname: (configurations.mkSystem {
+    inherit hostname;
+    modules = [ ../examples/new-host.nix ];
+  }).config;
+  laptop = nixosHost "test-remote-build";
+  agentHost = nixosHost;
+  xsavedHost = nixosHost "test-xsaved";
   codexConfig = host: builtins.fromTOML host.environment.etc."codex/config.toml".text;
   systemAssertionsHold = config: builtins.all (a: a.assertion) config.assertions;
-  mkTestHome =
-    system: modules:
-    configurations.mkHome {
-      # confgen は評価中に build するので、macOS の構成は Linux の検査では confgen なしで評価する。
-      name = if lib.hasSuffix "-darwin" system then "test-darwin" else "test";
-      username = "test";
-      inherit system modules;
-      stateVersion = "25.11";
-    };
+  hostForSystem = system: name:
+    if lib.hasSuffix "-darwin" system && builtins.pathExists (../config/hosts + "/${name}-darwin.toml")
+    then "${name}-darwin" else name;
+  mkTestHome = system: modules:
+    if lib.hasSuffix "-darwin" system then
+      inputs.home-manager.lib.homeManagerConfiguration {
+        pkgs = import inputs.nixpkgs { inherit system; inherit (configurations) overlays; };
+        extraSpecialArgs = { inherit inputs; };
+        modules = [
+          {
+            home.username = "test";
+            home.homeDirectory = "/Users/test";
+            home.stateVersion = configurations.hosts.test-darwin.state_version;
+            nixpkgs.config.allowUnfree = true;
+          }
+          ({ config, lib, pkgs, ... }: import ../lib/confgen-bridge.nix {
+            inherit lib pkgs inputs;
+            class = "home";
+            # Linux の検査では生成器だけ Linux で動かし、Darwin のパッケージは評価にとどめる。
+            result = (import ../lib/confgen.nix { pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux; }).read "test-darwin" system "test";
+            special = resolve: {
+              "$outOfStoreLink" = v: config.lib.file.mkOutOfStoreSymlink (builtins.head v);
+              "$activation" = v: lib.hm.dag.entryAfter (builtins.elemAt v 0) (resolve (builtins.elemAt v 1));
+              "$gvariantTuple" = v: lib.hm.gvariant.mkTuple (builtins.head v);
+            };
+          })
+        ] ++ modules;
+      }
+    else configurations.mkHome { name = "test"; inherit modules; };
   purposeHome = system: name: configurations.mkHome {
-    inherit name system;
-    username = "test";
-    stateVersion = "25.11";
+    name = hostForSystem system name;
   };
   rejectsPurpose = name: system: message:
+    let
+      selected = hostForSystem system name;
+      username = (builtins.head (configurations.hosts.${selected}.users or [ { name = "test"; } ])).name;
+    in
     builtins.readFile (inputs.nixpkgs.legacyPackages.x86_64-linux.runCommand
       "reject-${name}-${system}"
       { nativeBuildInputs = [ (import ../lib/confgen.nix { pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux; }).package ]; }
       ''
-        if confgen build ${../config} ${lib.escapeShellArg name} ${lib.escapeShellArg system} test result.json > log 2>&1; then
+        if confgen build ${../config} ${lib.escapeShellArg selected} ${lib.escapeShellArg system} ${lib.escapeShellArg username} result.json > log 2>&1; then
           cat log
           exit 1
         fi
@@ -151,7 +88,7 @@ let
   neovimFeatures =
     system:
     let
-      result = (import ../lib/confgen.nix { pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux; }).read "pomu-nixos" system "pomu";
+      result = (import ../lib/confgen.nix { pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux; }).read "test-neovim-features" system "pomu";
       featuresLua = lib.findFirst (s: s.path == [ "xdg" "dataFile" "nvim/nix/features.lua" "text" ]) null result.elements.neovim.home;
     in
     (lib.elemAt featuresLua.value."$concat" 1)."$lua".features;
@@ -171,9 +108,6 @@ lib.genAttrs systems (
     home = mkTestHome system [ ];
     activationHome = configurations.mkHome {
       name = "test-agents";
-      username = "test";
-      system = "x86_64-linux";
-      stateVersion = "25.11";
     };
     agentSyncSpec =
       let
@@ -220,48 +154,26 @@ lib.genAttrs systems (
           (lib.findFirst (p: (p.name or "") == name) (throw "${name} is not installed")
             activationHome.config.home.packages
           ).text;
-    rejects =
-      module:
-      let
-        result = builtins.tryEval (allAssertions (mkTestHome system [ module ]));
-      in
-      !result.success || !result.value;
-    # Force the typed option directly: an invalid option value must fail evaluation.
-    badType =
-      builtins.tryEval
-        (mkTestHome system [ { local.profile.features.gui = "yes"; } ]).config.local.profile.features.gui;
-    unknownFeature =
-      builtins.tryEval
-        (mkTestHome system [ { local.profile.features.typo = true; } ]).config.local.profile.features.gui;
-    # 架空のホストと Home Manager の構成で確かめる、ホストに依らない契約。
     contracts =
       assert allAssertions home;
       assert activationDepsExist activationHome.config.home.activation;
-      assert systemAssertionsHold (restrictedHost { local.restrictedHost.enable = true; } [ ]);
-      assert stoppedByRestriction (restrictedHost {
-        local.restrictedHost.enable = true;
-        services.openssh.enable = true;
-      } [ ]);
-      assert stoppedByRestriction (restrictedHost { local.restrictedHost.enable = true; } [
-        { local.profile.lanSsh = true; }
-      ]);
-      # local.profile を通さず Home Manager の git の設定に直接書いた identity も止める。
-      assert stoppedByRestriction (restrictedHost { local.restrictedHost.enable = true; } [
-        { programs.git.settings.user.email = "someone@example.com"; }
-      ]);
-      assert users.alice.local.profile.gitUsername == "Alice";
-      assert users.bob.local.profile.gitUsername == null;
-      assert users.bob.local.profile.gitUserEmail == null;
-      assert users.bob.local.profile.privateRepos == [ ];
-      assert users.bob.local.profile.sshKeys == [ ];
-      assert users.bob.local.profile.agentConfigRoot == null;
-      assert users.bob.local.profile.flakeRoot == "/home/bob/sagyo/flake_public";
+      assert systemAssertionsHold (nixosHost "test-restricted-ok");
+      assert builtins.all (name: rejectsPurpose "test-restricted-${name}" "x86_64-linux" "restricted host:") [
+        "machine-ssh" "tailscale" "remote-build" "lan" "git" "clone" "secrets"
+      ];
+      assert users.alice.programs.git.settings.user.name == "Alice";
+      assert !(users.bob.programs.git.settings ? user);
+      assert !(lib.hasInfix "id_lan" users.bob.home.activation.secrets.data);
+      assert !(lib.hasInfix "id_github" users.bob.home.activation.secrets.data);
+      assert !(users.bob.home.file ? ".claude/CLAUDE.md");
+      assert lib.hasInfix "/home/bob/sagyo/flake_public"
+        (lib.findFirst (p: (p.name or "") == "pull-repos") (throw "pull-repos is not installed") users.bob.home.packages).text;
       assert !(hasLauncher users.bob "clone-repos");
       assert hasLauncher users.alice "clone-repos";
       assert !(users.alice.home.file ? ".claude/settings.json");
       assert !(users ? unmanaged);
-      assert builtins.length users.alice.local.profile.sshKeys == 2;
-      assert users.bob.local.profile.secrets == [ ];
+      assert lib.hasInfix "/home/alice/.ssh/id_github" users.alice.home.activation.secrets.data;
+      assert lib.hasInfix "/home/alice/.ssh/id_lan" users.alice.home.activation.secrets.data;
       assert users.bob.home.activation ? secrets;
       assert !(lib.hasInfix "SOPS_AGE_KEY_FILE" users.bob.home.activation.secrets.data);
       assert !(lib.hasInfix "age_key=" users.bob.home.activation.secrets.data);
@@ -270,26 +182,10 @@ lib.genAttrs systems (
       assert lib.any (lib.hasSuffix "-secrets.yaml") (
         lib.attrNames (builtins.getContext users.alice.home.activation.secrets.data)
       );
-      assert rejects {
-        local.profile.secrets = [
-          {
-            secret = "a";
-            path = "/home/test/.config/x";
-          }
-          {
-            secret = "b";
-            path = "/home/test/.config/x";
-          }
-        ];
-      };
-      assert rejects {
-        local.profile.secrets = [
-          {
-            secret = "a";
-            path = "/home/another-user/x";
-          }
-        ];
-      };
+      assert rejectsPurpose "test-duplicate-secret" "x86_64-linux" "personal_files: duplicate secret destination";
+      assert rejectsPurpose "test-outside-secret" "x86_64-linux" "personal_files: destinations must live below";
+      assert rejectsPurpose "test-ssh-duplicate" "x86_64-linux" "personal_files: duplicate SSH key filename";
+      assert rejectsPurpose "test-ssh-collision" "x86_64-linux" "secrets: duplicate SSH key filename";
       assert !(home.config.home.activation ? rustowl);
       assert !(builtins.any (p: (p.pname or "") == "rustowl") home.config.home.packages);
       assert builtins.elem "rustowl" (neovimFeatures system) == (system == "x86_64-linux");
@@ -307,21 +203,15 @@ lib.genAttrs systems (
       assert !(hasLauncher users.bob "agent-sync");
       assert !(users.bob.home.activation ? agentSync);
       assert !(users.alice.home.file ? ".codex/astra.config.toml");
-      assert rejects { local.profile.agentConfigRepo = "git@example.org:test/config.git"; };
-      assert rejects { local.profile.agentConfigRoot = "/home/another-user/config"; };
-      assert rejects { local.profile.features.gnome = true; };
-      assert rejects {
-        local.profile.privateRepos = [
-          {
-            url = "one";
-            dest = "/home/test/repo";
-          }
-          {
-            url = "two";
-            dest = "/home/test/repo";
-          }
-        ];
-      };
+      assert rejectsPurpose "test-agent-url" "x86_64-linux" "agent_links: a clone URL requires";
+      assert rejectsPurpose "test-agent-outside" "x86_64-linux" "agent_links: mutable checkouts must belong";
+      assert system != "x86_64-linux" || builtins.any (p: (p.pname or "") == "kitty") (purposeHome system "test-gnome").config.home.packages;
+      assert system != "x86_64-linux" || builtins.any (p: (p.pname or "") == "kitty") (purposeHome system "test-ime").config.home.packages;
+      assert system == "x86_64-linux" || rejectsPurpose "test-gnome" system "gui: supports Linux only";
+      assert system == "x86_64-linux" || rejectsPurpose "test-audio" system "music_production: supports Linux only";
+      assert system == "x86_64-linux" || rejectsPurpose "test-call-audio" system "call_audio: supports Linux only";
+      assert rejectsPurpose "test-duplicate-clone" "x86_64-linux" "private_repos: duplicate clone destination";
+      assert rejectsPurpose "test-outside-clone" "x86_64-linux" "personal_files: destinations must live below";
       assert !(home.config.systemd.user.timers ? quaderno-pull);
       assert system != "x86_64-linux"
         || ((purposeHome system "test-quaderno").config.systemd.user.timers ? quaderno-pull);
@@ -343,23 +233,23 @@ lib.genAttrs systems (
       assert system != "x86_64-linux"
         || allAssertions (purposeHome system "test-windows-vm");
       assert system == "x86_64-linux"
-        || rejectsPurpose "test-windows-vm" system "windows_vm: supports Linux only";
+        || rejectsPurpose "test-windows-vm-os" system "windows_vm: supports Linux only";
       assert rejectsPurpose "test-quaderno-missing-archive" "x86_64-linux"
         "quaderno_archive";
       assert system == "x86_64-linux"
         || rejectsPurpose "test-quaderno" system
           "quaderno: systemd user timers support Linux only";
-      assert !badType.success;
-      assert !unknownFeature.success;
+      assert rejectsPurpose "test-bad-purpose-type" "x86_64-linux" "purposes must be a list of element names";
+      assert rejectsPurpose "test-unknown-purpose" "x86_64-linux" "unknown element";
       assert systemAssertionsHold laptop;
       assert laptop.nix.buildMachines != [ ];
-      # nix-daemon の ssh は、ssh.nix が生成する Host ブロックで接続先と accept-new を得る。
+      # nix-daemon は Host ブロックを経由して接続するため、buildMachines と SSH の接続名が一致する必要がある。
       assert builtins.all (
         m: lib.hasInfix "Host ${m.hostName}\n" laptop.programs.ssh.extraConfig
       ) laptop.nix.buildMachines;
       assert builtins.all (m: m.sshKey == "/home/alice/.ssh/id_lan") laptop.nix.buildMachines;
       # builders に自分しかいないホストでは回す先がない。黙って何もしない設定にしない。
-      assert !systemAssertionsHold (remoteBuildHost "nixos-desktop");
+      assert rejectsPurpose "test-remote-build-self" "x86_64-linux" "remote_build: no other host has a builder";
       # developer_instructions が [agents] のテーブルに入らず、エスケープも崩れないこと。
       assert
         let
@@ -389,11 +279,11 @@ lib.genAttrs systems (
     wslContracts =
       # /etc/nixos を checkout へのリンクにして、--flake なしの nixos-rebuild がこの flake を使うようにする。
       assert builtins.elem "L+ /etc/nixos - - - - /home/nixos/sagyo/flake_public" wsl.systemd.tmpfiles.rules;
-      assert wsl.local.restrictedHost.enable;
+      assert configurations.hosts.nixos-work-wsl.restricted;
       assert systemAssertionsHold wsl;
       assert wsl.wsl.enable && wsl.wsl.defaultUser == "nixos";
       # 社用の AI アカウントがない会社の PC なので、自分用のエージェントの設定（agents-private）を置かない。
-      assert wslUser.local.profile.agentConfigRoot == null;
+      assert !(wslUser.home.file ? ".claude/CLAUDE.md");
       assert !(wsl.environment.etc ? "claude-code/managed-settings.json");
       assert !(lib.hasInfix "IdentityFile" wslSshConfig);
       assert wslUser.home.activation ? secrets;
@@ -401,7 +291,8 @@ lib.genAttrs systems (
       assert !(lib.hasInfix "age_key=" wslUser.home.activation.secrets.data);
       assert !(hasLauncher wslUser "clone-repos");
       # 会社 PC でも kitty を使うため、GUI アプリは WSLg で表示する（docs/architecture/wsl.md）。
-      assert lib.attrNames (lib.filterAttrs (_: enabled: enabled) wslUser.local.profile.features) == [ "gui" ];
+      assert !(wslUser.dconf.settings ? "org/gnome/shell");
+      assert !wslUser.i18n.inputMethod.enable;
       assert builtins.any (p: (p.pname or "") == "kitty") wslUser.home.packages;
       assert wsl.wsl.startMenuLaunchers;
       assert !(hasLauncher wslUser "agent-sync");
@@ -442,7 +333,7 @@ lib.genAttrs systems (
       assert !(desktopUser.systemd.user.services.xsaved-web-server ? Install);
       # X で消えたツイートは取り直せないので、保存先と別の場所へ毎日写す。
       assert desktopUser.systemd.user.timers ? xsaved-backup;
-      assert builtins.any (s: s.path == desktopXsavedBackupEnv.RESTIC_PASSWORD_FILE) desktopUser.local.profile.secrets;
+      assert lib.hasInfix desktopXsavedBackupEnv.RESTIC_PASSWORD_FILE desktopUser.home.activation.secrets.data;
       # 定期実行が失敗したら気づけるよう、どの timer のサービスにも失敗の通知を付ける。
       assert lib.all
         (name: desktopUser.systemd.user.services.${name}.Unit.OnFailure or [ ] == [ "notify-failure@%n.service" ])
@@ -547,7 +438,8 @@ lib.genAttrs systems (
         user.services.memex.enable
         && !user.services.memex.initializeVault
         && !(user.home.activation ? seedVault)
-        && builtins.any (repo: repo.dest == user.services.memex.vaultDir) user.local.profile.privateRepos
+        && lib.hasInfix user.services.memex.vaultDir
+          (lib.findFirst (p: (p.name or "") == "clone-repos") (throw "clone-repos is not installed") user.home.packages).text
       ) [
         desktopUser
         inputs.self.nixosConfigurations.nixos-spin713.config.home-manager.users.pomu

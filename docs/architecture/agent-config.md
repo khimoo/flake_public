@@ -6,7 +6,7 @@
 ## 設定 repo の clone へ out-of-store symlink する
 
 エージェントの設定は private な内容を含むので、公開している flake_public には置けない。
-設定 repo を持たない人には何も影響しないように、clone の場所を `config/users/<ユーザー>.toml` の `agent_config_root` から渡し、未指定ならリンクも同期も作らない。`ai_agents` を選んだホストでのみ反映し、clone の仕組みには同じ値を `local.profile.agentConfigRoot` / `agentConfigRepo` として渡す。
+設定 repo を持たない人には何も影響しないように、clone の場所を `config/users/<ユーザー>.toml` の `agent_config_root` から渡し、未指定ならリンクも同期も作らない。`ai_agents` を選んだホストでのみ反映し、`agent_links` の公開値からリンクを作り、同じ場所を `private_repos` に書き込んで clone する。
 flake_public が設定 repo について知るのは、`shared/`、`claude/`、`codex/` の分け方とファイル名だけにした。
 
 退けた案と理由:

@@ -1,49 +1,43 @@
 # ホストとユーザープロファイルの境界
 
 使い方: [ユーザー管理](../howtouse/users.md) / [検証](../howtouse/validation.md)
-実装: [factory](../../lib/configurations.nix) / [profile options](../../modules/home-manager/profile.nix)
+実装: [factory](../../lib/configurations.nix) / [個人の値](../../config/users/)
 
 ## 責務
 
-[hosts/machines.nix](../../hosts/machines.nix) の `machines` がマシンの正本で、`nixos` を持つ項目から `flake.nix` が NixOS 構成を生成し、factoryがモジュールを組み立てる。NixOS用の `settings` にはホスト名・ユーザー一覧・時刻・キーマップ・stateVersionだけを入れる。Home Managerへこの属性集合は渡さない。
+[config/hosts/](../../config/hosts/) の TOML をマシンの正本とし、`kind` が `nixos` なら `nixosHosts`、`home` なら `homeHosts` に構成を作る。factory は system とユーザーを読み、confgen の結果を NixOS と Home Manager に渡す。specialArgs には `inputs` を渡す。
 
-Home Managerはユーザーごとに `config.local.profile` を評価する。個人のGit identity、clone先、Claude設定、LAN鍵配布は、そのユーザーのhomeモジュールか `config/users/<ユーザー>.toml` に定義する。現在の個人設定は `profiles/home/pomu.nix`、2台のworkstationの選択は `profiles/home/pomu-workstation.nix`、Claude CodeとCodexの設定repo（agents-private）の置き場所は `config/users/pomu.toml` にある。`ai_agents` を選ぶホストで、そのユーザーの値からリンクと同期を生成する。新しいユーザーは pomu の値を引き継がない。
+ホストの `purposes` が機能を選び、[要素](../../config/elements/) が依存をたどって設定を生成する。ホストを動かす `machine_*` は共通部品を `requires` で参照し、生成済み `hardware.nix` を import する。値を TOML、処理を要素に分けることで、選択と実装を二重管理しない（[confgen の規則](confgen.md)）。
 
-機構は共通モジュール、選択はprofile、ハードウェアはhostsに置く。imports は静的に保ち、`config` に依存する条件は `mkIf` に置く。`optionalAttrs config...` でモジュール構造を変えない。機能の有効化に型付きboolを使うことは正常なモジュール合成であり、一般的な「制御結合を避ける」という順位表で禁止しない。
+個人の Git identity、鍵、mutable checkout は `config/users/<ユーザー>.toml` に置く。各 Home Manager は本人のファイルだけを読み、同じホストの別のユーザーにも個人の値を渡さない。ユーザー一覧の最初の人で NixOS の confgen を評価し、`home_manager = false` の人にはホーム構成を作らない。
 
 ## 機能の実装をたどる
 
-factory の `homeModules` は共通機能の入口を列挙する。GUI の子モジュールは [gui/default.nix](../../config/elements/gui.star) がまとめて import し、factory 側には重ねて列挙しない。GUI 全体・GNOME・IME の有効化条件は各モジュールの `mkIf` に残し、WSLg のように GUI だけを使う構成を維持する。アプリの変更箇所は [GUI アプリの管理](../howtouse/gui-apps.md) を参照。
+目的から要素の `requires` と仮引数をたどる。GUI の基本は `gui`、GNOME は `gnome`、日本語入力は `japanese_input` にある。GNOME と日本語入力は GUI を依存に含めるので、WSLg のように GUI だけを選ぶ構成も維持できる。
 
-Home Manager への `extraSpecialArgs` は `inputs` を渡す。アプリ専用の引数や derivation を factory で作らず、その機能のモジュールが必要な input を参照する。
+Neovim の道具と生成する Lua は `nvim_<名前>` の要素が機能ごとに持つ（[設計](neovim/features.md)）。Neovim の設定ディレクトリは checkout への live symlink なので、生成するファイルは XDG data 配下に置く。kitty のフォントは `gui` の公開値を読む。
 
-- Neovim のプラグインが使う道具と、Lua に渡す生成物（SKK 辞書、LSP の一覧など）は、`config/elements/nvim_<名前>.star` の要素が機能ごとに持つ（[設計](neovim/features.md)）。SKK 辞書の取得元は `inputs.skk-jisyo` で、展開には overlay を通さない `inputs.nixpkgs.legacyPackages` を使う。
+## 制約
 
-生成した Lua は Home Manager の適用で XDG data 配下に配置する。Neovim の設定ディレクトリは live symlink なので、生成物をその中へ混ぜない。端末フォントの `terminalFont` は GUI 内の `_module.args` から kitty に渡す。GUI 無効時も kitty モジュールが引数として受け取るため、この定義は `mkIf` の外に置く。
+clone の宛先と秘密の復号先はホーム配下に限定し、重複する宛先を要素の `fail` で拒否する。エージェント設定の URL には checkout の場所も必要になる。GUI と音楽・通話は Linux 専用で、対応しない OS では設定生成を止める。
 
-## 型と制約
-
-`local.profile` は既定値・型・説明を持つNixオプション。変更可能な設定は型付き option と `mkEnableOption`、上書き可能な既定値は `mkDefault`、成立すべき制約は assertion で表す。誤字や型不一致は評価エラーにする。URLだけがありclone先がない設定、別ユーザーのhomeへのmutable checkout、重複clone先、vaultなしの同期、GUIなしのGNOME/IMEはassertionで拒否する。
-
-`flakeRoot` は共有の読み取り用checkoutにもできるのでhome内への制約は付けない。mutableなprivate checkoutはユーザーのhome配下に限定する。ディスク階層化はその配下へmountする。これはパス設定ミスを防ぐ契約であり、symlinkやOS権限を検証するセキュリティ境界ではない。
-
-名前付き checkout のパスと URL の対応は `profile.nix` の `pairs` にまとめ、clone 対象の生成、URL に対応するパスの必須判定、home 配下の制約に共用する。URL を省いた手動 clone 用のパスも home 配下の制約対象に含める。追加の `privateRepos` の宛先も同じ制約を受ける。
-
-RustOwl は x86_64 Linux のホストでだけ入る（[rustowl.md](rustowl.md)）。GUI等の現在のLinux専用プロファイルもDarwinでは拒否する。
+checkout の場所はホームからの相対パス `flake_root` とし、`checkout.root` が絶対パスを公開する。mutable checkout と秘密のパスの検査は設定ミスを防ぐもので、symlink や OS 権限を検証するセキュリティ境界ではない。
 
 ## 目的ごとの OS とホームの選択
 
-[music_production.star](../../config/elements/music_production.star) をホストの `purposes` で選ぶと、musnix・JACK・低レイテンシー設定を有効にし、primaryUser を audio グループに入れる。同じ要素が Home Manager の音楽アプリとプラグイン用リンクも設定する。nixos-desktop と standalone Home Manager の pomu-nixos が選択している。PipeWire の基本設定はホストに置き、通話用のエコーキャンセルは `call_audio` で選ぶ。
+[music_production.star](../../config/elements/music_production.star) は musnix・JACK・低レイテンシー設定と音楽アプリを選び、最初のユーザーを audio グループに入れる。`call_audio` とともに `pipewire` を依存に含める。musnix の import も音楽制作を選んだホストだけに入る。
 
-[windows_vm.star](../../config/elements/windows_vm.star) をホストの `purposes` で選ぶと、libvirt・OVMF・virt-manager・default ネットワークの自動起動を有効にし、`windows_vm_users` を libvirtd グループに入れる。`windows_vm_domain` が null でなければ `gui` も必要になり、[windows_vm_gui.star](../../config/elements/windows_vm_gui.star) が対象ユーザーの Home Manager にランチャーを設定する。Home Manager のユーザー自体は `settings.users` の `manageHome` で選び、OS アカウントのみのユーザーにホーム構成を作らない。
+[windows_vm.star](../../config/elements/windows_vm.star) は libvirt・OVMF とネットワークの自動起動を設定し、`windows_vm_users` を libvirtd グループに入れる。`windows_vm_domain` を指定した場合は GUI が必要になり、派生要素 `windows_vm_gui` がランチャーを作る。
 
-## OSとの接点
+## OS との接点
 
-SSHクライアントのIdentityFileは `~/.ssh/` を使い、全ユーザーへprimaryUserの絶対パスを配らない。LAN接続先のユーザー名は各マシンの `sshUser` で、鍵配布は `local.profile.lanSsh` を選んだユーザーだけ。例外は常設のリモートビルドで、nix-daemon（root）だけがprimaryUserの `id_lan` を絶対パスで読む（[remote-build.md](./remote-build.md)）。`--build-host` はrootを使わず、実行ユーザーのままSSHする。
+SSH の IdentityFile は `~/.ssh/` を使い、全ユーザーへ最初のユーザーの絶対パスを配らない。接続先のユーザー名は各ホストの `ssh_user` から作る。LAN 鍵は `personal_files` と `lan_ssh = true` を選んだ場合だけ配る。
+
+例外は常設のリモートビルドで、nix-daemon（root）が最初のユーザーの `id_lan` を絶対パスで読む（[remote-build.md](remote-build.md)）。`--build-host` は root を使わず、実行ユーザーのまま SSH する。
 
 ## /etc/nixos のリンク
 
-NixOS ホストでは、`/etc/nixos` を primaryUser の `local.profile.flakeRoot` へのシンボリックリンクとして設定する（[base.nix](../../modules/nixos/base.nix) 参照）。`--flake` を指定しない `nixos-rebuild` は `/etc/nixos/flake.nix` を探し、シンボリックリンクであれば解決先のディレクトリを Flake とみなして、現在のホスト名と同名の `nixosConfigurations` を適用する（nixpkgs 26.05 の nixos-rebuild-ng、`nixos_rebuild/models.py` の `Flake.from_arg` および `Flake.parse` による挙動）。そのため、初回のみ `--flake <参照>#<構成名>` で適用しておけば、以降は `sudo nixos-rebuild switch` だけで済むようになる。
+NixOS ホストでは、`/etc/nixos` を最初のユーザーの `checkout.root` へのシンボリックリンクとして設定する（[machine_base.star](../../config/elements/machine_base.star) 参照）。`--flake` を指定しない `nixos-rebuild` は `/etc/nixos/flake.nix` を探し、シンボリックリンクであれば解決先のディレクトリを Flake とみなして、現在のホスト名と同名の `nixosConfigurations` を適用する（nixpkgs 26.05 の nixos-rebuild-ng、`nixos_rebuild/models.py` の `Flake.from_arg` および `Flake.parse` による挙動）。そのため、初回のみ `--flake <参照>#<構成名>` で適用しておけば、以降は `sudo nixos-rebuild switch` だけで済むようになる。
 
 `flake.nix` のみリンクする形でも `nixos-rebuild` は動作する（`nixos-rebuild` が `flake.nix` のリンク先から親ディレクトリを特定するため）。しかし、ディレクトリごとリンクしているのは、`/etc/nixos` を Flake 参照として `nix` コマンドに直接渡せるようにするためである。`flake.nix` のみリンクした場合、Nix は `/etc/nixos` を Flake のルートとして store にコピーしようとするが、リンク先の絶対パスは store 内に存在しないため評価に失敗してしまう。また、インストール時に生成される `configuration.nix` や `hardware-configuration.nix` は残さない。本構成ではこれらを使用せず、ハードウェア固有の設定は `hosts/<ホスト>/hardware.nix` に配置する。
 
@@ -51,7 +45,7 @@ NixOS ホストでは、`/etc/nixos` を primaryUser の `local.profile.flakeRoo
 
 チェックアウトが存在しない間はリンク切れの状態となる。このとき `--flake` なしで `nixos-rebuild` を実行すると、`/etc/nixos/flake.nix` が見つからないため従来の構成ファイルを探索しようとする。しかし、本構成の Nix 検索パスには `nixos-config` が含まれていないため、`file 'nixos-config' was not found in the Nix search path` というエラーで停止し、何も適用されないようになっている。
 
-primaryUser に Home Manager のユーザー設定がないホストでは `flakeRoot` が存在しないため、このルールは配置しない。また、ホスト名と構成名を一致させない運用にする場合は、この仕組みを見直す必要がある。
+最初のユーザーが `home_manager = false` のホストには、このルールを配置しない。また、ホスト名と構成名を一致させない運用にする場合は、この仕組みを見直す必要がある。
 
 ## 外部状態と検証
 

@@ -58,7 +58,7 @@ Quaderno はスリープすると Wi-Fi ごと消えるので、定期実行の�
 
 ## 取り込み先は SATA の `@backup` にし、vault には置かない
 
-`quaderno_archive` は `/mnt/backup/quaderno` で、ディレクトリは `data-disk.nix` の tmpfiles が作る。`minecraft-backup` と同じく、置き場所と書き込み権限はホストが用意し、モジュールは受け取るだけにする。
+`quaderno_archive` は `/mnt/backup/quaderno` で、ディレクトリは `machine_nixos_desktop` の tmpfiles が作る。`minecraft-backup` と同じく、置き場所と書き込み権限はホストが用意し、モジュールは受け取るだけにする。
 PDF は増え続ける一方で読むのは時々なので SATA に置く（最初の 62 件で 428 MiB、[disk-tiering.md](./disk-tiering.md)）。
 `~/sagyo/memex`（vault の clone）には置かない。obsidian-git が 2 台で同期しているので、数百 MiB の PDF を持ち込むと同期の対象が膨らむ。
 

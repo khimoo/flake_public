@@ -1,7 +1,7 @@
 # Tailscale（LAN 外からのデスクトップ利用）
 
 自宅 LAN の外から tailnet 経由でデスクトップに SSH 接続したり、ビルド処理をデスクトップに委任したりするための設定です。
-`tailscaled` は、`common.nix` が [tailscale.nix](../../modules/nixos/tailscale.nix) を読み込むホストで有効になります。
+`tailscaled` は、[tailscale.star](../../config/elements/tailscale.star) を目的または依存として選ぶホストで有効になります。
 
 設計ドキュメント: [Tailscale の設計](../architecture/tailscale.md)
 
@@ -64,7 +64,7 @@ LAN 内であれば `ssh desktop`（mDNS）も使用可能です。tailnet に�
 
 新しいホストを追加した際や、OS を再インストールした際に実行します。1 ホストにつき最初の 1 回のみ行えばよく、認証状態は `/var/lib/tailscale` に保存されるため再起動後も保持されます。
 
-1. 対象ホストで `switch` を実行する（`tailscale.nix` は `common.nix` 経由で読み込まれるため、ホスト個別の追加設定は不要です）
+1. 対象ホストで `switch` を実行する（個人の2台では `machine_*` の依存に `tailscale` が含まれています）
 2. 対象ホスト上で以下を実行する（LAN 内であれば `ssh desktop` 経由でも可）：
    ```sh
    sudo tailscale up
@@ -116,7 +116,7 @@ Admin Console の Machines ページから古い端末を削除し、新しい�
 systemctl show gnome-remote-desktop.service -p UnitFileState   # enabled かどうか確認
 ```
 
-`linked` と表示される場合は、デスクトップが `hosts/nixos-desktop/default.nix` の `wantedBy` を含む世代に `switch` されていません。`switch` を実行してから再度 GNOME 設定を開き直してください（詳細は [../architecture/tailscale.md](../architecture/tailscale.md#gui-の確認は-rdp-でデスクトップの画面ごと使う) を参照）。
+`linked` と表示される場合は、デスクトップが `config/elements/machine_nixos_desktop.star` の `wantedBy` を含む世代に `switch` されていません。`switch` を実行してから再度 GNOME 設定を開き直してください（詳細は [../architecture/tailscale.md](../architecture/tailscale.md#gui-の確認は-rdp-でデスクトップの画面ごと使う) を参照）。
 
 ### RDP で接続できない
 
@@ -128,7 +128,7 @@ ssh desktop-ts 'ss -ltn | grep -E ":33(89|9[0-9])"'
 ```
 
 何も表示されない場合は、GNOME の設定でリモートデスクトップが無効化されています。
-3389〜3399 以外のポートで待機している場合は、ファイアウォールの許可範囲外になっています。`gsettings get org.gnome.desktop.remote-desktop.rdp port` で設定値を確認し、許可範囲内に変更するか、`hosts/nixos-desktop/default.nix` で設定範囲を広げてくだい。
+3389〜3399 以外のポートで待機している場合は、ファイアウォールの許可範囲外になっています。`gsettings get org.gnome.desktop.remote-desktop.rdp port` で設定値を確認し、許可範囲内に変更するか、`config/elements/machine_nixos_desktop.star` で設定範囲を広げてくだい。
 
 ### `ssh desktop-ts` がタイムアウトする
 

@@ -23,7 +23,7 @@ mimikopi-env で測ったときは、ROCm 版の torch の環境は展開後に�
 
 ## データを SATA の専用 subvol に置く
 
-SATA SSD に `@xsaved` を作り、`~/.local/share/xsaved` にマウントする（[data-disk.nix](../../hosts/nixos-desktop/data-disk.nix)）。
+SATA SSD に `@xsaved` を作り、`~/.local/share/xsaved` にマウントする（[machine_nixos_desktop.star](../../config/elements/machine_nixos_desktop.star)）。
 取得したメディアと、uv の環境とモデルのチェックポイントはどれも大きく、読み書きはシーケンシャルが中心なので、[disk-tiering.md](./disk-tiering.md) の分け方ではコールド層に当たる。
 
 取得したツイート（`tweets/`）と、取得し直せる環境（`venv/`、`uv-cache/`、`python/`、`huggingface/`）を一つの subvol に置く。
@@ -31,7 +31,7 @@ subvol を分ければスナップショットやバックアップの単位を�
 バックアップを作るときは `tweets/` だけを対象にする。
 
 マウントの扱いは `@mimikopi` と同じで、作る前の switch や再起動で起動を止めないよう `nofail` を付け、`xsaved-env` が起動時に `mountpoint -q` で確かめて、マウントされていなければ止まる。
-この確認は、ホストの `xsaved_users` の該当ユーザーで `check_mount = True` にしたときに入る。`data-disk.nix` に保存先のマウントを定義する構成で指定する。
+この確認は、ホストの `xsaved_users` の該当ユーザーで `check_mount = True` にしたときに入る。`machine_nixos_desktop` に保存先のマウントを定義する構成で指定する。
 確認の目的は、nofail のマウントに失敗したときにルート側を埋めないことで、マウントを定義していないホストやユーザーには守るものがない。そうした構成では、データはホームの下にそのまま置かれる。
 [tests/default.nix](../../tests/default.nix) は `nofail` が付いていることを確かめる。
 

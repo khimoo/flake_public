@@ -1,55 +1,22 @@
 # ユーザー管理の設計
 
 使い方: [ユーザー管理](../howtouse/users.md)
-実装: [users.nix](../../modules/nixos/users.nix)
+実装: [machine_base.star](../../config/elements/machine_base.star) / [factory](../../lib/configurations.nix)
 
-## 設計方針
+## ユーザーと権限の導出
 
-### データ駆動のユーザー生成
+`config/hosts/<ホスト>.toml` の `users` から、`machine_base` が OS アカウントと sudo を、factory が Home Manager の管理対象を作る。同じ人の一覧を手で合わせずに済む。
 
-ユーザー定義は `hosts/machines.nix` の各マシンの `nixos.users` リストに集約し、`users.nix` はそのリストから NixOS 設定を導出する。
-OSアカウントは属性値から導出し、ユーザー環境は本人の `homeFile` / `homeModules` に分離する。
+全ユーザーに networkmanager グループを付与する。`admin = true` は wheel と nixos-rebuild の NOPASSWD を設定する。audio は `music_production` が最初のユーザーに、libvirtd は `windows_vm` が `windows_vm_users` の対象者に付与する。
 
-```
-hosts/machines.nix (nixos.users)  →  users.nix (users.users / sudo を導出)
-                           →  lib/configurations.nix 内 (home-manager ユーザーを導出)
-```
+## nixos-rebuild の NOPASSWD
 
-`users.nix` は `users` リストのみに依存し、ホスト固有の知識を持たない。
+更新中に sudo の認証期限が切れても適用を続けられるよう、管理者は `/run/current-system/sw/bin/nixos-rebuild` をパスワードなしで実行できる。
 
-### isAdmin による権限の導出
-
-`isAdmin = true` から以下を自動導出する:
-
-- `wheel` グループへの追加（sudo 権限）
-- `nixos-rebuild` の NOPASSWD ルール
-
-フラグ一つで関連する権限がすべて揃うようにし、設定漏れを防ぐ。
-
-### nixos-rebuild の NOPASSWD
-
-admin のユーザーは、`/run/current-system/sw/bin/nixos-rebuild` をパスワードなしで実行できる。
-
-**動機**: `nix flake update && sudo nixos-rebuild switch` を続けて実行するとき、
-`nix flake update` が sudo のタイムスタンプキャッシュ（既定 15 分）より長くかかると、
-もう一度パスワードを求められる。
-
-**セキュリティ上の判断**: NOPASSWD の対象を `/run/current-system/sw/bin/nixos-rebuild` に限定。
-ユーザーが指定したflakeにはrootで実行されるactivation処理を含められるため、これは実質的にroot権限を委ねる設定。
-コマンド名の限定を安全境界とみなさず、既に管理者として信頼するユーザーだけに付与する。
-
-### 共通グループの一括付与
-
-全ユーザーには `networkmanager` を付与する。`audio` は `music_production` を選んだホストの primaryUser に、`libvirtd` は ホストの `windows_vm_users` の対象者に、各機能が有効なときだけ付与する（[構成の境界](configuration.md)）。
-
-### home-manager との境界
-
-ユーザーの OS アカウント管理は `users.nix`、ホーム環境管理は `lib/configurations.nix` の home-manager 設定が担当する。
-`manageHome = false` のユーザーは home-manager の対象外となり、`users.nix` による OS アカウントのみ作成される。
-
-この分離により、Nix 管理外のユーザー（自分でホーム環境を設定したい人）にも対応できる。
+ユーザーが指定する flake には root で動く activation を含められるため、この権限は実質的に root 権限を委ねる。コマンド名の限定を安全境界とみなさず、既に管理者として信頼するユーザーだけに付与する。
 
 ## 個人設定の分離
 
-Home Manager の全ユーザーに共通の個人設定を渡さない。`local.profile` の既定は個人情報も鍵配布も持たず、pomuのprofileはpomuのhomeFileだけがimportする。
-新規ユーザーを追加してもage鍵の設置やpomuのcheckoutへのアクセスは要求されない。制約と検証は[構成の境界](./configuration.md)を参照。
+`home_manager = false` のユーザーには OS アカウントだけを作る。Home Manager の利用者にはホストの目的を適用し、個人の値は本人の `config/users/<ユーザー>.toml` から読む。Git identity、鍵、mutable checkout を別ユーザーから継承させない。
+
+confgen の NixOS 設定は最初のユーザーで評価する。ホーム側は各ユーザーで評価するため、鍵の復号先と checkout は本人のホームから作る。制約と検証は [構成の境界](configuration.md) を参照。

@@ -47,7 +47,7 @@ typst のプラグインは WSL の Obsidian を落とし、26MB の wasm を持
 ## 写し先は引数で受け取る
 
 `mirror-vault` は vault と写し先を引数か環境変数で受け取り、owner を書き込まない。
-自分の写し先は要素 `memex` が決め、`local.profile.vaultSkeletonRepo`（clone の宛先）と `services.memex.mirrorRepo` の両方に同じ値を入れる。
+自分の写し先は要素 `memex` が決め、`private_repos` への書き込み（clone の宛先）と `services.memex.mirrorRepo` の両方に同じ値を入れる。
 写し先を mechanism に書き込むと、mechanism が特定の環境のパスを知ることになる。骨格の写しは秘密を扱わないので、誰の環境でもそのまま動く。
 
 ## 正本を public に移す案は退けた

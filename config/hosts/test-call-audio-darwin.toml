@@ -1,0 +1,10 @@
+system = "aarch64-darwin"
+state_version = "25.11"
+timezone = "Asia/Tokyo"
+hostname = "test-call-audio"
+purposes = ["call_audio"]
+echo_cancel_source = "test-source"
+
+
+[[users]]
+name = "test"

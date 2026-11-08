@@ -66,7 +66,7 @@ var identRe = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
 
 func predeclaredNames() map[string]bool {
 	return map[string]bool{"pkg": true, "exe": true, "concat": true, "write": true, "struct": true,
-		"luaPackages": true, "checkoutLink": true, "lua": true, "module": true,
+		"luaPackages": true, "lua": true, "module": true,
 		"repoModule": true, "script": true, "scriptBin": true, "activation": true,
 		"inputPkg": true, "file": true, "shellApp": true, "repoPkg": true, "symlinkJoin": true,
 		"command": true, "gvariantTuple": true, "outOfStoreLink": true,

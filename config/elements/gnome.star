@@ -1,5 +1,7 @@
-def config():
-    return {"nixos": {
+requires = ["gui"]
+
+def config(host):
+    result = {"nixos": {
         "system.replaceDependencies.replacements": [{
             "oldDependency": pkg("mutter"),
             "newDependency": repoPkg("packages/mutter-transparent-fullscreen"),
@@ -39,3 +41,11 @@ def config():
         },
         "systemd.user.sessionVariables.NIXOS_OZONE_WL": "1",
     }}
+    interface = result["home"]["dconf.settings"]["org/gnome/desktop/interface"]
+    if hasattr(host, "text_scaling_factor"):
+        interface["text-scaling-factor"] = host.text_scaling_factor
+    if hasattr(host, "xkb_layout"):
+        # 素のキーは us と同じで、右 Alt（AltGr）との組み合わせでアクセント付きの文字とデッドキーを打つ。
+        # デスクトップの FreeRDP は、右 Alt が AltGr であることを前提に、右 Alt の直後だけキーボードを掴む（docs/architecture/windows-vm.md）。
+        result["home"]["dconf.settings"]["org/gnome/desktop/input-sources"] = {"sources": [gvariantTuple(["xkb", host.xkb_layout])]}
+    return result

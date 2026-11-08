@@ -4,7 +4,9 @@ requires = ["kitty", "inkscape", "gui_apps", "firefox", "teams_dispatcher"]
 def public():
     return {"terminal_font": {"package": pkg("plemoljp-nf"), "name": "PlemolJP Console NF"}}
 
-def config():
+def config(host):
+    if not host.linux:
+        fail("gui: supports Linux only")
     return {"home": {
         "home.packages": [
             pkg("plemoljp-nf"),

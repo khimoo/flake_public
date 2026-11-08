@@ -15,7 +15,7 @@
 keyd は物理キーボードの入力を直接キャッチし、変換後のキーコードを `keyd virtual keyboard` という仮想デバイスとしてシステムへ流し直します。
 xkb に届くのは変換済みの結果のみであるため、GNOME の「キーボードレイアウトを表示」には keyd による変換内容は反映されません。
 
-GNOME のキー配列には English (intl., with AltGr dead keys)（`us+altgr-intl`）が使用されており、Home Manager 経由で dconf に設定されています（[pomu-workstation.nix](../../profiles/home/pomu-workstation.nix)）。ベースは通常の US 配列と同じですが、右 Alt が AltGr として機能します。GNOME の設定画面から変更しても、次回の switch 実行時に元の設定へ上書きされます。
+GNOME のキー配列には English (intl., with AltGr dead keys)（`us+altgr-intl`）が使用されており、Home Manager 経由で dconf に設定されています（[nixos-desktop.toml](../../config/hosts/nixos-desktop.toml)）。ベースは通常の US 配列と同じですが、右 Alt が AltGr として機能します。GNOME の設定画面から変更しても、次回の switch 実行時に元の設定へ上書きされます。
 
 例として、spin713 では Alt+Backspace で Delete が入力されますが、xkb 側にはその定義は存在しません。`/etc/keyd/internal.conf` の `[alt]` セクションに記述された `backspace=delete` が実際の挙動を定義しています。
 
@@ -38,8 +38,8 @@ backspace=delete     Alt+Backspace で Delete
 
 | ホスト | 設定ファイル | 対象 |
 |--------|---------|------|
-| nixos-spin713 | [chrome-audio.nix](../../hosts/nixos-spin713/chrome-audio.nix) | 内蔵キーボード（ChromeOS 配列の再現） |
-| nixos-desktop | [keyd-turbo.nix](../../hosts/nixos-desktop/keyd-turbo.nix) | 全キーボード（右 Alt による右クリック連打機能。◇ + 右 Alt でオン/オフを切り替え可能。起動時はオフ） |
+| nixos-spin713 | [machine_nixos_spin713.star](../../config/elements/machine_nixos_spin713.star) | 内蔵キーボード（ChromeOS 配列の再現） |
+| nixos-desktop | [machine_nixos_desktop.star](../../config/elements/machine_nixos_desktop.star) | 全キーボード（右 Alt による右クリック連打機能。◇ + 右 Alt でオン/オフを切り替え可能。起動時はオフ） |
 
 ## 設定に書かれていないキーの挙動
 

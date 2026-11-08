@@ -1,4 +1,8 @@
-def config(user):
+requires = ["pipewire"]
+
+def config(user, host):
+    if not host.linux:
+        fail("music_production: supports Linux only")
     return {
         "nixos": {
             "musnix.enable": True,
@@ -42,4 +46,5 @@ def config(user):
             ("home", "file", ".vst", "source"): outOfStoreLink("/etc/profiles/per-user/" + user.name + "/lib/vst"),
             ("home", "file", ".lxvst", "source"): outOfStoreLink("/etc/profiles/per-user/" + user.name + "/lib/lxvst"),
         },
+        "nixos_imports": [module("musnix", "nixosModules.musnix")],
     }

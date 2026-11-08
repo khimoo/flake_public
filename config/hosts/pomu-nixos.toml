@@ -2,6 +2,7 @@ system = "x86_64-linux"
 kind = "home"
 state_version = "25.05"
 purposes = [
+  "user_packages",
   "personal_files",
   "dev_tools",
   "daily_editing",
@@ -15,4 +16,3 @@ purposes = [
 
 [[users]]
 name = "pomu"
-home_file = "profiles/home/pomu.nix"

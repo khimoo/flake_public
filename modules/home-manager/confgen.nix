@@ -11,7 +11,6 @@ import ../../lib/confgen-bridge.nix {
   result = (import ../../lib/confgen.nix { pkgs = inputs.nixpkgs.legacyPackages.${system}; }).read host system user;
   special = resolve: {
     "$outOfStoreLink" = v: config.lib.file.mkOutOfStoreSymlink (builtins.head v);
-    "$checkoutLink" = rel: config.lib.file.mkOutOfStoreSymlink "${config.local.profile.flakeRoot}/${rel}";
     "$activation" = v: lib.hm.dag.entryAfter (builtins.elemAt v 0) (resolve (builtins.elemAt v 1));
     "$gvariantTuple" = v: lib.hm.gvariant.mkTuple (builtins.head v);
   };

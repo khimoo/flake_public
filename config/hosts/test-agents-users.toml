@@ -1,1 +1,16 @@
-purposes = ["personal_files", "ai_agents"]
+system = "x86_64-linux"
+state_version = "25.11"
+timezone = "Asia/Tokyo"
+hostname = "test-agents-users"
+purposes = ["machine_base", "personal_files", "ai_agents", "git"]
+
+
+[[users]]
+name = "alice"
+
+[[users]]
+name = "bob"
+
+[[users]]
+name = "unmanaged"
+home_manager = false

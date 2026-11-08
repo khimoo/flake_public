@@ -39,7 +39,7 @@ flake の設定変更は自宅マシン側で行って push し、この PC で�
 
 ## 会社の Git と SSH 設定
 
-会社用の Git ユーザー名とメールアドレスは `~/.gitconfig` に直接記述し、本リポジトリ内には記述しないでください（記述すると `local.restrictedHost` の assertion に引っかかり評価が停止します）。
+会社用の Git ユーザー名とメールアドレスは `~/.gitconfig` に直接記述し、本リポジトリ内には記述しないでください（記述するとホストの `restricted = true` を読んだ `git` 要素が confgen の build を止めます）。
 `~/.gitconfig` が存在しない状態で `git config --global` を実行すると、Home Manager が管理する読み取り専用の `~/.config/git/config` に書き込もうとして失敗します。そのため、初回は `--file` オプションでファイルを明示して設定してください。
 
 ```sh
@@ -54,7 +54,7 @@ git config --file ~/.gitconfig user.email "<会社のメールアドレス>"
 会社の Python プロジェクトは、uv が取得する Python と PyPI の manylinux wheel で動かします。このホストでは nix-ld が有効化されているため、任意のシェルから `uv sync` や `uv run` を実行でき、`.venv` 内の Python もそのまま起動します（[設計](../architecture/wsl.md#uv-が取得する-python-を-nix-ld-で動かす)）。
 uv は Home Manager が生成する `~/.config/uv/uv.toml` の設定に従い、uv が取得・管理する Python のみを使用します。
 
-wheel のインポート時に `cannot open shared object file` が発生した場合は、該当ライブラリを含むパッケージを [hosts/nixos-work-wsl/default.nix](../../hosts/nixos-work-wsl/default.nix) の `programs.nix-ld.libraries` に追記して switch してください。指定したパッケージは、zlib や libstdc++ などの既定ライブラリ群に追加されます。
+wheel のインポート時に `cannot open shared object file` が発生した場合は、該当ライブラリを含むパッケージを [config/elements/machine_nixos_work_wsl.star](../../config/elements/machine_nixos_work_wsl.star) の `programs.nix-ld.libraries` に追記して switch してください。指定したパッケージは、zlib や libstdc++ などの既定ライブラリ群に追加されます。
 
 Neovim の pyright にプロジェクト固有の `.venv` を認識させるには、`source .venv/bin/activate` を実行してから nvim を起動してください。pyright はプロジェクト内の `.venv` を自動検索せず、PATH 上の `python` を参照します。activate しないと Nix 提供の python3 が使われてしまい、依存パッケージや uv workspace 内の別パッケージの import が `could not be resolved` エラーになります。
 

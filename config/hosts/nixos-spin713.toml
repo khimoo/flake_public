@@ -1,9 +1,12 @@
+hostname = "nixos-spin713"
 system = "x86_64-linux"
 kind = "nixos"
 state_version = "25.05"
 timezone = "Asia/Tokyo"
 ssh_user = "pomu"
 purposes = [
+  "machine_nixos_spin713",
+  "user_packages",
   "personal_files",
   "ai_agents",
   "alook_open",
@@ -24,6 +27,11 @@ purposes = [
   "sns_block",
   "call_audio",
 ]
+xkb_layout = "us+altgr-intl"
+text_scaling_factor = 1.25
+# ビルドはデスクトップに回す。このマシンは 4 スレッドで、/nix も SD カード上にある。
+# デスクトップに繋がらないときに黙って手元でビルドさせず、失敗させて人が判断する。
+local_builds = false
 echo_cancel_source = "alsa_input.platform-avs_dmic.19.auto.stereo-fallback"
 alook_open_remotes = { desktop-local = "desktop", desktop-ts = "desktop-ts" }
 cargo_remote_run_host = "desktop-ts"
@@ -31,7 +39,72 @@ agent_instructions = "hosts/nixos-spin713/agent-instructions.md"
 lan_ssh = true
 private_repos = [{ url = "git@github.com:khimoo/llm-wikis.git", dest = "sagyo/llm-wikis" }]
 
+nix_uuid = "35e48f86-290c-43f3-9567-f677f2f98a4e"
+swap_device = "/dev/disk/by-uuid/ad09652b-13f2-455f-8614-1488908f71dd"
+keyd_ids = ["k:0001:0001", "k:18d1:5044", "k:18d1:5052", "k:0000:0000", "k:18d1:5050", "k:18d1:504c", "k:18d1:503c", "k:18d1:5030", "k:18d1:503d", "k:18d1:505b", "k:18d1:5057", "k:18d1:502b", "k:18d1:5061"]
+
 [[users]]
 name = "pomu"
 admin = true
-home_file = "hosts/nixos-spin713/home.nix"
+
+[keyd_settings.main]
+leftcontrol = "leftmeta"
+leftmeta = "leftcontrol"
+f1 = "back"
+f2 = "forward"
+f3 = "refresh"
+f4 = "f11"
+f5 = "scale"
+f6 = "brightnessdown"
+f7 = "brightnessup"
+f8 = "mute"
+f9 = "volumedown"
+f10 = "volumeup"
+back = "back"
+forward = "forward"
+refresh = "refresh"
+zoom = "f11"
+scale = "scale"
+brightnessdown = "brightnessdown"
+brightnessup = "brightnessup"
+mute = "mute"
+volumedown = "volumedown"
+volumeup = "volumeup"
+sleep = "coffee"
+
+[keyd_settings.meta]
+f1 = "f1"
+f2 = "f2"
+f3 = "f3"
+f4 = "f4"
+f5 = "f5"
+f6 = "f6"
+f7 = "f7"
+f8 = "f8"
+f9 = "f9"
+f10 = "f10"
+back = "f1"
+forward = "f2"
+refresh = "f3"
+zoom = "f4"
+scale = "f5"
+brightnessdown = "f6"
+brightnessup = "f7"
+mute = "f8"
+volumedown = "f9"
+volumeup = "f10"
+sleep = "f12"
+
+[keyd_settings.alt]
+backspace = "delete"
+brightnessdown = "kbdillumdown"
+brightnessup = "kbdillumup"
+f6 = "kbdillumdown"
+f7 = "kbdillumup"
+
+[keyd_settings.control]
+f5 = "print"
+scale = "print"
+
+[keyd_settings.controlalt]
+backspace = "C-A-delete"

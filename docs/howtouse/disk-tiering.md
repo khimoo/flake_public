@@ -1,7 +1,7 @@
 # ディスク階層構成
 
 nixos-desktop では NVMe（`/`、`/nix/store`、`~/sagyo`）と SATA SSD を使い分け、高速アクセスを必要としないデータを SATA ドライブ上の btrfs サブボリューム（subvol）に配置しています。
-各 subvol のマウント先は [data-disk.nix](../../hosts/nixos-desktop/data-disk.nix) 内の `mounts` で定義されており、それぞれの最終パスへ直接マウントされます（`~/ダウンロード`、`~/Games`、`/var/lib/libvirt/images`、`/mnt/backup` など）。
+各 subvol のマウント先は [machine_nixos_desktop.star](../../config/elements/machine_nixos_desktop.star) 内の `mounts` で定義されており、それぞれの最終パスへ直接マウントされます（`~/ダウンロード`、`~/Games`、`/var/lib/libvirt/images`、`/mnt/backup` など）。
 
 設計ドキュメント: [ディスク階層構成の設計](../architecture/disk-tiering.md)
 
@@ -29,7 +29,7 @@ lsattr -d /var/lib/libvirt/images           # @vm が NOCOW に設定されて�
    sudo umount /mnt/sda
    ```
 
-2. `data-disk.nix` の `mounts` 配下に `{ subvol = "@newname"; path = "/path/to/mount"; opts = dataOpts; }` を追記します。
+2. `config/elements/machine_nixos_desktop.star` の `mounts` に `("@newname", "/path/to/mount", data_opts)` を追記します。
 3. `sudo nixos-rebuild switch --flake .#nixos-desktop` を実行します。
 
 ※ VM イメージ用など CoW（Copy on Write）を回避したい subvol の場合は、作成直後の空の状態で `sudo chattr +C /mnt/sda/@newname` を実行し、マウントオプション `opts` から `compress=zstd` を外してください。
@@ -62,7 +62,7 @@ sudo chattr +C /mnt/sda/@vm
 sudo chown pomu:users /mnt/sda/@downloads /mnt/sda/@videos \
                       /mnt/sda/@music /mnt/sda/@pictures /mnt/sda/@documents /mnt/sda/@games
 
-sudo blkid -s UUID -o value /dev/sda1    # 出力された UUID を data-disk.nix の device 項目に設定する
+sudo blkid -s UUID -o value /dev/sda1    # 出力された UUID をホストの TOML の data_device に設定する
 ```
 
 ※ `nix shell` は `-c` を使って直接コマンドを実行してください。`sudo` から `nix shell` の対話シェルに入ると PATH が正常に引き継がれず、コマンドが見つからなくなる原因になります。

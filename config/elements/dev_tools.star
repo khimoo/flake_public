@@ -15,4 +15,6 @@ def config(host):
         repoPkg("packages/happy"),
         pkg("google-clasp"),
         pkg("rclone"),
+        pkg("tree"),
+        pkg("ffmpeg"),
     ]}}

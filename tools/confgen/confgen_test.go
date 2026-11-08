@@ -174,3 +174,41 @@ func TestRejected(t *testing.T) {
 		})
 	}
 }
+
+func TestAffectedCoversReadersWriteTargetsAndDerivedElementsOnly(t *testing.T) {
+	root := t.TempDir()
+	config := writeConfig(t, map[string]string{
+		"a":         `def public(): return {"x": 1}`,
+		"reads_a":   "def config(a):\n    return {\"home\": {\"x\": a.x}}",
+		"sink":      "def config(incoming):\n    return {\"home\": {\"n\": len(incoming)}}",
+		"writes":    "def writes(sink):\n    return [write(sink, 1)]",
+		"derived":   `when = ["a", "sink"]`,
+		"unrelated": "def config(host):\n    return {\"home\": {\"s\": host.system}}",
+		"uses_pkg":  "def config():\n    return {\"home\": {\"p\": repoPkg(\"packages/foo\")}}",
+	}, map[string]string{"h": `purposes = ["a"]`})
+	if err := os.Symlink(config, filepath.Join(root, "config")); err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []struct {
+		paths []string
+		want  []string
+	}{
+		{[]string{"config/elements/a.star"}, []string{"a", "derived", "reads_a"}},
+		{[]string{"config/elements/writes.star"}, []string{"sink", "writes"}},
+		{[]string{"config/hosts/h.toml"}, []string{"host", "machines", "unrelated"}},
+		{[]string{"packages/foo/default.nix"}, []string{"uses_pkg"}},
+		{[]string{"docs/x.md"}, nil},
+		{[]string{"lib/confgen.nix"}, []string{allElements}},
+	} {
+		got, err := affected(root, c.paths)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(got) == 0 && len(c.want) == 0 {
+			continue
+		}
+		if !reflect.DeepEqual(got, c.want) {
+			t.Errorf("affected(%v) = %v, want %v", c.paths, got, c.want)
+		}
+	}
+}

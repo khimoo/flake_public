@@ -1,21 +1,29 @@
 def _quote(value):
     return "'" + value.replace("'", "'\"'\"'") + "'"
 
-def config(user, incoming):
+def config(user, host, incoming):
     items = []
     by_path = {}
+    ssh_keys = {}
     for w in incoming:
         item = dict(w.value)
+        explicit_key = item.pop("ssh_key", False)
         item.setdefault("mode", "600")
         path = item["path"]
-        if not path.startswith(user.home + "/"):
+        if not path.startswith(user.home + "/") or ".." in path.split("/"):
             fail("secrets: secret destinations must live below the user's home")
+        if path in by_path and (explicit_key or path in ssh_keys):
+            fail("secrets: duplicate SSH key filename")
+        if explicit_key:
+            ssh_keys[path] = True
         if path in by_path:
             if by_path[path] != item:
                 fail("secrets: duplicate secret destination")
         else:
             by_path[path] = item
             items.append(item)
+    if items and getattr(host, "restricted", False):
+        fail("restricted host: secrets to decrypt are not allowed (docs/architecture/wsl.md)")
     extract_template = "dest=PATH_PLACEHOLDER\nif [ -L \"$dest\" ] || { [ -e \"$dest\" ] && [ ! -f \"$dest\" ]; }; then\n  echo \"secrets: $dest: 通常のファイルでないので触らない\" >&2\nelse\n  mkdir -p \"$(dirname \"$dest\")\"\n  pending_tmp=$(umask 077; mktemp \"$dest.XXXXXX\")\n  if ! ( umask 077\n         SOPS_AGE_KEY_FILE=\"$age_key\" \\\n           SOPS_PLACEHOLDER --decrypt --extract SELECTOR_PLACEHOLDER \"$secrets\" < /dev/null > \"$pending_tmp\" ); then\n    echo \"secrets: SECRET_PLACEHOLDER の復号に失敗した。$age_key がこの暗号文の受信者か確認する\" >&2\n    exit 1\n  fi\n  if [ -f \"$dest\" ] && cmp -s -- \"$pending_tmp\" \"$dest\"; then\n    chmod MODE_PLACEHOLDER \"$dest\"\n  else\n    chmod MODE_PLACEHOLDER \"$pending_tmp\"\n    mv -f -- \"$pending_tmp\" \"$dest\"\n  fi\n  rm -f -- \"$pending_tmp\"\n  pending_tmp=\n  printf '%s\\n' \"$dest\" >> \"$state_tmp\"\nfi\n"
     extracts = []
     for item in items:
@@ -38,5 +46,4 @@ def config(user, incoming):
     body = concat(*([before, key_block, middle] + extracts + [tail]))
     return {"home": {
         "home.activation.secrets": activation(["writeBoundary"], body),
-        "local.profile.secrets": [i for i in items if not i["path"].startswith(user.home + "/.ssh/")],
     }}

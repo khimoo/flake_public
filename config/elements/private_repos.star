@@ -6,11 +6,13 @@ def public(user):
 def _quote(value):
     return "'" + value.replace("'", "'\"'\"'") + "'"
 
-def config(user, incoming):
+def config(user, checkout, host, incoming):
     repos = [w.value for w in incoming]
+    if repos and getattr(host, "restricted", False):
+        fail("restricted host: automatic private repo clones are not allowed (docs/architecture/wsl.md)")
     destinations = {}
     for repo in repos:
-        if not repo["dest"].startswith(user.home + "/"):
+        if not repo["dest"].startswith(user.home + "/") or ".." in repo["dest"].split("/"):
             fail("private_repos: mutable checkouts must belong to this user's home directory")
         if repo["dest"] in destinations:
             fail("private_repos: duplicate clone destination")
@@ -23,7 +25,7 @@ def config(user, incoming):
     before, after = clone_head.split("GIT_SSH_PLACEHOLDER")
     calls = "\n".join(["clone " + _quote(r["url"]) + " " + _quote(r["dest"]) + " || status=1" for r in repos])
     clone = shellApp("clone-repos", [pkg("git"), pkg("coreutils")], concat(before, "'", ssh, "'", after, calls, clone_tail))
-    targets = [user.home + "/" + getattr(user, "flake_root", "sagyo/flake_public")]
+    targets = [checkout.root]
     for repo in repos:
         if repo["dest"] not in targets:
             targets.append(repo["dest"])
@@ -46,5 +48,4 @@ exit "$status"
     pull = shellApp("pull-repos", [pkg("git"), pkg("openssh")], pull_text)
     return {"home": {
         "home.packages": [pull] + ([clone] if repos else []),
-        "local.profile.privateRepos": repos,
     }}

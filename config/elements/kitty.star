@@ -2,13 +2,13 @@
 # install-kittens.bash は ~/.config/kitty/ へ命令的にコピーする作りだが、nixpkgs の vimPlugins が
 # 同じファイルを持っているので宣言的に置ける。Neovim 側（nvim_smart_splits.star）と同じパッケージ。
 
-def config(gui):
+def config(checkout, gui):
     def kitten(name):
         return concat(pkg("vimPlugins.smart-splits-nvim"), "/kitty/" + name)
     return {"home": {
         "home.packages": [pkg("kitty")],
         # ファイル単位の symlink なので、同じ ~/.config/kitty/ に font.conf と kitten を置ける。
-        ("xdg", "configFile", "kitty/kitty.conf", "source"): checkoutLink("modules/home-manager/gui/kitty/kitty.conf"),
+        ("xdg", "configFile", "kitty/kitty.conf", "source"): outOfStoreLink(checkout.root + "/modules/home-manager/gui/kitty/kitty.conf"),
         # kitty.conf の include が読む。
         ("xdg", "configFile", "kitty/font.conf", "text"): "font_family " + gui.terminal_font["name"] + "\n",
         # kitty.conf の neighboring_window / relative_resize が読む。

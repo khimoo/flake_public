@@ -1,6 +1,6 @@
 # spin713 の /nix を置いた SD カードと復帰時のエラー
 
-設定ファイル: [hosts/nixos-spin713/nix-sd-card.nix](../../hosts/nixos-spin713/nix-sd-card.nix)（`services.udev.extraRules`）
+設定ファイル: [config/elements/machine_nixos_spin713.star](../../config/elements/machine_nixos_spin713.star)（`services.udev.extraRules`）
 
 **`/nix` のパーティションを内蔵 SD カードリーダー（Genesys `05e3:0747`）で使っているとき、その SCSI ディスクに `manage_system_start_stop=1` を設定している。効果は実機で確かめずに適用したので、復帰後のログで効果を確かめ、効果がなければ外す。**
 

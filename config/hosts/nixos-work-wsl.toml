@@ -1,10 +1,11 @@
+hostname = "nixos-work-wsl"
 system = "x86_64-linux"
 kind = "nixos"
 state_version = "26.05"
 timezone = "Asia/Tokyo"
-purposes = ["ai_agents", "dev_tools", "daily_editing", "shell", "git", "nix_ld", "gui"]
+purposes = ["machine_nixos_work_wsl", "ai_agents", "dev_tools", "daily_editing", "shell", "git", "nix_ld", "gui"]
+restricted = true
 
 [[users]]
 name = "nixos"
 admin = true
-home_file = "hosts/nixos-work-wsl/home.nix"

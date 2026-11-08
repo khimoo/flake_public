@@ -1,9 +1,12 @@
+hostname = "nixos-desktop"
 system = "x86_64-linux"
 kind = "nixos"
 state_version = "25.05"
 timezone = "Asia/Tokyo"
 ssh_user = "pomu"
 purposes = [
+  "machine_nixos_desktop",
+  "user_packages",
   "xsaved",
   "windows_vm",
   "minecraft_backup",
@@ -27,6 +30,10 @@ purposes = [
   "call_audio",
   "music_production",
 ]
+xkb_layout = "us+altgr-intl"
+backup_dir = "/mnt/backup"
+data_device = "/dev/disk/by-uuid/57ba3e14-4099-4708-a643-edfc45d3eb18"
+turbo_interval_ms = 40
 echo_cancel_source = "alsa_input.usb-Kingston_HyperX_SoloCast-00.analog-stereo"
 lan_ssh = true
 private_repos = [
@@ -54,7 +61,6 @@ supported_features = ["benchmark", "big-parallel", "kvm", "nixos-test"]
 [[users]]
 name = "pomu"
 admin = true
-home_file = "hosts/nixos-desktop/home-manager-pomu.nix"
 
 [[users]]
 name = "mase"

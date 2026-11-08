@@ -2,7 +2,7 @@
 
 Google の Antigravity CLI を `agy` として入れる。
 agents-private の gemini-proofread スキルが、Gemini の API で校正できないときと、Gemini 3.8 を指定されたときに使う。
-パッケージは [packages/antigravity-cli](../../../packages/antigravity-cli/default.nix) で、x86_64-linux では [profiles/home/pomu.nix](../../../profiles/home/pomu.nix) から入る。
+パッケージは [packages/antigravity-cli](../../../packages/antigravity-cli/default.nix) で、x86_64-linux では [config/users/pomu.toml](../../../config/users/pomu.toml) から入る。
 
 ## ログイン
 

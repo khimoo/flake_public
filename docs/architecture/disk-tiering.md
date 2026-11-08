@@ -1,7 +1,7 @@
 # ディスク階層構成の設計
 
 使い方: [ディスク階層構成](../howtouse/disk-tiering.md)
-実装: [data-disk.nix](../../hosts/nixos-desktop/data-disk.nix)
+実装: [machine_nixos_desktop.star](../../config/elements/machine_nixos_desktop.star)
 
 nixos-desktop の NVMe（Samsung 980、466G）が 94% まで埋まったので、Windows 用だった SATA SSD（Samsung 860、233G）を全部消してデータの層にし、SATA で遅くならないデータを NVMe から移した。
 分ける基準は、SSD かどうかではなく、そのデータの IO の形である。SATA が NVMe にはっきり負けるのは、小さいファイルへのランダムアクセスで、シーケンシャルな読み書きやネットワークで律速されるものは差がほとんど出ない。
@@ -42,8 +42,9 @@ fileSystems は `{ subvol, path, opts }` のリストから生成し、device �
 
 例外は、アプリを有効にしてから手で作る `@mimikopi` と `@xsaved` で、作る前の switch や再起動で起動を止めないよう `nofail` を付ける。
 代わりに、使う側の環境（`mimikopi-env`、`xsaved-env`）が起動時にマウントを確かめ、マウントされていなければ止まる。
-mimikopi のマウント先と Minecraft・Quaderno の tmpfiles のパスは `data-disk.nix` に指定する。アプリ側の保存先は [nixos-desktop.toml](../../config/hosts/nixos-desktop.toml) の `mimikopi_data_dir`、`minecraft_repo`、`quaderno_archive` にあるため、変更時は両方を合わせる。xsaved の保存先も `data-disk.nix` と同じホストファイルの `xsaved_users` の `data_dir` に指定するため、変更時は両方を合わせる。
-`@backup` は複数のアプリが共有し、マウント先は `data-disk.nix` の `local.dataDisk.backupDir` で指定する。
+mimikopi と xsaved のマウント先は、[ホストの TOML](../../config/hosts/nixos-desktop.toml) の `mimikopi_data_dir` と `xsaved_users.<ユーザー>.data_dir` から作る。アプリも同じ値を読むので、保存先の変更を2か所に書く必要はない。
+
+`@backup` のマウント先と Minecraft・Quaderno の tmpfiles の親は、同じ TOML の `backup_dir` から作る。アプリ側の `minecraft_repo` と `quaderno_archive` は、その配下を指定する。
 
 ## Steam のライブラリは Steam に登録させる
 

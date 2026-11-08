@@ -1,18 +1,18 @@
 # マシン間 SSH の設計
 
 使い方: [マシン間 SSH](../howtouse/machine-ssh.md)
-実装: [machines.nix](../../hosts/machines.nix)、[ssh.nix](../../modules/nixos/ssh.nix)
+実装: [config/hosts/](../../config/hosts/)、[machine_ssh.star](../../config/elements/machine_ssh.star)
 
-`machines.nix` で `sshUser` を持つ NixOS ホストが、互いに `ssh <短縮名>` で接続できるようにする。
+`config/hosts/*.toml` で `ssh_user` を持つ NixOS ホストが、互いに `ssh <短縮名>` で接続できるようにする。
 リモートビルド（[remote-build.md](./remote-build.md)）はこの上に乗る。
 
-## `machines.nix` から両方向を生成する
+## `config/hosts/*.toml` から両方向を生成する
 
-`ssh.nix` が `machines.nix` から、サーバ側には `lanPublicKey` を primaryUser の `authorized_keys` に入れ、クライアント側には `sshUser` を持つマシンごとの `Host` ブロック（短縮名、`IdentityFile`、`User`、`accept-new`）を作る。
+`machine_ssh` が `config/hosts/*.toml` から、サーバ側には `_LAN_PUBLIC_KEY` を primaryUser の `authorized_keys` に入れ、クライアント側には `ssh_user` を持つマシンごとの `Host` ブロック（短縮名、`IdentityFile`、`User`、`accept-new`）を作る。
 各ホストに `authorizedKeys` を直接書くと、双方向にしたときマシンの数の 2 乗だけ書くことになる。
 
 `ssh <短縮名>` で接続するには、認証、名前解決、ホスト鍵の受け入れが要る。
-名前解決は avahi の mDNS（LAN の外では tailnet の MagicDNS を引く `<短縮名>-ts`、[tailscale.md](./tailscale.md)）に任せ、認証とホスト鍵の扱いと短縮名を `machines.nix` から作る。
+名前解決は avahi の mDNS（LAN の外では tailnet の MagicDNS を引く `<短縮名>-ts`、[tailscale.md](./tailscale.md)）に任せ、認証とホスト鍵の扱いと短縮名を `config/hosts/*.toml` から作る。
 
 ## 鍵は用途で名付ける
 
@@ -37,10 +37,10 @@ root は `id_lan` を持たないので、`sudo nixos-rebuild --build-host` の�
 
 例外は常設のリモートビルダーで、nix-daemon（root）が `/etc/nix/machines` の `sshKey` で primaryUser の `id_lan` を絶対パスで読む（[remote-build.md](./remote-build.md#鍵は-primaryuser-の-id_lan-を絶対パスで読む)）。
 
-## 鍵は `lanSsh` を選んだユーザーにだけ配る
+## 鍵は `lan_ssh` を選んだユーザーにだけ配る
 
-`local.profile.lanSsh = true` のユーザーだけが共通鍵を受け取る。OS が NixOS というだけでは配らない。
-共通鍵を持つユーザーは、接続先の `sshUser` として認証できるため。
+`personal_files` を選び、ホストかユーザーの TOML に `lan_ssh = true` を指定した場合だけ共通鍵を受け取る。OS が NixOS というだけでは配らない。
+共通鍵を持つユーザーは、接続先の `ssh_user` として認証できるため。
 
 ## ホスト鍵は accept-new で受け入れる
 
@@ -50,7 +50,7 @@ root は `id_lan` を持たないので、`sudo nixos-rebuild --build-host` の�
 
 ## セキュリティ
 
-- repo に入るのは `machines.nix` の公開鍵と、age で暗号化した `secrets/secrets.yaml` だけ
+- repo に入るのは `machine_ssh` の公開鍵と、age で暗号化した `secrets/secrets.yaml` だけ
 - 全マシンの秘密鍵は同じ鍵なので、1 台が侵害されたら LAN の認証を全部作り直す
 - `PasswordAuthentication = false` で、鍵の認証しか受け付けない
 - 対象は NixOS ホストだけで、standalone home-manager（macOS）には `id_lan` を配らない

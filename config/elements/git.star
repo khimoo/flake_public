@@ -1,7 +1,7 @@
 requires = ["private_repos"]
 
 # 目的: git と、その周りの道具（lazygit、delta）。名前とメールは config/users/<ユーザー>.toml から。
-def config(user):
+def config(user, host):
     home = {
         "programs.lazygit.enable": True,
         "programs.lazygit.settings": {
@@ -33,6 +33,8 @@ def config(user):
             },
         },
     }
+    if (hasattr(user, "git_username") or hasattr(user, "git_email")) and getattr(host, "restricted", False):
+        fail("restricted host: a git identity in this repository is not allowed (docs/architecture/wsl.md)")
     if hasattr(user, "git_username"):
         home["programs.git.settings.user.name"] = user.git_username
     if hasattr(user, "git_email"):

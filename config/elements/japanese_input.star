@@ -1,3 +1,5 @@
+requires = ["gui"]
+
 # 目的: 日本語の入力（fcitx5 と SKK）。
 def config():
     return {"home": {

@@ -1,29 +1,29 @@
 # リモートビルドの設計
 
 使い方: [リモートビルド](../howtouse/remote-build.md)
-実装: [remote-builders.nix](../../modules/nixos/remote-builders.nix)、[cargo-remote-run.sh](../../modules/home-manager/dev/cargo-remote-run.sh)
+実装: [remote_build.star](../../config/elements/remote_build.star)、[cargo-remote-run.sh](../../modules/home-manager/dev/cargo-remote-run.sh)
 
 マシン間 SSH の鍵とホスト鍵の扱いは [machine-ssh.md](./machine-ssh.md) にある。この文書は、ビルドを別のホストで行うための判断だけを扱う。
 
 ## 常設の `nix.buildMachines` を主にし、`--build-host` は補助にする
 
 `nix develop` や direnv のビルドを別のホストで行わせる手段は、nix-daemon のビルダー（`builders` 設定）しかない。
-`--build-host` は `nixos-rebuild` にしか使えないので、`local.remoteBuilders` を有効にしていないホスト向けに残している。
+`--build-host` は `nixos-rebuild` にしか使えないので、目的 `remote_build` を選んでいないホスト向けに残している。
 
 ## 接続先は tailnet の接続名（`desktop-ts`）にする
 
-`hostName` は `ssh.nix` が生成する `<短縮名>-ts` にした。
+`hostName` は `machine_ssh` が生成する `<短縮名>-ts` にした。
 自宅 LAN の内外で同じ経路で接続でき、ビルダー 1 台につきエントリが 1 つで済む。
 
 退けた案と理由:
 
 - `.local` の接続名: LAN の外で名前が引けない
 - `.local` と `-ts` の両方をエントリにする: Nix が二つを別のマシンとして数え、同じデスクトップに `maxJobs` の 2 倍のビルドを送る。出先ではコマンドのたびに `.local` への接続失敗も表示される
-- MagicDNS 名の `nixos-desktop`: `ssh.nix` の `Host desktop nixos-desktop nixos-desktop.local` ブロックに一致し、`HostName nixos-desktop.local`（mDNS）に書き換わる
+- MagicDNS 名の `nixos-desktop`: `machine_ssh` の `Host desktop nixos-desktop nixos-desktop.local` ブロックに一致し、`HostName nixos-desktop.local`（mDNS）に書き換わる
 
 代償として、自宅 LAN の中でも常設ビルダーは tailscaled に依存する。
 
-接続名は `remote-builders.nix` と `ssh.nix` がそれぞれ同じ規則で組み立てる。
+接続名は `remote_build` と `machine_ssh` がそれぞれ同じ規則で組み立てる。
 `tests/default.nix` の module contracts が両者の一致を確かめるので、片方の規則だけを変えると検査で失敗する。
 
 ## 鍵は primaryUser の `id_lan` を絶対パスで読む
@@ -46,13 +46,13 @@ Nix 2.31.5（`cc38c0c5`）のソースと、2026-09-24 の spin713 での観測�
 - `preferLocalBuild` の derivation は、`max-jobs` が 0 でなければ手元でビルドし、0 ならビルダーでビルドされる。`max-jobs` の説明文は「常に手元でビルドする」としているが、ソース（`derivation-building-goal.cc` の `willBuildLocally(...) && maxBuildJobs != 0`）と観測はそうなっていない
 - Nix の `connect-timeout` は binary cache の HTTP 用の設定で、ssh には渡らない
 
-そのため、待ち時間の上限は ssh の `ConnectTimeout 10`（`ssh.nix`）で決めている。
+そのため、待ち時間の上限は ssh の `ConnectTimeout 10`（`machine_ssh`）で決めている。
 指定しないと、SYN が黙って捨てられる経路では TCP の再送が尽きるまで約 2 分待つ。
 この設定は人が打つ `ssh` にも適用される。
 
 ## spin713 では手元でビルドしない（`max-jobs = 0`）
 
-`localBuilds = false` で、spin713 の `nix.settings.max-jobs` を 0 にしている。理由は二つある。
+ホストの `local_builds = false` で、spin713 の `nix.settings.max-jobs` を 0 にしている。理由は二つある。
 
 - spin713 は 4 スレッド、メモリ 7 GiB、`/nix` が SD カードで、重い処理を手元で始めると応答しなくなる。2026-09-24 には `scripts/check.sh` の実行中に約 2 時間固まり、電源を切った。評価とビルドのどちらが原因かは切り分けていない
 - 手元のビルドへの切り替えは `cannot build on` の一行が出るだけで、エージェントが見落とすと気づかない。失敗させれば、エージェントが手元で実行してよいかを判断できる（[agent-config.md](./agent-config.md#マシン固有の指示はシステム層に置く)）
@@ -64,12 +64,12 @@ Nix 2.31.5（`cc38c0c5`）のソースと、2026-09-24 の spin713 での観測�
 - デスクトップのスロット（32）が埋まると、あふれた分は手元でビルドせずに空きを待つ
 - IFD のビルドはデスクトップで行われるが、評価そのものは手元で走る。重い評価はこの設定では防げないので、エージェントへの指示で扱う
 
-`localBuilds` の既定は true にした。非力なホストだけが選ぶ設定だからだ。
+`local_builds` の既定は true にした。非力なホストだけが選ぶ設定だからだ。
 
-## ビルダーの能力は `machines.nix` に置く
+## ビルダーの能力は `config/hosts/<ホスト>.toml` に置く
 
-`maxJobs` と `supportedFeatures` は呼び出し側ではなくビルダーの性質なので、`hosts/machines.nix` のホスト一覧に置いた。
-ビルダー自身の `nix.settings.max-jobs` と `system-features` も同じ値から設定するので（[remote-builders.nix](../../modules/nixos/remote-builders.nix)）、呼び出し側に伝える値とビルダーの実際の設定は食い違わない。
+`builder.max_jobs` と `builder.supported_features` は呼び出し側ではなくビルダーの性質なので、`config/hosts/` のホスト一覧に置いた。
+ビルダー自身の `nix.settings.max-jobs` と `system-features` も同じ値から設定するので（[machine_base.star](../../config/elements/machine_base.star)）、呼び出し側に伝える値とビルダーの実際の設定は食い違わない。
 `max-jobs` は `auto` ではなく `maxJobs` の値になるので、ビルダーの CPU を替えたときは `maxJobs` を書き換える。
 `system-features` はリスト型で NixOS の既定値に結合されるので、`supportedFeatures` に書かなかった既定の feature もビルダーには残る。
 `big-parallel` を載せないと、LLVM のようにそれを要求する derivation はデスクトップでビルドされない。
@@ -151,7 +151,7 @@ devShell の中でビルドした実行ファイルの ELF interpreter と RUNPA
 - 出先で DERP 経由になり、手元でビルドするほうが速い場面が続いたら、その場では `--builders '' --max-jobs 4` を付ける。常態化したら、tailnet の経路ごとに有効にする仕組みを考える
 - tailnet をやめるなら、`hostName` を `.local` に戻す。出先では常設ビルダーが使えなくなる
 - デスクトップのスレッド数やメモリが変わったら、`builder` の `maxJobs` と `supportedFeatures` を `nix config show` の値に合わせ直す
-- 出先で tailnet に入れない場面が増え、`--max-jobs 4` を付ける手間が目立ったら、spin713 の `localBuilds` を true に戻す。エージェントが黙って手元でビルドすることは、エージェントへの指示の側で防ぐ
+- 出先で tailnet に入れない場面が増え、`--max-jobs 4` を付ける手間が目立ったら、spin713 の `local_builds` を true に戻す。エージェントが黙って手元でビルドすることは、エージェントへの指示の側で防ぐ
 - `cargo remote-run` で実行ファイルの転送が待ち時間の大半を占めるようになったら（出先の回線など）、持ち帰る前に `objcopy --strip-debug` する。ラップトップの空きが実行ファイル 1 つ分を下回ったときも同じ。Bevy の `dynamic_linking` を使いたくなったら、`target/<profile>/deps/` の共有ライブラリも持ち帰って `LD_LIBRARY_PATH` に加える
 - Ctrl-C の後にデスクトップで cargo が残り、次の実行がロック待ちになるのが目立ったら、rc を別のファイルで送り、ssh の標準入力が閉じたらデスクトップ側で cargo を止める
 - devShell の評価が毎回遅いと感じたら、nix-direnv が `.direnv/` に残す profile を使う。nix-direnv の内部のファイル名に依存するので、最初は採らなかった

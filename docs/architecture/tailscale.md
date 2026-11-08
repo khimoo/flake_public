@@ -1,7 +1,7 @@
 # Tailscale の設計
 
 使い方: [Tailscale](../howtouse/tailscale.md)
-実装: [tailscale.nix](../../modules/nixos/tailscale.nix)、[ssh.nix](../../modules/nixos/ssh.nix)（`-ts` の接続名）、[hosts/nixos-desktop/default.nix](../../hosts/nixos-desktop/default.nix)（サスペンド、linger、RDP のポート）
+実装: [tailscale.star](../../config/elements/tailscale.star)、[machine_ssh.star](../../config/elements/machine_ssh.star)（`-ts` の接続名）、[config/elements/machine_nixos_desktop.star](../../config/elements/machine_nixos_desktop.star)（サスペンド、linger、RDP のポート）
 
 自宅 LAN の外にいるラップトップから、デスクトップへの SSH とリモートビルドを通すための構成。
 
@@ -27,7 +27,7 @@ Tailscale を使う代償は、アカウントと端末のメタデータ（ホ�
 
 ## 接続名は `.local` と `-ts` の二本立てにする
 
-`ssh.nix` は、各ホストに対して二つの `Host` ブロックを生成する。
+`machine_ssh` は、各ホストに対して二つの `Host` ブロックを生成する。
 
 - `desktop` / `nixos-desktop` / `nixos-desktop.local` → `HostName nixos-desktop.local`（mDNS）
 - `desktop-ts` → `HostName nixos-desktop`（MagicDNS の短縮名）
@@ -54,7 +54,7 @@ known_hosts には `nixos-desktop.local` と `nixos-desktop` が別の行とし�
 
 帰結として、tailnet に入っている間は、そのホストの DNS 問い合わせがすべて `100.100.100.100` を経由する。
 tailnet 外の名前は、tailscaled が元の上流（ルータの `192.168.11.1` など）へ転送する。
-これが問題になったら `sudo tailscale set --accept-dns=false` で書き換えを止める。代わりに短縮名が引けなくなるので、`ssh.nix` の `-ts` の `HostName` を `<ホスト名>.<tailnet 名>.ts.net` にする必要がある。tailnet 名はアカウントごとに違う値なので、そのときは設定から注入する。
+これが問題になったら `sudo tailscale set --accept-dns=false` で書き換えを止める。代わりに短縮名が引けなくなるので、`machine_ssh` の `-ts` の `HostName` を `<ホスト名>.<tailnet 名>.ts.net` にする必要がある。tailnet 名はアカウントごとに違う値なので、そのときは設定から注入する。
 
 2026-09-23 に、`tailscale up` の後の resolv.conf が `search <tailnet 名>.ts.net` と `nameserver 100.100.100.100` だけになり、両ホストから相手の短縮名を引けること、テザリング（LAN の外）から `ssh desktop-ts` が通ることを確かめた。
 自分のホスト名は nss-myhostname がローカルのアドレスで答えるので、確認には相手のホスト名を `getent ahostsv4` で引く。`getent hosts` は IPv6 を先に引くので、tailnet の IPv6 アドレス（`fd7a:115c:a1e0:` で始まる）が表示される。

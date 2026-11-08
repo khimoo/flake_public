@@ -14,7 +14,7 @@ def _merge(data, more):
         out[feature] = merged
     return out
 
-def config(incoming):
+def config(checkout, incoming):
     features = []
     packages = []
     lua_packages = []
@@ -48,7 +48,7 @@ def config(incoming):
         "programs.neovim.extraLuaPackages": luaPackages(lua_packages),
         "programs.neovim.plugins": [pkg("vimPlugins.lazy-nvim")],
         # lua の編集を rebuild なしで反映し、lazy-lock.json を checkout に書き戻すため。
-        ("xdg", "configFile", "nvim", "source"): checkoutLink(_CONFIG_DIR),
+        ("xdg", "configFile", "nvim", "source"): outOfStoreLink(checkout.root + "/" + _CONFIG_DIR),
         ("xdg", "dataFile", "nvim/nix/features.lua", "text"): concat(
             "return ",
             lua({"features": sorted(features), "data": data}),

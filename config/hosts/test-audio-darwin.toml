@@ -1,0 +1,9 @@
+system = "aarch64-darwin"
+state_version = "25.11"
+timezone = "Asia/Tokyo"
+hostname = "test-audio"
+purposes = ["music_production"]
+
+
+[[users]]
+name = "test"

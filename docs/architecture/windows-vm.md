@@ -139,14 +139,16 @@ FreeRDP 3.31.1 の SDL のクライアント（`client/SDL/SDL3/sdl_input.cpp`�
 設定は `~/.config/freerdp/sdl-freerdp.json` から読まれる。FreeRDP はこのファイルに書き込まないので、Home Manager から置く。
 
 `SDL_KeyModMask` は `KMOD_MODE` にする。
-GNOME のキー配列は `us+altgr-intl`（[pomu-workstation.nix](../../profiles/home/pomu-workstation.nix)）で、右 Alt は AltGr（`ISO_Level3_Shift`）になる。
+GNOME のキー配列は `us+altgr-intl`（[nixos-desktop.toml](../../config/hosts/nixos-desktop.toml)）で、右 Alt は AltGr（`ISO_Level3_Shift`）になる。
 SDL 3.4.10 は `ISO_Level3_Shift` をキーコード `SDLK_MODE` に変換し（`src/events/SDL_keysym_to_keycode.c`）、`SDLK_MODE` が押されている間は `KMOD_RALT` ではなく `KMOD_MODE` を立てる（`src/events/SDL_keyboard.c`）。
 `KMOD_RALT` では、右 Alt が AltGr の配列（`us` に `lv3:ralt_switch` を足したもの）で押しても切り替わらなかった（2026-10-15）。
 右 Alt を AltGr のままにするのは、アクセント付きの文字とデッドキーを AltGr で打つためである。`lv3:ralt_switch` を外して `KMOD_RALT` に合わせる案は、AltGr がなくなるので退けた。
 配列を変えて右 Alt が AltGr でなくなると、切り替えは発動しない。契約（[tests/default.nix](../../tests/default.nix)）で、デスクトップの配列が `us+altgr-intl` であることを確かめている。
 
 右 Ctrl と Fn も候補にしたが、使わない。HHKB には右 Ctrl がない。Fn は、つないでいるキーボード（HHKB-BT Keyboard と SEM USB Keyboard）がどちらもキーボードの中で処理し、OS に送らない（カーネルが示す各デバイスのキーの一覧に `KEY_FN` がない）。
-右 Alt を使えるように、keyd の右クリックの連打は、◇ + 右 Alt で入り切りするレイヤー（`toggle(turbo)`）に置く（[keyd-turbo.nix](../../hosts/nixos-desktop/keyd-turbo.nix)）。普段のモードでは右 Alt がそのままアプリに届く。
+右 Alt を使えるように、keyd の右クリックの連打は、◇ + 右 Alt で入り切りするレイヤー（`toggle(turbo)`）に置く（[machine_nixos_desktop.star](../../config/elements/machine_nixos_desktop.star)）。普段のモードでは右 Alt がそのままアプリに届く。
+
+連打の間隔はホストの `turbo_interval_ms` で指定する。40ms にするのは、Minecraft の tick（50ms）ごとに少なくとも1回のクリックを届けるため。押しっぱなしの経路には rightClickDelay があるが、クリックを消費する経路にはない。50ms ちょうどでは keyd の周期が伸びたときにクリックのない tick が生じる。押下状態を保持する待ちは keyd のイベントループも止めるため入れない。食事・弓・盾のような継続使用は毎 tick キャンセルされるので、ターボには使えない。
 起動時と keyd の再起動後は普段のモードになる。いまどちらのモードかは画面に出ない。
 
 keyd に右 ◇ の「叩いたら右 Ctrl」（`overload`）を作らせる案は退けた。keyd は叩いた動作を、押す信号と離す信号を間を置かずに続けて送る。FreeRDP は押した信号を処理する時点で修飾キーの状態を読むので、その時点ではもう離されていて、切り替えが発動しないおそれが高い（ソースからの推論で、試してはいない）。

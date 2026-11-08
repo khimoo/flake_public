@@ -7,7 +7,7 @@
 
 ## 配置
 
-`clone-repos` により `local.profile.llmWikisRepoUrl` から `llmWikisRoot` へクローンされます（詳細は [private-repo-clone.md](./private-repo-clone.md) を参照）。
+`personal_files` がホストの `private_repos` を `clone-repos` に渡してクローンします（詳細は [private-repo-clone.md](./private-repo-clone.md) を参照）。
 
 ```
 llm-wikis/
@@ -63,5 +63,5 @@ flake 側の設定変更は不要です。リポジトリ全体が 1 つのク�
 
 ## 無効化（削除）手順
 
-各自の `local.profile.llmWikisRepoUrl` 設定を削除（デフォルト値 `null`）すると、`clone-repos` の対象から外れます。
+ホストの TOML の `private_repos` から llm-wikis の項目を削除すると、`clone-repos` の対象から外れます。
 `llmWikisRoot` の参照はクローン処理時のみ行われるため、両方の設定を削除して問題ありません。

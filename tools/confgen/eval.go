@@ -166,13 +166,6 @@ func builtins() starlark.StringDict {
 		}
 		return &marker{json: map[string]any{"$luaPackages": out}, text: "luaPackages"}, nil
 	})
-	checkoutLink := starlark.NewBuiltin("checkoutLink", func(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kw []starlark.Tuple) (starlark.Value, error) {
-		var rel string
-		if err := starlark.UnpackPositionalArgs(b.Name(), args, kw, 1, &rel); err != nil {
-			return nil, err
-		}
-		return &marker{json: map[string]any{"$checkoutLink": rel}, text: "checkoutLink " + rel}, nil
-	})
 	module := starlark.NewBuiltin("module", func(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kw []starlark.Tuple) (starlark.Value, error) {
 		var input, attr string
 		if err := starlark.UnpackPositionalArgs(b.Name(), args, kw, 2, &input, &attr); err != nil {
@@ -291,7 +284,7 @@ func builtins() starlark.StringDict {
 	})
 	return starlark.StringDict{
 		"pkg": pkg, "exe": exe, "concat": concat, "write": write,
-		"luaPackages": luaPackages, "checkoutLink": checkoutLink, "lua": lua, "module": module,
+		"luaPackages": luaPackages, "lua": lua, "module": module,
 		"repoModule": repoModule, "script": script("script"), "scriptBin": script("scriptBin"),
 		"outOfStoreLink": generic("outOfStoreLink", 1),
 		"activation": activation, "inputPkg": inputPkg, "file": file,

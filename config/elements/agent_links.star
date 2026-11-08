@@ -1,5 +1,7 @@
 def public(user):
     root = getattr(user, "agent_config_root", None)
+    if root != None and (root.startswith("/") or ".." in root.split("/")):
+        fail("agent_links: mutable checkouts must belong to this user's home directory")
     return {"root": user.home + "/" + root if root != None else None}
 
 def config(agent_links):
