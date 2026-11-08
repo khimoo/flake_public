@@ -6,7 +6,7 @@
   ...
 }:
 let
-  inherit (helpers) home purposeHome rejectsPurpose;
+  inherit (helpers) home purposeHome;
 in
 {
   gui-contracts =
@@ -17,7 +17,6 @@ in
           ||
             builtins.any (p: (p.pname or "") == "kitty")
               (purposeHome system "test-gnome").config.home.packages;
-        assert system == "x86_64-linux" || rejectsPurpose "test-gnome" system "gui: supports Linux only";
         pkgs.runCommand "gui-contracts" { } ''
           echo "gui contracts passed" > "$out"
         ''

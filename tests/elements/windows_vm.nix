@@ -20,9 +20,6 @@ in
         # GUI のないユーザーでは Windows VM のランチャーの評価を止める。
         assert rejectsPurpose "test-windows-vm-no-gui" "x86_64-linux" "windows_vm: launcher requires gui";
         assert system != "x86_64-linux" || allAssertions (purposeHome system "test-windows-vm");
-        assert
-          system == "x86_64-linux"
-          || rejectsPurpose "test-windows-vm-os" system "windows_vm: supports Linux only";
         pkgs.runCommand "windows_vm-contracts" { } ''
           echo "windows_vm contracts passed" > "$out"
         ''

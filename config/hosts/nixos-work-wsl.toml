@@ -4,7 +4,6 @@ kind = "nixos"
 state_version = "26.05"
 timezone = "Asia/Tokyo"
 purposes = ["machine_nixos_work_wsl", "ai_agents", "dev_tools", "daily_editing", "shell", "git", "nix_ld", "gui"]
-restricted = true
 
 [[users]]
 name = "nixos"

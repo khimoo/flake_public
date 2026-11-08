@@ -1,8 +1,6 @@
 requires = ["machine_ssh", "tailscale"]
 
 def config(host, machines, user):
-    if getattr(host, "restricted", False):
-        fail("restricted host: remote builds are not allowed (docs/architecture/wsl.md)")
     builders = []
     for name in sorted(machines.all):
         machine = machines.all[name]

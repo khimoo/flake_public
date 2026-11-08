@@ -3,9 +3,7 @@
 _VAULT_URL = "git@github.com:khimoo/memex.git"
 _SKELETON_URL = "git@github.com:khimoo/memex-nix.git"
 
-def config(user, host, incoming):
-    if not host.linux:
-        fail("memex: the vault workflow supports Linux only")
+def config(user, incoming):
     sync = any([w.value.get("sync", False) for w in incoming])
     obsidian = any([w.value.get("obsidian", False) for w in incoming])
     root = user.home + "/sagyo/memex"

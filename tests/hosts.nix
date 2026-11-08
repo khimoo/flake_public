@@ -57,7 +57,6 @@ let
     # /etc/nixos を checkout へのリンクにして、--flake なしの nixos-rebuild がこの flake を使うようにする。
     assert builtins.elem "L+ /etc/nixos - - - - /home/nixos/sagyo/flake_public"
       wsl.systemd.tmpfiles.rules;
-    assert configurations.hosts.nixos-work-wsl.restricted;
     assert systemAssertionsHold wsl;
     assert wsl.wsl.enable && wsl.wsl.defaultUser == "nixos";
     # 社用の AI アカウントがない会社の PC なので、自分用のエージェントの設定（agents-private）を置かない。

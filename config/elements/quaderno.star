@@ -1,6 +1,4 @@
 def config(user, host, failure_notify):
-    if not host.linux:
-        fail("quaderno: systemd user timers support Linux only")
     archive = host.quaderno_archive
     if not archive.startswith("/"):
         fail("quaderno: archive must be an absolute path")

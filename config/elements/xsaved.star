@@ -21,8 +21,6 @@ def public(host):
 
 def config(host, user, failure_notify):
     xsaved = struct(**_settings(host))
-    if not host.linux:
-        fail("xsaved: supports Linux only")
     if not xsaved.users:
         return {}
     databases = [_database(v.get("database", "xsaved")) for v in xsaved.users.values()]

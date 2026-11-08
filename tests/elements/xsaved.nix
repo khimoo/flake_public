@@ -10,7 +10,6 @@ let
     xsavedHost
     systemAssertionsHold
     purposeHome
-    rejectsPurpose
     allAssertions
     ;
 in
@@ -33,9 +32,6 @@ in
             r = builtins.tryEval (allAssertions (purposeHome "x86_64-linux" "test-xsaved-standalone"));
           in
           !r.success || !r.value;
-        assert
-          system == "x86_64-linux"
-          || rejectsPurpose "test-xsaved-standalone" system "xsaved: supports Linux only";
         pkgs.runCommand "xsaved-contracts" { } ''
           echo "xsaved contracts passed" > "$out"
         ''

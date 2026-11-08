@@ -4,9 +4,7 @@
 def public():
     return {"interface": "tailscale0"}
 
-def config(host):
-    if getattr(host, "restricted", False):
-        fail("restricted host: the tailnet (services.tailscale) is not allowed (docs/architecture/wsl.md)")
+def config():
     return {"nixos": {
         "services.tailscale.enable": True,
         # 相手側から直接届く UDP を受けられると、DERP 中継を経由しない直接接続になりやすい。

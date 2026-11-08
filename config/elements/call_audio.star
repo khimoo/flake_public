@@ -1,8 +1,6 @@
 requires = ["pipewire"]
 
 def config(host):
-    if not host.linux:
-        fail("call_audio: supports Linux only")
     return {"nixos": {
         ("services", "pipewire", "extraConfig", "pipewire", "93-echo-cancel"): {
             "context.modules": [{

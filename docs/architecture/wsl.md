@@ -19,16 +19,6 @@ Git は Home Manager の `~/.config/git/config` と `~/.gitconfig` の両方を�
 
 `khimoo` の push 権限を持つ認証情報も置かない。WSL の仮想ディスクは Windows のファイルで、会社の管理ツールや管理者から読める。flake_public は HTTPS で clone して pull だけをし、変更はすべて自宅で行う。
 
-## 制限を設定生成時に確かめる
-
-ホストの TOML に `restricted = true` を指定する。制限を破る側の要素が `restricted host:` で始まる理由を示して confgen の build を止める。
-
-- `machine_ssh`、`tailscale`、`remote_build` は選ばれると拒否する。
-- `secrets` は復号する秘密があるとき、`private_repos` は clone する repo があるときに拒否する。
-- `personal_files` は LAN 鍵を配る場合、`git` はユーザーの TOML に identity がある場合に拒否する。
-
-[tests/default.nix](../../tests/default.nix) は、実際の WSL の生成結果と、制限を破る架空のホストの build が指定の理由で失敗することを確かめる。制限は要素が出す設定を対象とするため、別の Nix モジュールに直接書いた設定の検査は含まない。
-
 ホスト名は既存の `nixos-desktop`、`nixos-spin713` に合わせて `nixos-` で始め、`work` で会社の機械であることを示す。`pomu-wsl` や `nixos-wsl` では個人の WSL と区別がつかない。
 
 ## 自分用のエージェント設定を置かない
@@ -44,7 +34,7 @@ Git は Home Manager の `~/.config/git/config` と `~/.gitconfig` の両方を�
 以前は agents-private を読み取り専用の deploy key で入れていた（4c54a17 と 1d685c5）。戻すときは次の判断を引き継ぐ。
 
 - deploy key は GitHub に repo ごとに登録する鍵で、`khimoo` の権限と切り離せる。代わりに agents-private の中身（指示、設定、`decisions/` の履歴）は会社から読める
-- `config/users/nixos.toml` に `agent_config_root` だけを指定し、`agent_config_repo` は省略して手で clone する。ホストでは既に `ai_agents` を選んでいる。`agent_config_repo` を指定すると `private_repos` が clone を要求し、このホストでは `restricted host:` で生成が止まる
+- `config/users/nixos.toml` に `agent_config_root` だけを指定し、`agent_config_repo` は省略して手で clone する。ホストでは既に `ai_agents` を選んでいる。`agent_config_repo` を指定すると `private_repos` が自動の clone を足す
 - deploy key は `github.com` ではなく、別名のホスト `github-agents-private`（`HostName github.com`、`IdentitiesOnly yes`）に結び付け、clone の URL を `git@github-agents-private:khimoo/agents-private.git` にする。GitHub は最初に認証が通った鍵でアカウントを決めるので、`github.com` 全体に deploy key を使うと、会社のリポジトリへの接続まで deploy key で認証されて失敗する
 - この別名は `/etc/ssh/ssh_config`（NixOS の `programs.ssh.extraConfig`）に書く。Home Manager の `programs.ssh` を使うと `~/.ssh/config` が読み取り専用になり、会社の設定を書けなくなる
 - 会社の鍵を `~/.ssh/config` の `Host *` に書くと分離が崩れる。OpenSSH は `~/.ssh/config` を先に読み、一致したブロックの `IdentityFile` をすべて候補に足すので（OpenSSH 10.3p1 の `ssh_config(5)`）、`github-agents-private` への接続でも会社の鍵が先に試される。会社の鍵は `Host github.com` に限って書く。ブロックの一致は `HostName` で置き換える前の名前で判断されるので、`github-agents-private` は `Host github.com` に一致しない。これはリポジトリから強制できないので、戻すときは `ssh -G github-agents-private` で使われる鍵を確かめる手順を使い方の文書に書く
@@ -85,7 +75,7 @@ WSL に fcitx5-skk を入れる案は退けた。WSLg の Wayland では IME の
 kitty と端末のフォントだけを入れる機能を新しく作る案も退け、既存の `gui` を使った。
 代償として OBS、Chrome、IntelliJ、LibreOffice、Zoom なども入り、ダウンロードと WSL のディスクが数 GB 単位で増える。どれも binary cache から取るので、会社 PC でのビルドは起きない。
 Slack などの自動起動は `graphical-session.target` に結び付いていて、WSL ではこの target に到達しないので起動しない。
-kitty の remote control はローカルのソケット（`unix:${XDG_RUNTIME_DIR}/kitty.sock`）だけを使うので、`restricted = true` の制限は変えない。
+kitty の remote control はローカルのソケット（`unix:${XDG_RUNTIME_DIR}/kitty.sock`）だけを使うので、自宅への接続経路は増えない。
 描画は mesa のソフトウェア描画のままにし、遅いと感じたら `wsl.useWindowsDriver` で Windows の GPU ドライバーを使う。
 
 ## uv が取得する Python を nix-ld で動かす

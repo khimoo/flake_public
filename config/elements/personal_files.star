@@ -27,7 +27,5 @@ def writes(user, host, private_repos, secrets):
         names[name] = True
         result.append(write(secrets, {"secret": key["secret"], "path": user.home + "/.ssh/" + name, "mode": "600", "ssh_key": True}))
     if lan:
-        if getattr(host, "restricted", False):
-            fail("restricted host: LAN SSH keys are not allowed (docs/architecture/wsl.md)")
         result.append(write(secrets, {"secret": "lan_ssh_key", "path": user.home + "/.ssh/id_lan", "mode": "600"}))
     return result

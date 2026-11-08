@@ -1,8 +1,6 @@
 requires = ["pipewire"]
 
-def config(user, host):
-    if not host.linux:
-        fail("music_production: supports Linux only")
+def config(user):
     return {
         "nixos": {
             "musnix.enable": True,

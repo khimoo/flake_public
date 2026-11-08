@@ -1,7 +1,7 @@
 # 会社 PC の NixOS-WSL（nixos-work-wsl）
 
 会社の Windows PC 上で動かす NixOS-WSL は、本 flake の `nixosConfigurations.nixos-work-wsl` で管理します。
-`local.restrictedHost.enable` が有効化されており、個人の機密情報や自宅マシンへの接続経路を持たせない安全な構成になっています。
+個人の機密情報や自宅マシンへの接続経路を持たせない構成です。
 
 設計: [会社 PC の NixOS-WSL の設計](../architecture/wsl.md)
 
@@ -39,7 +39,7 @@ flake の設定変更は自宅マシン側で行って push し、この PC で�
 
 ## 会社の Git と SSH 設定
 
-会社用の Git ユーザー名とメールアドレスは `~/.gitconfig` に直接記述し、本リポジトリ内には記述しないでください（記述するとホストの `restricted = true` を読んだ `git` 要素が confgen の build を止めます）。
+会社用の Git ユーザー名とメールアドレスは `~/.gitconfig` に直接記述し、本リポジトリ内には記述しないでください。
 `~/.gitconfig` が存在しない状態で `git config --global` を実行すると、Home Manager が管理する読み取り専用の `~/.config/git/config` に書き込もうとして失敗します。そのため、初回は `--file` オプションでファイルを明示して設定してください。
 
 ```sh
@@ -71,5 +71,5 @@ kitty の設定やキーバインドは自宅マシンと共通です（[cli-too
 - 個人アカウントでの Claude や Codex へのログイン: 会社のソースコードや業務情報が、会社契約のない外部サービスへ個人として送信されてしまうリスクがあるほか、認証情報（`~/.claude/.credentials.json`、`~/.codex/auth.json`）が社内から参照可能なディスク上に残ってしまうため。パッケージ（`claude` や `codex`）自体は導入されていますが、社用アカウントが支給されるまでは使用しないでください。
 - `khimoo` の push 権限を持つ認証情報: WSL の仮想ディスクは、会社の端末管理ツールや管理者から閲覧可能な状態にあるため。
 
-このホストに secret、SSH 鍵、Git identity、sshd、tailnet、リモートビルドなどの設定を追加しようとすると、`local.restrictedHost:` で始まる assertion により評価が停止し、違反した設定内容が表示されます。
+このホストに secret、SSH 鍵、Git identity、tailnet、リモートビルドなどの設定を追加しても、評価は止まりません（[README の TODO](../../README.md#todo)）。ホストの目的を変えるときは、上の一覧に当たるものを選んでいないか確かめてください。
 正当な理由があって制限を解除する場合（私用 PC として利用することになった場合など）は、あらかじめ[設計の見直す条件](../architecture/wsl.md#見直す条件)を確認してください。

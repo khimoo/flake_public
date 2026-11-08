@@ -50,9 +50,6 @@ in
         # home の外は許す。別ディスクへ置く構成を弾かないこと。
         assert system != "x86_64-linux" || allAssertions (purposeHome system "test-quaderno-backup");
         assert rejectsPurpose "test-quaderno-missing-archive" "x86_64-linux" "quaderno_archive";
-        assert
-          system == "x86_64-linux"
-          || rejectsPurpose "test-quaderno" system "quaderno: systemd user timers support Linux only";
         pkgs.runCommand "quaderno-contracts" { } ''
           echo "quaderno contracts passed" > "$out"
         ''

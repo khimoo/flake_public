@@ -20,7 +20,7 @@
 ## 対応範囲
 
 - NixOS: `nixos-desktop`, `nixos-spin713`（x86_64 Linux）。ホストの目的がGUIとvault同期を選択。音楽制作はホストで選択し、`nixos-desktop` だけで有効。
-- NixOS-WSL: `nixos-work-wsl`（x86_64 Linux、会社PC。GUI アプリは WSLg で表示）。ホストの `restricted = true` により、秘密情報と自宅への接続経路を追加する要素を拒否。[手順](docs/howtouse/wsl.md) · [設計判断](docs/architecture/wsl.md)
+- NixOS-WSL: `nixos-work-wsl`（x86_64 Linux、会社PC。GUI アプリは WSLg で表示）。秘密情報と自宅への接続経路を持たせない。[手順](docs/howtouse/wsl.md) · [設計判断](docs/architecture/wsl.md)
 - Home Manager: `pomu-nixos`（x86_64 Linux GUI・音楽制作）。`pomu-macos`（aarch64 Darwin CLI）は使い始めるまで `flake.nix` で外している。
 - RustOwlの自動導入はx86_64 Linux限定。macOSのGUI・音楽制作・vaultプロファイルは未対応。
 - macOS構成の評価と実機での適用は別の確認です。検証範囲は[検証ガイド](docs/howtouse/validation.md)を参照。
@@ -76,3 +76,7 @@ NixOSで一度 switch を実行すると、`/etc/nixos` が primaryUser のチ�
 個人設定は `config/users/<ユーザー>.toml` に書きます。[ユーザー管理](docs/howtouse/users.md)と [confgen](docs/howtouse/confgen.md)を参照してください。
 
 複数ユーザー構成は [tests/default.nix](tests/default.nix) と [ハードウェア代替fixture](examples/new-host.nix) で評価しています。fixture は実機へ適用する設定ではありません。
+
+## TODO
+
+- 会社 PC（`nixos-work-wsl`）で使ってはいけない機能（自宅への接続経路、秘密の復号、Git identity）や、Linux 以外で動かない機能を選んだとき、設定の生成を止める仕組み。今は止まらない。

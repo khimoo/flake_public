@@ -6,10 +6,8 @@ def public(user):
 def _quote(value):
     return "'" + value.replace("'", "'\"'\"'") + "'"
 
-def config(user, checkout, host, incoming):
+def config(user, checkout, incoming):
     repos = [w.value for w in incoming]
-    if repos and getattr(host, "restricted", False):
-        fail("restricted host: automatic private repo clones are not allowed (docs/architecture/wsl.md)")
     destinations = {}
     for repo in repos:
         if not repo["dest"].startswith(user.home + "/") or ".." in repo["dest"].split("/"):

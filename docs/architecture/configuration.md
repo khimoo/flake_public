@@ -19,7 +19,7 @@ Neovim の道具と生成する Lua は `nvim_<名前>` の要素が機能ごと
 
 ## 制約
 
-clone の宛先と秘密の復号先はホーム配下に限定し、重複する宛先を要素の `fail` で拒否する。エージェント設定の URL には checkout の場所も必要になる。GUI と音楽・通話は Linux 専用で、対応しない OS では設定生成を止める。
+clone の宛先と秘密の復号先はホーム配下に限定し、重複する宛先を要素の `fail` で拒否する。エージェント設定の URL には checkout の場所も必要になる。
 
 checkout の場所はホームからの相対パス `flake_root` とし、`checkout.root` が絶対パスを公開する。mutable checkout と秘密のパスの検査は設定ミスを防ぐもので、symlink や OS 権限を検証するセキュリティ境界ではない。
 

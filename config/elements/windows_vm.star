@@ -6,8 +6,6 @@ def public(host):
     }
 
 def config(host, incoming):
-    if not host.linux:
-        fail("windows_vm: supports Linux only")
     domain = getattr(host, "windows_vm_domain", None)
     if domain != None and not incoming:
         fail("windows_vm: launcher requires gui")

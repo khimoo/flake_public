@@ -7,8 +7,6 @@ def _block(user, patterns, hostname):
     return "Host %s\n  HostName %s\n  User %s\n  IdentityFile ~/.ssh/id_lan\n  StrictHostKeyChecking accept-new\n  ConnectTimeout 10\n" % (patterns, hostname, user)
 
 def config(host, machines, incoming):
-    if getattr(host, "restricted", False):
-        fail("restricted host: machine SSH is not allowed (docs/architecture/wsl.md)")
     tailnet = len(incoming) > 0
     blocks = []
     for name in sorted(machines.all):
