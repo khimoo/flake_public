@@ -1,6 +1,6 @@
 system = "x86_64-linux"
 state_version = "25.11"
-purposes = ["quaderno"]
+purposes = ["quaderno_pull"]
 quaderno_archive = "/mnt/backup/quaderno"
 
 [[users]]

@@ -38,7 +38,7 @@ Flake 設定の設計判断・実装構造のドキュメント。設定変更�
 | [memex-drive-sync.md](./memex-drive-sync.md) | vault のバイナリを git-annex で Drive に置く設計 |
 | [memex-vault-skeleton.md](./memex-vault-skeleton.md) | vault の骨格の配布とミラーの設計 |
 | [minecraft-backup.md](./minecraft-backup.md) | Minecraft のインスタンスのバックアップの設計 |
-| [quaderno.md](./quaderno.md) | Quaderno からの手書き PDF の取り込みの設計 |
+| [quaderno.md](./quaderno.md) | Quaderno からの手書き PDF の取り込みと、PDF の送信の設計 |
 | [xsaved.md](./xsaved.md) | X のいいねとブックマークの保存と意味検索の実行環境、データベース、定期実行の設計 |
 
 小さな機能（agy、comma、Graphify、Inkscape）は、使い方の文書の「設計」の節に判断を書く（[使い方ガイド](../howtouse/README.md)）。

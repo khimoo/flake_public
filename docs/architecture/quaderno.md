@@ -76,6 +76,11 @@ Quaderno はスリープすると Wi-Fi ごと消え、起きている短い間�
 
 記録はマシンごとに分かれるので、2 台で有効にすると両方が全件を取り込む。取り込みは nixos-desktop の 1 台に限る。
 
+## 取り込みと送信を別の目的にする
+
+desktop の電源を切って spin713 だけで出かけたときにも送れるよう、spin713 でも送信を動かす。取り込みは 1 台に限るので、取り込み（`quaderno_pull`）と送信（`quaderno_send`）を別の目的に分ける。
+探索と systemd の timer は `quaderno` の要素が 1 つだけ持ち、二つの目的はそこへ設定を書き込む。両方を選んだ desktop でも、探すのは 1 分に 1 回で、見つかったら取り込みの後に送信する。
+
 ## 取り込み先は SATA の `@backup` にし、vault には置かない
 
 `quaderno_archive` は `/mnt/backup/quaderno` で、ディレクトリは `machine_nixos_desktop` の tmpfiles が作る。`minecraft-backup` と同じく、置き場所と書き込み権限はホストが用意し、モジュールは受け取るだけにする。
@@ -87,7 +92,7 @@ PDF は増え続ける一方で読むのは時々なので SATA に置く（最�
 workflow 側には vault の資料の Drive 同期があり、取り込み先を vault の下にすれば Drive へ運べる。
 しかし既存の同期は `rclone bisync` だけで片方向の `copy` がなく、Drive 側の削除が手元に伝わる。一方向にした判断と合わない。
 Drive への同期を自動化するときは、片方向の層を足してから workflow へ移す。
-要素はホストの `quaderno_archive` とユーザーのホームを受け取り、`quaderno_archive` に既定値を置かない。失敗の通知は `failure_notify` の公開値を使う。
+`quaderno_pull` はホストの `quaderno_archive` とユーザーのホームを受け取り、`quaderno_archive` に既定値を置かない。失敗の通知は `failure_notify` の公開値を使う。
 
 ## まだ分からないこと
 

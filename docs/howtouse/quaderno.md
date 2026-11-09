@@ -1,13 +1,13 @@
 # Quaderno の取り込みと送信
 
 Fujitsu Quaderno A4 Gen2 と、同じ LAN 内で PDF を受け渡します。
-1 分ごとに Quaderno を探し、見つかったら次の順に処理します。
+1 分ごとに Quaderno を探し、見つかったら、ホストで選んだ目的の分だけ次の順に処理します。
 
-1. Quaderno で作成・書き込みした PDF を手元のアーカイブへ取り込む
-2. 送信用フォルダ（Send）に置いた PDF を Quaderno の `Document/Received` へ送る
+1. `quaderno_pull`: Quaderno で作成・書き込みした PDF を手元のアーカイブへ取り込む
+2. `quaderno_send`: 送信用フォルダ（Send）に置いた PDF を Quaderno の `Document/Received` へ送る
 
-Quaderno はスリープ中は Wi-Fi から外れるので、受け渡しは Quaderno を起こしてから 1 分ほどで始まります。
-[nixos-desktop.toml](../../config/hosts/nixos-desktop.toml) の `purposes` で `quaderno` を選び、同ファイルの `quaderno_archive` で取り込み先を指定します。nixos-desktop のみで有効化しています。複数台で有効にすると、両方のマシンが全件を取り込む動作になります。
+Quaderno はスリープ中は Wi-Fi から外れるので、受け渡しは Quaderno のスリープを解除してから 1 分ほどで始まります。
+[nixos-desktop.toml](../../config/hosts/nixos-desktop.toml) は両方を選び、`quaderno_archive` で取り込み先を指定しています。[nixos-spin713.toml](../../config/hosts/nixos-spin713.toml) は `quaderno_send` だけを選んでいます。`quaderno_pull` は 1 台だけで選んでください。複数台で選ぶと、両方のマシンが全件を取り込みます。
 
 設計ドキュメント: [Quaderno の取り込みと送信の設計](../architecture/quaderno.md)
 
@@ -19,10 +19,11 @@ Quaderno はスリープ中は Wi-Fi から外れるので、受け渡しは Qua
 
 ペアリングが成功すると `~/.config/dpt/deviceid.dat` と `~/.config/dpt/privatekey.dat` が生成され、以降の認証にはこの 2 つのファイルが使用されます。
 これらはデバイス個別の認証鍵であるため、Git リポジトリには含めないでください。
+ペアリングは、`quaderno_pull` か `quaderno_send` を選んだマシンごとに必要です。
 
 ## PDF を送る
 
-`~/Quaderno/Send` に PDF を置き、Quaderno を起こします。1 分ほどで `Document/Received` に届き、Send からは消えます。
+`~/Quaderno/Send` に PDF を置き、Quaderno のスリープを解除します。1 分ほどで `Document/Received` に届き、Send からは消えます。
 同じ名前の文書が Received にあれば上書きせず、`a (a).pdf`、`a (b).pdf` のように英字を付けて送ります。古い版は Quaderno 側で消してください。
 送り先と Send の場所は、ホストの `quaderno_send_remote` と `quaderno_send_dir` で変えられます。
 

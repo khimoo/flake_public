@@ -14,6 +14,7 @@ purposes = [
   "dev_tools",
   "daily_editing",
   "sshfs_editing",
+  "quaderno_send",
   "memex_sync",
   "obsidian",
   "shell",

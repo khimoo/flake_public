@@ -236,19 +236,25 @@ def send(paper, send_dir, remote_dir, docs):
 def main():
     # 空文字は「指定なし」を意味する。Nix 側は null をこの形で渡す。
     serial = os.environ.get("QUADERNO_SERIAL") or None
-    archive_dir = Path(os.environ["QUADERNO_ARCHIVE_DIR"])
-    remote_root = os.environ.get("QUADERNO_REMOTE_ROOT", "Document")
     timeout = int(os.environ.get("QUADERNO_DISCOVERY_TIMEOUT", "15"))
-    state_file = Path(os.environ["QUADERNO_STATE_FILE"])
-    send_dir = Path(os.environ["QUADERNO_SEND_DIR"])
+    # 取り込みと送信は、ホストで選んだ要素（quaderno_pull、quaderno_send）の分だけ設定される。
+    archive = os.environ.get("QUADERNO_ARCHIVE_DIR")
+    remote_root = os.environ.get("QUADERNO_REMOTE_ROOT", "Document")
+    send_dir = os.environ.get("QUADERNO_SEND_DIR")
     send_remote = os.environ.get("QUADERNO_SEND_REMOTE", "Document/Received")
-    root = remote_root.rstrip("/")
-    if send_remote.rstrip("/") != root and not send_remote.startswith(root + "/"):
-        # 送り先にある名前は、取り込みのための文書一覧から知る。外にあると一覧に載らない。
-        print("送り先 {} が取り込み対象 {} の外にあります。".format(send_remote, remote_root))
-        return 1
-    # 置き場所が無いと、送りたいときに作り方が分からない。見つからない回でも作っておく。
-    send_dir.mkdir(parents=True, exist_ok=True)
+    if archive:
+        listed = remote_root
+        root = remote_root.rstrip("/")
+        if send_dir and send_remote.rstrip("/") != root and not send_remote.startswith(root + "/"):
+            # 送り先にある名前は、取り込みのための文書一覧から知る。外にあると一覧に載らない。
+            print("送り先 {} が取り込み対象 {} の外にあります。".format(send_remote, remote_root))
+            return 1
+    else:
+        listed = send_remote
+    if send_dir:
+        send_dir = Path(send_dir)
+        # 置き場所が無いと、送りたいときに作り方が分からない。見つからない回でも作っておく。
+        send_dir.mkdir(parents=True, exist_ok=True)
 
     addr = discover(serial, timeout)
     if addr is None:
@@ -257,13 +263,12 @@ def main():
         return 0
 
     paper = connect(addr)
-    state = load_state(state_file)
     try:
-        docs = paper.traverse_folder_recursively(remote_root)
+        docs = paper.traverse_folder_recursively(listed)
     except DigitalPaperException as e:
-        # remote_root が設定で変えられる値なので、設定ミスをそれと分かる形で伝える。
-        print("文書フォルダが見つかりません: {} ({})".format(remote_root, e))
-        print("  → local.quaderno.remoteRoot の設定値を確かめてください。")
+        # フォルダはホストの値で変えられるので、設定ミスをそれと分かる形で伝える。
+        print("文書フォルダが見つかりません: {} ({})".format(listed, e))
+        print("  → ホストの quaderno_remote_root と quaderno_send_remote を確かめてください。")
         return 1
     except requests.RequestException as e:
         print("文書一覧の取得中に通信が切れました: {}".format(e))
@@ -275,9 +280,14 @@ def main():
         print("文書一覧の取得に失敗しました: {}".format(e))
         print("  → セッションが切れている可能性があります。しばらくしてから再実行してください。")
         return 1
-    pulled = pull(paper, docs, state, state_file, archive_dir, remote_root, addr)
-    sent = send(paper, send_dir, send_remote, docs)
-    return max(pulled, sent)
+    status = 0
+    if archive:
+        state_file = Path(os.environ["QUADERNO_STATE_FILE"])
+        state = load_state(state_file)
+        status = pull(paper, docs, state, state_file, Path(archive), remote_root, addr)
+    if send_dir:
+        status = max(status, send(paper, send_dir, send_remote, docs))
+    return status
 
 
 def pull(paper, docs, state, state_file, archive_dir, remote_root, addr):
