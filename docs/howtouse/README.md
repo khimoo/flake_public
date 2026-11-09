@@ -35,7 +35,7 @@
 | memex の Drive 同期 | git-annex による資料の同期の運用 | [memex-drive-sync.md](./memex-drive-sync.md) |
 | vault 骨格の配布・ミラー | vault の骨格を公開 repo へ写す手順 | [memex-vault-skeleton.md](./memex-vault-skeleton.md) |
 | Minecraft バックアップ | インスタンスのバックアップと復元 | [minecraft-backup.md](./minecraft-backup.md) |
-| Quaderno の取り込み | 手書き PDF の取り込み | [quaderno.md](./quaderno.md) |
+| Quaderno の取り込みと送信 | 手書き PDF の取り込みと、PDF の送信 | [quaderno.md](./quaderno.md) |
 | X のいいねとブックマークの保存 | いいねとブックマークの保存と意味検索、定期実行 | [xsaved.md](./xsaved.md) |
 
 ## 関連

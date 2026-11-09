@@ -1,10 +1,15 @@
-# Quaderno の取り込み
+# Quaderno の取り込みと送信
 
-Fujitsu Quaderno A4 Gen2 で作成した手書き PDF を、同じ LAN 内に接続している際に 1 時間ごとに自動でローカルへ取り込みます。
-データの同期はデバイスから手元への一方向のみであり、デバイス側のファイルを書き換えることはありません。
+Fujitsu Quaderno A4 Gen2 と、同じ LAN 内で PDF を受け渡します。
+1 分ごとに Quaderno を探し、見つかったら次の順に処理します。
+
+1. Quaderno で作成・書き込みした PDF を手元のアーカイブへ取り込む
+2. 送信用フォルダ（Send）に置いた PDF を Quaderno の `Document/Received` へ送る
+
+Quaderno はスリープ中は Wi-Fi から外れるので、受け渡しは Quaderno を起こしてから 1 分ほどで始まります。
 [nixos-desktop.toml](../../config/hosts/nixos-desktop.toml) の `purposes` で `quaderno` を選び、同ファイルの `quaderno_archive` で取り込み先を指定します。nixos-desktop のみで有効化しています。複数台で有効にすると、両方のマシンが全件を取り込む動作になります。
 
-設計ドキュメント: [Quaderno の取り込みの設計](../architecture/quaderno.md)
+設計ドキュメント: [Quaderno の取り込みと送信の設計](../architecture/quaderno.md)
 
 ## 初回ペアリング手順
 
@@ -15,9 +20,15 @@ Fujitsu Quaderno A4 Gen2 で作成した手書き PDF を、同じ LAN 内に接
 ペアリングが成功すると `~/.config/dpt/deviceid.dat` と `~/.config/dpt/privatekey.dat` が生成され、以降の認証にはこの 2 つのファイルが使用されます。
 これらはデバイス個別の認証鍵であるため、Git リポジトリには含めないでください。
 
+## PDF を送る
+
+`~/Quaderno/Send` に PDF を置き、Quaderno を起こします。1 分ほどで `Document/Received` に届き、Send からは消えます。
+同じ名前の文書が Received にあれば上書きせず、`a (a).pdf`、`a (b).pdf` のように英字を付けて送ります。古い版は Quaderno 側で消してください。
+送り先と Send の場所は、ホストの `quaderno_send_remote` と `quaderno_send_dir` で変えられます。
+
 ## 日常の運用
 
-自動で処理されるため手動での操作は不要です。今すぐ取り込みを行いたい場合は `quaderno-pull` を実行してください。
+自動で処理されるため手動での操作は不要です。今すぐ受け渡しを行いたい場合は `quaderno-transfer` を実行してください。
 
 取り込み先は `/mnt/backup/quaderno`（`quaderno_archive`）であり、デバイス内のフォルダ構造がそのまま再現されます（`<quaderno_archive>/Document/...`）。
 Google Drive への自動アップロードは行われません。クラウドへ保存したい場合は手動でアップロードしてください。
@@ -31,11 +42,11 @@ Google Drive への自動アップロードは行われません。クラウド�
 ## 動作確認
 
 ```sh
-systemctl --user status quaderno-pull
-journalctl --user -u quaderno-pull
+systemctl --user status quaderno-transfer
+journalctl --user -u quaderno-transfer
 ```
 
 Quaderno がスリープ状態の場合はデバイスを発見できず、「見つかりません」と表示して正常終了します。これは正常な挙動です。
-認証エラーやダウンロード処理自体に失敗した場合は、非ゼロのステータスコードで終了します。
+認証エラーや、取り込み・送信自体に失敗した場合は、非ゼロのステータスコードで終了します。
 
 同一 LAN 内に他の Digital Paper 機器が存在し、意図しない機器へ接続されてしまう場合は、ホストの `quaderno_serial` にシリアル番号を指定することで特定デバイスのみに接続を限定できます。

@@ -19,10 +19,10 @@ in
   quaderno-contracts =
     (lib.lazyDerivation {
       derivation = (
-        assert !(home.config.systemd.user.timers ? quaderno-pull);
+        assert !(home.config.systemd.user.timers ? quaderno-transfer);
         assert
           system != "x86_64-linux"
-          || ((purposeHome system "test-quaderno").config.systemd.user.timers ? quaderno-pull);
+          || ((purposeHome system "test-quaderno").config.systemd.user.timers ? quaderno-transfer);
         assert
           system != "x86_64-linux"
           || (

@@ -25,3 +25,45 @@ def plan_downloads(docs, state, remote_root):
             continue
         planned.append(entry)
     return planned
+
+
+
+def plan_uploads(names, taken):
+    """Send フォルダの各ファイルに、送り先で重ならない名前を割り当てる。
+
+    names Send フォルダにある PDF のファイル名
+    taken 送り先のフォルダにすでにある文書の名前の集合
+
+    デバイスは同じフォルダに同じ名前の文書を作れない（error_code 40007）。上書きすると
+    デバイス上の書き込みが消えるので、空いていなければ "a (a).pdf"、"a (b).pdf" … と
+    英字を付ける。数字にしないのは、デバイスや別の道具が付けた番号と見分けるため。
+    (name, 送り先での名前) を返す。
+    """
+    used = set(taken)
+    planned = []
+    for name in names:
+        target = name
+        n = 0
+        while target in used:
+            target = _with_label(name, _letters(n))
+            n += 1
+        used.add(target)
+        planned.append((name, target))
+    return planned
+
+
+def _letters(n):
+    """0 -> "a"、25 -> "z"、26 -> "aa" のように、表計算の列名と同じ順で返す。"""
+    label = ""
+    n += 1
+    while n:
+        n, r = divmod(n - 1, 26)
+        label = chr(ord("a") + r) + label
+    return label
+
+
+def _with_label(name, label):
+    stem, dot, suffix = name.rpartition(".")
+    if not dot:
+        return "{} ({})".format(name, label)
+    return "{} ({}).{}".format(stem, label, suffix)

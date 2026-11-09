@@ -1,7 +1,8 @@
-"""Quaderno から未取得・改訂された文書だけをアーカイブへ取り込む。
+"""Quaderno が見つかったら、文書を取り込んでから Send フォルダの PDF を送る。
 
-一方向。手元からデバイスへは何も書かないし、手元のファイルも消さない。
-設計判断は docs/architecture/quaderno.md にある。
+取り込みは未取得・改訂された文書だけをアーカイブへ落とす。送信は Send フォルダの
+ファイルだけを、デバイス上の文書を上書きせずに送り、送れたら Send から消す。双方向の
+マージはしない。設計判断は docs/architecture/quaderno.md にある。
 """
 import json
 import os
@@ -9,12 +10,13 @@ import socket
 import sys
 import time
 from pathlib import Path
+from urllib.parse import quote_plus
 
 import requests
 from dptrp1.dptrp1 import DigitalPaper, DigitalPaperException, find_auth_files
 from zeroconf import ServiceBrowser, Zeroconf
 
-from quaderno_plan import plan_downloads
+from quaderno_plan import plan_downloads, plan_uploads
 
 SERVICE_TYPES = ["_digitalpaper._tcp.local.", "_dp_fujitsu._tcp.local."]
 
@@ -163,6 +165,74 @@ def store(paper, entry, archive_dir):
     return len(data)
 
 
+def settled_pdfs(send_dir, now):
+    """Send フォルダにある PDF のうち、書き込みが終わっていそうなものを返す。
+
+    コピーの途中で送ると、半端なファイルがデバイスに残り、手元からは消える。
+    """
+    return sorted(
+        p for p in send_dir.iterdir()
+        if p.is_file() and p.suffix.lower() == ".pdf" and now - p.stat().st_mtime > 10
+    )
+
+
+def create(paper, folder_id, name, handle):
+    """デバイスに新しい文書を作る。同じ名前があれば作らずに例外にする。
+
+    dptrp1 の upload は同じパスの文書を探して中身を差し替えるので使わない。
+    この要求なら、名前が重なったときはデバイスが断る（error_code 40007）。
+    """
+    r = paper._post_endpoint(
+        "/documents2",
+        data={"file_name": name, "parent_folder_id": folder_id, "document_source": ""},
+    )
+    if not r.ok:
+        raise DigitalPaperException("文書を作れません: {} ({})".format(name, r.text))
+    doc_url = "/documents/{}/file".format(r.json()["document_id"])
+    r = paper._put_endpoint(doc_url, files={"file": (quote_plus(name), handle, "rb")})
+    if not r.ok:
+        raise DigitalPaperException("中身を送れません: {} ({})".format(name, r.text))
+
+
+def send(paper, send_dir, remote_dir, docs):
+    """Send フォルダの PDF を送る。送れたものは Send から消す。失敗が一つでもあれば 1。"""
+    files = {p.name: p for p in settled_pdfs(send_dir, time.time())}
+    if not files:
+        return 0
+    prefix = remote_dir.rstrip("/") + "/"
+    taken = {
+        entry["entry_path"][len(prefix):]
+        for entry in docs
+        if entry["entry_path"].startswith(prefix) and "/" not in entry["entry_path"][len(prefix):]
+    }
+    try:
+        folder_id = paper._get_object_id(remote_dir)
+    except (requests.RequestException, DigitalPaperException, KeyError, ValueError) as e:
+        print("送り先のフォルダが見つかりません: {} ({})".format(remote_dir, e))
+        return 1
+    status = 0
+    for name, target in plan_uploads(sorted(files), taken):
+        local = files[name]
+        path = prefix + target
+        try:
+            with open(local, "rb") as handle:
+                create(paper, folder_id, target, handle)
+            info = paper.list_document_info(path)
+            if int(info["file_size"]) != local.stat().st_size:
+                raise DigitalPaperException(
+                    "送ったサイズが一致しません: {} (手元 {} バイト、デバイス {} バイト)".format(
+                        path, local.stat().st_size, info["file_size"]
+                    )
+                )
+        except (requests.RequestException, OSError, DigitalPaperException, KeyError, ValueError) as e:
+            print("送信に失敗: {} ({})".format(path, e))
+            status = 1
+            continue
+        local.unlink()
+        print("  送信: {}".format(path))
+    return status
+
+
 def main():
     # 空文字は「指定なし」を意味する。Nix 側は null をこの形で渡す。
     serial = os.environ.get("QUADERNO_SERIAL") or None
@@ -170,6 +240,15 @@ def main():
     remote_root = os.environ.get("QUADERNO_REMOTE_ROOT", "Document")
     timeout = int(os.environ.get("QUADERNO_DISCOVERY_TIMEOUT", "15"))
     state_file = Path(os.environ["QUADERNO_STATE_FILE"])
+    send_dir = Path(os.environ["QUADERNO_SEND_DIR"])
+    send_remote = os.environ.get("QUADERNO_SEND_REMOTE", "Document/Received")
+    root = remote_root.rstrip("/")
+    if send_remote.rstrip("/") != root and not send_remote.startswith(root + "/"):
+        # 送り先にある名前は、取り込みのための文書一覧から知る。外にあると一覧に載らない。
+        print("送り先 {} が取り込み対象 {} の外にあります。".format(send_remote, remote_root))
+        return 1
+    # 置き場所が無いと、送りたいときに作り方が分からない。見つからない回でも作っておく。
+    send_dir.mkdir(parents=True, exist_ok=True)
 
     addr = discover(serial, timeout)
     if addr is None:
@@ -196,6 +275,12 @@ def main():
         print("文書一覧の取得に失敗しました: {}".format(e))
         print("  → セッションが切れている可能性があります。しばらくしてから再実行してください。")
         return 1
+    pulled = pull(paper, docs, state, state_file, archive_dir, remote_root, addr)
+    sent = send(paper, send_dir, send_remote, docs)
+    return max(pulled, sent)
+
+
+def pull(paper, docs, state, state_file, archive_dir, remote_root, addr):
     planned = plan_downloads(docs, state, remote_root)
     if not planned:
         print("{} に接続しました。新しい文書はありません。".format(addr))

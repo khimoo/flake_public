@@ -1,5 +1,5 @@
-"""取り込み対象の選別が、フォルダ・対象外パス・既取得・改訂をそれぞれ正しく扱うか。"""
-from quaderno_plan import plan_downloads
+"""取り込み対象の選別と、送り先で重ならない名前の割り当てが期待どおりか。"""
+from quaderno_plan import plan_downloads, plan_uploads
 
 
 def doc(entry_id, path, revision):
@@ -38,4 +38,14 @@ assert [d["entry_id"] for d in plan_downloads(docs, {}, "Templates")] == ["3"]
 siblings = [doc("4", "Document2/d.pdf", "r1")]
 assert plan_downloads(siblings, {}, "Document") == []
 
-print("Quaderno の取り込み選別が期待どおり")
+# 送り先に無い名前はそのまま、重なれば英字を付け、同じ回に送る別のファイルとも重ねない。
+assert plan_uploads(["new.pdf", "a.pdf"], {"a.pdf"}) == [("new.pdf", "new.pdf"), ("a.pdf", "a (a).pdf")]
+assert plan_uploads(["a.pdf"], {"a.pdf", "a (a).pdf"}) == [("a.pdf", "a (b).pdf")]
+assert plan_uploads(["a.pdf", "a.pdf"], set()) == [("a.pdf", "a.pdf"), ("a.pdf", "a (a).pdf")]
+
+# z の次は aa。拡張子の無い名前にも付けられる。
+taken = {"a.pdf"} | {"a ({}).pdf".format(chr(c)) for c in range(ord("a"), ord("z") + 1)}
+assert plan_uploads(["a.pdf"], taken) == [("a.pdf", "a (aa).pdf")]
+assert plan_uploads(["memo"], {"memo"}) == [("memo", "memo (a)")]
+
+print("Quaderno の取り込み選別と送り先の名前が期待どおり")
