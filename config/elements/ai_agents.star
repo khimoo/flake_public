@@ -10,6 +10,12 @@ enabled = false
 # そのため、完全に無効化するには両方の設定をあわせて記述する必要があります。
 [features]
 multi_agent_v2 = false
+
+# sol-handoff は Codex の astra のプロファイル（agents-private の codex/astra.config.toml）でだけ有効に戻す。
+# sol のセッションが sol 自身に渡すのを防ぐため。Alook の Codex のボットは --profile なしで動くので、ここで止める。
+[[skills.config]]
+name = "sol-handoff"
+enabled = false
 """
 
 def config(host):
