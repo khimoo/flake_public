@@ -1,7 +1,7 @@
 diff -ru a/client/SDL/SDL3/sdl_disp.cpp b/client/SDL/SDL3/sdl_disp.cpp
 --- a/client/SDL/SDL3/sdl_disp.cpp
 +++ b/client/SDL/SDL3/sdl_disp.cpp
-@@ -391,8 +391,7 @@
+@@ -417,8 +417,7 @@
  			return _sdl->getInputChannelContext().keyboard_grab(ev.windowID, false);
  		case SDL_EVENT_WINDOW_MOUSE_ENTER:
  			WINPR_ASSERT(_sdl);
@@ -14,7 +14,7 @@ diff -ru a/client/SDL/SDL3/sdl_disp.cpp b/client/SDL/SDL3/sdl_disp.cpp
 diff -ru a/client/SDL/SDL3/sdl_input.cpp b/client/SDL/SDL3/sdl_input.cpp
 --- a/client/SDL/SDL3/sdl_input.cpp
 +++ b/client/SDL/SDL3/sdl_input.cpp
-@@ -576,6 +576,8 @@
+@@ -610,6 +610,8 @@
  
  			if (ev.scancode == _hotkeyGrab)
  			{
@@ -23,7 +23,7 @@ diff -ru a/client/SDL/SDL3/sdl_input.cpp b/client/SDL/SDL3/sdl_input.cpp
  				WLog_Print(_sdl->getWLog(), WLOG_INFO, "%s+<%s> pressed, toggling grab state",
  				           masktostr(_hotkeyModmask).c_str(), sdl_scancode_name(_hotkeyGrab));
  				if (!keyboard_sync_state())
-@@ -612,6 +614,17 @@
+@@ -646,6 +648,17 @@
  	}
  #endif
  
@@ -41,21 +41,37 @@ diff -ru a/client/SDL/SDL3/sdl_input.cpp b/client/SDL/SDL3/sdl_input.cpp
  	auto scancode = freerdp_keyboard_remap_key(_remapTable, rdp_scancode);
  #if defined(WITH_DEBUG_KBD)
  	{
-@@ -623,8 +636,11 @@
+@@ -657,6 +670,7 @@
  		           ev.scancode, scancode, sc, ex ? " extended" : "");
  	}
  #endif
++	BOOL rc = FALSE;
+ 	if (freerdp_settings_get_bool(_sdl->context()->settings, FreeRDP_UnicodeInput))
+ 	{
+ 		/* With key_event false the keycode follows the layout, also for non-Latin ones, where key
+@@ -665,12 +679,18 @@
+ 		std::array<char, 5> str = {};
+ 		if ((key >= 0x20) && (key != SDLK_DELETE) && (key <= 0x10FFFF))
+ 			std::ignore = SDL_UCS4ToUTF8(key, str.data());
+-		return freerdp_client_send_key_as_unicode(
++		rc = freerdp_client_send_key_as_unicode(
+ 		    _sdl->common(), (ev.type == SDL_EVENT_KEY_DOWN) ? 0 : KBD_FLAGS_RELEASE, str.data(),
+ 		    scancode, sdl_get_kbd_modmask(mods));
+ 	}
 -	return freerdp_input_send_keyboard_event_ex(_sdl->context()->input,
 -	                                            ev.type == SDL_EVENT_KEY_DOWN, ev.repeat, scancode);
-+	const BOOL rc = freerdp_input_send_keyboard_event_ex(
-+	    _sdl->context()->input, ev.type == SDL_EVENT_KEY_DOWN, ev.repeat, scancode);
++	else
++	{
++		rc = freerdp_input_send_keyboard_event_ex(
++		    _sdl->context()->input, ev.type == SDL_EVENT_KEY_DOWN, ev.repeat, scancode);
++	}
 +	if (releaseGrab && !keyboard_grab(ev.windowID, false))
 +		return false;
 +	return rc;
  }
  
  bool sdlInput::keyboard_grab(Uint32 windowID, bool enable)
-@@ -636,6 +652,7 @@
+@@ -682,6 +702,7 @@
  	auto settings = _sdl->context()->settings;
  	auto kbd_enabled = freerdp_settings_get_bool(settings, FreeRDP_GrabKeyboard);
  	auto status = enable && kbd_enabled;

@@ -14,7 +14,7 @@ def config(user):
                 },
             },
             # delta を lazygit の中のページャーとして使う。
-            "git": {"pagers": [{"pager": "delta --dark --paging=never", "colorArg": "always"}]},
+            "git": {"diffRenderers": [{"command": "delta --dark --paging=never", "colorArg": "always"}]},
         },
         "programs.git.enable": True,
         "programs.git.lfs.enable": True,
