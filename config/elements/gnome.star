@@ -9,7 +9,6 @@ def config(host):
     }, "home": {
         "home.packages": [
             pkg("gnomeExtensions.clipboard-history"),
-            pkg("gnomeExtensions.extension-list"),
             pkg("gnomeExtensions.kimpanel"),
             pkg("gnomeExtensions.gsconnect"),
             pkg("gnomeExtensions.paperwm"),
@@ -21,7 +20,6 @@ def config(host):
                 "disable-user-extensions": False,
                 "enabled-extensions": [
                     "clipboard-history@alexsaveau.dev",
-                    "extension-list@tu.berry",
                     "kimpanel@kde.org",
                     "gsconnect@andyholmes.github.io",
                     "paperwm@paperwm.github.com",

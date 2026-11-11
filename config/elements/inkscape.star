@@ -1,3 +1,5 @@
+requires = ["gui"]
+
 def config(checkout):
     return {"home": {
         "home.packages": [pkg("inkscape")],

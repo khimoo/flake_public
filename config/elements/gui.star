@@ -1,5 +1,4 @@
-# 目的: デスクトップの GUI。端末（kitty）、フォント、GUI アプリの土台。
-requires = ["kitty", "inkscape", "gui_apps", "firefox", "teams_dispatcher"]
+requires = ["kitty"]
 
 def public():
     return {"terminal_font": {"package": pkg("plemoljp-nf"), "name": "PlemolJP Console NF"}}
@@ -17,9 +16,4 @@ def config():
         "fonts.fontconfig.enable": True,
         # kitty の背景透過と、nvim の背景透過の autocmd を連携させる（modules/home-manager/dev/neovim/config/）。
         "home.sessionVariables.TERMINAL_TRANSPARENT": "1",
-        "programs.obs-studio.enable": True,
-        "programs.obs-studio.plugins": [pkg("obs-studio-plugins.input-overlay")],
-        "programs.foliate.enable": True,
-        "programs.anki.enable": True,
-        "programs.anki.language": "ja_JP",
     }}

@@ -1,24 +1,25 @@
-def config():
+requires = ["gui"]
+
+def writes(web_browsing):
+    return [write(web_browsing, "teams-url-dispatcher.desktop")]
+
+def config(web_browsing):
     dispatcher = scriptBin("teams-url-dispatcher", concat(
         'case "$1" in\n',
         '  *teams.microsoft.com*|*teams.live.com*)\n',
         '    exec ', exe("junction", "re.sonny.Junction"), ' "$1" ;;\n',
         '  *)\n',
-        '    exec ', exe("firefox", "firefox"), ' "$1" ;;\n',
+        '    exec ', web_browsing.command, ' "$1" ;;\n',
         'esac\n',
     ))
     settings = {
         "home.packages": [pkg("junction"), pkg("teams-for-linux")],
-        "xdg.mimeApps.defaultApplications": {
-            "x-scheme-handler/http": "teams-url-dispatcher.desktop",
-            "x-scheme-handler/https": "teams-url-dispatcher.desktop",
-        },
         # 同じアイコンのアカウントを区別するため、Junction にアプリ名を表示させる。
         "dconf.settings": {"re/sonny/Junction": {"show-app-names": True}},
         ("home", "file", ".local/share/applications/teams-url-dispatcher.desktop", "text"): concat(
             "[Desktop Entry]\n",
             "Name=Teams URL Dispatcher\n",
-            "Comment=Route Teams URLs to Junction, others to Firefox\n",
+            "Comment=Route Teams URLs to Junction, others to the default browser\n",
             "Exec=", dispatcher, "/bin/teams-url-dispatcher %U\n",
             "Type=Application\n",
             "NoDisplay=true\n",

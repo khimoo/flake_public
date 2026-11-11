@@ -1,3 +1,8 @@
+requires = ["gui"]
+
+def public():
+    return {"command": exe("firefox", "firefox"), "desktop": "firefox.desktop"}
+
 def config():
     extensions = {
         "{77fcd6fa-22a1-498c-88a5-cee7bf16b989}": "manaba-plus",
@@ -40,9 +45,5 @@ def config():
                 "install_url": "https://addons.mozilla.org/firefox/downloads/latest/" + slug + "/latest.xpi",
             }
             for ident, slug in extensions.items()
-        },
-        "xdg.mimeApps.defaultApplications": {
-            mime: "firefox.desktop"
-            for mime in ["text/html", "text/xml", "application/xhtml+xml", "x-scheme-handler/about"]
         },
     }}

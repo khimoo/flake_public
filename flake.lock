@@ -396,7 +396,8 @@
         "nixpkgs-unstable": "nixpkgs-unstable",
         "rnote": "rnote",
         "rustowl": "rustowl",
-        "skk-jisyo": "skk-jisyo"
+        "skk-jisyo": "skk-jisyo",
+        "zen-browser": "zen-browser"
       }
     },
     "rust-overlay": {
@@ -494,6 +495,30 @@
       "original": {
         "owner": "nix-systems",
         "repo": "default",
+        "type": "github"
+      }
+    },
+    "zen-browser": {
+      "inputs": {
+        "home-manager": [
+          "home-manager"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1794356940,
+        "narHash": "sha256-ML+0SjnxlkLAFclntmMJpUBs13IGQNb5BD14jrmWHsw=",
+        "owner": "0xc000022070",
+        "repo": "zen-browser-flake",
+        "rev": "a7cac935fd58b6f177d2412ea00c566ed4f0abab",
+        "type": "github"
+      },
+      "original": {
+        "owner": "0xc000022070",
+        "ref": "beta",
+        "repo": "zen-browser-flake",
         "type": "github"
       }
     }

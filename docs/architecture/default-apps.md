@@ -2,49 +2,18 @@
 
 使い方: [GUI アプリの管理](../howtouse/gui-apps.md)
 
-## 概要
+## ブラウザとリンクの振り分け
 
-MIME タイプに対するデフォルトアプリケーションは `xdg.mimeApps.defaultApplications` で管理している。
-設定は複数モジュールに分散しており、home-manager のモジュールシステムが最終的にマージする。
+既定ブラウザは [web_browsing.star](../../config/elements/web_browsing.star) で選びます。HTML を開くアプリと、HTTP/HTTPS のリンクを最後に開くブラウザをここで合わせるためです。Zen と Firefox は、それぞれの要素が公開する `command` と `desktop` で選べます。
 
-## 設定箇所
+[teams_dispatcher.star](../../config/elements/teams_dispatcher.star) は、Teams のリンクを Junction へ、その他のリンクを既定ブラウザへ渡します。Teams のアカウントは Junction で選ぶため、HTTP/HTTPS の既定アプリはブラウザではなくディスパッチャになります。ディスパッチャが選ばれたことは `writes(web_browsing)` で伝え、MIME の設定は `web_browsing` がまとめて出します。複数のアプリを同じスキームの既定として登録することを防ぐためです。
 
-| 対象 MIME | 設定ファイル | 方式 |
-|-----------|-------------|------|
-| PDF, 画像, 動画, 音声, メール等 | [gui/apps.nix](../../config/elements/gui_apps.star) | `guiApps` の `mimeTypes` 属性から導出 |
-| text/html, text/xml, about 等 | `gui/firefox.nix` | `programs.firefox` + 直接指定 |
-| HTTP/HTTPS | `gui/teams-dispatcher.nix` | Teams URL ディスパッチャ経由 |
-| Slack・Discord・Spotify・Zoom のスキーム | `gui/apps.nix` | アプリごとの `mimeTypes` から導出（[理由](./xdg-scheme-workaround.md)） |
-| Obsidian のスキーム | `config/elements/obsidian.star` | 目的 `obsidian` を選んだホストだけ登録 |
+`web_browsing` だけを選んだ場合は、HTTP/HTTPS も直接ブラウザへ渡します。Firefox の既存プロファイルと拡張機能の設定は [firefox.star](../../config/elements/firefox.star) に残し、Zen へのデータ移行を終える前に Firefox が使えなくなることを避けています。
 
-パスはすべて `modules/home-manager/` からの相対。
+Zen の flake は、ホストと同じ `nixpkgs` 入力を参照します。別系統の GUI ライブラリを重ねずに使うためです。採用した上流リビジョン [a7cac935 のパッケージ定義](https://github.com/0xc000022070/zen-browser-flake/blob/a7cac935fd58b6f177d2412ea00c566ed4f0abab/package.nix) は、nixpkgs 26.05 にない FFmpeg 9 を FFmpeg 8 へ置き換えます。
 
-## 設定方式の使い分け
+## ブラウザ以外の関連付け
 
-| アプリの種類 | 方式 | MIME 設定方法 |
-|-------------|------|-------------|
-| シンプルなアプリ | `gui/apps.nix` の `guiApps` リスト | `mimeTypes` 属性から導出 |
-| `programs.*` で細かく設定するアプリ | 専用ファイル（例: `gui/firefox.nix`） | ファイル内で直接 `xdg.mimeApps.defaultApplications` を設定 |
+[gui_apps.star](../../config/elements/gui_apps.star) は、アプリの `mime` から `xdg.mimeApps.defaultApplications` を作ります。アプリの追加と関連付けの追加を同じエントリで行えるためです。同じ MIME を複数のエントリに書くと、後のエントリが優先されます。
 
-どちらの方式で書いても、モジュールシステムが最終的に一つの `mimeapps.list` にマージする。
-
-## apps.nix の仕組み
-
-各アプリの定義に `mimeTypes` を持たせ、そこから `defaultApplications` を作る。アプリを `guiApps` から消すと、MIME の設定も一緒に消える。
-同じ MIME を複数のアプリに設定すると、リストの後ろのアプリが優先される（`//` で重ねるため）。
-
-## Firefox
-
-- **インストール + 設定**: `gui/firefox.nix` の `programs.firefox.enable = true`（home-manager モジュール）
-- **MIME 設定**: 同ファイル内で `text/html` 等を直接設定
-- **HTTP/HTTPS**: `teams-dispatcher.nix` がディスパッチャ経由で制御（Firefox に直接割り当てない）
-
-## 変更ガイド
-
-| やりたいこと | 変更箇所 |
-|-------------|---------|
-| 一般アプリのデフォルトを追加・変更 | `apps.nix` の該当アプリに `mimeTypes` を設定 |
-| Firefox の MIME を変更 | `firefox.nix` の `defaultApplications` |
-| Firefox の内部設定を追加 | `firefox.nix` の `programs.firefox` |
-| デフォルトブラウザ自体を変更 | `firefox.nix` と `teams-dispatcher.nix` の両方 |
-| 新しい MIME タイプを追加 | `apps.nix` の該当アプリの `mimeTypes` に追記 |
+Slack・Discord・Spotify・Zoom の URL スキームも、各エントリの `mime` に書きます。GNOME でスキームを解決するために必要な指定です（[理由](./xdg-scheme-workaround.md)）。Obsidian のスキームは [obsidian.star](../../config/elements/obsidian.star) が担当し、目的 `obsidian` を選んだ場合だけ登録します。

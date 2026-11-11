@@ -25,12 +25,8 @@ in
     // {
       elements = [
         "checkout"
-        "firefox"
         "gui"
-        "gui_apps"
-        "inkscape"
         "kitty"
-        "teams_dispatcher"
         "windows_vm"
         "windows_vm_gui"
       ];

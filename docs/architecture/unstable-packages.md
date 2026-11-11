@@ -22,7 +22,6 @@
 
 - tinymist: 0.14.2 はプレビューの表示範囲の計算を誤り、partial rendering を有効にすると範囲外のページを SVG ではなく canvas で描く。canvas には span の情報がないので、プレビューをクリックしてもエディタへ飛べない（既定の倍率では、おおむね 3 ページ目から）。上流の [issue #2267](https://github.com/Myriad-Dreamin/tinymist/issues/2267) で報告され、PR #2269（2025-11-23）で直った。修正を含む 0.15 以降が安定チャンネルに入ったら外す（nixos-26.05 は 0.14.18）
 - graphify: 安定チャンネルにない（[graphify.md](../howtouse/graphify.md#設計)）
-- GNOME 拡張の extension-list: nixos-26.05 の版 43 は `metadata.json` の `shell-version` が `["49"]` だけで、GNOME Shell 50 は読み込まない（`gnome-extensions info` が `OUT OF DATE`）。unstable には GNOME 50 に対応した版 45 がある（2026-10-03 に確認）。`gnomeExtensions` は入れ子の集合なので、extension-list だけを差し替える。GNOME と拡張の版のずれは `checks.x86_64-linux.gnome-extensions` が検出する
 
 ## codex と claude-code は専用の flake から取る
 

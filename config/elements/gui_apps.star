@@ -1,3 +1,5 @@
+requires = ["gui"]
+
 _wayland_flags = "--enable-features=UseOzonePlatform --ozone-platform=wayland --enable-wayland-ime --wayland-text-input-version=3"
 
 # Obsidian は memex が git / claude を含むラッパーを入れるため、素のパッケージを重ねない。
@@ -48,6 +50,11 @@ def _wayland_desktop(app):
 def config():
     settings = {
         "home.packages": [app["pkg"] for app in _apps],
+        "programs.obs-studio.enable": True,
+        "programs.obs-studio.plugins": [pkg("obs-studio-plugins.input-overlay")],
+        "programs.foliate.enable": True,
+        "programs.anki.enable": True,
+        "programs.anki.language": "ja_JP",
         "xdg.mimeApps.enable": True,
         # GNOME のスキーム解決には mimeapps.list の既定指定が必要（nixpkgs#301893）。
         "xdg.mimeApps.defaultApplications": {mime: app["desktop"] for app in _apps for mime in app.get("mime", [])},
