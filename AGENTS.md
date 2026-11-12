@@ -21,6 +21,7 @@
 
 [README](README.md) で対象環境を把握し、[使い方](docs/howtouse/README.md) と [設計判断](docs/architecture/README.md) から対象文書・設定・利用側の参照を追う。毎回リポジトリ全体を調べる必要はない。
 
+- `config/elements/` の部品か `config/hosts/` の `purposes` を変えるときは、[flake_public のあるべき姿](docs/architecture/rules.md) の規則 A と規則 B を守る。
 - Nix の責務・合成・activation・パッケージの扱いは [構成の境界](docs/architecture/configuration.md) に従う。
 - 文書の配置・更新・索引は [文書整備](docs/howtouse/documentation.md) に従う。
 - 検証は [検証ガイド](docs/howtouse/validation.md) に従い、変更した境界を確認できる範囲を選ぶ。ユーザーが検証省略を指定した場合は従い、未検証と報告する。

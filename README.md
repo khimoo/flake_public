@@ -2,6 +2,8 @@
 
 個人用のNixOS 2台と会社PCのNixOS-WSL、macOS向けHome Manager環境を管理するリポジトリです。
 
+構成が満たす要件と、要件を満たすために守る規則 A と規則 B は、[flake_public のあるべき姿](docs/architecture/rules.md) に書いています。
+
 ## 構成
 
 | 配置 | 責務 |
