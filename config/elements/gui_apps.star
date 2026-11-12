@@ -19,7 +19,6 @@ _apps = [
     # Takeout の日本語ファイル名を保った解凍には p7zip が必要。
     {"pkg": pkg("digikam")},
     {"pkg": pkg("p7zip")},
-    {"pkg": pkg("google-chrome")},
     {"pkg": pkg("spotify"), "bin": "spotify", "desktop": "spotify.desktop", "mime": ["x-scheme-handler/spotify"], "wayland": True},
     {"pkg": pkg("typst")},
     {"pkg": pkg("yt-dlp")},
@@ -54,11 +53,6 @@ def config():
         "programs.foliate.enable": True,
         "programs.anki.enable": True,
         "programs.anki.language": "ja_JP",
-        "programs.brave.enable": True,
-        "programs.brave.extensions": [
-            "nngceckbapebfimnlniiiahkandclblb",  # Bitwarden
-            "fnaicdffflnofjppbagibeoednhnbjhg",  # floccus
-        ],
         "xdg.mimeApps.enable": True,
         # GNOME のスキーム解決には mimeapps.list の既定指定が必要（nixpkgs#301893）。
         "xdg.mimeApps.defaultApplications": {mime: app["desktop"] for app in _apps for mime in app.get("mime", [])},

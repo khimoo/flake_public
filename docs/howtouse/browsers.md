@@ -1,9 +1,9 @@
-# ブラウザ（Firefox、Zen、Brave）
+# ブラウザ（Firefox、Zen、Brave、Chrome）
 
 既定ブラウザとリンクの振り分け: [デフォルトアプリ](../architecture/default-apps.md)
-実装: [browser_common.star](../../config/elements/browser_common.star) / [firefox.star](../../config/elements/firefox.star) / [zen_browser.star](../../config/elements/zen_browser.star) / [gui_apps.star](../../config/elements/gui_apps.star)（Brave）
+実装: [browser_common.star](../../config/elements/browser_common.star) / [firefox.star](../../config/elements/firefox.star) / [zen_browser.star](../../config/elements/zen_browser.star) / [brave.star](../../config/elements/brave.star) / [google_chrome.star](../../config/elements/google_chrome.star)
 
-Firefox と Zen は、目的 `web_browsing` を選んだホストに両方入ります。拡張機能の一覧と pref は Nix で宣言し、履歴などの使いながら増えるデータは同期サービスに任せます（分担は「設計」の節）。Brave はサブのブラウザとして目的 `gui_apps` で入り、Bitwarden と floccus だけを宣言で入れます（「Brave」の節）。
+目的 `web_browsing` を選んだホストには、Firefox、Zen、Brave、Google Chrome が入ります。Firefox と Zen は拡張機能の一覧と pref を Nix で宣言し、履歴などの使いながら増えるデータは同期サービスに任せます（分担は「設計」の節）。Brave には Bitwarden と floccus だけを宣言で入れ（「Brave」の節）、Chrome はパッケージを入れるだけです（「Google Chrome」の節）。
 
 ## 拡張機能を足す・外す
 
@@ -41,9 +41,17 @@ Zen のプロファイルは Home Manager が管理する `~/.config/zen/default
 
 ## Brave
 
-拡張機能は [gui_apps.star](../../config/elements/gui_apps.star) の `programs.brave.extensions` に、Chrome ウェブストアの拡張機能の ID（ストアのページの URL の末尾）で書きます。Home Manager が ID ごとに `~/.config/BraveSoftware/Brave-Browser/External Extensions/<ID>.json` を置き、Brave が起動時に入れます。Firefox と Zen のポリシーと違って強制ではなく、Brave の拡張機能の画面で削除すると、その拡張機能は起動時に入れ直されなくなります。入れ直すときは、Chrome ウェブストアから手で入れます。
+拡張機能は [brave.star](../../config/elements/brave.star) の `programs.brave.extensions` に、Chrome ウェブストアの拡張機能の ID（ストアのページの URL の末尾）で書きます。Home Manager が ID ごとに `~/.config/BraveSoftware/Brave-Browser/External Extensions/<ID>.json` を置き、Brave が起動時に入れます。Firefox と Zen のポリシーと違って強制ではなく、Brave の拡張機能の画面で削除すると、その拡張機能は起動時に入れ直されなくなります。入れ直すときは、Chrome ウェブストアから手で入れます。
 
-Bitwarden へのログインと floccus のプロファイルのインポートは、Firefox や Zen と同じく手で行い、floccus の決まりにも同じく従います。Brave 自身のブックマーク同期は使いません。Brave にはブックマークメニューがないので、Brave で floccus を初めて同期する前に Git の最新のコミットを控え、同期のあとで Git の「Bookmarks Menu」の中身が残っているかを確かめます。
+Bitwarden へのログインと floccus のプロファイルのインポートは、Firefox や Zen と同じく手で行い、floccus の決まりにも同じく従います。Brave 自身のブックマーク同期は使いません。
+
+floccus のプロファイルをインポートしたあと、同期フォルダ（ブックマークフォルダー）にルートフォルダーを選び直します。ブックマークの ID の体系が Firefox 系と Chrome 系で違うので、Firefox や Zen で書き出したプロファイルの同期フォルダは Brave では見つかりません。選び直さずに同期すると E038（ローカルのフォルダが見つからない）で止まります。
+
+Brave にブックマークが少ない状態で最初に同期すると、Git から一度に大量のブックマークが追加されることになり、floccus のフェイルセーフ（一度に 20% を超える追加や削除を止める）が E049 で同期を止めます。最初の同期はフェイルセーフを一時的に無効にして「一度だけプルダウン」で行い、終わったら有効に戻します。
+
+## Google Chrome
+
+[google_chrome.star](../../config/elements/google_chrome.star) でパッケージを入れるだけで、拡張機能は宣言しません。Home Manager の Chromium 系のモジュールは、Linux の Google Chrome（プロプライエタリ版）に拡張機能を宣言すると評価を止めます。Chrome で拡張機能を使うときは、Chrome ウェブストアから手で入れます。
 
 ## 設計
 
@@ -68,7 +76,7 @@ Zen のワークスペースとピン留めタブは、zen-browser-flake の Hom
 
 floccus は、ブックマーク全体を同期するときはルートを同期フォルダに選ぶ使い方を案内しており、ブラウザに最初からあるフォルダの名前をそろえて、別の種類のブラウザ間でも対応させます（[Chrome ウェブストアの説明](https://chrome.google.com/webstore/detail/floccus-bookmarks-sync/fnaicdffflnofjppbagibeoednhnbjhg)）。floccus 5.13.0 のコードでは、Firefox のツールバーを「Bookmarks Bar」、その他のブックマークを「Other Bookmarks」、ブックマークメニューを「Bookmarks Menu」、モバイルのブックマークを「Mobile Bookmarks」と読み替えます。ルートの ID はどのプロファイルでも同じなので、インポートしたプロファイルが同期フォルダをそのまま見つけます。自分で作ったフォルダは ID がプロファイルごとに変わるので、作り直しと選び直しが要ります。
 
-ルートの直下には、最初からあるフォルダしか置けません。Firefox 159 のブックマークの処理（`Bookmarks.sys.mjs`）は、テストの自動実行を除いてルートの直下への追加と移動を拒み、floccus の [FAQ](https://floccus.org/faq) も、ルートに項目を作ろうとすると失敗すると説明しています。Git の最上位に、読み替えた名前と一致しないフォルダやブックマークがあると、ルートで同期したブラウザにはそれを置く場所がありません。別のフォルダに同期していたデータをルートでの同期に切り替えたときには、最上位のブックマークと、Chrome が付けた名前の「Mobile bookmarks」（小文字の b）が Git から消えました。決まりの最初の 2 つは、これを防ぐためのものです。
+ルートの直下には、最初からあるフォルダしか置けません。Firefox 159 のブックマークの処理（`Bookmarks.sys.mjs`）は、テストの自動実行を除いてルートの直下への追加と移動を拒み、floccus の [FAQ](https://floccus.org/faq) も、ルートに項目を作ろうとすると失敗すると説明しています。Git の最上位に、読み替えた名前と一致しないフォルダやブックマークがあると、ルートで同期したブラウザにはそれを置く場所がありません。別のフォルダに同期していたデータをルートでの同期に切り替えたときには、最上位のブックマークと、Chrome が付けた名前の「Mobile bookmarks」（小文字の b）が Firefox と Zen から見えなくなりました。floccus はこれらを削除せずに Git に残しますが、ルートで同期するブラウザでは開けません。決まりの最初の 2 つは、これを防ぐためのものです。
 
 Chrome 系と Firefox をルートで同期したら Firefox 側でフォルダが重複したという報告があります（[floccus #1523](https://github.com/floccusaddon/floccus/discussions/1523)）。Chrome 系でも同期し始めたら、重複が起きないか確かめます。
 

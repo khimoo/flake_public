@@ -5,7 +5,7 @@
 
 ## 追加・削除の手順と場所
 
-アプリは目的ごとに選びます。ホストのファイル（`config/hosts/<ホスト>.toml`）の `purposes` に、`web_browsing`（Zen を既定ブラウザにし、Firefox も残す）、`gui_apps`（下の一覧のアプリ）、`inkscape`、`teams_dispatcher` を挙げます（[confgen.md](./confgen.md)）。アプリの要素は土台の [gui.star](../../config/elements/gui.star)（kitty とフォント）を `requires` に挙げているので、目的から依存をたどって `gui` も入ります。アプリを入れずに kitty だけを使うホストは `gui` を選びます。GNOME と IME は目的 `gnome`、`japanese_input` として分かれています。
+アプリは目的ごとに選びます。ホストのファイル（`config/hosts/<ホスト>.toml`）の `purposes` に、`web_browsing`（Zen を既定ブラウザにし、Firefox、Brave、Google Chrome も入れる）、`gui_apps`（下の一覧のアプリ）、`inkscape`、`teams_dispatcher` を挙げます（[confgen.md](./confgen.md)）。アプリの要素は土台の [gui.star](../../config/elements/gui.star)（kitty とフォント）を `requires` に挙げているので、目的から依存をたどって `gui` も入ります。アプリを入れずに kitty だけを使うホストは `gui` を選びます。GNOME と IME は目的 `gnome`、`japanese_input` として分かれています。
 
 [gui_apps.star](../../config/elements/gui_apps.star) の `_apps` に登録されたアプリは、各エントリ内でパッケージの導入、Wayland 起動設定、自動起動、MIME タイプの関連付けを一元管理します。例えば、PDF の既定アプリは次のように定義します。
 

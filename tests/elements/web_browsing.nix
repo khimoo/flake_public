@@ -27,6 +27,8 @@ in
         assert browsing.config.programs.firefox.profiles.default.settings."services.sync.engine.extension-storage.force";
         assert browsing.config.programs.zen-browser.profiles.default.settings."services.sync.engine.extension-storage.force";
         assert browsing.config.programs.zen-browser.profiles.default.settings."services.sync.engine.spaces";
+        assert builtins.elem "fnaicdffflnofjppbagibeoednhnbjhg" (map (e: e.id) browsing.config.programs.brave.extensions);
+        assert builtins.any (p: (p.pname or "") == "google-chrome") browsing.config.home.packages;
         assert !browsing.config.programs.anki.enable;
         assert !builtins.any (p: (p.pname or "") == "inkscape") browsing.config.home.packages;
         assert builtins.all (mime: defaults.${mime} == [ "zen-beta.desktop" ]) [
@@ -51,6 +53,8 @@ in
     // {
       elements = [
         "browser_common"
+        "brave"
+        "google_chrome"
         "web_browsing"
         "zen_browser"
         "firefox"

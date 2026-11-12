@@ -1,4 +1,4 @@
-requires = ["firefox"]
+requires = ["firefox", "brave", "google_chrome"]
 
 def public(zen_browser):
     return {"command": zen_browser.command, "desktop": zen_browser.desktop}
