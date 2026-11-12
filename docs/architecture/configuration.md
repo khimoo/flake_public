@@ -7,13 +7,13 @@
 
 [config/hosts/](../../config/hosts/) の TOML をマシンの正本とし、`kind` が `nixos` なら `nixosHosts`、`home` なら `homeHosts` に構成を作る。factory は system とユーザーを読み、confgen の結果を NixOS と Home Manager に渡す。specialArgs には `inputs` を渡す。
 
-ホストの `purposes` が機能を選び、[要素](../../config/elements/) が依存をたどって設定を生成する。ホストを動かす `machine_*` は共通部品を `requires` で参照し、生成済み `hardware.nix` を import する。値を TOML、処理を要素に分けることで、選択と実装を二重管理しない（[confgen](confgen.md)）。
+ホストの `machine` が機体を、`[[users]]` の `purposes` が利用者ごとの行動を選び、[要素](../../config/elements/) が依存をたどって設定を生成する。ホストを動かす `machine_*` は共通部品を `requires` で参照し、生成済み `hardware.nix` を import する。値を TOML、処理を要素に分けることで、選択と実装を二重管理しない（[confgen](confgen.md)）。
 
-個人の Git identity、鍵、mutable checkout は `config/users/<ユーザー>.toml` に置く。各 Home Manager は本人のファイルだけを読み、同じホストの別のユーザーにも個人の値を渡さない。ユーザー一覧の最初の人で NixOS の confgen を評価し、`home_manager = false` の人にはホーム構成を作らない。
+個人の Git identity、鍵、mutable checkout は `config/users/<ユーザー>.toml` に置く。各 Home Manager は本人のファイルだけを読み、同じホストの別のユーザーにも個人の値を渡さない。NixOS には利用者ごとの confgen の結果を合わせ、`home_manager = false` の人にはホーム構成を作らない。
 
 ## 機能の実装をたどる
 
-目的から要素の `requires` と仮引数をたどる。GUI の基本は `gui`、GNOME は `gnome`、日本語入力は `japanese_input` にある。GNOME と日本語入力は GUI を依存に含めるので、WSLg のように GUI だけを選ぶ構成も維持できる。
+機体と行動から要素の `requires` と仮引数をたどる。GUI の基本は `gui`、GNOME は `gnome`、日本語入力は `japanese_input` にある。GNOME と日本語入力は GUI を依存に含めるので、WSLg のように GUI だけを選ぶ構成も維持できる。
 
 Neovim の道具と生成する Lua は `nvim_<名前>` の要素が機能ごとに持つ（[設計](neovim/features.md)）。Neovim の設定ディレクトリは checkout への live symlink なので、生成するファイルは XDG data 配下に置く。kitty のフォントは `gui` の公開値を読む。
 
@@ -23,11 +23,11 @@ clone の宛先と秘密の復号先はホーム配下に限定し、重複す�
 
 checkout の場所はホームからの相対パス `flake_root` とし、`checkout.root` が絶対パスを公開する。mutable checkout と秘密のパスの検査は設定ミスを防ぐもので、symlink や OS 権限を検証するセキュリティ境界ではない。
 
-## 目的ごとの OS とホームの選択
+## 行動ごとの OS とホームの選択
 
-[music_production.star](../../config/elements/music_production.star) は musnix・JACK・低レイテンシー設定と音楽アプリを選び、最初のユーザーを audio グループに入れる。`call_audio` とともに `pipewire` を依存に含める。musnix の import も音楽制作を選んだホストだけに入る。
+[music_production.star](../../config/elements/music_production.star) は musnix・JACK・低レイテンシー設定と音楽アプリを選び、行動 `make_music` を選んだ利用者を audio グループに入れる。`call_audio` とともに `pipewire` を依存に含める。musnix の import も音楽制作を選んだホストだけに入る。
 
-[windows_vm.star](../../config/elements/windows_vm.star) は libvirt・OVMF とネットワークの自動起動を設定し、`windows_vm_users` を libvirtd グループに入れる。GUI もあるホストでは、派生要素 `windows_vm_gui` が `windows_vm_domain` の VM を開くランチャーを作る。GUI が無ければ `windows_vm_domain` は使われない。
+[windows_vm.star](../../config/elements/windows_vm.star) は libvirt・OVMF とネットワークの自動起動を設定し、行動 `use_windows` を選んだ利用者を libvirtd グループに入れる。GUI もあるホストでは、派生要素 `windows_vm_gui` が `windows_vm_domain` の VM を開くランチャーを作る。GUI が無ければ `windows_vm_domain` は使われない。
 
 ## OS との接点
 
@@ -37,7 +37,7 @@ SSH の IdentityFile は `~/.ssh/` を使い、全ユーザーへ最初のユー
 
 ## /etc/nixos のリンク
 
-NixOS ホストでは、`/etc/nixos` を最初のユーザーの `checkout.root` へのシンボリックリンクとして設定する（[machine_base.star](../../config/elements/machine_base.star) 参照）。`--flake` を指定しない `nixos-rebuild` は `/etc/nixos/flake.nix` を探し、シンボリックリンクであれば解決先のディレクトリを Flake とみなして、現在のホスト名と同名の `nixosConfigurations` を適用する（nixpkgs 26.05 の nixos-rebuild-ng、`nixos_rebuild/models.py` の `Flake.from_arg` および `Flake.parse` による挙動）。そのため、初回のみ `--flake <参照>#<構成名>` で適用しておけば、以降は `sudo nixos-rebuild switch` だけで済むようになる。
+NixOS ホストでは、`/etc/nixos` を `etc_nixos_link` を選んだ利用者の `checkout.root` へのシンボリックリンクとして設定する（[etc_nixos_link.star](../../config/elements/etc_nixos_link.star) 参照）。`--flake` を指定しない `nixos-rebuild` は `/etc/nixos/flake.nix` を探し、シンボリックリンクであれば解決先のディレクトリを Flake とみなして、現在のホスト名と同名の `nixosConfigurations` を適用する（nixpkgs 26.05 の nixos-rebuild-ng、`nixos_rebuild/models.py` の `Flake.from_arg` および `Flake.parse` による挙動）。そのため、初回のみ `--flake <参照>#<構成名>` で適用しておけば、以降は `sudo nixos-rebuild switch` だけで済むようになる。
 
 `flake.nix` のみリンクする形でも `nixos-rebuild` は動作する（`nixos-rebuild` が `flake.nix` のリンク先から親ディレクトリを特定するため）。しかし、ディレクトリごとリンクしているのは、`/etc/nixos` を Flake 参照として `nix` コマンドに直接渡せるようにするためである。`flake.nix` のみリンクした場合、Nix は `/etc/nixos` を Flake のルートとして store にコピーしようとするが、リンク先の絶対パスは store 内に存在しないため評価に失敗してしまう。また、インストール時に生成される `configuration.nix` や `hardware-configuration.nix` は残さない。本構成ではこれらを使用せず、ハードウェア固有の設定は `hosts/<ホスト>/hardware.nix` に配置する。
 
@@ -45,7 +45,7 @@ NixOS ホストでは、`/etc/nixos` を最初のユーザーの `checkout.root`
 
 チェックアウトが存在しない間はリンク切れの状態となる。このとき `--flake` なしで `nixos-rebuild` を実行すると、`/etc/nixos/flake.nix` が見つからないため従来の構成ファイルを探索しようとする。しかし、本構成の Nix 検索パスには `nixos-config` が含まれていないため、`file 'nixos-config' was not found in the Nix search path` というエラーで停止し、何も適用されないようになっている。
 
-最初のユーザーが `home_manager = false` のホストには、このルールを配置しない。また、ホスト名と構成名を一致させない運用にする場合は、この仕組みを見直す必要がある。
+`etc_nixos_link` を選ぶ利用者がいないホストには、`/etc/nixos` のリンクのルールを配置しない。また、ホスト名と構成名を一致させない運用にする場合は、この仕組みを見直す必要がある。
 
 ## 外部状態と検証
 

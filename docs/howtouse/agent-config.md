@@ -72,13 +72,13 @@ Claude Code や Codex が新しい種別の設定ディレクトリを読み込�
    agent_config_repo = "git@example.org:user/agents-private.git"
    ```
 
-3. 対象の `config/hosts/<ホスト>.toml` の `purposes` に `"ai_agents"` を追加して switch を実行します。同じユーザーの値を、この目的を選んだホストで共有します。
+3. 対象の `config/hosts/<ホスト>.toml` の利用者の `[[users]]` の `purposes` に `"agent_config"` を追加して switch を実行します。同じユーザーの値を、`agent_config` を選んだホストで共有します。
 
-圧縮プラグインの既定モードは、同じユーザーファイルの `agent_compression = {"caveman": "off", "genshijin": "normal"}` で指定します。キーを省略するか値を `None` にすると、そのプラグインの設定ファイルを生成しません。
+圧縮プラグインを使う利用者は `purposes` に `"agent_compression"` も追加します。圧縮プラグインの既定モードは、同じユーザーファイルの `agent_compression = {"caveman": "off", "genshijin": "normal"}` で指定します。キーを省略するか値を `None` にすると、そのプラグインの設定ファイルを生成しません。
 
 すでに存在する `~/.claude/skills` などのディレクトリは、Home Manager によって `.bak` 拡張子付きで自動退避されます。
 
-設定を解除（アンインストール）する際は、ユーザーファイルの `agent_config_root` と（自動 clone を利用している場合は）`agent_config_repo` の両方を削除してから switch してください。
+設定を解除（アンインストール）する際は、利用者の `purposes` から `agent_config` を外し、ユーザーファイルの `agent_config_root` と（自動 clone を利用している場合は）`agent_config_repo` の両方を削除してから switch してください。圧縮プラグインの設定も解除する場合は `agent_compression` も外します。
 switch 実行によって削除されるのは Home Manager が管理するリンクと `agent-sync` の path unit のみで、生成済みの起動コマンド、Codex プロファイルへのリンク、および `~/.claude/settings.json` に反映されたキーは残ります。
 これらも完全に削除したい場合は、Claude Code と Codex を終了させたうえで以下のクリーンアップ処理を実行してください（`<root>` は解除した `agentConfigRoot` のパスに置き換えてください）。
 
@@ -98,7 +98,7 @@ rm -r ~/.local/state/agent-sync
 設定例としては spin713 の [agent-instructions.md](../../hosts/nixos-spin713/agent-instructions.md) を参照してください。
 
 1. `hosts/<host>/agent-instructions.md` に指示内容を記述します。
-2. `config/hosts/<host>.toml` で `agent_instructions = "hosts/<host>/agent-instructions.md"` と指定します。`purposes` には `"ai_agents"` が必要です。
+2. `config/hosts/<host>.toml` で `agent_instructions = "hosts/<host>/agent-instructions.md"` と指定します。利用者の `[[users]]` の `purposes` には、`ai_agents` を `requires` に持つ `"programming"` が必要です。
 3. switch を実行します。テキスト内容は Nix store を経由して配置されるため、ファイルを編集するたびに switch が必要です。
 
 Claude Code では `/etc/claude-code/CLAUDE.md` として、Codex では `/etc/codex/config.toml` の `developer_instructions` 項目として反映されます。

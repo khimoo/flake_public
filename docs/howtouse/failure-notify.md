@@ -28,7 +28,7 @@ def config(failure_notify):
 
 通知用のユニットは `failure_notify` 要素が生成します。
 
-外部の flake が定義するサービス（memex の同期）には、その目的の要素（[memex_sync.star](../../config/elements/memex_sync.star)）で足す。
+外部の flake が定義するサービス（memex の同期）には、サービスの要素（[memex_sync.star](../../config/elements/memex_sync.star)）で足す。
 
 ## 確かめる
 

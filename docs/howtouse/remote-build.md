@@ -63,7 +63,7 @@ nix develop --max-jobs 4
 
 cargo は nix-daemon を経由しないため、通常の `cargo run` では上述のリモートビルドが機能しません。
 `cargo remote-run` は `cargo run` と同等の引数を受け取り、デスクトップ上でビルドを行った上で、生成された実行ファイルを手元で実行します。GUI アプリケーションの画面も手元に表示されます。
-direnv で devShell に入ったプロジェクト内で利用します（spin713 の `pomu` では、[ホストの目的と値](../../config/hosts/nixos-spin713.toml) で有効化されています）。
+direnv で devShell に入ったプロジェクト内で利用します（spin713 の `pomu` は、[ホストの TOML](../../config/hosts/nixos-spin713.toml) の `[[users]]` の `purposes` で `programming` を選び、派生要素 `programming_on_spin713` の `requires` から `cargo_remote_run` が入ります）。無効にするには利用者の `purposes` から `programming` を外すか、`programming_on_spin713.star` の `requires` から `cargo_remote_run` を外します。
 
 ```sh
 cargo remote-run
@@ -94,7 +94,7 @@ ssh desktop-ts rm -rf .cache/cargo-remote-run/nixos-spin713/home/pomu/sagyo/aqua
 
 ## `--build-host` でビルドする
 
-目的 `remote_build` を選んでいないホストでは、`nixos-rebuild` に `--build-host` を指定してビルドします。
+機体の要素の `requires` に `remote_build` を含まないホストでは、`nixos-rebuild` に `--build-host` を指定してビルドします。
 コマンド全体に `sudo` を付けるのではなく、オプションとして `--sudo` を渡してください。
 全体を `sudo` で実行すると SSH 接続が root ユーザーとして試行され、`Permission denied (publickey)` で失敗します。
 
@@ -151,13 +151,13 @@ spin713 で実行されるアクティベートのコマンドは、NOPASSWD の
 デスクトップでビルドを行うホストを追加するときは、次の手順で進めます。
 
 1. [machine-ssh.md](./machine-ssh.md) の「マシンを追加するとき」に従い、age 鍵を配置して `config/hosts/<ホスト>.toml` を追加します。
-2. そのホストの TOML の `purposes` に `remote_build` を追加します。接続できないときに手元でビルドさせない場合は、同じ TOML に `local_builds = false` を指定します。
+2. そのホストの機体の要素の `requires` に `remote_build` を追加します。接続できないときに手元でビルドさせない場合は、`config/hosts/<ホスト>.toml` に `local_builds = false` を指定します。
 3. switch してから、そのホストを tailnet に参加させます。`remote_build` は `tailscale` を依存として含めます。
 
-2 の設定を省くと、`--build-host` を明示的に指定したときだけデスクトップでビルドするホストになります。
+機体の要素の `requires` から `remote_build` を外すか、2 の設定を省くと、`--build-host` を明示的に指定したときだけデスクトップでビルドするホストになります。
 
 ビルダーを追加するときは、`config/hosts/<ホスト>.toml` に `[builder]` 設定を記述します。
 `max_jobs` にはそのホストのスレッド数（`nproc`）を、`supported_features` にはそのホストが実際に満たせる feature を書いてください（`kvm` には `/dev/kvm` が要ります）。
 ビルダー自身の `max-jobs` はこの `max_jobs` になり、`system-features` には `supported_features` が足されます。
 switch 後にビルダーで `nix config show max-jobs` と `nix config show system-features` を実行すると、反映を確かめられます。
-目的 `remote_build` を選んだホストは、次回の switch 以降、`builder` を持つ自身以外の全ホストをビルダーとして利用するようになります。
+機体の要素の `requires` に `remote_build` を含むホストは、次回の switch 以降、`builder` を持つ自身以外の全ホストをビルダーとして利用するようになります。

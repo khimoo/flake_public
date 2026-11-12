@@ -2,7 +2,7 @@
 
 耳コピ（楽曲の自動採譜）スキルで使用する機械学習モデルを、uv 環境下で実行するためのコマンドです。
 この環境は nixos-desktop にのみ導入されています。
-[nixos-desktop.toml](../../../config/hosts/nixos-desktop.toml) の `purposes` で `mimikopi` を選び、データ保存先（`mimikopi_data_dir`）と GPU 互換性の指定（`mimikopi_hsa_override`）も同ファイルで設定します。
+[nixos-desktop.toml](../../../config/hosts/nixos-desktop.toml) の利用者の `[[users]]` の `purposes` で `make_music` を選び、派生要素 `make_music_on_desktop` の `requires` から `mimikopi` を入れ、データ保存先（`mimikopi_data_dir`）と GPU 互換性の指定（`mimikopi_hsa_override`）も同ファイルで設定します。無効にするには利用者の `purposes` から `make_music` を外します。
 
 設計: [mimikopi-env の設計](../../architecture/mimikopi-env.md)
 

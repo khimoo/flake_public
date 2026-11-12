@@ -7,7 +7,7 @@ Flake 設定の設計判断・実装構造のドキュメント。設定変更�
 | ドキュメント | 概要 |
 |-------------|------|
 | [rules.md](./rules.md) | flake_public が満たす要件と、要件を満たすために守る規則 A と規則 B |
-| [configuration.md](./configuration.md) | ホスト・個人プロファイル・オプションの境界と、目的別の選択 |
+| [configuration.md](./configuration.md) | ホスト・個人プロファイル・オプションの境界と、行動別の選択 |
 | [confgen.md](./confgen.md) | 規則 A と規則 B を要素とホストのファイルで実現する仕組みと、Starlark と Nix の分担 |
 | [users.md](./users.md) | ユーザー管理と sudo、Home Manager との連携の設計 |
 | [machine-ssh.md](./machine-ssh.md) | マシン間 SSH と LAN 共通鍵の設計 |

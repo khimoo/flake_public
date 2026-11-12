@@ -4,7 +4,7 @@
 実装: [neovim.star](../../../config/elements/neovim.star)（仕組み）、`config/elements/nvim_<名前>.star`（機能ごとの依存）、[lazy.lua](../../../modules/home-manager/dev/neovim/config/lua/config/lazy.lua)、[nix.lua](../../../modules/home-manager/dev/neovim/config/lua/config/nix.lua)
 
 外部コマンドや Nix の生成物を使うプラグインは、要素 `config/elements/nvim_<名前>.star` と `lua/features/<名前>.lua` の spec を組にする。要素は `neovim` に機能の名前、道具、Lua に渡す値を書き込む（[confgen](../confgen.md)）。
-機能の要素を目的から外すと、spec の読み込み、Neovim の PATH に入れる道具、Lua に渡す値が一緒に外れる。プラグインと道具の対応を、コメントや人の記憶ではなく要素の参照で持つため。
+機能の要素を参照元の要素の `requires` や仮引数から外すと、spec の読み込み、Neovim の PATH に入れる道具、Lua に渡す値が一緒に外れる。プラグインと道具の対応を、コメントや人の記憶ではなく要素の参照で持つため。
 
 ## 名前の一致
 

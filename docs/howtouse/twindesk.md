@@ -24,7 +24,7 @@ USB 接続や Android アプリの個別表示には、Android の開発者向�
 ## 更新と無効化
 
 バージョンは [flake.nix](../../flake.nix) の `twindesk.url` で選び、`nix flake update twindesk` と再適用で更新する。
-無効化する場合は対象の [ホスト設定](../../config/hosts/) の `purposes` から `twindesk` を外して再適用する。
+無効化する場合は [machine_nixos_desktop.star](../../config/elements/machine_nixos_desktop.star) と [machine_nixos_spin713.star](../../config/elements/machine_nixos_spin713.star) の `requires` から `twindesk` を外して再適用する。
 
 ## Nix パッケージの補完
 

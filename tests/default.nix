@@ -124,7 +124,7 @@ let
           pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux;
           inherit configDir;
         }).read
-          "test-neovim-features"
+          (hostForSystem system "test-neovim-features")
           system
           "pomu";
       featuresLua = lib.findFirst (

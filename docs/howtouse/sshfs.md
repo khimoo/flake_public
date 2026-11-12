@@ -3,7 +3,7 @@
 外出先のラップトップ（`nixos-spin713`）から、デスクトップ（`nixos-desktop`）のファイルを sshfs でマウントして編集します。
 デスクトップで動いているエージェントと同じファイルを、手元のエディタとツールで扱えます。
 
-設定: [sshfs_editing.star](../../config/elements/sshfs_editing.star)、[tinymist_on_sshfs.star](../../config/elements/tinymist_on_sshfs.star)、[direnv_on_sshfs.star](../../config/elements/direnv_on_sshfs.star)。目的 `sshfs_editing` を選んだホスト（[nixos-spin713.toml](../../config/hosts/nixos-spin713.toml)）で入る（[confgen.md](./confgen.md)）。
+設定: [sshfs_editing.star](../../config/elements/sshfs_editing.star)、[tinymist_on_sshfs.star](../../config/elements/tinymist_on_sshfs.star)、[direnv_on_sshfs.star](../../config/elements/direnv_on_sshfs.star)。[nixos-spin713.toml](../../config/hosts/nixos-spin713.toml) の利用者の `[[users]]` の `purposes` で行動 `programming` を選ぶと、派生要素 `programming_on_spin713` の `requires` から `sshfs_editing` が入る（[confgen.md](./confgen.md)）。無効にするには利用者の `purposes` から `programming` を外すか、`programming_on_spin713.star` の `requires` から `sshfs_editing` を外す。
 
 ## マウントする
 

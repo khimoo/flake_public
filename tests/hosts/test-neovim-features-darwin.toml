@@ -1,0 +1,5 @@
+system = "aarch64-darwin"
+
+[[users]]
+name = "pomu"
+purposes = ["daily_editing"]

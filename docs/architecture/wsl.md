@@ -55,12 +55,12 @@ NixOS-WSL は既定で `wheel` のユーザーにパスワードなしの `sudo`
 ## Home Manager の個人設定を読まない
 
 `nixos` ユーザーは `config/users/pomu.toml` の値を受け取らない。`khimoo` の Git の identity、Gemini の秘密、`antigravity-cli`、agents-private の設定は入らない。
-ホームの目的も [ホストの TOML](../../config/hosts/nixos-work-wsl.toml) で選ぶ。GUI は `gui` だけを選び、GNOME や fcitx5 は入れない。
+利用者の行動も [ホストの TOML](../../config/hosts/nixos-work-wsl.toml) で選ぶ。機体の要素の `requires` には GUI として `gui` だけを挙げ、GNOME や fcitx5 は入れない。
 `flake_root` は既定の `~/sagyo/flake_public` のまま。Neovim の設定がこのパスへの symlink なので、WSL でも同じ場所に clone する。
 
 ## GUI アプリを WSLg で表示する
 
-会社 PC でも自宅と同じ kitty のキー体系と、Neovim との smart-splits の連携で作業するため、目的 `gui` を選ぶ。
+会社 PC でも自宅と同じ kitty のキー体系と、Neovim との smart-splits の連携で作業するため、機体の要素の `requires` に `gui` を挙げる。
 kitty は Windows 向けの配布物がないので WSL の中で動かし、WSLg で表示する。`wsl.startMenuLaunchers` で `.desktop` ファイルを Windows のスタートメニューに並べる。
 
 2026-10-14 に会社 PC で確かめたこと:

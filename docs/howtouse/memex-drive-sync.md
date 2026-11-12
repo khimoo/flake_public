@@ -2,7 +2,7 @@
 
 vault の画像や PDF などのバイナリは、中身を git-annex で Google Drive に置き、Git には所在だけを入れます。ノートは今までどおり Git で同期します。
 
-目的 `memex_sync` を選んだホストで有効になります（`config/hosts/<ホスト>.toml`、[confgen.md](./confgen.md)）。`nixos-desktop` と `nixos-spin713` で選んでいます。vault の場所は [memex.star](../../config/elements/memex.star) が決めます。Linux 環境にのみ対応しています。
+利用者の `[[users]]` の `purposes` で行動 `study` を選ぶと、`requires` の `memex_sync` が有効になります（`config/hosts/<ホスト>.toml`、[confgen.md](./confgen.md)）。`nixos-desktop` と `nixos-spin713` で選んでいます。vault の場所は [memex.star](../../config/elements/memex.star) が決めます。Linux 環境にのみ対応しています。無効にするには利用者の `purposes` から `study` を外します。
 
 設計ドキュメント: [memex の Google Drive 同期の設計](../architecture/memex-drive-sync.md)
 

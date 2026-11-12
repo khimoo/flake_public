@@ -16,4 +16,4 @@ Zen の flake は、ホストと同じ `nixpkgs` 入力を参照します。別�
 
 [gui_apps.star](../../config/elements/gui_apps.star) は、アプリの `mime` から `xdg.mimeApps.defaultApplications` を作ります。アプリの追加と関連付けの追加を同じエントリで行えるためです。同じ MIME を複数のエントリに書くと、後のエントリが優先されます。
 
-Slack・Discord・Spotify・Zoom の URL スキームも、各エントリの `mime` に書きます。GNOME でスキームを解決するために必要な指定です（[理由](./xdg-scheme-workaround.md)）。Obsidian のスキームは [obsidian.star](../../config/elements/obsidian.star) が担当し、目的 `obsidian` を選んだ場合だけ登録します。
+Slack・Discord・Spotify・Zoom の URL スキームも、各エントリの `mime` に書きます。GNOME でスキームを解決するために必要な指定です（[理由](./xdg-scheme-workaround.md)）。Obsidian のスキームは [obsidian.star](../../config/elements/obsidian.star) が担当し、行動 `study` の `requires` から `obsidian` が入った場合だけ登録します。

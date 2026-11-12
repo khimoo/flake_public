@@ -4,11 +4,12 @@
 
 ## ユーザーの追加
 
-`config/hosts/<ホスト>.toml` の `[[users]]` に追加します。Home Manager を使うユーザーには、そのホストの `purposes` が適用されます。個人の値は `config/users/<ユーザー>.toml` に置きます。
+`config/hosts/<ホスト>.toml` の `[[users]]` に追加します。利用者ごとに `purposes` で行動を指定します。個人の値は `config/users/<ユーザー>.toml` に置きます。
 
 ```toml
 [[users]]
 name = "alice"
+purposes = ["everyday"]
 admin = true
 ```
 
@@ -17,6 +18,7 @@ OS アカウントだけを作る場合は `home_manager = false` にします�
 ```toml
 [[users]]
 name = "guest"
+purposes = []
 home_manager = false
 initial_hashed_password = "$6$..."
 ```
@@ -24,6 +26,7 @@ initial_hashed_password = "$6$..."
 | キー | 既定値 | 用途 |
 |---|---|---|
 | `name` | 必須 | ユーザー名 |
+| `purposes` | 必須 | 利用者の行動の一覧。機体の要素だけを使う場合は `[]` |
 | `admin` | `false` | wheel と nixos-rebuild の NOPASSWD |
 | `home_manager` | `true` | Home Manager の管理対象にする |
 | `description` | ユーザー名 | 表示名 |
@@ -45,11 +48,11 @@ flake_root = "sagyo/flake_public"
 lan_ssh = false
 ```
 
-パスはホームからの相対パスです。`lan_ssh = true` は、ホストが `personal_files` を選んでいる場合に共有鍵を配布します。共有鍵を持つ人は他のマシンにもログインできるので、配布するユーザーを選んでください。
+パスはホームからの相対パスです。`lan_ssh = true` は、利用者が `personal_files` を選んでいる場合に共有鍵を配布します。共有鍵を持つ人は他のマシンにもログインできるので、配布するユーザーを選んでください。
 
-GUI と音楽アプリはホストの `purposes` に `gui`、`gnome`、`japanese_input`、`music_production` などを指定します。`gnome` と `japanese_input` は `gui` を自動で含めます。詳細は [confgen](confgen.md) と [GUI アプリ](gui-apps.md) を参照してください。
+GUI の `gui`、`gnome`、`japanese_input` は機体の要素の `requires` で選び、音楽アプリは利用者の `purposes` に `make_music` を指定します。`gnome` と `japanese_input` は `gui` を自動で含めます。詳細は [confgen](confgen.md) と [GUI アプリ](gui-apps.md) を参照してください。
 
-音楽制作は最初のユーザーに audio グループを付与します。VM の利用者は `windows_vm_users` で指定します（[Windows VM](windows-vm.md)）。
+音楽制作は `make_music` を選んだ利用者に audio グループを付与します。VM の利用者は自身の `purposes` に `use_windows` を指定します（[Windows VM](windows-vm.md)）。
 
 ## 管理者の権限と反映
 

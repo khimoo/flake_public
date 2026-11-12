@@ -1,7 +1,7 @@
 # Tailscale（LAN 外からのデスクトップ利用）
 
 自宅 LAN の外から tailnet 経由でデスクトップに SSH 接続したり、ビルド処理をデスクトップに委任したりするための設定です。
-`tailscaled` は、[tailscale.star](../../config/elements/tailscale.star) を目的または依存として選ぶホストで有効になります。
+`tailscaled` は、[tailscale.star](../../config/elements/tailscale.star) を機体の要素の `requires` から入れるホストで有効になります。無効にするには、機体の要素の `requires` から `tailscale` と、`tailscale` を依存に含む `remote_build` を外します。
 
 設計ドキュメント: [Tailscale の設計](../architecture/tailscale.md)
 

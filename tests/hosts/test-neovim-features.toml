@@ -1,5 +1,5 @@
-
-
+# 機体は x86_64 の Linux であることだけを表す。RustOwl は x86_64 の Linux の機体でだけ入る。
+machine = "x86_64_linux"
 [[users]]
 name = "pomu"
 purposes = ["daily_editing"]

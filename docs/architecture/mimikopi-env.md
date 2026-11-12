@@ -33,7 +33,7 @@ uv はキャッシュから環境へハードリンクで展開するので、�
 
 `HSA_OVERRIDE_GFX_VERSION` は GPU で決まる値なので、パッケージの引数にして [nixos-desktop.toml](../../config/hosts/nixos-desktop.toml) の `mimikopi_hsa_override` から渡す。
 PyTorch の ROCm 版の wheel には gfx1032 向けのカーネルが入っていないので、`10.3.0` を指定して gfx1030 として扱わせる。
-データディスクも GPU も nixos-desktop に固有なので、[shell.star](../../config/elements/shell.star) ではなくこのホストの `purposes` で `mimikopi` を選ぶ。
+データディスクも GPU も nixos-desktop に固有なので、[shell.star](../../config/elements/shell.star) ではなく派生要素 `make_music_on_desktop`（`when = ["make_music", "machine_nixos_desktop"]`）の `requires` で `mimikopi` を入れる。
 
 ## データを SATA の専用 subvol に置く
 

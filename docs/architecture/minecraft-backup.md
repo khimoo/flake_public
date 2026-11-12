@@ -78,7 +78,7 @@ Drive の一覧が取れなければ、その旨を出して 0 で返す。
 `/mnt/backup` の直下は、用途ごとに所有者を分けられるよう root のまま残す。
 tmpfiles は `local-fs.target` の後に実行されるので、マウント前のルートにディレクトリができてマウントに隠されることはない。
 
-ホストの `purposes` で `minecraft_backup` を選ぶ。保存先も同じホストのファイルで指定し、要素がコマンドと timer を生成する。
+利用者の `[[users]]` の `purposes` で行動 `play_minecraft` を選ぶと、`requires` の `minecraft_backup` が入る。保存先も同じホストのファイルで指定し、要素がコマンドと timer を生成する。
 
 ## `prismlauncher.cfg` は Nix で管理しない
 

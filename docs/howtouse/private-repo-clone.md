@@ -31,7 +31,7 @@ clone 対象の repo と flake 自身に対して `git pull --ff-only` を実行
 
 ## clone する repo を変更する
 
-ホストの `purposes` で `personal_files` を選び、同じファイルの `private_repos` に URL とホームからの相対パスを指定します。例は [nixos-desktop.toml](../../config/hosts/nixos-desktop.toml) を参照してください。
+ホストの `[[users]]` の `purposes` で利用者が `personal_files` を選び、同じファイルの `private_repos` に URL とホームからの相対パスを指定します。例は [nixos-desktop.toml](../../config/hosts/nixos-desktop.toml) を参照してください。
 
 ```python
 private_repos = [{"url": "git@example.org:me/project.git", "dest": "sagyo/project"}]
@@ -52,7 +52,7 @@ clone 対象の repo がなく、`lan_ssh` が無効で、ユーザーとホス�
 SOPS_AGE_KEY_FILE=~/.config/sops/age/keys.txt sops secrets/secrets.yaml
 ```
 
-ユーザーの `config/users/<名前>.toml` またはホストのファイルに、ホームからの相対パスで指定します。ホストは `personal_files` を目的に含めます。
+ユーザーの `config/users/<名前>.toml` またはホストのファイルに、ホームからの相対パスで指定します。利用者の `[[users]]` の `purposes` に `personal_files` を含めます。
 
 ```python
 secrets = [{"secret": "gemini_api_key", "path": ".config/gemini/api-key"}]

@@ -76,10 +76,10 @@ Quaderno はスリープすると Wi-Fi ごと消え、起きている短い間�
 
 記録はマシンごとに分かれるので、2 台で有効にすると両方が全件を取り込む。取り込みは nixos-desktop の 1 台に限る。
 
-## 取り込みと送信を別の目的にする
+## 取り込みと送信を別の要素にする
 
-desktop の電源を切って spin713 だけで出かけたときにも送れるよう、spin713 でも送信を動かす。取り込みは 1 台に限るので、取り込み（`quaderno_pull`）と送信（`quaderno_send`）を別の目的に分ける。
-探索と systemd の timer は `quaderno` の要素が 1 つだけ持ち、二つの目的はそこへ設定を書き込む。両方を選んだ desktop でも、探すのは 1 分に 1 回で、見つかったら取り込みの後に送信する。
+desktop の電源を切って spin713 だけで出かけたときにも送れるよう、spin713 でも送信を動かす。取り込みは 1 台に限るので、取り込み（`quaderno_pull`）と送信（`quaderno_send`）を別の要素に分ける。`quaderno_send` は行動 `study` の `requires` から、`quaderno_pull` は派生要素 `study_on_desktop`（`when = ["study", "machine_nixos_desktop"]`）の `requires` から入る。
+探索と systemd の timer は `quaderno` の要素が 1 つだけ持ち、二つの要素は `quaderno` へ設定を書き込む。両方が入る desktop でも、探すのは 1 分に 1 回で、見つかったら取り込みの後に送信する。
 
 ## 取り込み先は SATA の `@backup` にし、vault には置かない
 

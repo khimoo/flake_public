@@ -8,7 +8,7 @@
 ## 常設の `nix.buildMachines` を主にし、`--build-host` は補助にする
 
 `nix develop` や direnv のビルドを別のホストで行わせる手段は、nix-daemon のビルダー（`builders` 設定）しかない。
-`--build-host` は `nixos-rebuild` にしか使えないので、目的 `remote_build` を選んでいないホスト向けに残している。
+`--build-host` は `nixos-rebuild` にしか使えないので、機体の要素の `requires` に `remote_build` を含まないホスト向けに残している。
 
 ## 接続先は tailnet の接続名（`desktop-ts`）にする
 
