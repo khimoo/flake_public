@@ -397,6 +397,7 @@
         "rnote": "rnote",
         "rustowl": "rustowl",
         "skk-jisyo": "skk-jisyo",
+        "twindesk": "twindesk",
         "zen-browser": "zen-browser"
       }
     },
@@ -495,6 +496,27 @@
       "original": {
         "owner": "nix-systems",
         "repo": "default",
+        "type": "github"
+      }
+    },
+    "twindesk": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs-unstable"
+        ]
+      },
+      "locked": {
+        "lastModified": 1794246359,
+        "narHash": "sha256-YNrN3De+LtmYFMitmCKwpxRZXVRT+81PU9FLYh7ktRE=",
+        "owner": "InukaAsith",
+        "repo": "TwinDesk",
+        "rev": "2c2344fdb4bebb9003a4cd7bfc9d6801dcdd3a6b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "InukaAsith",
+        "ref": "v3.0.0",
+        "repo": "TwinDesk",
         "type": "github"
       }
     },

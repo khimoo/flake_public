@@ -62,6 +62,10 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     rnote.url = "github:khimoo/rnote";
+    twindesk = {
+      url = "github:InukaAsith/TwinDesk/v3.0.0";
+      inputs.nixpkgs.follows = "nixpkgs-unstable";
+    };
   };
 
   outputs =
@@ -73,6 +77,9 @@
     {
       packages.x86_64-linux = {
         inherit (inputs.rustowl.packages.x86_64-linux) rustowl rustowl-nvim;
+        twindesk = nixpkgs.legacyPackages.x86_64-linux.callPackage ./packages/twindesk {
+          twindesk = inputs.twindesk.packages.x86_64-linux.twindesk;
+        };
       };
 
       nixosConfigurations = configurations.nixosHosts;

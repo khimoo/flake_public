@@ -5,6 +5,7 @@ state_version = "25.05"
 timezone = "Asia/Tokyo"
 ssh_user = "pomu"
 purposes = [
+  "twindesk",
   "machine_nixos_desktop",
   "user_packages",
   "xsaved",
