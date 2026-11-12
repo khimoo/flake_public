@@ -1,4 +1,4 @@
-requires = ["machine_base", "systemd_boot", "network_manager", "machine_ssh", "tailscale", "pipewire"]
+requires = ["x86_64_linux", "machine_base", "systemd_boot", "network_manager", "machine_ssh", "tailscale", "pipewire"]
 
 def config(host, tailscale):
     primary = host.users[0]["name"]
@@ -35,7 +35,10 @@ def config(host, tailscale):
             "settings": {"meta": {"rightalt": "toggle(turbo)"}, "turbo": {"rightalt": "macro2(%s, %s, macro(rightmouse))" % (host.turbo_interval_ms, host.turbo_interval_ms)}},
         }}},
     }
-    return {"nixos_imports": [repoModule("hosts/nixos-desktop/hardware.nix")], "nixos": nixos, "home": {
+    return {"nixos_imports": [repoModule("hosts/nixos-desktop/hardware.nix")], "nixos": nixos}
+
+def user_config():
+    return {"home": {
         "home.packages": [pkg("prismlauncher"), pkg("wine64"), pkg("pkgsRocm.blender"), pkg("gnomeExtensions.display-configuration-switcher")],
         ("dconf", "settings", "org/gnome/shell", "enabled-extensions"): mkAfter(["display-configuration-switcher@knokelmaat.gitlab.com"]),
     }}

@@ -45,7 +45,7 @@ def _wayland_desktop(app):
         "fi\n",
     ))
 
-def config():
+def user_config():
     settings = {
         "home.packages": [app["pkg"] for app in _apps],
         "programs.obs-studio.enable": True,

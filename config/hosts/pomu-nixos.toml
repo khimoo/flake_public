@@ -1,22 +1,8 @@
 system = "x86_64-linux"
 kind = "home"
 state_version = "25.05"
-purposes = [
-  "user_packages",
-  "personal_files",
-  "dev_tools",
-  "daily_editing",
-  "shell",
-  "git",
-  "gui",
-  "web_browsing",
-  "gui_apps",
-  "inkscape",
-  "teams_dispatcher",
-  "gnome",
-  "japanese_input",
-  "music_production",
-]
+machine = "machine_pomu_nixos"
 
 [[users]]
 name = "pomu"
+purposes = ["user_packages", "personal_files", "dev_tools", "daily_editing", "shell", "git", "gui", "web_browsing", "gui_apps", "inkscape", "teams_dispatcher", "gnome", "japanese_input", "music_production"]

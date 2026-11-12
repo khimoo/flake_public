@@ -1,6 +1,6 @@
 # `alook-open`: 手元または別の PC の Alook の Web UI をブラウザで開く（docs/howtouse/cli-tools/alook.md）。
 # 開ける別の PC は、ホストのファイルの alook_open_remotes（名前: SSH の接続名）。
-def config(host):
+def user_config(host):
     if "local" in host.alook_open_remotes:
         fail("alook_open_remotes: 名前 local は手元の PC に使う")
     remotes = " ".join([name + "=" + remote for name, remote in sorted(host.alook_open_remotes.items())])

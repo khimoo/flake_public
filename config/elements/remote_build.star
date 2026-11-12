@@ -1,6 +1,6 @@
 requires = ["machine_ssh", "tailscale"]
 
-def config(host, machines, user):
+def config(host, machines):
     builders = []
     for name in sorted(machines.all):
         machine = machines.all[name]
@@ -14,7 +14,7 @@ def config(host, machines, user):
             "maxJobs": machine["builder"]["max_jobs"],
             "supportedFeatures": machine["builder"]["supported_features"],
             # nix-daemon は root で動き、root の ~/.ssh には共有鍵がない。
-            "sshKey": user.home + "/.ssh/id_lan",
+            "sshKey": "/home/" + host.users[0]["name"] + "/.ssh/id_lan",
         })
     if not builders:
         fail("remote_build: no other host has a builder in config/hosts/*.toml")

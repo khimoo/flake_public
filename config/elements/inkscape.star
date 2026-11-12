@@ -1,6 +1,6 @@
 requires = ["gui"]
 
-def config(checkout):
+def user_config(checkout):
     return {"home": {
         "home.packages": [pkg("inkscape")],
         # 新規文書の既定テンプレート。checkout への symlink なので、GUI の「デフォルトテンプレートとして

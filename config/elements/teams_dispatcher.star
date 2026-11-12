@@ -3,7 +3,7 @@ requires = ["gui"]
 def writes(web_browsing):
     return [write(web_browsing, "teams-url-dispatcher.desktop")]
 
-def config(web_browsing):
+def user_config(web_browsing):
     dispatcher = scriptBin("teams-url-dispatcher", concat(
         'case "$1" in\n',
         '  *teams.microsoft.com*|*teams.live.com*)\n',

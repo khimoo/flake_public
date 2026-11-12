@@ -3,7 +3,7 @@ requires = ["kitty"]
 def public():
     return {"terminal_font": {"package": pkg("plemoljp-nf"), "name": "PlemolJP Console NF"}}
 
-def config():
+def user_config():
     return {"home": {
         "home.packages": [
             pkg("plemoljp-nf"),

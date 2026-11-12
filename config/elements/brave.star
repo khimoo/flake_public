@@ -1,6 +1,6 @@
 requires = ["gui"]
 
-def config():
+def user_config():
     return {"home": {
         "programs.brave.enable": True,
         "programs.brave.extensions": [

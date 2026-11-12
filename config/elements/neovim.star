@@ -14,7 +14,7 @@ def _merge(data, more):
         out[feature] = merged
     return out
 
-def config(checkout, incoming):
+def user_config(checkout, incoming):
     features = []
     packages = []
     lua_packages = []

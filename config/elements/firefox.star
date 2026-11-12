@@ -3,7 +3,7 @@ requires = ["gui"]
 def public():
     return {"command": exe("firefox", "firefox"), "desktop": "firefox.desktop"}
 
-def config(browser_common):
+def user_config(browser_common):
     extensions = dict(browser_common.extensions)
     extensions.update({
         "treestyletab@piro.sakura.ne.jp": "tree-style-tab",

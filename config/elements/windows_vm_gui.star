@@ -1,8 +1,8 @@
 when = ["windows_vm", "gui"]
 
-def config(user, windows_vm):
-    if user.name not in windows_vm.users or windows_vm.domain == None:
-        return {}
+def user_config(windows_vm):
+    if windows_vm.domain == None:
+        fail("windows_vm_gui: set windows_vm_domain in the host file")
     timeout = windows_vm.boot_timeout
     if type(timeout) != "int" or timeout <= 0:
         fail("windows_vm: boot timeout must be positive")

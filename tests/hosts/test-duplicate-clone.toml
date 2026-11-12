@@ -2,9 +2,9 @@ system = "x86_64-linux"
 state_version = "25.11"
 timezone = "Asia/Tokyo"
 hostname = "test-duplicate-clone"
-purposes = ["personal_files"]
 private_repos = [{url = "one", dest = "repo"}, {url = "two", dest = "repo"}]
 
 
 [[users]]
 name = "test"
+purposes = ["personal_files"]

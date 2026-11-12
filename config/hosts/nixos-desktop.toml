@@ -4,38 +4,7 @@ kind = "nixos"
 state_version = "25.05"
 timezone = "Asia/Tokyo"
 ssh_user = "pomu"
-purposes = [
-  "twindesk",
-  "machine_nixos_desktop",
-  "user_packages",
-  "xsaved",
-  "windows_vm",
-  "minecraft_backup",
-  "quaderno_pull",
-  "quaderno_send",
-  "mimikopi",
-  "personal_files",
-  "ai_agents",
-  "dev_tools",
-  "daily_editing",
-  "memex_sync",
-  "obsidian",
-  "shell",
-  "git",
-  "gui",
-  "web_browsing",
-  "gui_apps",
-  "inkscape",
-  "teams_dispatcher",
-  "gnome",
-  "japanese_input",
-  "desktop",
-  "printing",
-  "bluetooth",
-  "sns_block",
-  "call_audio",
-  "music_production",
-]
+machine = "machine_nixos_desktop"
 xkb_layout = "us+altgr-intl"
 backup_dir = "/mnt/backup"
 data_device = "/dev/disk/by-uuid/57ba3e14-4099-4708-a643-edfc45d3eb18"
@@ -52,7 +21,6 @@ quaderno_archive = "/mnt/backup/quaderno"
 mimikopi_data_dir = "/home/pomu/.local/share/mimikopi"
 mimikopi_hsa_override = "10.3.0"
 secrets = [{ secret = "xsaved_restic_password", path = ".config/xsaved/restic-password" }]
-windows_vm_users = ["pomu"]
 windows_vm_domain = "win11"
 xsaved_proxy = { user = "pomu", name = "xsaved.localhost" }
 
@@ -66,10 +34,12 @@ supported_features = ["benchmark", "big-parallel", "kvm", "nixos-test"]
 
 [[users]]
 name = "pomu"
+purposes = ["twindesk", "user_packages", "xsaved", "windows_vm", "minecraft_backup", "quaderno_pull", "quaderno_send", "mimikopi", "personal_files", "ai_agents", "dev_tools", "daily_editing", "memex_sync", "obsidian", "shell", "git", "gui", "web_browsing", "gui_apps", "inkscape", "teams_dispatcher", "gnome", "japanese_input", "desktop", "printing", "bluetooth", "sns_block", "call_audio", "music_production", "agent_config", "agent_compression", "etc_nixos_link"]
 admin = true
 
 [[users]]
 name = "mase"
+purposes = []
 admin = false
 home_manager = false
 initial_hashed_password = "$6$jQHubQo9MXPX15.x$LSWMJBiOQT75T/HOeMyKlFmWZjl.wTi7CA.m02uFPPJqssvKCMq1..6fGYdjm7HMJhhBAIl1Vbpkuq92gaVbH/"

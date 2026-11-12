@@ -1,7 +1,7 @@
 def _quote(value):
     return "'" + value.replace("'", "'\"'\"'") + "'"
 
-def config(user, incoming):
+def user_config(user, incoming):
     items = []
     by_path = {}
     ssh_keys = {}

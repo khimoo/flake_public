@@ -1,4 +1,4 @@
-def config():
+def user_config():
     return {"home": {
         "programs.yazi.enable": True,
         "programs.yazi.enableBashIntegration": True,

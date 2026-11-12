@@ -2,8 +2,8 @@ system = "x86_64-linux"
 state_version = "25.11"
 timezone = "Asia/Tokyo"
 hostname = "test-bad-purpose-type"
-purposes = "gui"
 
 
 [[users]]
 name = "test"
+purposes = "gui"

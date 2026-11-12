@@ -26,12 +26,17 @@ func writeConfig(t *testing.T, elements map[string]string, hosts map[string]stri
 	return dir
 }
 
+// one is a host file whose only user, test, selects purposes.
+func one(purposes string) string {
+	return "[[users]]\nname = \"test\"\npurposes = " + purposes + "\n"
+}
+
 func buildHosts(t *testing.T, elements, hosts map[string]string) map[string]*hostResult {
 	t.Helper()
 	dir := writeConfig(t, elements, hosts)
 	out := map[string]*hostResult{}
 	for h := range hosts {
-		r, err := buildHost(dir, h, "x86_64-linux", "test")
+		r, err := buildHost(dir, h, "x86_64-linux")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -42,7 +47,7 @@ func buildHosts(t *testing.T, elements, hosts map[string]string) map[string]*hos
 
 func buildError(t *testing.T, elements map[string]string) string {
 	t.Helper()
-	_, err := buildHost(writeConfig(t, elements, map[string]string{"h": `purposes = ["p"]`}), "h", "x86_64-linux", "test")
+	_, err := buildHost(writeConfig(t, elements, map[string]string{"h": one(`["p"]`)}), "h", "x86_64-linux")
 	if err == nil {
 		t.Fatal("build succeeded, want an error")
 	}
@@ -57,8 +62,8 @@ func TestRemovingPurposeRemovesItsElementsAndKeepsSharedOnes(t *testing.T) {
 		"shared": ``,
 	}
 	r := buildHosts(t, elements, map[string]string{
-		"both":   `purposes = ["a", "b"]`,
-		"b_only": `purposes = ["b"]`,
+		"both":   one(`["a", "b"]`),
+		"b_only": one(`["b"]`),
 	})
 	if got, want := r["both"].Generated, []string{"a", "b", "only_a", "shared"}; !reflect.DeepEqual(got, want) {
 		t.Errorf("both: %v, want %v", got, want)
@@ -79,8 +84,8 @@ func TestDerivedElementIsGeneratedOnlyWhenAllConditionsAre(t *testing.T) {
 		"m2": `when = ["m1", "x"]`, // each needs the other: never generated
 	}
 	r := buildHosts(t, elements, map[string]string{
-		"xy": `purposes = ["x", "y"]`,
-		"x":  `purposes = ["x"]`,
+		"xy": one(`["x", "y"]`),
+		"x":  one(`["x"]`),
 	})
 	if got, want := r["xy"].Generated, []string{"d", "e", "x", "y", "z"}; !reflect.DeepEqual(got, want) {
 		t.Errorf("xy: %v, want %v", got, want)
@@ -95,7 +100,7 @@ func TestReadingAndWritingTheSameElementRecordsBoth(t *testing.T) {
 		"sink": `
 def public():
     return {"label": "v1"}
-def config(incoming):
+def user_config(incoming):
     return {"home": {"x.y": [w.value for w in incoming]}}
 `,
 		"p": `
@@ -103,7 +108,7 @@ def writes(sink):
     return [write(sink, {"copy": sink.label})]
 `,
 	}
-	r := buildHosts(t, elements, map[string]string{"h": `purposes = ["p"]`})
+	r := buildHosts(t, elements, map[string]string{"h": one(`["p"]`)})
 	g := r["h"].Graph["p"]
 	if !reflect.DeepEqual(g.Reads, []string{"sink"}) || !reflect.DeepEqual(g.Writes, []string{"sink"}) {
 		t.Errorf("reads %v writes %v, want sink in both", g.Reads, g.Writes)
@@ -112,13 +117,13 @@ def writes(sink):
 
 func TestHostFactsDescribeTheBuiltSystem(t *testing.T) {
 	dir := writeConfig(t, map[string]string{
-		"p": "def config(host, user):\n    return {\"home\": {\"a\": host.linux, (\"b\", \"c.d\"): host.system, \"h\": user.home}}",
-	}, map[string]string{"h": `purposes = ["p"]`})
-	r, err := buildHost(dir, "h", "aarch64-darwin", "alice")
+		"p": "def user_config(host, user):\n    return {\"home\": {\"a\": host.linux, (\"b\", \"c.d\"): host.system, \"h\": user.home}}",
+	}, map[string]string{"h": "[[users]]\nname = \"alice\"\npurposes = [\"p\"]\n"})
+	r, err := buildHost(dir, "h", "aarch64-darwin")
 	if err != nil {
 		t.Fatal(err)
 	}
-	got := r.Elements["p"]["home"]
+	got := r.Users["alice"].Elements["p"]["home"]
 	want := []setting{{Path: []string{"a"}, Value: false}, {Path: []string{"b", "c.d"}, Value: "aarch64-darwin"}, {Path: []string{"h"}, Value: "/Users/alice"}}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %#v, want %#v", got, want)
@@ -158,7 +163,7 @@ func TestRejected(t *testing.T) {
 			"p":    "def writes(base):\n    base.items.append(1)\n    return []",
 			"base": "def public():\n    return {\"items\": []}"}, "frozen"},
 		{"marker turned into text", map[string]string{
-			"p": "def config():\n    return {\"home\": {\"a\": \"run %s\" % exe(\"x\", \"y\")}}"}, "turned into text"},
+			"p": "def user_config():\n    return {\"home\": {\"a\": \"run %s\" % exe(\"x\", \"y\")}}"}, "turned into text"},
 		{"element named host", map[string]string{
 			"p": ``, "host": ``}, "reserved"},
 		{"element named user", map[string]string{
@@ -179,13 +184,13 @@ func TestAffectedCoversReadersWriteTargetsAndDerivedElementsOnly(t *testing.T) {
 	root := t.TempDir()
 	config := writeConfig(t, map[string]string{
 		"a":         `def public(): return {"x": 1}`,
-		"reads_a":   "def config(a):\n    return {\"home\": {\"x\": a.x}}",
-		"sink":      "def config(incoming):\n    return {\"home\": {\"n\": len(incoming)}}",
+		"reads_a":   "def user_config(a):\n    return {\"home\": {\"x\": a.x}}",
+		"sink":      "def user_config(incoming):\n    return {\"home\": {\"n\": len(incoming)}}",
 		"writes":    "def writes(sink):\n    return [write(sink, 1)]",
 		"derived":   `when = ["a", "sink"]`,
-		"unrelated": "def config(host):\n    return {\"home\": {\"s\": host.system}}",
-		"uses_pkg":  "def config():\n    return {\"home\": {\"p\": repoPkg(\"packages/foo\")}}",
-	}, map[string]string{"h": `purposes = ["a"]`})
+		"unrelated": "def user_config(host):\n    return {\"home\": {\"s\": host.system}}",
+		"uses_pkg":  "def user_config():\n    return {\"home\": {\"p\": repoPkg(\"packages/foo\")}}",
+	}, map[string]string{"h": one(`["a"]`)})
 	if err := os.Symlink(config, filepath.Join(root, "config")); err != nil {
 		t.Fatal(err)
 	}
@@ -195,7 +200,7 @@ func TestAffectedCoversReadersWriteTargetsAndDerivedElementsOnly(t *testing.T) {
 	}{
 		{[]string{"config/elements/a.star"}, []string{"a", "derived", "reads_a"}},
 		{[]string{"config/elements/writes.star"}, []string{"sink", "writes"}},
-		{[]string{"config/hosts/h.toml"}, []string{"host", "machines", "unrelated"}},
+		{[]string{"config/hosts/h.toml"}, []string{"host", "machines", "unrelated", "user"}},
 		{[]string{"packages/foo/default.nix"}, []string{"uses_pkg"}},
 		{[]string{"docs/x.md"}, nil},
 		{[]string{"lib/confgen.nix"}, []string{allElements}},
@@ -236,15 +241,15 @@ func TestAloneReportsElementsThatFailWithoutAnotherSelectedElement(t *testing.T)
 def config(incoming):
     if len(incoming) == 1:
         fail("sink: half of the pair")
-    return {}
+    return {"nixos": {"n": len(incoming)}}
 `,
 		"needs_partner": "def writes(sink):\n    return [write(sink, 1)]",
 		"partner":       "def writes(sink):\n    return [write(sink, 2)]",
 		"never_chosen":  ``,
 		"derived":       `when = ["needs_partner", "partner"]`,
 	}, map[string]string{
-		"h":        `purposes = ["needs_partner", "partner"]`,
-		"rejected": `purposes = ["needs_partner"]`,
+		"h":        one(`["needs_partner", "partner"]`),
+		"rejected": one(`["needs_partner"]`),
 	})
 	failures, err := alone(dir)
 	if err != nil {
@@ -255,5 +260,130 @@ def config(incoming):
 		!strings.HasPrefix(failures[1], "partner alone (values of host h)") ||
 		!strings.HasPrefix(failures[2], "never_chosen: no host generates it") {
 		t.Errorf("failures %q", failures)
+	}
+}
+
+func TestEachUserGetsTheElementsItsOwnPurposesDerive(t *testing.T) {
+	elements := map[string]string{
+		"m":      `requires = ["base"]`,
+		"base":   "def user_config(user):\n    return {\"home\": {\"who\": user.name}}",
+		"a":      `requires = ["only_a"]`,
+		"only_a": "def user_config():\n    return {\"home\": {\"a\": True}}",
+		"b":      ``,
+		"d":      `when = ["a", "b"]` + "\ndef config():\n    return {\"nixos\": {\"d\": True}}",
+	}
+	r := buildHosts(t, elements, map[string]string{"h": `machine = "m"
+[[users]]
+name = "alice"
+purposes = ["a"]
+[[users]]
+name = "bob"
+purposes = ["b"]
+`})["h"]
+	if got, want := r.Users["alice"].Generated, []string{"a", "base", "m", "only_a", "user"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("alice: %v, want %v", got, want)
+	}
+	if got, want := r.Users["bob"].Generated, []string{"b", "base", "m", "user"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("bob: %v, want %v", got, want)
+	}
+	// d needs a and b for the same user; alice has a and bob has b.
+	if got, want := r.Generated, []string{"a", "b", "base", "m", "only_a", "user"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("host: %v, want %v", got, want)
+	}
+	if _, ok := r.Users["bob"].Elements["only_a"]; ok {
+		t.Errorf("bob got the settings of only_a")
+	}
+	if got, want := r.Users["alice"].Reasons["only_a"], (reason{Rule: "requires", From: []string{"a"}}); !reflect.DeepEqual(got, want) {
+		t.Errorf("reason of only_a: %#v, want %#v", got, want)
+	}
+	if got, want := r.Users["bob"].Reasons["m"], (reason{Axiom: "machine"}); !reflect.DeepEqual(got, want) {
+		t.Errorf("reason of m: %#v, want %#v", got, want)
+	}
+}
+
+func TestPerUserNixosSettingsJoinTheHostSettings(t *testing.T) {
+	elements := map[string]string{
+		"audio": `
+def config():
+    return {"nixos": {"sound": True}}
+def user_config(user):
+    return {"nixos": {("users", "users", user.name, "extraGroups"): ["audio"]}}
+`,
+	}
+	r := buildHosts(t, elements, map[string]string{"h": `
+[[users]]
+name = "alice"
+purposes = ["audio"]
+[[users]]
+name = "bob"
+purposes = []
+`})["h"]
+	got := r.Elements["audio"]["nixos"]
+	want := []setting{{Path: []string{"sound"}, Value: true}, {Path: []string{"users", "users", "alice", "extraGroups"}, Value: []any{"audio"}}}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %#v, want %#v", got, want)
+	}
+}
+
+func TestPurposesAreNotValuesElementsCanRead(t *testing.T) {
+	elements := map[string]string{
+		"p": `
+def user_config(host, machines):
+    return {"home": {
+        "host": "purposes" in host.users[0],
+        "machines": "purposes" in machines.all["h"]["users"][0],
+        "machine": "machine" in machines.all["h"],
+    }}
+`,
+		"m": ``,
+	}
+	r := buildHosts(t, elements, map[string]string{"h": "machine = \"m\"\n" + one(`["p"]`)})["h"]
+	got := r.Users["test"].Elements["p"]["home"]
+	want := []setting{{Path: []string{"host"}, Value: false}, {Path: []string{"machine"}, Value: false}, {Path: []string{"machines"}, Value: false}}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %#v, want %#v", got, want)
+	}
+}
+
+func TestRejectedForRulesAAndB(t *testing.T) {
+	cases := []struct {
+		name     string
+		elements map[string]string
+		host     string
+		want     string
+	}{
+		{"config reads user", map[string]string{
+			"p": "def config(user):\n    return {\"nixos\": {\"a\": user.name}}"}, one(`["p"]`), "differs per user"},
+		{"config reads a public value made from user", map[string]string{
+			"p": "def config(q):\n    return {\"nixos\": {\"a\": q.home}}",
+			"q": "def public(user):\n    return {\"home\": user.home}"}, one(`["p"]`), "differs per user"},
+		{"config sets home options", map[string]string{
+			"p": "def config():\n    return {\"home\": {\"a\": 1}}"}, one(`["p"]`), "config keys must be nixos"},
+		{"config returns nothing", map[string]string{
+			"p": "def config(host):\n    return {} if host.linux else {\"nixos\": {\"a\": 1}}"}, one(`["p"]`), "produced no settings"},
+		{"user_config returns nothing for one user", map[string]string{
+			"p": "def user_config(user):\n    return {} if user.name == \"bob\" else {\"home\": {\"a\": 1}}"},
+			"[[users]]\nname = \"alice\"\npurposes = [\"p\"]\n[[users]]\nname = \"bob\"\npurposes = [\"p\"]\n", "for user bob"},
+		{"writes returns nothing", map[string]string{
+			"p":    "def writes(sink, host):\n    return [] if host.linux else [write(sink, 1)]",
+			"sink": "def user_config(incoming):\n    return {\"home\": {\"n\": len(incoming)}}"}, one(`["p"]`), "produced no settings"},
+		{"per-user writes into config only", map[string]string{
+			"p":    "def writes(sink, user):\n    return [write(sink, user.name)]",
+			"sink": "def config(incoming):\n    return {\"nixos\": {\"n\": len(incoming)}}"}, one(`["p"]`), "no user_config"},
+		{"purposes at the top of the host file", map[string]string{"p": ``}, `purposes = ["p"]`, "belongs to each [[users]]"},
+		{"derived element as machine", map[string]string{
+			"d": `when = ["a", "b"]`, "a": ``, "b": ``}, "machine = \"d\"\n" + one(`[]`), "derived"},
+		{"user without purposes", map[string]string{"p": ``}, "[[users]]\nname = \"test\"\n", "has no purposes"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			_, err := buildHost(writeConfig(t, c.elements, map[string]string{"h": c.host}), "h", "x86_64-linux")
+			if err == nil {
+				t.Fatal("build succeeded, want an error")
+			}
+			if !strings.Contains(err.Error(), c.want) {
+				t.Errorf("error %q does not mention %q", err, c.want)
+			}
+		})
 	}
 }

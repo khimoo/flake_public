@@ -1,4 +1,4 @@
-def config(user, host, failure_notify):
+def user_config(user, host, failure_notify):
     env = {
         "MC_INSTANCES": user.home + "/.local/share/PrismLauncher/instances",
         "MC_REPO": host.minecraft_repo,

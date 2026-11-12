@@ -6,7 +6,7 @@ def public(user):
 def _quote(value):
     return "'" + value.replace("'", "'\"'\"'") + "'"
 
-def config(user, checkout, incoming):
+def user_config(user, checkout, incoming):
     repos = [w.value for w in incoming]
     destinations = {}
     for repo in repos:

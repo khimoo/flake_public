@@ -2,8 +2,8 @@ system = "x86_64-linux"
 state_version = "25.11"
 timezone = "Asia/Tokyo"
 hostname = "test-gnome"
-purposes = ["gnome"]
 
 
 [[users]]
 name = "test"
+purposes = ["gnome"]

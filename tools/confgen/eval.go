@@ -11,26 +11,41 @@ import (
 	"go.starlark.net/syntax"
 )
 
-// generated computes the least set closed under the reference and condition rules.
-func generated(elems map[string]*element, purposes []string) map[string]bool {
-	g := map[string]bool{}
-	for _, p := range purposes {
-		g[p] = true
+// reason records why an element is true for a user: an axiom, or the rule that derived it.
+type reason struct {
+	Axiom string   `json:"axiom,omitempty"` // "machine" or "purposes"
+	Rule  string   `json:"rule,omitempty"`  // "requires", "parameter" or "when"
+	From  []string `json:"from,omitempty"`  // the antecedents of the rule
+}
+
+// derive computes the least set of elements closed under the rules (a reference from a true
+// element, or a when whose elements are all true), starting from the axioms. Each element
+// keeps the first reason found, in a fixed order, so the reasons are deterministic.
+func derive(elems map[string]*element, axioms map[string]string) map[string]reason {
+	g := map[string]reason{}
+	for name, kind := range axioms {
+		g[name] = reason{Axiom: kind}
 	}
 	for changed := true; changed; {
 		changed = false
 		for _, e := range sortedElems(elems) {
-			if g[e.name] {
+			if _, ok := g[e.name]; ok {
 				for _, r := range e.refs() {
-					if !g[r] {
-						g[r] = true
+					if _, ok := g[r]; !ok {
+						rule := "parameter"
+						for _, q := range e.requires {
+							if q == r {
+								rule = "requires"
+							}
+						}
+						g[r] = reason{Rule: rule, From: []string{e.name}}
 						changed = true
 					}
 				}
 				continue
 			}
 			if e.derived() && allIn(e.when, g) {
-				g[e.name] = true
+				g[e.name] = reason{Rule: "when", From: e.when}
 				changed = true
 			}
 		}
@@ -38,9 +53,9 @@ func generated(elems map[string]*element, purposes []string) map[string]bool {
 	return g
 }
 
-func allIn(xs []string, set map[string]bool) bool {
+func allIn[V any](xs []string, set map[string]V) bool {
 	for _, x := range xs {
-		if !set[x] {
+		if _, ok := set[x]; !ok {
 			return false
 		}
 	}
@@ -287,31 +302,42 @@ func builtins() starlark.StringDict {
 		"luaPackages": luaPackages, "lua": lua, "module": module,
 		"repoModule": repoModule, "script": script("script"), "scriptBin": script("scriptBin"),
 		"outOfStoreLink": generic("outOfStoreLink", 1),
-		"activation": activation, "inputPkg": inputPkg, "file": file,
+		"activation":     activation, "inputPkg": inputPkg, "file": file,
 		"shellApp": generic("shellApp", 3), "shellAppEnv": generic("shellAppEnv", 4),
 		"repoPkg": generic("repoPkg", 1), "repoText": generic("repoText", 1),
 		"symlinkJoin": generic("symlinkJoin", 2), "symlinkJoinBuild": generic("symlinkJoinBuild", 4),
 		"toJSON": generic("toJSON", 1), "pkgSetFn": generic("pkgSetFn", 1),
 		"pkgWithPackages": generic("pkgWithPackages", 2),
-		"mkAfter": generic("mkAfter", 1), "mkBefore": generic("mkBefore", 1),
+		"mkAfter":         generic("mkAfter", 1), "mkBefore": generic("mkBefore", 1),
 		"flakeRev": generic("flakeRev", 0), "repoPkgWith": generic("repoPkgWith", 2),
 		"repoPath": generic("repoPath", 1), "pythonWithModules": generic("pythonWithModules", 1), "command": generic("command", 2),
 		"gvariantTuple": generic("gvariantTuple", 1),
-		"struct": starlark.NewBuiltin("struct", starlarkstruct.Make),
+		"struct":        starlark.NewBuiltin("struct", starlarkstruct.Make),
 	}
 }
 
 type hostResult struct {
-	Host      string                `json:"host"`
-	System    string                `json:"system"`
-	Purposes  []string              `json:"purposes"`
-	Generated []string              `json:"generated"`
-	Elements  map[string]outputs    `json:"elements"`
-	Graph     map[string]graphEntry `json:"graph"`
+	Host      string                 `json:"host"`
+	System    string                 `json:"system"`
+	Machine   string                 `json:"machine"`
+	Generated []string               `json:"generated"`
+	Elements  map[string]outputs     `json:"elements"`
+	Users     map[string]*userResult `json:"users"`
+	Graph     map[string]graphEntry  `json:"graph"`
+}
+
+// userResult is what one user gets: the elements true for the user, why each is true, and
+// the per-user settings other than NixOS ones (those go to hostResult.Elements, because
+// NixOS has one configuration for all users).
+type userResult struct {
+	Purposes  []string           `json:"purposes"`
+	Generated []string           `json:"generated"`
+	Reasons   map[string]reason  `json:"reasons"`
+	Elements  map[string]outputs `json:"elements"`
 }
 
 // outputs maps "home" and "nixos" to the settings an element sets, and "home_imports"
-// to the Home Manager modules from flake inputs that those settings need.
+// and "nixos_imports" to the modules that those settings need.
 type outputs map[string]any
 
 type setting struct {
@@ -327,13 +353,65 @@ type graphEntry struct {
 	Options  []string `json:"options"`
 }
 
-func evaluate(host, system, user string, hostFileValues, userFileValues, machineValues starlark.StringDict, elems map[string]*element, purposes []string) (*hostResult, error) {
-	g := generated(elems, purposes)
+type writeEntry struct {
+	source string
+	target string
+	value  starlark.Value
+}
+
+// levels tells which functions see per-user values. The public values of user, and of an
+// element whose public reads a per-user value, differ per user. A function that reads one
+// of them is evaluated per user; config may not, because the NixOS settings of the host are
+// the same whichever user's judgment brought the element in (rule B).
+type levels struct {
+	elems  map[string]*element
+	public map[string]bool
+}
+
+func (l *levels) publicPerUser(name string) bool {
+	if v, ok := l.public[name]; ok {
+		return v
+	}
+	l.public[name] = false // a cycle is reported when public values are evaluated
+	e := l.elems[name]
+	v := name == userElement
+	if f := e.funcs["public"]; f != nil {
+		v = l.readsPerUser(f)
+	}
+	l.public[name] = v
+	return v
+}
+
+func (l *levels) readsPerUser(f *funcInfo) bool {
+	for _, p := range f.params {
+		if p != incomingParam && f.reads[p] && l.publicPerUser(p) {
+			return true
+		}
+	}
+	return false
+}
+
+func evaluateHost(host, system string, spec *hostSpec, userFiles map[string]starlark.StringDict, machineValues starlark.StringDict, elems map[string]*element) (*hostResult, error) {
+	judgments := map[string]map[string]reason{}
+	all := map[string]bool{}
+	for _, u := range spec.users {
+		axioms := map[string]string{}
+		if spec.machine != "" {
+			axioms[spec.machine] = "machine"
+		}
+		for _, p := range u.purposes {
+			axioms[p] = "purposes"
+		}
+		judgments[u.name] = derive(elems, axioms)
+		for n := range judgments[u.name] {
+			all[n] = true
+		}
+	}
+
 	thread := &starlark.Thread{Name: host, Print: func(*starlark.Thread, string) {}}
 	predeclared := builtins()
-
 	globals := map[string]starlark.StringDict{}
-	for _, name := range sortedKeys(g) {
+	for _, name := range sortedKeys(all) {
 		e := elems[name]
 		if e.virtual {
 			continue
@@ -344,7 +422,6 @@ func evaluate(host, system, user string, hostFileValues, userFileValues, machine
 		}
 		globals[name] = gl
 	}
-
 	call := func(e *element, fn string, args starlark.Tuple) (starlark.Value, error) {
 		f, ok := globals[e.name][fn]
 		if !ok {
@@ -361,13 +438,20 @@ func evaluate(host, system, user string, hostFileValues, userFileValues, machine
 		return v, nil
 	}
 
-	// public, in dependency order over the parameters of public.
+	lv := &levels{elems: elems, public: map[string]bool{}}
+	for _, name := range sortedKeys(all) {
+		e := elems[name]
+		if f := e.funcs["config"]; f != nil && lv.readsPerUser(f) {
+			return nil, fmt.Errorf("%s: config reads a value that differs per user (user, or an element whose public reads it); move the per-user part to user_config", e.file)
+		}
+	}
+
 	hostValues := starlark.StringDict{
 		"system": starlark.String(system),
 		"linux":  starlark.Bool(strings.HasSuffix(system, "-linux")),
 		"darwin": starlark.Bool(strings.HasSuffix(system, "-darwin")),
 	}
-	for k, v := range hostFileValues {
+	for k, v := range spec.values {
 		if k == "system" && v != starlark.String(system) {
 			return nil, fmt.Errorf("host %s: system is %s in its file but %s was requested", host, v, system)
 		}
@@ -375,77 +459,66 @@ func evaluate(host, system, user string, hostFileValues, userFileValues, machine
 	}
 	facts := starlarkstruct.FromStringDict(starlarkstruct.Default, hostValues)
 	facts.Freeze()
-	home := "/home/" + user
-	if strings.HasSuffix(system, "-darwin") {
-		home = "/Users/" + user
-	}
-	userValues := starlark.StringDict{
-		"name": starlark.String(user),
-		"home": starlark.String(home),
-	}
-	for k, v := range userFileValues {
-		userValues[k] = v
-	}
-	userFacts := starlarkstruct.FromStringDict(starlarkstruct.Default, userValues)
-	userFacts.Freeze()
-	refs := map[string]*elementRef{
-		hostElement: {name: hostElement, public: facts},
-		userElement: {name: userElement, public: userFacts},
-		machinesElement: {name: machinesElement, public: starlarkstruct.FromStringDict(starlarkstruct.Default, machineValues)},
-	}
-	refs[machinesElement].public.Freeze()
-	var visiting = map[string]bool{}
-	var publicOf func(name string) (*elementRef, error)
-	publicOf = func(name string) (*elementRef, error) {
-		if r, ok := refs[name]; ok {
-			return r, nil
-		}
-		if visiting[name] {
-			return nil, fmt.Errorf("%s: public values read each other in a cycle", elems[name].file)
-		}
-		visiting[name] = true
-		e := elems[name]
-		var args starlark.Tuple
-		if f := e.funcs["public"]; f != nil {
-			for _, p := range f.params {
-				r, err := publicOf(p)
-				if err != nil {
-					return nil, err
-				}
-				args = append(args, r)
-			}
-		}
-		v, err := call(e, "public", args)
-		if err != nil {
-			return nil, err
-		}
-		dict := starlark.StringDict{}
-		if v != nil {
-			d, ok := v.(*starlark.Dict)
-			if !ok {
-				return nil, fmt.Errorf("%s: public must return a dict", e.file)
-			}
-			for _, item := range d.Items() {
-				k, ok := item[0].(starlark.String)
-				if !ok {
-					return nil, fmt.Errorf("%s: public keys must be strings", e.file)
-				}
-				dict[string(k)] = item[1]
-			}
-		}
-		s := starlarkstruct.FromStringDict(starlarkstruct.Default, dict)
-		s.Freeze()
-		r := &elementRef{name: name, public: s}
-		refs[name] = r
-		return r, nil
-	}
-	for _, name := range sortedKeys(g) {
-		if _, err := publicOf(name); err != nil {
-			return nil, err
-		}
+	machines := starlarkstruct.FromStringDict(starlarkstruct.Default, machineValues)
+	machines.Freeze()
+	hostRefs := map[string]*elementRef{
+		hostElement:     {name: hostElement, public: facts},
+		machinesElement: {name: machinesElement, public: machines},
 	}
 
-	argsFor := func(f *funcInfo, incoming starlark.Value) starlark.Tuple {
+	publicOfIn := func(refs map[string]*elementRef) func(string) (*elementRef, error) {
+		visiting := map[string]bool{}
+		var publicOf func(string) (*elementRef, error)
+		publicOf = func(name string) (*elementRef, error) {
+			if r, ok := refs[name]; ok {
+				return r, nil
+			}
+			e := elems[name]
+			if e.virtual {
+				return nil, fmt.Errorf("%s is only available to functions evaluated per user", name)
+			}
+			if visiting[name] {
+				return nil, fmt.Errorf("%s: public values read each other in a cycle", e.file)
+			}
+			visiting[name] = true
+			var args starlark.Tuple
+			if f := e.funcs["public"]; f != nil {
+				for _, p := range f.params {
+					r, err := publicOf(p)
+					if err != nil {
+						return nil, err
+					}
+					args = append(args, r)
+				}
+			}
+			v, err := call(e, "public", args)
+			if err != nil {
+				return nil, err
+			}
+			dict := starlark.StringDict{}
+			if v != nil {
+				d, ok := v.(*starlark.Dict)
+				if !ok {
+					return nil, fmt.Errorf("%s: public must return a dict", e.file)
+				}
+				for _, item := range d.Items() {
+					k, ok := item[0].(starlark.String)
+					if !ok {
+						return nil, fmt.Errorf("%s: public keys must be strings", e.file)
+					}
+					dict[string(k)] = item[1]
+				}
+			}
+			s := starlarkstruct.FromStringDict(starlarkstruct.Default, dict)
+			s.Freeze()
+			r := &elementRef{name: name, public: s}
+			refs[name] = r
+			return r, nil
+		}
+		return publicOf
+	}
+
+	argsFor := func(f *funcInfo, refs map[string]*elementRef, incoming starlark.Value) starlark.Tuple {
 		var args starlark.Tuple
 		for _, p := range f.params {
 			if p == incomingParam {
@@ -457,15 +530,9 @@ func evaluate(host, system, user string, hostFileValues, userFileValues, machine
 		return args
 	}
 
-	// writes
-	in := map[string][]starlark.Value{}
-	for _, name := range sortedKeys(g) {
-		e := elems[name]
+	runWrites := func(e *element, refs map[string]*elementRef) ([]writeEntry, error) {
 		f := e.funcs["writes"]
-		if f == nil {
-			continue
-		}
-		v, err := call(e, "writes", argsFor(f, nil))
+		v, err := call(e, "writes", argsFor(f, refs, nil))
 		if err != nil {
 			return nil, err
 		}
@@ -473,6 +540,7 @@ func evaluate(host, system, user string, hostFileValues, userFileValues, machine
 		if !ok {
 			return nil, fmt.Errorf("%s: writes must return a list of write(...)", e.file)
 		}
+		var out []writeEntry
 		for i := 0; i < list.Len(); i++ {
 			w, ok := list.Index(i).(*writeRecord)
 			if !ok {
@@ -481,20 +549,199 @@ func evaluate(host, system, user string, hostFileValues, userFileValues, machine
 			if !f.writes[w.target] {
 				return nil, fmt.Errorf("%s: wrote to %q, which is not a write target of writes", e.file, w.target)
 			}
-			in[w.target] = append(in[w.target], starlarkstruct.FromStringDict(starlarkstruct.Default, starlark.StringDict{
-				"source": starlark.String(name), "value": w.value,
-			}))
+			out = append(out, writeEntry{source: e.name, target: w.target, value: w.value})
 		}
+		return out, nil
 	}
 
-	res := &hostResult{Host: host, System: system, Purposes: purposes, Generated: sortedKeys(g),
-		Elements: map[string]outputs{}, Graph: map[string]graphEntry{}}
-	for _, name := range sortedKeys(g) {
+	incomingList := func(entries []writeEntry) *starlark.List {
+		sort.SliceStable(entries, func(i, j int) bool { return entries[i].source < entries[j].source })
+		var items []starlark.Value
+		for _, w := range entries {
+			items = append(items, starlarkstruct.FromStringDict(starlarkstruct.Default, starlark.StringDict{
+				"source": starlark.String(w.source), "value": w.value,
+			}))
+		}
+		l := starlark.NewList(items)
+		l.Freeze()
+		return l
+	}
+
+	countOut := func(out outputs) int {
+		n := 0
+		for _, v := range out {
+			switch x := v.(type) {
+			case []setting:
+				n += len(x)
+			case []any:
+				n += len(x)
+			}
+		}
+		return n
+	}
+
+	// Host context: public values that are the same for every user, the writes that read
+	// only those, and config.
+	hostPublic := publicOfIn(hostRefs)
+	for _, name := range sortedKeys(all) {
+		if !elems[name].virtual && !lv.publicPerUser(name) {
+			if _, err := hostPublic(name); err != nil {
+				return nil, err
+			}
+		}
+	}
+	var hostWrites []writeEntry
+	hostWritesBy := map[string]int{}
+	for _, name := range sortedKeys(all) {
+		e := elems[name]
+		if f := e.funcs["writes"]; f != nil && !lv.readsPerUser(f) {
+			ws, err := runWrites(e, hostRefs)
+			if err != nil {
+				return nil, err
+			}
+			hostWrites = append(hostWrites, ws...)
+			hostWritesBy[name] = len(ws)
+		}
+	}
+	writesTo := func(entries []writeEntry, target string, from map[string]reason) []writeEntry {
+		var out []writeEntry
+		for _, w := range entries {
+			if _, ok := from[w.source]; w.target == target && (from == nil || ok) {
+				out = append(out, w)
+			}
+		}
+		return out
+	}
+
+	res := &hostResult{Host: host, System: system, Machine: spec.machine, Generated: sortedKeys(all),
+		Elements: map[string]outputs{}, Users: map[string]*userResult{}, Graph: map[string]graphEntry{}}
+	options := map[string]map[string]bool{}
+	addOptions := func(name string, out outputs) {
+		if options[name] == nil {
+			options[name] = map[string]bool{}
+		}
+		for _, class := range []string{"home", "nixos"} {
+			settings, _ := out[class].([]setting)
+			for _, s := range settings {
+				options[name][class+":"+strings.Join(s.Path, ".")] = true
+			}
+		}
+	}
+	for _, name := range sortedKeys(all) {
 		e := elems[name]
 		if e.virtual {
 			continue
 		}
-		entry := graphEntry{Requires: nonNil(e.requires), When: nonNil(e.when)}
+		incoming := writesTo(hostWrites, name, nil)
+		out := outputs{}
+		if f := e.funcs["config"]; f != nil {
+			v, err := call(e, "config", argsFor(f, hostRefs, incomingList(incoming)))
+			if err != nil {
+				return nil, err
+			}
+			out, err = configJSON(e, "config", v, []string{"nixos", "nixos_imports"})
+			if err != nil {
+				return nil, err
+			}
+		} else if len(incoming) > 0 && e.funcs["user_config"] == nil {
+			return nil, fmt.Errorf("%s: receives writes but has neither config nor user_config", e.file)
+		}
+		hostWriter := e.funcs["writes"] != nil && !lv.readsPerUser(e.funcs["writes"])
+		if (e.funcs["config"] != nil || hostWriter) && countOut(out)+hostWritesBy[name] == 0 {
+			return nil, fmt.Errorf("%s: produced no settings and no writes on host %s; an element that enters the machine must add something (rule A). Put the condition in requires or when instead of returning nothing", e.file, host)
+		}
+		res.Elements[name] = out
+		addOptions(name, out)
+	}
+
+	// User context, per user: per-user public values and writes, and user_config.
+	for _, u := range spec.users {
+		g := judgments[u.name]
+		home := "/home/" + u.name
+		if strings.HasSuffix(system, "-darwin") {
+			home = "/Users/" + u.name
+		}
+		userValues := starlark.StringDict{"name": starlark.String(u.name), "home": starlark.String(home)}
+		for k, v := range userFiles[u.name] {
+			userValues[k] = v
+		}
+		for k, v := range u.values {
+			if _, dup := userFiles[u.name][k]; dup {
+				return nil, fmt.Errorf("host %s: user %s sets %s both in the host file and in config/users/%s.toml", host, u.name, k, u.name)
+			}
+			if k == "home" {
+				return nil, fmt.Errorf("host %s: user %s: home is set by confgen", host, u.name)
+			}
+			userValues[k] = v
+		}
+		userFacts := starlarkstruct.FromStringDict(starlarkstruct.Default, userValues)
+		userFacts.Freeze()
+		refs := map[string]*elementRef{userElement: {name: userElement, public: userFacts}}
+		for k, v := range hostRefs {
+			refs[k] = v
+		}
+		userPublic := publicOfIn(refs)
+		for _, name := range sortedKeys(g) {
+			if _, err := userPublic(name); err != nil {
+				return nil, err
+			}
+		}
+		var userWrites []writeEntry
+		userWritesBy := map[string]int{}
+		for _, name := range sortedKeys(g) {
+			e := elems[name]
+			if f := e.funcs["writes"]; f != nil && lv.readsPerUser(f) {
+				ws, err := runWrites(e, refs)
+				if err != nil {
+					return nil, err
+				}
+				userWrites = append(userWrites, ws...)
+				userWritesBy[name] = len(ws)
+			}
+		}
+		ur := &userResult{Purposes: nonNil(append([]string{}, u.purposes...)), Generated: sortedKeys(g), Reasons: g, Elements: map[string]outputs{}}
+		for _, name := range sortedKeys(g) {
+			e := elems[name]
+			if e.virtual {
+				continue
+			}
+			mine := writesTo(userWrites, name, nil)
+			out := outputs{}
+			if f := e.funcs["user_config"]; f != nil {
+				incoming := append(writesTo(hostWrites, name, g), mine...)
+				v, err := call(e, "user_config", argsFor(f, refs, incomingList(incoming)))
+				if err != nil {
+					return nil, err
+				}
+				out, err = configJSON(e, "user_config", v, []string{"home", "home_imports", "nixos"})
+				if err != nil {
+					return nil, err
+				}
+			} else if len(mine) > 0 {
+				return nil, fmt.Errorf("%s: receives writes that differ per user but has no user_config", e.file)
+			}
+			userWriter := e.funcs["writes"] != nil && lv.readsPerUser(e.funcs["writes"])
+			if (e.funcs["user_config"] != nil || userWriter) && countOut(out)+userWritesBy[name] == 0 {
+				return nil, fmt.Errorf("%s: produced no settings and no writes for user %s on host %s; an element that is true for a user must add something for the user (rule A). Put the condition in requires or when, or let the user leave the purpose out, instead of returning nothing", e.file, u.name, host)
+			}
+			addOptions(name, out)
+			if nixos, ok := out["nixos"].([]setting); ok {
+				hostOut := res.Elements[name]
+				prev, _ := hostOut["nixos"].([]setting)
+				hostOut["nixos"] = append(prev, nixos...)
+				delete(out, "nixos")
+			}
+			ur.Elements[name] = out
+		}
+		res.Users[u.name] = ur
+	}
+
+	for _, name := range sortedKeys(all) {
+		e := elems[name]
+		if e.virtual {
+			continue
+		}
+		entry := graphEntry{Requires: nonNil(e.requires), When: nonNil(e.when), Options: nonNil(sortedKeys(options[name]))}
 		reads, writes := map[string]bool{}, map[string]bool{}
 		for _, f := range e.funcs {
 			for p := range f.reads {
@@ -507,45 +754,27 @@ func evaluate(host, system, user string, hostFileValues, userFileValues, machine
 			}
 		}
 		entry.Reads, entry.Writes = nonNil(sortedKeys(reads)), nonNil(sortedKeys(writes))
-
-		out := outputs{}
-		if f := e.funcs["config"]; f != nil {
-			incoming := starlark.NewList(in[name]) // already ordered by source name
-			incoming.Freeze()
-			v, err := call(e, "config", argsFor(f, incoming))
-			if err != nil {
-				return nil, err
-			}
-			out, err = configJSON(e, v)
-			if err != nil {
-				return nil, err
-			}
-		} else if len(in[name]) > 0 {
-			return nil, fmt.Errorf("%s: receives writes but has no config", e.file)
-		}
-		var options []string
-		for _, class := range []string{"home", "nixos"} {
-			settings, _ := out[class].([]setting)
-			for _, s := range settings {
-				options = append(options, class+":"+strings.Join(s.Path, "."))
-			}
-		}
-		entry.Options = nonNil(options)
-		res.Elements[name] = out
 		res.Graph[name] = entry
 	}
 	return res, nil
 }
 
-func configJSON(e *element, v starlark.Value) (outputs, error) {
+func configJSON(e *element, fn string, v starlark.Value, allowed []string) (outputs, error) {
 	d, ok := v.(*starlark.Dict)
 	if !ok {
-		return nil, fmt.Errorf("%s: config must return a dict", e.file)
+		return nil, fmt.Errorf("%s: %s must return a dict", e.file, fn)
+	}
+	allow := map[string]bool{}
+	for _, k := range allowed {
+		allow[k] = true
 	}
 	out := outputs{}
 	for _, item := range d.Items() {
 		k, ok := item[0].(starlark.String)
-		if ok && (k == "home_imports" || k == "nixos_imports") {
+		if !ok || !allow[string(k)] {
+			return nil, fmt.Errorf("%s: %s keys must be %s", e.file, fn, strings.Join(allowed, ", "))
+		}
+		if k == "home_imports" || k == "nixos_imports" {
 			imports, err := moduleList(item[1])
 			if err != nil {
 				return nil, fmt.Errorf("%s: %s: %w", e.file, k, err)
@@ -553,12 +782,9 @@ func configJSON(e *element, v starlark.Value) (outputs, error) {
 			out[string(k)] = imports
 			continue
 		}
-		if !ok || (k != "home" && k != "nixos") {
-			return nil, fmt.Errorf("%s: config keys must be home, nixos, home_imports or nixos_imports", e.file)
-		}
 		opts, ok := item[1].(*starlark.Dict)
 		if !ok {
-			return nil, fmt.Errorf("%s: config[%s] must be a dict of option paths", e.file, k)
+			return nil, fmt.Errorf("%s: %s[%s] must be a dict of option paths", e.file, fn, k)
 		}
 		var settings []setting
 		for _, o := range opts.Items() {

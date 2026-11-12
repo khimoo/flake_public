@@ -1,4 +1,4 @@
-def config(host):
+def user_config(host):
     history = inputPkg("claude-history", "default")
     if host.linux:
         # claude-history の yank は wl-copy / xclip が PATH に無いと arboard に戻り、

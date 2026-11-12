@@ -1,6 +1,6 @@
 system = "x86_64-linux"
 state_version = "25.11"
-purposes = ["ai_agents"]
 
 [[users]]
 name = "test"
+purposes = ["ai_agents", "agent_config"]

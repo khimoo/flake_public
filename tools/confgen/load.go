@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/BurntSushi/toml"
 	"fmt"
+	"github.com/BurntSushi/toml"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -60,7 +60,7 @@ const (
 	machinesElement = "machines"
 )
 
-var elementFuncs = map[string]bool{"public": true, "writes": true, "config": true}
+var elementFuncs = map[string]bool{"public": true, "writes": true, "config": true, "user_config": true}
 var elementLists = map[string]bool{"requires": true, "when": true}
 var identRe = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
 
@@ -127,7 +127,7 @@ func parseElement(file string) (*element, error) {
 		case *syntax.DefStmt:
 			n := s.Name.Name
 			if !elementFuncs[n] && !strings.HasPrefix(n, "_") {
-				return nil, fmt.Errorf("%s: top-level def %q is not allowed (use public, writes, config or a name starting with _)", s.Def, n)
+				return nil, fmt.Errorf("%s: top-level def %q is not allowed (use public, writes, config, user_config or a name starting with _)", s.Def, n)
 			}
 			if elementFuncs[n] {
 				defs = append(defs, s)
@@ -261,8 +261,8 @@ func analyzeDef(d *syntax.DefStmt) (*funcInfo, error) {
 		if !identRe.MatchString(id.Name) {
 			return nil, fmt.Errorf("%s: parameter %q is not an element name", id.NamePos, id.Name)
 		}
-		if id.Name == incomingParam && d.Name.Name != "config" {
-			return nil, fmt.Errorf("%s: only config may take %s", id.NamePos, incomingParam)
+		if id.Name == incomingParam && d.Name.Name != "config" && d.Name.Name != "user_config" {
+			return nil, fmt.Errorf("%s: only config and user_config may take %s", id.NamePos, incomingParam)
 		}
 		info.params = append(info.params, id.Name)
 		bindings[id.Binding.(*resolve.Binding)] = id.Name
@@ -388,48 +388,146 @@ func checkGraph(elems map[string]*element) error {
 	return nil
 }
 
-// loadHost reads config/hosts/<host>.toml: `purposes` (a list of element names) and the
-// other keys, which become host facts (host.<key>). flake.nix reads the same file for the
-// host's structure (system, users), so each value about a host lives in one place.
-func loadHost(file string, elems map[string]*element) ([]string, starlark.StringDict, error) {
+// hostSpec is one config/hosts/<host>.toml: the machine element, the users with the
+// purposes each user selects, and the other keys, which become host facts (host.<key>).
+// flake.nix reads the same file for the host's structure (system, users), so each value
+// about a host lives in one place.
+type hostSpec struct {
+	machine string
+	users   []userSpec
+	values  starlark.StringDict
+}
+
+// userSpec is one [[users]] entry. Its keys other than name and purposes become user
+// facts (user.<key>) next to the keys of config/users/<name>.toml.
+type userSpec struct {
+	name     string
+	purposes []string
+	values   starlark.StringDict
+}
+
+func loadHost(file string, elems map[string]*element) (*hostSpec, error) {
 	values, err := loadTOML(file)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	raw, ok := values["purposes"]
-	if !ok {
-		return nil, nil, fmt.Errorf("%s: purposes is missing", file)
-	}
-	var list []string
-	l, ok := raw.(*starlark.List)
-	if !ok {
-		return nil, nil, fmt.Errorf("%s: purposes must be a list of element names", file)
-	}
-	for i := 0; i < l.Len(); i++ {
-		name, ok := l.Index(i).(starlark.String)
-		if !ok {
-			return nil, nil, fmt.Errorf("%s: purposes must be a list of element names", file)
-		}
-		e, found := elems[string(name)]
-		if !found {
-			return nil, nil, fmt.Errorf("%s: unknown element %q", file, name)
-		}
-		if e.derived() {
-			return nil, nil, fmt.Errorf("%s: derived element %q cannot be selected", file, name)
-		}
-		list = append(list, string(name))
+	if _, ok := values["purposes"]; ok {
+		return nil, fmt.Errorf("%s: purposes belongs to each [[users]] entry, not to the host", file)
 	}
 	for _, k := range []string{"linux", "darwin"} {
 		if _, ok := values[k]; ok {
-			return nil, nil, fmt.Errorf("%s: %s is set by confgen", file, k)
+			return nil, fmt.Errorf("%s: %s is set by confgen", file, k)
 		}
 	}
-	delete(values, "purposes")
-	return list, values, nil
+	spec := &hostSpec{}
+	if raw, ok := values["machine"]; ok {
+		name, ok := raw.(starlark.String)
+		if !ok {
+			return nil, fmt.Errorf("%s: machine must be an element name", file)
+		}
+		if err := selectable(file, elems, string(name)); err != nil {
+			return nil, err
+		}
+		spec.machine = string(name)
+		delete(values, "machine")
+	}
+	list, ok := values["users"].(*starlark.List)
+	if !ok || list.Len() == 0 {
+		return nil, fmt.Errorf("%s: users must list at least one [[users]] entry", file)
+	}
+	seen := map[string]bool{}
+	for i := 0; i < list.Len(); i++ {
+		entry, ok := list.Index(i).(*starlark.Dict)
+		if !ok {
+			return nil, fmt.Errorf("%s: each users entry must be a table", file)
+		}
+		u := userSpec{values: starlark.StringDict{}}
+		for _, item := range entry.Items() {
+			k := string(item[0].(starlark.String))
+			switch k {
+			case "name":
+				n, ok := item[1].(starlark.String)
+				if !ok {
+					return nil, fmt.Errorf("%s: users.name must be a string", file)
+				}
+				u.name = string(n)
+			case "purposes":
+				l, ok := item[1].(*starlark.List)
+				if !ok {
+					return nil, fmt.Errorf("%s: purposes must be a list of element names", file)
+				}
+				u.purposes = []string{}
+				for j := 0; j < l.Len(); j++ {
+					name, ok := l.Index(j).(starlark.String)
+					if !ok {
+						return nil, fmt.Errorf("%s: purposes must be a list of element names", file)
+					}
+					if err := selectable(file, elems, string(name)); err != nil {
+						return nil, err
+					}
+					u.purposes = append(u.purposes, string(name))
+				}
+			default:
+				u.values[k] = item[1]
+			}
+		}
+		if u.name == "" {
+			return nil, fmt.Errorf("%s: each users entry needs a name", file)
+		}
+		if seen[u.name] {
+			return nil, fmt.Errorf("%s: user %q is listed twice", file, u.name)
+		}
+		seen[u.name] = true
+		if u.purposes == nil {
+			return nil, fmt.Errorf("%s: user %s has no purposes (write purposes = [] to select none)", file, u.name)
+		}
+		spec.users = append(spec.users, u)
+	}
+	values["users"] = withoutPurposes(list)
+	spec.values = values
+	return spec, nil
+}
+
+// selectable rejects names that cannot be an axiom: unknown elements, and derived elements,
+// which may enter only when everything in their when is true.
+func selectable(file string, elems map[string]*element, name string) error {
+	e, found := elems[name]
+	if !found {
+		return fmt.Errorf("%s: unknown element %q", file, name)
+	}
+	if e.derived() {
+		return fmt.Errorf("%s: derived element %q cannot be selected", file, name)
+	}
+	if e.virtual {
+		return fmt.Errorf("%s: %q is provided by confgen and cannot be selected", file, name)
+	}
+	return nil
+}
+
+// withoutPurposes copies the [[users]] list without purposes. Elements receive the users
+// as values; a purpose is a judgment, which elements must not read (rule A).
+func withoutPurposes(list *starlark.List) *starlark.List {
+	var items []starlark.Value
+	for i := 0; i < list.Len(); i++ {
+		entry, ok := list.Index(i).(*starlark.Dict)
+		if !ok {
+			items = append(items, list.Index(i))
+			continue
+		}
+		d := starlark.NewDict(entry.Len())
+		for _, item := range entry.Items() {
+			if item[0] != starlark.String("purposes") {
+				d.SetKey(item[0], item[1])
+			}
+		}
+		items = append(items, d)
+	}
+	return starlark.NewList(items)
 }
 
 // loadMachines reads every host file, so elements that configure links between machines
-// (ssh, remote builds) can read all of them as machines.all[<host>].
+// (ssh, remote builds) can read all of them as machines.all[<host>]. The purposes of the
+// users and the machine element are left out for the same reason as in withoutPurposes.
 func loadMachines(dir string) (starlark.StringDict, error) {
 	files, err := filepath.Glob(filepath.Join(dir, "*.toml"))
 	if err != nil {
@@ -443,6 +541,15 @@ func loadMachines(dir string) (starlark.StringDict, error) {
 		}
 		d := starlark.NewDict(len(v))
 		for _, k := range sortedKeys(v) {
+			switch k {
+			case "purposes", "machine":
+				continue
+			case "users":
+				if l, ok := v[k].(*starlark.List); ok {
+					d.SetKey(starlark.String(k), withoutPurposes(l))
+					continue
+				}
+			}
 			d.SetKey(starlark.String(k), v[k])
 		}
 		all.SetKey(starlark.String(strings.TrimSuffix(filepath.Base(f), ".toml")), d)

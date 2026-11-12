@@ -2,10 +2,10 @@ system = "x86_64-linux"
 state_version = "25.11"
 timezone = "Asia/Tokyo"
 hostname = "test-agent-empty"
-purposes = ["machine_base", "ai_agents"]
 
 
 
 [[users]]
 name = "alice"
+purposes = ["machine_base", "ai_agents", "agent_config"]
 home_manager = false

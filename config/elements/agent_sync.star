@@ -1,7 +1,7 @@
-def config(user, host, agent_links):
+def user_config(user, host, agent_links):
     root = agent_links.root
     if root == None:
-        return {}
+        fail("agent_sync: set agent_config_root in config/users/<user>.toml")
     launcher_dir = user.home + "/.local/share/agent-launchers/bin"
     sync = shellAppEnv("agent-sync", [pkg("coreutils"), pkg("gnugrep"), pkg("jq")], {
         "root": root,

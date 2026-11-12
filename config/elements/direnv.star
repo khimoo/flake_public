@@ -1,4 +1,4 @@
-def config(incoming):
+def user_config(incoming):
     parts = []
     for w in incoming:
         if parts:

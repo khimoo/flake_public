@@ -15,7 +15,7 @@ var repoPathRe = regexp.MustCompile(`"([A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)+)"`)
 // affected maps changed repo paths to the elements whose tests must run: each changed element,
 // the elements that read it, the elements it writes into, and the derived elements it conditions.
 // The tests of other elements cannot change, because an element's output depends only on what it
-// reads and what is written into it (rule B in docs/architecture/confgen.md).
+// reads and what is written into it (rule B in docs/architecture/rules.md).
 func affected(root string, paths []string) ([]string, error) {
 	elems, err := loadElements(filepath.Join(root, "config", "elements"))
 	if err != nil {
@@ -31,6 +31,7 @@ func affected(root string, paths []string) ([]string, error) {
 		case strings.HasPrefix(p, "config/hosts/"):
 			seeds[hostElement] = true
 			seeds[machinesElement] = true
+			seeds[userElement] = true
 		case strings.HasPrefix(p, "config/users/"):
 			seeds[userElement] = true
 		default:
@@ -84,8 +85,7 @@ func elementsUsingPath(elems map[string]*element, p string) []string {
 	return found
 }
 
-// affectedHosts lists the hosts whose selected elements (after requires and derived elements)
-// include one of names. Only these hosts can evaluate differently.
+// affectedHosts lists the hosts where one of names is true for some user. Only these hosts can evaluate differently.
 func affectedHosts(root string, names []string) ([]string, error) {
 	dir := filepath.Join(root, "config")
 	elems, err := loadElements(filepath.Join(dir, "elements"))
@@ -98,11 +98,23 @@ func affectedHosts(root string, names []string) ([]string, error) {
 	}
 	var hosts []string
 	for _, f := range files {
-		purposes, _, err := loadHost(f, elems)
+		spec, err := loadHost(f, elems)
 		if err != nil {
 			return nil, err
 		}
-		selected := generated(elems, purposes)
+		selected := map[string]bool{}
+		for _, u := range spec.users {
+			axioms := map[string]string{}
+			if spec.machine != "" {
+				axioms[spec.machine] = "machine"
+			}
+			for _, p := range u.purposes {
+				axioms[p] = "purposes"
+			}
+			for n := range derive(elems, axioms) {
+				selected[n] = true
+			}
+		}
 		for _, n := range names {
 			if n == allElements || n == hostElement || n == machinesElement || n == userElement || selected[n] {
 				hosts = append(hosts, strings.TrimSuffix(filepath.Base(f), ".toml"))

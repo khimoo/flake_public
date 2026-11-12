@@ -8,7 +8,6 @@ requires = [
     "nvim_lsp",
     "nvim_render_markdown",
     "nvim_rust",
-    "nvim_rustowl",
     "nvim_skkeleton",
     "nvim_smart_splits",
     "nvim_telescope",

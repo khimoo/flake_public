@@ -2,15 +2,17 @@ system = "x86_64-linux"
 state_version = "25.11"
 timezone = "Asia/Tokyo"
 hostname = "test-agents-users"
-purposes = ["machine_base", "personal_files", "ai_agents", "git"]
 
 
 [[users]]
 name = "alice"
+purposes = ["machine_base", "personal_files", "ai_agents", "git", "agent_config", "etc_nixos_link"]
 
 [[users]]
 name = "bob"
+purposes = ["machine_base", "ai_agents", "git"]
 
 [[users]]
 name = "unmanaged"
+purposes = []
 home_manager = false

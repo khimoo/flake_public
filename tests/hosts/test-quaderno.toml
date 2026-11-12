@@ -1,7 +1,7 @@
 system = "x86_64-linux"
 state_version = "25.11"
-purposes = ["quaderno_pull"]
 quaderno_archive = "/home/test/quaderno"
 
 [[users]]
 name = "test"
+purposes = ["quaderno_pull"]

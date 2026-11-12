@@ -2,7 +2,7 @@
 # install-kittens.bash は ~/.config/kitty/ へ命令的にコピーする作りだが、nixpkgs の vimPlugins が
 # 同じファイルを持っているので宣言的に置ける。Neovim 側（nvim_smart_splits.star）と同じパッケージ。
 
-def config(checkout, gui):
+def user_config(checkout, gui):
     def kitten(name):
         return concat(pkg("vimPlugins.smart-splits-nvim"), "/kitty/" + name)
     return {"home": {

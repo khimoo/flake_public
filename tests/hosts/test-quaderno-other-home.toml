@@ -1,2 +1,5 @@
-purposes = ["quaderno_pull"]
 quaderno_archive = "/home/another-user/quaderno"
+
+[[users]]
+name = "test"
+purposes = ["quaderno_pull"]

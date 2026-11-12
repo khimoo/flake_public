@@ -2,7 +2,7 @@
 # 共有する。理由: docs/howtouse/cli-tools/comma.md
 _DB = inputPkg("nix-index-database", "nix-index-with-small-db")
 
-def config():
+def user_config():
     locate = concat(_DB, "/bin/nix-locate")
     # PATH に無いコマンドを handler の中で呼ぶと handler が再帰するので、道具は絶対パスで呼ぶ。
     sed = exe("gnused", "sed")

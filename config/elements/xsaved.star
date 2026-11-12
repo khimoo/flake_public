@@ -19,10 +19,10 @@ def _settings(host):
 def public(host):
     return _settings(host)
 
-def config(host, user, failure_notify):
+def config(host):
     xsaved = struct(**_settings(host))
     if not xsaved.users:
-        return {}
+        fail("xsaved: list the users as [xsaved_users.<user>] in the host file")
     databases = [_database(v.get("database", "xsaved")) for v in xsaved.users.values()]
     if len(databases) != len({name: True for name in databases}):
         fail("xsaved: database names must be unique per user")
@@ -52,8 +52,12 @@ def config(host, user, failure_notify):
             "listenAddresses": ["127.0.0.1", "[::1]"],
             "extraConfig": "reverse_proxy 127.0.0.1:" + str(proxy_port) + "\n",
         }
+    return {"nixos": nixos}
+
+def user_config(host, user, failure_notify):
+    xsaved = struct(**_settings(host))
     if user.name not in xsaved.users:
-        return {"nixos": nixos}
+        fail("xsaved: user " + user.name + " selects xsaved but the host file has no [xsaved_users." + user.name + "]")
     values = xsaved.users[user.name]
     data = values["data_dir"]
     project = values["project_dir"]
@@ -145,4 +149,4 @@ def config(host, user, failure_notify):
             "Timer": {"OnCalendar": "*-*-* 06:00:00", "Persistent": True},
             "Install": {"WantedBy": ["timers.target"]},
         }
-    return {"nixos": nixos, "home": home, "home_imports": [repoModule("modules/home-manager/xsaved/nixos-only.nix")]}
+    return {"home": home, "home_imports": [repoModule("modules/home-manager/xsaved/nixos-only.nix")]}

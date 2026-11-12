@@ -2,8 +2,8 @@ system = "x86_64-linux"
 state_version = "25.11"
 timezone = "Asia/Tokyo"
 hostname = "test-agent-url"
-purposes = ["ai_agents"]
 
 
 [[users]]
 name = "test-agent-url"
+purposes = ["ai_agents", "agent_config"]

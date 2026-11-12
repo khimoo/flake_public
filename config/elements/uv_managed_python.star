@@ -3,5 +3,5 @@
 # 起動しないので、nix-ld のあるホストでだけ設定する（docs/architecture/wsl.md）。
 when = ["shell", "nix_ld"]
 
-def config():
+def user_config():
     return {"home": {"programs.uv.settings.python-preference": "only-managed"}}

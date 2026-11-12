@@ -3,7 +3,7 @@ requires = ["firefox", "brave", "google_chrome"]
 def public(zen_browser):
     return {"command": zen_browser.command, "desktop": zen_browser.desktop}
 
-def config(zen_browser, incoming):
+def user_config(zen_browser, incoming):
     if len(incoming) > 1:
         fail("web_browsing: only one HTTP/HTTPS handler may be selected")
     http_desktop = incoming[0].value if incoming else zen_browser.desktop

@@ -1,4 +1,4 @@
 requires = ["gui"]
 
-def config():
+def user_config():
     return {"home": {"home.packages": [pkg("google-chrome")]}}

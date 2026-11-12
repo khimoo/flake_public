@@ -1,6 +1,5 @@
 system = "x86_64-linux"
 state_version = "25.11"
-purposes = ["xsaved"]
 
 [xsaved_users.test]
 data_dir = "/home/test/.local/share/xsaved"
@@ -8,3 +7,4 @@ project_dir = "/home/test/xsaved"
 
 [[users]]
 name = "test"
+purposes = ["xsaved"]

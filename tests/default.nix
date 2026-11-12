@@ -93,7 +93,6 @@ let
     name: system: message:
     let
       selected = hostForSystem system name;
-      username = (builtins.head (configurations.hosts.${selected}.users or [ { name = "test"; } ])).name;
     in
     builtins.readFile (
       inputs.nixpkgs.legacyPackages.x86_64-linux.runCommand "reject-${name}-${system}"
@@ -106,7 +105,7 @@ let
           ];
         }
         ''
-          if confgen build ${configDir} ${lib.escapeShellArg selected} ${lib.escapeShellArg system} ${lib.escapeShellArg username} result.json > log 2>&1; then
+          if confgen build ${configDir} ${lib.escapeShellArg selected} ${lib.escapeShellArg system} result.json > log 2>&1; then
             cat log
             exit 1
           fi

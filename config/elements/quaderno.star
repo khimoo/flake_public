@@ -1,6 +1,6 @@
 # Quaderno を LAN で探し、見つかったら受け渡す systemd のユーザー timer。
 # 何を受け渡すかは、書き込んだ要素で決まる（quaderno_pull は取り込み、quaderno_send は送信）。
-def config(user, host, failure_notify, incoming):
+def user_config(user, host, failure_notify, incoming):
     pull = None
     send = None
     for w in incoming:

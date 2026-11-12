@@ -1,4 +1,4 @@
-requires = ["machine_base"]
+requires = ["x86_64_linux", "machine_base"]
 
 def config(host):
     return {"nixos_imports": [module("nixos-wsl", "nixosModules.default")], "nixos": {

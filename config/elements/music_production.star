@@ -1,6 +1,6 @@
 requires = ["pipewire"]
 
-def config(user):
+def config():
     return {
         "nixos": {
             "musnix.enable": True,
@@ -16,8 +16,13 @@ def config(user):
                     "default.clock.max-quantum": 2048,
                 },
             },
-            ("users", "users", user.name, "extraGroups"): ["audio"],
         },
+        "nixos_imports": [module("musnix", "nixosModules.musnix")],
+    }
+
+def user_config(user):
+    return {
+        "nixos": {("users", "users", user.name, "extraGroups"): ["audio"]},
         "home": {
             "home.packages": [
                 repoPkg("packages/jjazzlab"),
@@ -44,5 +49,4 @@ def config(user):
             ("home", "file", ".vst", "source"): outOfStoreLink("/etc/profiles/per-user/" + user.name + "/lib/vst"),
             ("home", "file", ".lxvst", "source"): outOfStoreLink("/etc/profiles/per-user/" + user.name + "/lib/lxvst"),
         },
-        "nixos_imports": [module("musnix", "nixosModules.musnix")],
     }

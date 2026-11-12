@@ -1,5 +1,5 @@
 // confgen evaluates the Starlark elements under config/ for one host and writes the
-// JSON that modules/home-manager/confgen.nix reads. Design: docs/architecture/confgen.md.
+// JSON that modules/nixos/confgen.nix and modules/home-manager/confgen.nix read. Design: docs/architecture/confgen.md.
 package main
 
 import (
@@ -8,6 +8,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"go.starlark.net/starlark"
 )
 
 func main() {
@@ -18,10 +20,11 @@ func main() {
 }
 
 const usage = `usage:
-  confgen build <config-dir> <host> <system> <user> <out.json>
-  confgen explain <config-dir> <host> <system> <user> <element>
+  confgen build <config-dir> <host> <system> <out.json>
+  confgen explain <config-dir> <host> <system> <element>
+  confgen why <config-dir> <host> <system> <user> <element>   (prints the axiom and rules that make element true for user)
   confgen affected <repo-root> <changed-path>...   (prints {"elements": [...], "hosts": [...]}; elements is ["ALL"] when every check must run)
-  confgen alone <config-dir>   (fails if an element cannot be generated as a host's only purpose)`
+  confgen alone <config-dir>   (fails if an element cannot be generated as a user's only purpose)`
 
 func run(args []string) error {
 	if len(args) >= 2 && args[0] == "affected" {
@@ -53,13 +56,9 @@ func run(args []string) error {
 		}
 		return nil
 	}
-	if len(args) != 6 {
-		return fmt.Errorf("%s", usage)
-	}
-	dir, host, system, user := args[1], args[2], args[3], args[4]
-	switch args[0] {
-	case "build":
-		r, err := buildHost(dir, host, system, user)
+	switch {
+	case len(args) == 5 && args[0] == "build":
+		r, err := buildHost(args[1], args[2], args[3])
 		if err != nil {
 			return err
 		}
@@ -67,23 +66,25 @@ func run(args []string) error {
 		if err != nil {
 			return err
 		}
-		return os.WriteFile(args[5], append(data, '\n'), 0o644)
-	case "explain":
-		return explain(dir, host, system, user, args[5])
+		return os.WriteFile(args[4], append(data, '\n'), 0o644)
+	case len(args) == 5 && args[0] == "explain":
+		return explain(args[1], args[2], args[3], args[4])
+	case len(args) == 6 && args[0] == "why":
+		return why(args[1], args[2], args[3], args[4], args[5])
 	}
 	return fmt.Errorf("%s", usage)
 }
 
-func buildHost(dir, host, system, user string) (*hostResult, error) {
+func buildHost(dir, host, system string) (*hostResult, error) {
 	elems, err := loadElements(filepath.Join(dir, "elements"))
 	if err != nil {
 		return nil, err
 	}
-	purposes, hostValues, err := loadHost(filepath.Join(dir, "hosts", host+".toml"), elems)
+	spec, err := loadHost(filepath.Join(dir, "hosts", host+".toml"), elems)
 	if err != nil {
 		return nil, err
 	}
-	userValues, err := loadUserFile(filepath.Join(dir, "users", user+".toml"))
+	userFiles, err := loadUserFiles(dir, spec)
 	if err != nil {
 		return nil, err
 	}
@@ -91,12 +92,58 @@ func buildHost(dir, host, system, user string) (*hostResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	return evaluate(host, system, user, hostValues, userValues, machines, elems, purposes)
+	return evaluateHost(host, system, spec, userFiles, machines, elems)
+}
+
+func loadUserFiles(dir string, spec *hostSpec) (map[string]starlark.StringDict, error) {
+	out := map[string]starlark.StringDict{}
+	for _, u := range spec.users {
+		v, err := loadUserFile(filepath.Join(dir, "users", u.name+".toml"))
+		if err != nil {
+			return nil, err
+		}
+		out[u.name] = v
+	}
+	return out, nil
+}
+
+// why prints the chain of rules that makes an element true for a user, down to the axioms.
+func why(dir, host, system, user, name string) error {
+	r, err := buildHost(dir, host, system)
+	if err != nil {
+		return err
+	}
+	u, ok := r.Users[user]
+	if !ok {
+		return fmt.Errorf("host %s has no user %q", host, user)
+	}
+	if _, ok := u.Reasons[name]; !ok {
+		fmt.Printf("%s is not true for %s on %s\n", name, user, host)
+		return nil
+	}
+	var show func(n, indent string)
+	show = func(n, indent string) {
+		rs := u.Reasons[n]
+		switch {
+		case rs.Axiom != "":
+			fmt.Printf("%s%s  (axiom: %s)\n", indent, n, rs.Axiom)
+		case rs.Rule == "when":
+			fmt.Printf("%s%s  (when %s)\n", indent, n, strings.Join(rs.From, ", "))
+			for _, f := range rs.From {
+				show(f, indent+"  ")
+			}
+		default:
+			fmt.Printf("%s%s  (%s of %s)\n", indent, n, rs.Rule, rs.From[0])
+			show(rs.From[0], indent+"  ")
+		}
+	}
+	show(name, "")
+	return nil
 }
 
 // explain prints what a change to one element can affect on one host.
-func explain(dir, host, system, user, name string) error {
-	r, err := buildHost(dir, host, system, user)
+func explain(dir, host, system, name string) error {
+	r, err := buildHost(dir, host, system)
 	if err != nil {
 		return err
 	}

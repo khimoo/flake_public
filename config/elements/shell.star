@@ -1,7 +1,7 @@
 # 目的: 端末での作業。bash と、その上で使う CLI の道具。
 requires = ["yazi", "nix_index"]
 
-def config():
+def user_config():
     return {"home": {
         "home.packages": [
             pkg("curl"),

@@ -1,12 +1,15 @@
 requires = ["gui"]
 
-def config(host):
-    result = {"nixos": {
+def config():
+    return {"nixos": {
         "system.replaceDependencies.replacements": [{
             "oldDependency": pkg("mutter"),
             "newDependency": repoPkg("packages/mutter-transparent-fullscreen"),
         }],
-    }, "home": {
+    }}
+
+def user_config(host):
+    result = {"home": {
         "home.packages": [
             pkg("gnomeExtensions.clipboard-history"),
             pkg("gnomeExtensions.kimpanel"),

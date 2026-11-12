@@ -1,4 +1,4 @@
-def config(host, checkout):
+def config(host):
     users = {}
     sudo = []
     for account in host.users:
@@ -33,9 +33,6 @@ def config(host, checkout):
         "nix.settings.auto-optimise-store": True,
         "environment.systemPackages": [inputPkg("home-manager", "home-manager")],
     }
-    if host.users[0].get("home_manager", True):
-        # /etc/nixos 自体を flake の参照にできるよう、flake.nix だけでなく checkout 全体を指す。
-        result["systemd.tmpfiles.rules"] = ["L+ /etc/nixos - - - - " + checkout.root]
     if hasattr(host, "builder"):
         result["nix.settings.max-jobs"] = host.builder["max_jobs"]
         result["nix.settings.system-features"] = host.builder["supported_features"]

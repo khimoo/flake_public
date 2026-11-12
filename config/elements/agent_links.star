@@ -4,10 +4,10 @@ def public(user):
         fail("agent_links: mutable checkouts must belong to this user's home directory")
     return {"root": user.home + "/" + root if root != None else None}
 
-def config(agent_links):
+def user_config(agent_links):
     root = agent_links.root
     if root == None:
-        return {}
+        fail("agent_links: set agent_config_root in config/users/<user>.toml")
     home = {}
     links = {
         ".claude/CLAUDE.md": "claude/CLAUDE.md",

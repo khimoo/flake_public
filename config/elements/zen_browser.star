@@ -4,7 +4,7 @@ requires = ["gui"]
 def public():
     return {"command": "zen-beta", "desktop": "zen-beta.desktop"}
 
-def config(browser_common):
+def user_config(browser_common):
     settings = dict(browser_common.settings)
     settings.update({
         # ワークスペースとピン留めタブは Sync で同期する。モジュールの spaces と pins は switch のたびに UI での変更を戻すので使わない。

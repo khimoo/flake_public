@@ -20,7 +20,6 @@ rec {
     let
       host = hosts.${hostname};
       inherit (host) system users;
-      primaryUser = (builtins.head users).name;
     in
     assert lib.assertMsg (users != [ ]) "mkSystem: users must not be empty";
     assert lib.assertMsg (
@@ -62,7 +61,6 @@ rec {
         (import ../modules/nixos/confgen.nix {
           host = hostname;
           inherit system configDir;
-          user = primaryUser;
         })
       ] ++ modules;
     };

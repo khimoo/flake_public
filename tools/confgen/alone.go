@@ -8,11 +8,11 @@ import (
 	"go.starlark.net/starlark"
 )
 
-// alone selects each element as a host's only purpose and reports the elements whose
-// generation then fails. It reuses the values of a host that already generates the
-// element, so a failure means the element relied on another element that this host
-// happened to select. Elements no host generates are reported too, since they were
-// never checked.
+// alone selects each element as the only purpose of a host's first user, keeping the host's
+// machine element, and reports the elements whose generation then fails. It reuses the values
+// of a host that already generates the element, so a failure means the element relied on
+// another element that this host's users happened to select. Elements no host generates are
+// reported too, since they were never checked.
 func alone(dir string) ([]string, error) {
 	elems, err := loadElements(filepath.Join(dir, "elements"))
 	if err != nil {
@@ -30,20 +30,19 @@ func alone(dir string) ([]string, error) {
 	var failures []string
 	for _, file := range files {
 		host := strings.TrimSuffix(filepath.Base(file), ".toml")
-		purposes, hostValues, err := loadHost(file, elems)
+		spec, err := loadHost(file, elems)
 		if err != nil {
 			continue
 		}
 		system := "x86_64-linux"
-		if s, ok := hostValues["system"].(starlark.String); ok {
+		if s, ok := spec.values["system"].(starlark.String); ok {
 			system = string(s)
 		}
-		user := firstUser(hostValues)
-		userValues, err := loadUserFile(filepath.Join(dir, "users", user+".toml"))
+		userFiles, err := loadUserFiles(dir, spec)
 		if err != nil {
 			return nil, err
 		}
-		r, err := evaluate(host, system, user, hostValues, userValues, machines, elems, purposes)
+		r, err := evaluateHost(host, system, spec, userFiles, machines, elems)
 		if err != nil {
 			// Hosts under tests/ that exist to be rejected land here.
 			continue
@@ -54,7 +53,10 @@ func alone(dir string) ([]string, error) {
 				continue
 			}
 			checked[name] = true
-			if _, err := evaluate(host, system, user, hostValues, userValues, machines, elems, []string{name}); err != nil {
+			first := spec.users[0]
+			first.purposes = []string{name}
+			single := &hostSpec{machine: spec.machine, users: []userSpec{first}, values: spec.values}
+			if _, err := evaluateHost(host, system, single, userFiles, machines, elems); err != nil {
 				failures = append(failures, fmt.Sprintf("%s alone (values of host %s): %v", name, host, err))
 			}
 		}
@@ -65,22 +67,4 @@ func alone(dir string) ([]string, error) {
 		}
 	}
 	return failures, nil
-}
-
-// firstUser picks the user that tests/default.nix also builds a rejected host for. One
-// user is enough here: what differs between users is values, not which elements exist.
-func firstUser(hostValues starlark.StringDict) string {
-	users, ok := hostValues["users"].(*starlark.List)
-	if !ok || users.Len() == 0 {
-		return "test"
-	}
-	d, ok := users.Index(0).(*starlark.Dict)
-	if !ok {
-		return "test"
-	}
-	v, found, _ := d.Get(starlark.String("name"))
-	if s, ok := v.(starlark.String); found && ok {
-		return string(s)
-	}
-	return "test"
 }

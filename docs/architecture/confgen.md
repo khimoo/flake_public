@@ -12,16 +12,25 @@ confgen は、[flake_public のあるべき姿](rules.md) の規則 A と規則 
 | 規則の言葉 | confgen での書き方 |
 |---|---|
 | 部品 | 要素。`config/elements/*.star` の1ファイルが要素1つにあたる |
-| 公理 | ホストのファイルの `purposes` に挙げた要素の判定。`purposes` には、行動の要素と、機体の要素（`machine_<ホスト>`）を挙げる |
+| 利用者 | ホストのファイルの `[[users]]` の1項目 |
+| 公理 | 利用者ごとに、`[[users]]` の `purposes` に挙げた要素の判定と、ホストのファイルの `machine` に書いた機体の要素（`machine_<ホスト>`）の判定 |
+| 判定 | confgen は利用者ごとに、公理から推論規則をくり返し当てはめて、判定が真の要素の集合を求める。どれかの利用者について真の要素が、ホストに入る要素になる |
 | 前件が1つの推論規則 | 参照。要素 X が要素 Y を参照すると、「要素 X の判定が真ならば、要素 Y の判定も真」になる。参照は、関数の仮引数（受け取る、渡す）と `requires`（値を読まずに使う）で書く |
 | 前件が複数の推論規則 | 派生要素の `when`。「`when` に挙げた要素の判定がすべて真ならば、派生要素の判定も真」になる |
 | 受け取る | 関数の仮引数で要素 Y を受け、要素 Y の `public` の値を読む |
-| 渡す | `writes` の仮引数で要素 Y を受け、要素 Y に値を書き込む。`config` が option（`home.packages` など）に値を出すのも、option への書き込みとして扱う。複数の要素が同じ option に値を出し、NixOS のモジュールの仕組みが値を合わせるのは、渡すにあたる |
+| 渡す | `writes` の仮引数で要素 Y を受け、要素 Y に値を書き込む。`config` と `user_config` が option（`home.packages` など）に値を出すのも、option への書き込みとして扱う。複数の要素が同じ option に値を出し、NixOS のモジュールの仕組みが値を合わせるのは、渡すにあたる |
+| ホスト全体の設定値 | `config` が返す NixOS の設定と、`nixos_imports` のモジュール |
+| 利用者の設定値 | `user_config` が返す Home Manager の設定と、その利用者だけの NixOS の設定（`users.users.<利用者>` の下など） |
+| 利用者によって変わる値 | `user` の値と、`public` が利用者によって変わる値を読む要素の公開値（`checkout.root` など） |
 | 外から持ち込む部品 | nixpkgs のパッケージと、nixpkgs、Home Manager、flake の入力のモジュール |
 
 参照は要素の定義の中の式で決まり、ホストの `purposes` では変わらない。
 
-confgen は判定をホストごとに1つしか持たず、規則 A の利用者ごとの判定を実現していない。利用者による違いは、ホストの TOML の値（`windows_vm_users` など）を見て、要素が利用者の設定値を空にして作っている。この書き方は規則 A の性質 1 に反する。
+`host.users` と `machines` からは `purposes` と `machine` を外して渡す。要素が判定を値として読み、値で分岐できないようにするため。
+
+`config` はホストごとに1回、`user_config` は要素が入る利用者ごとに1回呼ぶ。`public` と `writes` は、利用者によって変わる値を読むかどうかを仮引数から求め、読むなら利用者ごとに、読まないならホストごとに1回呼ぶ。`config` が利用者によって変わる値を読むと止める。どの利用者の判定で要素が入ったかによって、ホスト全体の設定値が変わらないようにするため。
+
+利用者ごとの NixOS の設定は、ホスト全体の設定と同じ NixOS の構成に入る。利用者 A と利用者 B が同じ option に別の値を出すと、NixOS のモジュールの仕組みが合わせるか、評価が衝突のエラーで止まる。
 
 派生要素は、どの要素からも参照できず、`purposes` にも挙げられない。派生要素の判定が真になるのを、`when` に挙げた要素がそろったときに限るため。このため、派生要素を後件に持つ推論規則は `when` の1つだけで、派生要素について「または」は書けない。参照される要素は複数の要素から参照できるので、前件が1つの推論規則どうしの「または」は書ける。
 
@@ -38,15 +47,15 @@ confgen は判定をホストごとに1つしか持たず、規則 A の利用�
 
 規則 B を保証できるのは `config/elements/` の要素の中だけ。Nix のモジュールとして残っている設定は、合わさった後の値を読めるので保証の外にある。
 
-要素が値を見て設定値をすべて空にする書き方（規則 A に反する）は、confgen の検査では止められない。
+要素が値を見て設定値をすべて空にする書き方（規則 A に反する）は、出力が空になったときに止める。`config` か `writes` を持つ要素がホストで何も出さないとき、`user_config` か利用者ごとの `writes` を持つ要素がある利用者について何も出さないときに、エラーにする。option は出すが中身が空（`home.packages = []`）の書き方は見つけられない。
 
 ## Nix との分担
 
-confgen は Nix の評価の途中で build して実行し（import from derivation）、ホストごとの JSON を作る。手で実行する手順や、生成物の commit をなくすため。[confgen.nix](../../modules/home-manager/confgen.nix) と [NixOS 側](../../modules/nixos/confgen.nix) は JSON をそれぞれの設定にし、印（`$pkg`、`$exe`、`$concat`）をそのホストの `pkgs` の値に置き換える。
+confgen は Nix の評価の途中で build して実行し（import from derivation）、ホストごとの JSON を作る。JSON は、ホスト全体の NixOS の設定（利用者ごとの NixOS の設定を含む）と、利用者ごとの Home Manager の設定を持つ。手で実行する手順や、生成物の commit をなくすため。[confgen.nix](../../modules/home-manager/confgen.nix) と [NixOS 側](../../modules/nixos/confgen.nix) は JSON をそれぞれの設定にし、印（`$pkg`、`$exe`、`$concat`）をそのホストの `pkgs` の値に置き換える。
 
 値（ホストの構成、`purposes`、ホストとユーザーの値）は TOML に置き、処理は要素に置く。flake は評価の最初に構成の一覧を決める必要があり、Nix が読めるのは Nix、JSON、TOML だけなので、ホストのファイルは TOML にした。flake（`lib/configurations.nix`）は `config/hosts/*.toml` から構成の名前、system、ユーザーを読み、confgen は同じファイルを要素に渡す。同じ値を2か所に書かなくて済む。
 
-ホスト名、system、ユーザー名は、`lib/configurations.nix` が import するときに渡す。`purposes` はホストごとに1つのファイルで選ぶので、同じホストのユーザーは同じ `purposes` を受け取る。`config` や module 引数の `pkgs` から決めると、設定の名前の一覧を決めるのに設定そのものが要り、無限再帰になる。confgen の build には specialArgs の `inputs` の nixpkgs を使う。
+ホスト名、system、ユーザー名は、`lib/configurations.nix` が import するときに渡す。NixOS のモジュールはホストの JSON の全体を、Home Manager のモジュールはその利用者の部分を読む。`config` や module 引数の `pkgs` から決めると、設定の名前の一覧を決めるのに設定そのものが要り、無限再帰になる。confgen の build には specialArgs の `inputs` の nixpkgs を使う。
 
 この build もほかの build と同じく、`nixos-spin713` ではデスクトップに回る。macOS の Home Manager 構成では aarch64-darwin の confgen を build するので、Linux の `check.sh` からは評価できない。Mac を使い始めるまで、そのホストのファイルを置いていない。
 

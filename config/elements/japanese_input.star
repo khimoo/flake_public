@@ -1,7 +1,7 @@
 requires = ["gui"]
 
 # 目的: 日本語の入力（fcitx5 と SKK）。
-def config():
+def user_config():
     return {"home": {
         "i18n.inputMethod.type": "fcitx5",
         "i18n.inputMethod.enable": True,

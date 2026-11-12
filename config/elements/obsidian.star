@@ -2,5 +2,5 @@
 def writes(memex):
     return [write(memex, {"obsidian": True})]
 
-def config():
+def user_config():
     return {"home": {("xdg", "mimeApps", "defaultApplications", "x-scheme-handler/obsidian"): "obsidian.desktop"}}
