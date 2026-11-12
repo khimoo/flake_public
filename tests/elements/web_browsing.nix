@@ -19,7 +19,14 @@ in
         assert allAssertions browsing;
         assert allAssertions dispatcher;
         assert browsing.config.programs.firefox.enable;
-        assert builtins.any (p: (p.pname or "") == "zen-beta") browsing.config.home.packages;
+        assert browsing.config.programs.zen-browser.enable;
+        assert browsing.config.programs.firefox.policies.ExtensionSettings ? "uBlock0@raymondhill.net";
+        assert browsing.config.programs.zen-browser.policies.ExtensionSettings ? "uBlock0@raymondhill.net";
+        assert browsing.config.programs.firefox.policies.ExtensionSettings ? "treestyletab@piro.sakura.ne.jp";
+        assert !(browsing.config.programs.zen-browser.policies.ExtensionSettings ? "treestyletab@piro.sakura.ne.jp");
+        assert browsing.config.programs.firefox.profiles.default.settings."services.sync.engine.extension-storage.force";
+        assert browsing.config.programs.zen-browser.profiles.default.settings."services.sync.engine.extension-storage.force";
+        assert browsing.config.programs.zen-browser.profiles.default.settings."services.sync.engine.spaces";
         assert !browsing.config.programs.anki.enable;
         assert !builtins.any (p: (p.pname or "") == "inkscape") browsing.config.home.packages;
         assert builtins.all (mime: defaults.${mime} == [ "zen-beta.desktop" ]) [
@@ -43,6 +50,7 @@ in
     })
     // {
       elements = [
+        "browser_common"
         "web_browsing"
         "zen_browser"
         "firefox"

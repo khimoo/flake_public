@@ -8,7 +8,7 @@
 
 [teams_dispatcher.star](../../config/elements/teams_dispatcher.star) は、Teams のリンクを Junction へ、その他のリンクを既定ブラウザへ渡します。Teams のアカウントは Junction で選ぶため、HTTP/HTTPS の既定アプリはブラウザではなくディスパッチャになります。ディスパッチャが選ばれたことは `writes(web_browsing)` で伝え、MIME の設定は `web_browsing` がまとめて出します。複数のアプリを同じスキームの既定として登録することを防ぐためです。
 
-`web_browsing` だけを選んだ場合は、HTTP/HTTPS も直接ブラウザへ渡します。Firefox の既存プロファイルと拡張機能の設定は [firefox.star](../../config/elements/firefox.star) に残し、Zen へのデータ移行を終える前に Firefox が使えなくなることを避けています。
+`web_browsing` だけを選んだ場合は、HTTP/HTTPS も直接ブラウザへ渡します。Firefox は既定ブラウザでなくなっても、Zen と並べて使えるように入れたままにします（利用者の選択）。両方の拡張機能と pref の管理は [ブラウザ](../howtouse/browsers.md) にまとめています。
 
 Zen の flake は、ホストと同じ `nixpkgs` 入力を参照します。別系統の GUI ライブラリを重ねずに使うためです。採用した上流リビジョン [a7cac935 のパッケージ定義](https://github.com/0xc000022070/zen-browser-flake/blob/a7cac935fd58b6f177d2412ea00c566ed4f0abab/package.nix) は、nixpkgs 26.05 にない FFmpeg 9 を FFmpeg 8 へ置き換えます。
 

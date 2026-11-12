@@ -19,9 +19,9 @@
 
 [web_browsing.star](../../config/elements/web_browsing.star) の `public` と `config` が受け取るブラウザを変更します。Zen を選ぶ場合は `zen_browser`、Firefox に戻す場合は `firefox` にし、各関数内の参照も同じ名前に変えます。通常のリンクと HTML の関連付けが一緒に変わり、Teams のリンクは引き続き Junction へ渡されます。
 
-Zen 本体は [zen_browser.star](../../config/elements/zen_browser.star) で導入します。[zen-browser-flake](https://github.com/0xc000022070/zen-browser-flake) の Beta パッケージを使い、バージョンは `flake.lock` で固定しています。更新は `nix flake update zen-browser` を実行し、[検証ガイド](validation.md) に従って確認します。設定の反映方法は [README](../../README.md) を参照してください。
+Zen 本体は [zen_browser.star](../../config/elements/zen_browser.star) で、[zen-browser-flake](https://github.com/0xc000022070/zen-browser-flake) の Home Manager モジュールを使って導入します。Beta 版を使い、バージョンは `flake.lock` で固定しています。更新は `nix flake update zen-browser` を実行し、[検証ガイド](validation.md) に従って確認します。設定の反映方法は [README](../../README.md) を参照してください。
 
-Firefox のデータはそのまま残ります。ブックマークやログイン情報の Zen への移行は、利用者が Zen のインポート機能で行います。
+Firefox と Zen の拡張機能、pref、同期の分担は [ブラウザ](./browsers.md) にまとめています。
 
 ## GNOME 拡張の切り替えと設定
 
