@@ -9,6 +9,8 @@ def config(browser_common):
     settings.update({
         # ワークスペースとピン留めタブは Sync で同期する。モジュールの spaces と pins は switch のたびに UI での変更を戻すので使わない。
         "services.sync.engine.spaces": True,
+        # Zen 独自の文言の日本語訳は半分ほどが英語のままで、誤訳もある。
+        "intl.locale.requested": "en-US",
     })
     return {
         "home_imports": [module("zen-browser", "homeModules.beta")],

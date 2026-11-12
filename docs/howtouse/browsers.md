@@ -72,7 +72,9 @@ Chrome 系と Firefox をルートで同期したら Firefox 側でフォルダ�
 
 ポリシー（拡張機能の一覧など）は、Home Manager モジュールが組み立てる Zen のパッケージにだけ入ります。flake の入力のパッケージを直接起動すると、ポリシーのない Zen が立ち上がります。そのため [zen_browser.star](../../config/elements/zen_browser.star) が公開する起動コマンドは、ストアのパスではなく PATH 上の名前です。
 
-Zen は多言語でビルドされているので、画面の言語は `intl.locale.requested` だけで変わります。Firefox は日本語の言語パックを拡張機能として入れます。
+Zen は多言語でビルドされているので、画面の言語は `intl.locale.requested` だけで変わります。Firefox は日本語の言語パックを拡張機能として入れ、日本語で表示します。
+
+Zen は英語で表示します（利用者の選択）。Zen 1.24.1b の Zen 独自の文言は、日本語版で変数を含まない 423 件のうち 213 件が英語のままで、「Add Route for Domain」を「ルートのドメインを足す」とするような誤訳もあります。英語なら、機能名が公式の文書やネットの情報と一致します。Firefox から来たメニューの日本語訳は Mozilla の公式のもので問題がないので、翻訳が改善されたら日本語に戻す余地があります。
 
 ### Tree Style Tab を Firefox だけに入れる理由
 
