@@ -7,7 +7,7 @@
 
 [config/hosts/](../../config/hosts/) の TOML をマシンの正本とし、`kind` が `nixos` なら `nixosHosts`、`home` なら `homeHosts` に構成を作る。factory は system とユーザーを読み、confgen の結果を NixOS と Home Manager に渡す。specialArgs には `inputs` を渡す。
 
-ホストの `purposes` が機能を選び、[要素](../../config/elements/) が依存をたどって設定を生成する。ホストを動かす `machine_*` は共通部品を `requires` で参照し、生成済み `hardware.nix` を import する。値を TOML、処理を要素に分けることで、選択と実装を二重管理しない（[confgen の規則](confgen.md)）。
+ホストの `purposes` が機能を選び、[要素](../../config/elements/) が依存をたどって設定を生成する。ホストを動かす `machine_*` は共通部品を `requires` で参照し、生成済み `hardware.nix` を import する。値を TOML、処理を要素に分けることで、選択と実装を二重管理しない（[confgen](confgen.md)）。
 
 個人の Git identity、鍵、mutable checkout は `config/users/<ユーザー>.toml` に置く。各 Home Manager は本人のファイルだけを読み、同じホストの別のユーザーにも個人の値を渡さない。ユーザー一覧の最初の人で NixOS の confgen を評価し、`home_manager = false` の人にはホーム構成を作らない。
 

@@ -9,7 +9,7 @@ let
   inherit (helpers) inputs rejectsPurpose configDir;
 in
 {
-  # どの要素も、ホストでそれ1つだけを選んで生成できること（docs/architecture/confgen.md の規則 A）。
+  # どの要素も、ホストでそれ1つだけを選んで生成できること（docs/architecture/rules.md の規則 A）。
   elements-alone =
     (lib.lazyDerivation {
       derivation = (
