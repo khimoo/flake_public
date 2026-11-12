@@ -23,7 +23,21 @@ keyd_ids = ["k:0001:0001", "k:18d1:5044", "k:18d1:5052", "k:0000:0000", "k:18d1:
 
 [[users]]
 name = "pomu"
-purposes = ["twindesk", "user_packages", "personal_files", "ai_agents", "alook_open", "cargo_remote_run", "dev_tools", "daily_editing", "sshfs_editing", "quaderno_send", "memex_sync", "obsidian", "shell", "git", "gui", "web_browsing", "gui_apps", "inkscape", "teams_dispatcher", "gnome", "japanese_input", "desktop", "printing", "bluetooth", "sns_block", "call_audio", "agent_config", "agent_compression", "etc_nixos_link"]
+purposes = [
+  "everyday",
+  "programming",
+  "study",
+  "browse_web",
+  "work",
+  "communicate",
+  "draw",
+  "media",
+  "personal_files",
+  "user_packages",
+  "agent_config",
+  "agent_compression",
+  "etc_nixos_link",
+]
 admin = true
 
 [keyd_settings.main]

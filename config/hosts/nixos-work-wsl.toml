@@ -7,5 +7,14 @@ machine = "machine_nixos_work_wsl"
 
 [[users]]
 name = "nixos"
-purposes = ["ai_agents", "dev_tools", "daily_editing", "shell", "git", "nix_ld", "gui", "web_browsing", "gui_apps", "inkscape", "teams_dispatcher", "etc_nixos_link"]
+purposes = [
+  "everyday",
+  "programming",
+  "browse_web",
+  "work",
+  "communicate",
+  "draw",
+  "media",
+  "etc_nixos_link",
+]
 admin = true

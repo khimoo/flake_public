@@ -5,4 +5,15 @@ machine = "machine_pomu_nixos"
 
 [[users]]
 name = "pomu"
-purposes = ["user_packages", "personal_files", "dev_tools", "daily_editing", "shell", "git", "gui", "web_browsing", "gui_apps", "inkscape", "teams_dispatcher", "gnome", "japanese_input", "music_production"]
+purposes = [
+  "everyday",
+  "programming",
+  "browse_web",
+  "work",
+  "communicate",
+  "draw",
+  "media",
+  "make_music",
+  "personal_files",
+  "user_packages",
+]

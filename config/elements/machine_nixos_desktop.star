@@ -1,4 +1,4 @@
-requires = ["x86_64_linux", "machine_base", "systemd_boot", "network_manager", "machine_ssh", "tailscale", "pipewire"]
+requires = ["x86_64_linux", "machine_base", "systemd_boot", "network_manager", "machine_ssh", "tailscale", "pipewire", "gui", "gnome", "japanese_input", "desktop", "printing", "bluetooth", "call_audio", "twindesk"]
 
 def config(host, tailscale):
     primary = host.users[0]["name"]

@@ -2,33 +2,11 @@ requires = ["gui"]
 
 _wayland_flags = "--enable-features=UseOzonePlatform --ozone-platform=wayland --enable-wayland-ime --wayland-text-input-version=3"
 
-# Obsidian は memex が git / claude を含むラッパーを入れるため、素のパッケージを重ねない。
-_apps = [
-    {"pkg": pkg("slack"), "name": "slack", "bin": "slack", "desktop": "slack.desktop", "mime": ["x-scheme-handler/slack"], "wayland": True, "autostart": True, "flags": "--silent"},
-    {"pkg": pkg("discord"), "name": "discord", "bin": "Discord", "desktop": "discord.desktop", "mime": ["x-scheme-handler/discord"], "wayland": True, "autostart": True, "flags": "--start-minimized"},
-    {"pkg": pkg("thunderbird"), "name": "thunderbird", "bin": "thunderbird", "desktop": "thunderbird.desktop", "mime": ["x-scheme-handler/mailto", "message/rfc822"], "autostart": True},
-    {"pkg": pkg("sticky-notes"), "name": "sticky-notes", "bin": "com.vixalien.sticky", "desktop": "com.vixalien.sticky.desktop", "autostart": True},
-    {"pkg": pkg("libreoffice")},
-    {"pkg": pkg("pdfarranger"), "desktop": "pdfarranger.desktop", "mime": ["application/pdf"]},
-    {"pkg": pkg("bitwarden-desktop")},
-    {"pkg": pkg("krita")},
-    {"pkg": inputPkg("rnote", "default")},
-    {"pkg": pkg("mypaint")},
-    {"pkg": pkg("vlc")},
-    {"pkg": pkg("xournalpp")},
-    # Takeout の日本語ファイル名を保った解凍には p7zip が必要。
-    {"pkg": pkg("digikam")},
-    {"pkg": pkg("p7zip")},
-    {"pkg": pkg("spotify"), "bin": "spotify", "desktop": "spotify.desktop", "mime": ["x-scheme-handler/spotify"], "wayland": True},
-    {"pkg": pkg("typst")},
-    {"pkg": pkg("yt-dlp")},
-    {"pkg": pkg("transcribe")},
-    {"pkg": pkg("tdf")},
-    {"pkg": pkg("vmpk")},
-    {"pkg": pkg("showmethekey")},
-    {"pkg": pkg("zoom-us"), "desktop": "Zoom.desktop", "mime": ["x-scheme-handler/zoommtg", "x-scheme-handler/zoomus"]},
-]
-
+# 行動の要素が write(gui_apps, アプリ) でアプリを書き込み、gui_apps がまとめて入れる。
+# アプリは {"pkg": パッケージ} に、必要なら次を足す。
+#   "desktop": desktop ファイル名、"mime": 既定にする MIME の一覧、
+#   "wayland": True（Wayland で起動する desktop ファイルを作る。"bin" も要る）、
+#   "autostart": True（ログイン時に起動する。"name" と "bin"、必要なら "flags" も要る）。
 def _wayland_desktop(app):
     desktop = app["desktop"]
     bin_name = app["bin"]
@@ -45,19 +23,15 @@ def _wayland_desktop(app):
         "fi\n",
     ))
 
-def user_config():
+def user_config(incoming):
+    apps = [w.value for w in incoming]
     settings = {
-        "home.packages": [app["pkg"] for app in _apps],
-        "programs.obs-studio.enable": True,
-        "programs.obs-studio.plugins": [pkg("obs-studio-plugins.input-overlay")],
-        "programs.foliate.enable": True,
-        "programs.anki.enable": True,
-        "programs.anki.language": "ja_JP",
+        "home.packages": [app["pkg"] for app in apps],
         "xdg.mimeApps.enable": True,
         # GNOME のスキーム解決には mimeapps.list の既定指定が必要（nixpkgs#301893）。
-        "xdg.mimeApps.defaultApplications": {mime: app["desktop"] for app in _apps for mime in app.get("mime", [])},
+        "xdg.mimeApps.defaultApplications": {mime: app["desktop"] for app in apps for mime in app.get("mime", [])},
     }
-    for app in _apps:
+    for app in apps:
         if app.get("wayland", False):
             settings[("home", "file", ".local/share/applications/" + app["desktop"], "source")] = _wayland_desktop(app)
         if app.get("autostart", False):

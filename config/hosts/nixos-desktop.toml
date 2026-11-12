@@ -34,7 +34,25 @@ supported_features = ["benchmark", "big-parallel", "kvm", "nixos-test"]
 
 [[users]]
 name = "pomu"
-purposes = ["twindesk", "user_packages", "xsaved", "windows_vm", "minecraft_backup", "quaderno_pull", "quaderno_send", "mimikopi", "personal_files", "ai_agents", "dev_tools", "daily_editing", "memex_sync", "obsidian", "shell", "git", "gui", "web_browsing", "gui_apps", "inkscape", "teams_dispatcher", "gnome", "japanese_input", "desktop", "printing", "bluetooth", "sns_block", "call_audio", "music_production", "agent_config", "agent_compression", "etc_nixos_link"]
+purposes = [
+  "everyday",
+  "programming",
+  "study",
+  "browse_web",
+  "work",
+  "communicate",
+  "draw",
+  "media",
+  "make_music",
+  "play_minecraft",
+  "use_windows",
+  "save_x_posts",
+  "personal_files",
+  "user_packages",
+  "agent_config",
+  "agent_compression",
+  "etc_nixos_link",
+]
 admin = true
 
 [[users]]
