@@ -1,9 +1,9 @@
-# ブラウザ（Firefox と Zen）
+# ブラウザ（Firefox、Zen、Brave）
 
 既定ブラウザとリンクの振り分け: [デフォルトアプリ](../architecture/default-apps.md)
-実装: [browser_common.star](../../config/elements/browser_common.star) / [firefox.star](../../config/elements/firefox.star) / [zen_browser.star](../../config/elements/zen_browser.star)
+実装: [browser_common.star](../../config/elements/browser_common.star) / [firefox.star](../../config/elements/firefox.star) / [zen_browser.star](../../config/elements/zen_browser.star) / [gui_apps.star](../../config/elements/gui_apps.star)（Brave）
 
-Firefox と Zen は、目的 `web_browsing` を選んだホストに両方入ります。拡張機能の一覧と pref は Nix で宣言し、履歴などの使いながら増えるデータは同期サービスに任せます（分担は「設計」の節）。
+Firefox と Zen は、目的 `web_browsing` を選んだホストに両方入ります。拡張機能の一覧と pref は Nix で宣言し、履歴などの使いながら増えるデータは同期サービスに任せます（分担は「設計」の節）。Brave はサブのブラウザとして目的 `gui_apps` で入り、Bitwarden と floccus だけを宣言で入れます（「Brave」の節）。
 
 ## 拡張機能を足す・外す
 
@@ -38,6 +38,12 @@ Zen のプロファイルは Home Manager が管理する `~/.config/zen/default
 - 同期フォルダの設定は変えません。変える必要があるときは、すべてのブラウザで floccus の同期を止め、Git の最新のコミットを控えてから変えます。
 - Firefox Sync のブックマークの同期はオンにしません（pref で切ってあります）。
 - 消えたブックマークは Git の履歴から戻します。Firefox のライブラリの「復元」はブックマーク全体を置き換え、floccus がその差分を Git に同期するので使いません。
+
+## Brave
+
+拡張機能は [gui_apps.star](../../config/elements/gui_apps.star) の `programs.brave.extensions` に、Chrome ウェブストアの拡張機能の ID（ストアのページの URL の末尾）で書きます。Home Manager が ID ごとに `~/.config/BraveSoftware/Brave-Browser/External Extensions/<ID>.json` を置き、Brave が起動時に入れます。Firefox と Zen のポリシーと違って強制ではなく、Brave の拡張機能の画面で削除すると、その拡張機能は起動時に入れ直されなくなります。入れ直すときは、Chrome ウェブストアから手で入れます。
+
+Bitwarden へのログインと floccus のプロファイルのインポートは、Firefox や Zen と同じく手で行い、floccus の決まりにも同じく従います。Brave 自身のブックマーク同期は使いません。Brave にはブックマークメニューがないので、Brave で floccus を初めて同期する前に Git の最新のコミットを控え、同期のあとで Git の「Bookmarks Menu」の中身が残っているかを確かめます。
 
 ## 設計
 
