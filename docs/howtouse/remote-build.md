@@ -63,7 +63,7 @@ nix develop --max-jobs 4
 
 cargo は nix-daemon を経由しないため、通常の `cargo run` では上述のリモートビルドが機能しません。
 `cargo remote-run` は `cargo run` と同等の引数を受け取り、デスクトップ上でビルドを行った上で、生成された実行ファイルを手元で実行します。GUI アプリケーションの画面も手元に表示されます。
-direnv で devShell に入ったプロジェクト内で利用します（spin713 の `pomu` は、[ホストの TOML](../../config/hosts/nixos-spin713.toml) の `[[users]]` の `purposes` で `programming` を選び、機体の要素 `machine_nixos_spin713.star` の `requires` にある担当 `remote_workspace` とそろうので、派生要素 `programming_remote`（`when = ["programming", "remote_workspace"]`）の `requires` から `cargo_remote_run` が入ります）。無効にするには利用者の `purposes` から `programming` を外すか、`programming_remote.star` の `requires` から `cargo_remote_run` を外します。
+direnv で devShell に入ったプロジェクト内で利用します（spin713 の `pomu` は、[ホストの TOML](../../config/hosts/nixos-spin713.toml) の `[[users]]` の `purposes` で行動 `program_on_home_server`（自分用サーバで作業する）を選び、`requires` から `cargo_remote_run` が入ります）。無効にするには利用者の `purposes` から `program_on_home_server` を外します。
 
 ```sh
 cargo remote-run

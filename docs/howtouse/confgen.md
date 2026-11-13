@@ -24,17 +24,16 @@ purposes = ["programming", "read_materials"]
 
 `purposes = []` の利用者には、機体から導ける要素だけが入ります。`purposes` は利用者ごとに必ず書きます。
 
-## 機体の事実と担当
+## 機体の事実
 
-機体によって入るかどうかが変わる要素は、機体の名前ではなく、機体の事実か担当を条件にします。
+機体によって入るかどうかが変わる要素は、機体の名前ではなく、機体の事実を条件にします。
 
 - 機体の要素（`kind = "machine"`）は、ホストのファイルの `machine` にだけ書けます。ほかの要素の `requires` や `when` には書けません。
 - 機体の事実（`kind = "machine_fact"`）は、設定では用意できない機体の性質です。例: `x86_64_linux`、`nixos_system`（confgen が NixOS の設定を作る）、`rocm_compute`（ROCm で GPU の計算ができる）、`local_kvm`（KVM の仮想マシンを動かせる）。
-- 担当（`kind = "machine_role"`）は、機体が自分についてする人間の決定です。例: `remote_workspace`（プログラムのファイルとビルドをデスクトップに置く）、`downloaded_dev_binaries`（配布されたバイナリを直接動かす）、`company_isolated`（会社の機体として自宅への接続経路を持たない）。
 
-機体の事実と担当は、機体の要素の `requires` にだけ書けます。行動や道具の `requires` に書くと止まります。行動を選んだだけで「KVM を動かせる」が真になってしまうからです。
+機体の事実は、機体の要素の `requires` にだけ書けます。行動や道具の `requires` に書くと止まります。行動を選んだだけで「KVM を動かせる」が真になってしまうからです。
 
-機体によって変わる要素は、派生要素の `when` に行動と、事実か担当を書きます。
+機体によって変わる要素は、派生要素の `when` に行動と事実を書きます。
 
 ```python
 # mimikopi_for_music.star
@@ -42,22 +41,20 @@ when = ["make_music", "rocm_compute"]
 requires = ["mimikopi"]
 ```
 
-新しい機体を足すときは、機体の要素の `requires` に、その機体の事実と担当を書くだけです。行動と派生要素は変えません。
+新しい機体を足すときは、機体の要素の `requires` に、その機体の事実を書くだけです。行動と派生要素は変えません。
 
-`needs` と `conflicts` は、判定が済んだ後の検査です。要素を有効にはしません。
+`needs = [...]` は、判定が済んだ後の検査で、要素を有効にはしません。要素が入る利用者について、挙げた要素（機体の事実、`machine_ssh` など）も入っていなければ止めます。例: `windows_vm.star` の `needs = ["nixos_system", "local_kvm"]` により、WSL で `use_windows` を選ぶと、足りない名前を示して止まります。
 
-- `needs = [...]`: 要素が入る利用者について、挙げた要素（機体の事実、担当、`machine_ssh` など）も入っていなければ止めます。例: `windows_vm.star` の `needs = ["nixos_system", "local_kvm"]` により、WSL で `use_windows` を選ぶと、足りない名前を示して止まります。
-- `conflicts = [...]`: 要素がホストに入るとき、挙げた要素がどの利用者についても入っていれば止めます。例: `company_isolated.star` は `machine_ssh`、`tailscale`、`remote_build`、`remote_workspace` を挙げます。
-
-機体の要素を持たないホスト（`tests/hosts/`）は、機体の事実と担当を `purposes` に書きます。
+機体の要素を持たないホスト（`tests/hosts/`）は、機体の事実を `purposes` に書きます。
 
 ## 自分用サーバとクライアント
 
-1台に置くデータや、1台で動かすサービス（Quaderno のアーカイブ、xsaved）は、自分用サーバとクライアントに分けます。
-どの機体に置くかを担当として各機体に書くと、2台に書いたときに止める仕組みが要るからです。
+機体によって変わる処理のうち、機体の事実（物理的な条件）で決まらないものは、自分用サーバ（サービスを公開する側）とクライアント（サービスを使う側）に分けます。
+「どの機体でするか」を機体ごとに書くと、行動と機体の組み合わせを人が管理することになり、1台に限るものは2台に書いたときに止める仕組みも要るからです。
 
-- サーバの側: サーバを置くホストの利用者が、`purposes` に `run_home_server` を書きます。`run_home_server.star` は `requires` に `serve_quaderno_archive` と `serve_x_posts` を挙げます。
-- クライアントの側: サービスを使う要素（`quaderno`、`x_posts`）と、自宅へ接続できること（`machine_ssh`、`tailscale`）を `when` に挙げた派生要素（`quaderno_backup`、`xsaved_client`）が、ssh でサーバに接続します。サーバの機体でも、同じ内容で自分に接続します。
+- サーバの側: サーバを置くホストの利用者が、`purposes` に `run_home_server` を書きます。`run_home_server.star` は `requires` に `serve_quaderno_archive`（Quaderno のアーカイブ）、`serve_x_posts`（xsaved）、`serve_workspace`（ssh でつながる作業場所）を挙げます。
+- クライアントの側: サービスを使う要素（`quaderno`、`x_posts`）と、自宅へ接続できること（`machine_ssh`、`tailscale`）を `when` に挙げた派生要素（`quaderno_backup`、`xsaved_client`）が、ssh でサーバに接続します。サーバの機体でも、同じ内容で自分に接続します。利用者が自分で選ぶクライアントは行動にします。spin713 の `program_on_home_server`（ファイルを sshfs で開き、build と Alook を自分用サーバで動かす）がその例です。
+- 外部のサービスを使う側: サービスが外部（PyPI や uv が配る Python）にあるときは、使う側の行動だけを書きます。WSL の `run_downloaded_binaries` が `requires` の `nix_ld` を入れます。
 - 接続先: 利用者の値 `home_server`（`config/users/<ユーザー>.toml`）に、サーバのホストの名前を書きます。クライアントは `machine_ssh` の公開値 `tailnet` から接続名（`desktop-ts` など）を、`machines` からサーバのホストの値（xsaved の `web_port` など）を読みます。
 
 サーバの `purposes` と、クライアントの `home_server` は別々に書くので、食い違っても confgen は止めません。クライアントが実行時に接続に失敗します。
@@ -80,7 +77,7 @@ requires = ["mimikopi"]
 
 ## 要素を書く
 
-1つのファイルが1つの要素です。ファイル名が要素の名前です。書けるのは次の9個と、`_` で始まる補助の名前だけです。
+1つのファイルが1つの要素です。ファイル名が要素の名前です。書けるのは次の8個と、`_` で始まる補助の名前だけです。
 
 | 名前 | 中身 |
 |---|---|
@@ -90,9 +87,8 @@ requires = ["mimikopi"]
 | `def config(..., incoming)` | ホスト全体の設定。`{"nixos": {"option.path": 値}, "nixos_imports": [...]}` を返す。`incoming` は自分への書き込みの一覧（`w.source`、`w.value`） |
 | `def user_config(..., incoming)` | 利用者ごとの設定。要素が入る利用者ごとに呼ばれ、`{"home": {...}, "home_imports": [...], "nixos": {...}}` を返す。`nixos` には、その利用者だけの NixOS の設定（`("users", "users", user.name, "extraGroups")` など）を書く |
 | `when = [...]` | 派生要素の条件。同じ利用者について、挙げた要素がすべて入るときだけ、この要素が入る |
-| `needs = [...]` | この要素が入る利用者について、入っていなければならない要素（機体の事実、担当など）。足りなければ止める |
-| `conflicts = [...]` | この要素と同じホストに入ってはいけない要素 |
-| `kind = "..."` | `"machine"`（機体の要素）、`"machine_fact"`（機体の事実）、`"machine_role"`（担当）。行動と道具には書かない |
+| `needs = [...]` | この要素が入る利用者について、入っていなければならない要素（機体の事実など）。足りなければ止める |
+| `kind = "..."` | `"machine"`（機体の要素）か `"machine_fact"`（機体の事実）。行動と道具には書かない |
 
 `config` は、利用者によって変わる値を読めません。利用者によって変わる値は、`user` と、`public` が利用者によって変わる値を読む要素の公開値です（`checkout.root` など）。`public` と `writes` は、利用者によって変わる値を読むと利用者ごとに呼ばれ、読まなければホストごとに1回呼ばれます。
 
@@ -139,9 +135,8 @@ Nix にしか作れない値は印で書きます。
 - 利用者ごとに呼ばれる `writes` が、`user_config` を持たない要素に書き込む
 - ホストのファイルの先頭に `purposes` を書く、`[[users]]` に `purposes` を書かない
 - `machine` に `kind = "machine"` でない要素を書く、機体の要素を `requires` か `when` か `purposes` に書く
-- 機体の事実か担当を、機体の要素以外の `requires` に書く、機体の要素を持つホストの `purposes` に書く
+- 機体の事実を、機体の要素以外の `requires` に書く、機体の要素を持つホストの `purposes` に書く
 - 要素が入る利用者について、`needs` に挙げた要素が入っていない
-- ホストに入る要素どうしが `conflicts` に当たる
 
 ## 変更の範囲を見る
 

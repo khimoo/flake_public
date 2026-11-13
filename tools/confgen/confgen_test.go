@@ -393,11 +393,11 @@ func machineHost(m, purposes string) string {
 	return "machine = \"" + m + "\"\n" + one(purposes)
 }
 
-func TestMachineFactsAndRolesGateDerivedElementsWithoutNamingTheMachine(t *testing.T) {
+func TestMachineFactsGateDerivedElementsWithoutNamingTheMachine(t *testing.T) {
 	elements := map[string]string{
 		"desk":          "kind = \"machine\"\nrequires = [\"keep_archive\"]",
 		"laptop":        `kind = "machine"`,
-		"keep_archive":  `kind = "machine_role"`,
+		"keep_archive":  `kind = "machine_fact"`,
 		"read":          ``,
 		"pull":          ``,
 		"pull_for_read": "when = [\"read\", \"keep_archive\"]\nrequires = [\"pull\"]",
@@ -440,28 +440,6 @@ func TestNeedsStopsTheBuildWithoutMakingTheFactTrue(t *testing.T) {
 	}
 }
 
-func TestConflictsStopTheBuildEvenAcrossUsers(t *testing.T) {
-	elements := map[string]string{
-		"wsl":      "kind = \"machine\"\nrequires = [\"isolated\"]",
-		"isolated": "kind = \"machine_role\"\nconflicts = [\"secrets\"]",
-		"notes":    `requires = ["secrets"]`,
-		"secrets":  ``,
-		"browse":   ``,
-	}
-	hosts := map[string]string{
-		"ok":  machineHost("wsl", `["browse"]`),
-		"bad": "machine = \"wsl\"\n[[users]]\nname = \"a\"\npurposes = [\"browse\"]\n[[users]]\nname = \"b\"\npurposes = [\"notes\"]\n",
-	}
-	dir := writeConfig(t, elements, hosts)
-	if _, err := buildHost(dir, "ok", "x86_64-linux"); err != nil {
-		t.Fatalf("ok: %v", err)
-	}
-	_, err := buildHost(dir, "bad", "x86_64-linux")
-	if err == nil || !strings.Contains(err.Error(), "conflicts with secrets (notes → secrets for user b)") {
-		t.Fatalf("bad: %v, want a conflict with secrets through notes", err)
-	}
-}
-
 func TestRejectedForMachineDescriptions(t *testing.T) {
 	cases := []struct {
 		name     string
@@ -482,7 +460,7 @@ func TestRejectedForMachineDescriptions(t *testing.T) {
 		{"unknown kind", map[string]string{
 			"p": `kind = "action"`}, one(`["p"]`), "kind must be"},
 		{"unknown element in needs", map[string]string{
-			"p": `needs = ["kvm"]`}, one(`["p"]`), "needs or conflicts"},
+			"p": `needs = ["kvm"]`}, one(`["p"]`), "in needs"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

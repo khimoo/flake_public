@@ -28,18 +28,16 @@ type element struct {
 	src      []byte
 	requires []string
 	when     []string
-	// needs and conflicts are checked after the judgments and never make an element true:
+	// needs is checked after the judgments and never makes an element true:
 	// a fact the machine lacks must stop the build, not be supplied by the element asking.
-	needs     []string
-	conflicts []string
-	kind      string // "", kindMachine, kindFact or kindRole
-	funcs     map[string]*funcInfo
+	needs []string
+	kind  string // "", kindMachine or kindFact
+	funcs map[string]*funcInfo
 }
 
 const (
 	kindMachine = "machine"
 	kindFact    = "machine_fact"
-	kindRole    = "machine_role"
 )
 
 func (e *element) derived() bool { return len(e.when) > 0 }
@@ -75,8 +73,8 @@ const (
 )
 
 var elementFuncs = map[string]bool{"public": true, "writes": true, "config": true, "user_config": true}
-var elementLists = map[string]bool{"requires": true, "when": true, "needs": true, "conflicts": true}
-var elementKinds = map[string]bool{kindMachine: true, kindFact: true, kindRole: true}
+var elementLists = map[string]bool{"requires": true, "when": true, "needs": true}
+var elementKinds = map[string]bool{kindMachine: true, kindFact: true}
 var identRe = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
 
 func predeclaredNames() map[string]bool {
@@ -165,18 +163,16 @@ func parseElement(file string) (*element, error) {
 					e.when = list
 				case "needs":
 					e.needs = list
-				case "conflicts":
-					e.conflicts = list
 				}
 			case id.Name == "kind":
 				lit, ok := s.RHS.(*syntax.Literal)
 				if !ok || lit.Token != syntax.STRING || !elementKinds[lit.Value.(string)] {
-					return nil, fmt.Errorf("%s: kind must be %q, %q or %q", id.NamePos, kindMachine, kindFact, kindRole)
+					return nil, fmt.Errorf("%s: kind must be %q or %q", id.NamePos, kindMachine, kindFact)
 				}
 				e.kind = lit.Value.(string)
 			case strings.HasPrefix(id.Name, "_"):
 			default:
-				return nil, fmt.Errorf("%s: top-level name %q is not allowed (use requires, when, needs, conflicts, kind or a name starting with _)", id.NamePos, id.Name)
+				return nil, fmt.Errorf("%s: top-level name %q is not allowed (use requires, when, needs, kind or a name starting with _)", id.NamePos, id.Name)
 			}
 		case *syntax.ExprStmt:
 			if _, ok := s.X.(*syntax.Literal); !ok {
@@ -412,7 +408,7 @@ func checkGraph(elems map[string]*element) error {
 			}
 			// An action that requires a fact would make the fact true wherever the action is chosen.
 			if t.declaresMachine() && !e.declaresMachine() {
-				return fmt.Errorf("%s: %q describes the machine; only machine elements and other machine facts or roles may require it. Name it in when or needs instead", e.file, r)
+				return fmt.Errorf("%s: %q describes the machine; only machine elements and other machine facts may require it. Name it in when or needs instead", e.file, r)
 			}
 		}
 		for _, w := range e.when {
@@ -420,18 +416,18 @@ func checkGraph(elems map[string]*element) error {
 			if !ok {
 				return fmt.Errorf("%s: unknown element %q in when", e.file, w)
 			}
-			// A machine name in when ties the element to one host; name the fact or role that makes it work.
+			// A machine name in when ties the element to one host; name the fact that makes it work.
 			if t.kind == kindMachine {
-				return fmt.Errorf("%s: when names the machine element %q; name a machine fact or role that the machine element requires", e.file, w)
+				return fmt.Errorf("%s: when names the machine element %q; name a machine fact that the machine element requires", e.file, w)
 			}
 		}
-		for _, n := range append(append([]string{}, e.needs...), e.conflicts...) {
+		for _, n := range e.needs {
 			t, ok := elems[n]
 			if !ok {
-				return fmt.Errorf("%s: unknown element %q in needs or conflicts", e.file, n)
+				return fmt.Errorf("%s: unknown element %q in needs", e.file, n)
 			}
 			if t.virtual {
-				return fmt.Errorf("%s: %q is provided by confgen and cannot be in needs or conflicts", e.file, n)
+				return fmt.Errorf("%s: %q is provided by confgen and cannot be in needs", e.file, n)
 			}
 		}
 	}
@@ -439,7 +435,7 @@ func checkGraph(elems map[string]*element) error {
 }
 
 // selectablePurpose checks one name in a user's purposes. A host with a machine element gets
-// the machine's facts and roles from that element; only hosts without one (the hosts under
+// the machine's facts from that element; only hosts without one (the hosts under
 // tests/) list them in purposes.
 func selectablePurpose(file string, elems map[string]*element, name string, hasMachine bool) error {
 	if err := selectable(file, elems, name); err != nil {

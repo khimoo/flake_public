@@ -193,7 +193,6 @@ func explain(dir, host, system, name string) error {
 	fmt.Printf("  condition of:   %s\n", strings.Join(conditionOf, ", "))
 	fmt.Printf("  needed by:      %s\n", strings.Join(neededBy, ", "))
 	fmt.Printf("  needs:          %s\n", strings.Join(e.needs, ", "))
-	fmt.Printf("  conflicts with: %s\n", strings.Join(e.conflicts, ", "))
 	if g, ok := r.Graph[name]; ok {
 		fmt.Printf("  writes to:      %s\n", strings.Join(g.Writes, ", "))
 		fmt.Printf("  sets options:   %s\n", strings.Join(g.Options, ", "))

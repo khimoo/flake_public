@@ -62,7 +62,7 @@ func chain(g map[string]reason, name string) string {
 	return strings.Join(path, " → ")
 }
 
-// checkNeeds stops the build when an element is true for a user but a fact or role it needs is not.
+// checkNeeds stops the build when an element is true for a user but an element it needs is not.
 func checkNeeds(host string, spec *hostSpec, judgments map[string]map[string]reason, elems map[string]*element) error {
 	for _, u := range spec.users {
 		g := judgments[u.name]
@@ -75,23 +75,6 @@ func checkNeeds(host string, spec *hostSpec, judgments map[string]map[string]rea
 			}
 			if len(missing) > 0 {
 				return fmt.Errorf("%s: %s is true for user %s on host %s (%s) but needs %s, which is not true for the user; choose this on a machine whose machine element requires them", elems[name].file, name, u.name, host, chain(g, name), strings.Join(missing, ", "))
-			}
-		}
-	}
-	return nil
-}
-
-// checkConflicts stops the build when an element and an element it conflicts with are both
-// on the host, for the same user or for different users.
-func checkConflicts(host string, spec *hostSpec, judgments map[string]map[string]reason, elems map[string]*element) error {
-	for _, u := range spec.users {
-		for _, name := range sortedKeys(judgments[u.name]) {
-			for _, c := range elems[name].conflicts {
-				for _, v := range spec.users {
-					if _, ok := judgments[v.name][c]; ok {
-						return fmt.Errorf("%s: %s is true on host %s (%s for user %s) and conflicts with %s (%s for user %s)", elems[name].file, name, host, chain(judgments[u.name], name), u.name, c, chain(judgments[v.name], c), v.name)
-					}
-				}
 			}
 		}
 	}
@@ -453,9 +436,6 @@ func evaluateHost(host, system string, spec *hostSpec, userFiles map[string]star
 		}
 	}
 	if err := checkNeeds(host, spec, judgments, elems); err != nil {
-		return nil, err
-	}
-	if err := checkConflicts(host, spec, judgments, elems); err != nil {
 		return nil, err
 	}
 
