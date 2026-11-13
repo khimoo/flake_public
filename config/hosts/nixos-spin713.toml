@@ -26,6 +26,7 @@ purposes = [
   # 勉強
   "grow_notes",
   "read_materials",
+  "follow_communities",
   # 趣味
   "programming",
   "program_on_home_server",
