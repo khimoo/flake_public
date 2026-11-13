@@ -1,2 +1,2 @@
-# 行動（仕事）: Windows を使う（VM）。
-requires = ["work", "windows_vm"]
+# 行動（仕事、生活管理）: Windows を使う（VM）。
+requires = ["category_work", "windows_vm"]
