@@ -37,7 +37,7 @@ OS アップデート等で内蔵マイクの node.name が変更された場合
 4. アプリの入力設定を `Echo-Cancel Microphone` のままにし、選択した実マイクからの音声が正しく届いているか録音して確認する。
 
 起動時に使用される実マイクは `config/hosts/<ホスト>.toml` の `echo_cancel_source` の設定に依存する。`wpctl status -n` で確認できる実マイクの node.name を記述し、仮想マイクや出力 monitor の名称は指定しないこと。
-機能を無効化するには `machine_nixos_desktop.star` と `machine_nixos_spin713.star` の `requires` から `call_audio` を外して適用後、PipeWire を再起動する。
+機能を無効化するには、desktop と spin713 の機体の要素が `requires` に挙げる `personal_pc.star` の `requires` から `call_audio` を外して適用後、PipeWire を再起動する。
 
 ## GNOME のマイク使用インジケーターについて
 

@@ -1,5 +1,5 @@
 kind = "machine"
-requires = ["x86_64_linux", "nixos_system", "machine_base", "systemd_boot", "network_manager", "machine_ssh", "tailscale", "remote_build", "pipewire", "gui", "gnome", "japanese_input", "desktop", "printing", "bluetooth", "call_audio", "twindesk"]
+requires = ["x86_64_linux", "nixos_system", "personal_pc", "remote_build"]
 
 def config(host):
     return {"nixos_imports": [repoModule("hosts/nixos-spin713/hardware.nix")], "nixos": {
