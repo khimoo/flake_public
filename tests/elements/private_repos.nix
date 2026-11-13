@@ -44,7 +44,7 @@ in
         "agent_compression"
         "agent_links"
         "agent_sync"
-        "ai_agents"
+        "codex_policy"
         "checkout"
         "personal_files"
         "private_repos"

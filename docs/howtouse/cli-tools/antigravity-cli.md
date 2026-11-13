@@ -2,7 +2,7 @@
 
 Google の Antigravity CLI を `agy` として入れる。
 agents-private の gemini-proofread スキルが、Gemini の API で校正できないときと、Gemini 3.8 を指定されたときに使う。
-パッケージは [packages/antigravity-cli](../../../packages/antigravity-cli/default.nix) で、x86_64-linux では [config/users/pomu.toml](../../../config/users/pomu.toml) から入る。
+パッケージは [packages/antigravity-cli](../../../packages/antigravity-cli/default.nix) で、Claude Code を使う x86_64-linux の機体に、派生要素 [antigravity_cli.star](../../../config/elements/antigravity_cli.star)（`when = ["claude_code", "x86_64_linux"]`）から入る。
 
 ## ログイン
 

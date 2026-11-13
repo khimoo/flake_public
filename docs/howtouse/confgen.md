@@ -52,9 +52,9 @@ requires = ["mimikopi"]
 機体によって変わる処理のうち、機体の事実（物理的な条件）で決まらないものは、自分用サーバ（サービスを公開する側）とクライアント（サービスを使う側）に分けます。
 「どの機体でするか」を機体ごとに書くと、行動と機体の組み合わせを人が管理することになり、1台に限るものは2台に書いたときに止める仕組みも要るからです。
 
-- サーバの側: サーバを置くホストの利用者が、`purposes` に `run_home_server` を書きます。`run_home_server.star` は `requires` に `serve_quaderno_archive`（Quaderno のアーカイブ）、`serve_x_posts`（xsaved）、`serve_workspace`（ssh でつながる作業場所）を挙げます。
+- サーバの側: サーバを置くホストの利用者が、`purposes` に `run_home_server` を書きます。`run_home_server.star` は `requires` に `serve_quaderno_archive`（Quaderno のアーカイブ）、`xsaved`、`serve_workspace`（ssh でつながる作業場所）、`serve_alook`（Alook）、`serve_remote_desktop`（GNOME の画面の RDP）、`stay_awake`（自動 suspend の停止）を挙げ、サーバを動かす利用者を linger にします。
 - クライアントの側: サービスを使う要素（`quaderno`、`x_posts`）と、自宅へ接続できること（`machine_ssh`、`tailscale`）を `when` に挙げた派生要素（`quaderno_backup`、`xsaved_client`）が、ssh でサーバに接続します。サーバの機体でも、同じ内容で自分に接続します。利用者が自分で選ぶクライアントは行動にします。spin713 の `program_on_home_server`（ファイルを sshfs で開き、build と Alook を自分用サーバで動かす）がその例です。
-- 外部のサービスを使う側: サービスが外部（PyPI や uv が配る Python）にあるときは、使う側の行動だけを書きます。WSL の `run_downloaded_binaries` が `requires` の `nix_ld` を入れます。
+- 外部のサービスを使う側: サービスが外部（PyPI や uv が配る Python）にあるときは、使う側の手段だけを書きます。`use_uv` が `requires` の `nix_ld` を入れます。
 - 接続先: 利用者の値 `home_server`（`config/users/<ユーザー>.toml`）に、サーバのホストの名前を書きます。クライアントは `machine_ssh` の公開値 `tailnet` から接続名（`desktop-ts` など）を、`machines` からサーバのホストの値（xsaved の `web_port` など）を読みます。
 
 サーバの `purposes` と、クライアントの `home_server` は別々に書くので、食い違っても confgen は止めません。クライアントが実行時に接続に失敗します。
@@ -98,7 +98,7 @@ requires = ["mimikopi"]
 
 option のパスに `.` を含む名前があるときは、タプルで書きます（`("xdg", "dataFile", "nvim/nix/features.lua", "text")`）。外部の flake の Home Manager モジュールが要るときは、`user_config` が `"home_imports": [module("memex-nix", "homeModules.memex")]` を返します。NixOS のモジュールは `config` が `"nixos_imports"` で返します。
 
-機体の性質で入るかどうかが変わる要素は、性質を表す要素を `when` に挙げます。例: [user_repo_packages.star](../../config/elements/user_repo_packages.star) は `when = ["user_packages", "x86_64_linux"]` で、`x86_64_linux` は x86_64 の Linux の機体の要素が `requires` に挙げます。値を見て設定を空にする書き方は、次の節のとおり止められます。
+機体の性質で入るかどうかが変わる要素は、性質を表す要素を `when` に挙げます。例: [antigravity_cli.star](../../config/elements/antigravity_cli.star) は `when = ["claude_code", "x86_64_linux"]` で、`x86_64_linux` は x86_64 の Linux の機体の要素が `requires` に挙げます。値を見て設定を空にする書き方は、次の節のとおり止められます。
 
 書いた値を confgen の外（Lua やシェルスクリプト）が読み、その読み手が別の要素で有効になるときは、confgen はその依存を見つけられません。読み手を有効にする要素を `requires` に書くか、両方がそろうときだけ入る派生要素（`when`）に分けます。例: [tinymist_on_sshfs.star](../../config/elements/tinymist_on_sshfs.star) は `nvim_lsp` が有効にする Lua が読む値を書くので、`when = ["sshfs_editing", "nvim_lsp"]` にしています。
 

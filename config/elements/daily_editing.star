@@ -2,7 +2,6 @@
 requires = [
     "neovim",
     "direnv",
-    "nvim_clipboard",
     "nvim_dap",
     "nvim_diagram",
     "nvim_lsp",

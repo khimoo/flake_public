@@ -1,5 +1,3 @@
-requires = ["private_repos"]
-
 # 目的: git と、その周りの道具（lazygit、delta）。名前とメールは config/users/<ユーザー>.toml から。
 def user_config(user):
     home = {

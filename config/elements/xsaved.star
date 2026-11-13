@@ -7,6 +7,7 @@ def _database(value):
     return value
 
 needs = ["nixos_system"]
+requires = ["xsaved_data"]
 
 def _settings(host):
     return {
@@ -151,8 +152,4 @@ def user_config(host, user, failure_notify):
             "psql -tAc " + _quote('ALTER DATABASE "' + database + '" OWNER TO "' + owner + '"') + "\n" +
             "psql -d " + _quote(database) + " -tAc 'CREATE EXTENSION IF NOT EXISTS vector; CREATE EXTENSION IF NOT EXISTS pgroonga'\n"),
     }
-    subvolume = values.get("data_subvolume", None)
-    if subvolume != None:
-        # 手で subvol を作る前でも起動できるよう nofail にする。書き込み前の mount 確認は xsaved が行う（check_mount）。
-        nixos[("fileSystems", data)] = {"device": host.data_device, "fsType": "btrfs", "options": ["subvol=" + subvolume, "noatime", "compress=zstd", "nofail"]}
     return {"home": home, "home_imports": [repoModule("modules/home-manager/xsaved/nixos-only.nix")], "nixos": nixos}

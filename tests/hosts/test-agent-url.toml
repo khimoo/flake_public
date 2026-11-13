@@ -6,4 +6,4 @@ hostname = "test-agent-url"
 
 [[users]]
 name = "test-agent-url"
-purposes = ["ai_agents", "agent_config"]
+purposes = ["codex_policy", "agent_config"]

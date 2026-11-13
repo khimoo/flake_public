@@ -11,7 +11,6 @@ text_scaling_factor = 1.25
 # デスクトップに繋がらないときに黙って手元でビルドさせず、失敗させて人が判断する。
 local_builds = false
 echo_cancel_source = "alsa_input.platform-avs_dmic.19.auto.stereo-fallback"
-alook_open_remotes = { desktop-local = "desktop", desktop-ts = "desktop-ts" }
 cargo_remote_run_host = "desktop-ts"
 agent_instructions = "hosts/nixos-spin713/agent-instructions.md"
 lan_ssh = true
@@ -35,7 +34,6 @@ purposes = [
   "draw",
   "media",
   "personal_files",
-  "user_packages",
   "agent_config",
   "agent_compression",
   "etc_nixos_link",

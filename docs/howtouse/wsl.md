@@ -51,7 +51,7 @@ git config --file ~/.gitconfig user.email "<会社のメールアドレス>"
 
 ## uv による開発
 
-会社の Python プロジェクトは、uv が取得する Python と PyPI の manylinux wheel で動かします。このホストでは nix-ld が有効化されているため、任意のシェルから `uv sync` や `uv run` を実行でき、`.venv` 内の Python もそのまま起動します（[設計](../architecture/wsl.md#uv-が取得する-python-を-nix-ld-で動かす)）。
+会社の Python プロジェクトは、uv が取得する Python と PyPI の manylinux wheel で動かします。利用者の行動 `programming_without_ai` が `requires` に挙げる `use_uv` が、uv と nix-ld をまとめて入れるため、任意のシェルから `uv sync` や `uv run` を実行でき、`.venv` 内の Python もそのまま起動します（[設計](../architecture/wsl.md#uv-が取得する-python-を-nix-ld-で動かす)）。
 uv は Home Manager が生成する `~/.config/uv/uv.toml` の設定に従い、uv が取得・管理する Python のみを使用します。
 
 wheel のインポート時に `cannot open shared object file` が発生した場合は、該当ライブラリを含むパッケージを [config/elements/nix_ld.star](../../config/elements/nix_ld.star) の `config` に `programs.nix-ld.libraries` として追記して switch してください。指定したパッケージは、zlib や libstdc++ などの既定ライブラリ群に追加されます。

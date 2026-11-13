@@ -1,7 +1,7 @@
 # Codex のサブエージェントの設計
 
 使い方: [Codex のサブエージェント](../howtouse/codex-subagents.md)
-実装: [ai_agents.star](../../config/elements/ai_agents.star)
+実装: [codex_policy.star](../../config/elements/codex_policy.star)
 
 ## 既定ではサブエージェントを無効にする
 

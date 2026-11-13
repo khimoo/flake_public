@@ -6,11 +6,12 @@ hostname = "test-agents-users"
 
 [[users]]
 name = "alice"
-purposes = ["machine_base", "personal_files", "ai_agents", "git", "agent_config", "etc_nixos_link"]
+purposes = ["machine_base", "personal_files", "codex_policy", "git", "agent_config", "etc_nixos_link"]
 
 [[users]]
 name = "bob"
-purposes = ["machine_base", "ai_agents", "git"]
+# clone する repo を持たない利用者でも、pull-repos が flake の checkout を更新できることを確かめる。
+purposes = ["machine_base", "codex_policy", "git", "private_repos"]
 
 [[users]]
 name = "unmanaged"

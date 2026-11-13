@@ -9,7 +9,7 @@ let
   inherit (helpers) agentHost codexConfig;
 in
 {
-  ai_agents-contracts =
+  codex_policy-contracts =
     (lib.lazyDerivation {
       derivation = (
         # developer_instructions が [agents] のテーブルに入らず、エスケープも崩れないこと。
@@ -23,12 +23,12 @@ in
           && host.environment.etc."claude-code/CLAUDE.md".text == instructions;
         assert !((agentHost "test-agent-empty").environment.etc ? "claude-code/CLAUDE.md");
         assert !(codexConfig (agentHost "test-agent-empty") ? developer_instructions);
-        pkgs.runCommand "ai_agents-contracts" { } ''
-          echo "ai_agents contracts passed" > "$out"
+        pkgs.runCommand "codex_policy-contracts" { } ''
+          echo "codex_policy contracts passed" > "$out"
         ''
       );
     })
     // {
-      elements = [ "ai_agents" ];
+      elements = [ "codex_policy" ];
     };
 }

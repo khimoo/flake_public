@@ -1,6 +1,8 @@
 system = "x86_64-linux"
 state_version = "25.11"
 windows_vm_domain = "win11"
+data_device = "/dev/disk/by-uuid/test-data"
+windows_vm_images_subvolume = "@vm"
 
 [[users]]
 name = "test"

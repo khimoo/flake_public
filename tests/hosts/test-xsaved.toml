@@ -2,6 +2,7 @@ system = "x86_64-linux"
 state_version = "25.11"
 timezone = "Asia/Tokyo"
 hostname = "test-xsaved"
+data_device = "/dev/disk/by-uuid/test-data"
 
 
 [[users]]
@@ -15,8 +16,10 @@ purposes = ["machine_base", "xsaved", "nixos_system"]
 data_dir = "/home/alice/.local/share/xsaved"
 project_dir = "/home/alice/xsaved"
 database = "xsaved_alice"
+data_subvolume = "@xsaved-alice"
 
 [xsaved_users.bob]
 data_dir = "/home/bob/.local/share/xsaved"
 project_dir = "/home/bob/xsaved"
 database = "xsaved_bob"
+data_subvolume = "@xsaved-bob"

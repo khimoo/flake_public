@@ -1,7 +1,7 @@
 kind = "machine"
 requires = ["x86_64_linux", "nixos_system", "rocm_compute", "local_kvm", "personal_pc"]
 
-def config(host, tailscale):
+def config(host):
     primary = host.users[0]["name"]
     home = "/home/" + primary
     data_opts = ["noatime", "compress=zstd"]
@@ -13,13 +13,6 @@ def config(host, tailscale):
     ])
     nixos = {
         "boot.kernelParams": ["btusb.enable_autosuspend=n"],
-        # 外出先から起こす手段がないため、ログイン画面でもセッション内でも自動 suspend させない。
-        "services.displayManager.gdm.autoSuspend": False,
-        "services.desktopManager.gnome.extraGSettingsOverrides": "[org.gnome.settings-daemon.plugins.power]\nsleep-inactive-ac-type='nothing'\n",
-        ("users", "users", primary, "linger"): True,
-        ("networking", "firewall", "interfaces", tailscale.interface, "allowedTCPPortRanges"): [{"from": 3389, "to": 3399}],
-        # linked 状態では GNOME 設定が RDP の項目を隠すため、ユニットを enabled にする。
-        "systemd.services.gnome-remote-desktop.wantedBy": ["graphical.target"],
         "programs.steam.enable": True,
         # Steam の 32bit のゲームの音のため。pipewire 要素に置くと、ゲームをしない spin713 にも 32bit 版の PipeWire が入る。
         "services.pipewire.alsa.support32Bit": True,
@@ -35,6 +28,6 @@ def config(host, tailscale):
 
 def user_config():
     return {"home": {
-        "home.packages": [pkg("prismlauncher"), pkg("wine64"), pkg("pkgsRocm.blender"), pkg("gnomeExtensions.display-configuration-switcher")],
+        "home.packages": [pkg("wine64"), pkg("pkgsRocm.blender"), pkg("gnomeExtensions.display-configuration-switcher")],
         ("dconf", "settings", "org/gnome/shell", "enabled-extensions"): mkAfter(["display-configuration-switcher@knokelmaat.gitlab.com"]),
     }}

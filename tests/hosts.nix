@@ -73,7 +73,7 @@ let
     assert builtins.any (p: (p.pname or "") == "kitty") wslUser.home.packages;
     assert wsl.wsl.startMenuLaunchers;
     assert !(hasLauncher wslUser "agent-sync");
-    # uv が取得した Python だけを使わせる設定は、nix-ld があって初めて意味を持つ。
+    # uv が取得した Python だけを使わせる設定は、nix-ld と一緒に use_uv が入れる。
     assert wsl.programs.nix-ld.enable;
     assert wslUser.programs.uv.settings.python-preference == "only-managed";
     "nixos-work-wsl contracts passed";
@@ -82,7 +82,7 @@ let
     assert activationDepsExist desktopUser.home.activation;
     assert builtins.elem "L+ /etc/nixos - - - - /home/pomu/sagyo/flake_public"
       inputs.self.nixosConfigurations.nixos-desktop.config.systemd.tmpfiles.rules;
-    assert !(desktopUser.programs.uv.settings ? python-preference);
+    assert !desktopUser.programs.uv.enable;
     # Windows VM のランチャーはデスクトップだけで有効にする。
     assert hasLauncher desktopUser "windows-vm";
     assert desktopVmEnv.WINDOWS_VM_DOMAIN == "win11";

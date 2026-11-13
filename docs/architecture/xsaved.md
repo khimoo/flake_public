@@ -23,7 +23,7 @@ mimikopi-env で測ったときは、ROCm 版の torch の環境は展開後に�
 
 ## データを SATA の専用 subvol に置く
 
-SATA SSD に `@xsaved` を作り、`~/.local/share/xsaved` にマウントする（[xsaved.star](../../config/elements/xsaved.star) の `user_config`。`xsaved_users` の該当ユーザーの `data_subvolume` で subvol を指定する）。
+SATA SSD に `@xsaved` を作り、`~/.local/share/xsaved` にマウントする（[xsaved_data.star](../../config/elements/xsaved_data.star)。`xsaved_users` の該当ユーザーの `data_subvolume` で subvol を指定する。`xsaved` がデータ置き場として必ず参照する）。
 取得したメディアと、uv の環境とモデルのチェックポイントはどれも大きく、読み書きはシーケンシャルが中心なので、[disk-tiering.md](./disk-tiering.md) の分け方ではコールド層に当たる。
 
 取得したツイート（`tweets/`）と、取得し直せる環境（`venv/`、`uv-cache/`、`python/`、`huggingface/`）を一つの subvol に置く。

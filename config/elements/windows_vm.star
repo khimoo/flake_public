@@ -1,4 +1,5 @@
 needs = ["nixos_system", "local_kvm"]
+requires = ["windows_vm_images"]
 
 def public(host):
     return {
@@ -6,7 +7,7 @@ def public(host):
         "boot_timeout": getattr(host, "windows_vm_boot_timeout", 600),
     }
 
-def config(host):
+def config():
     nixos = {
         "virtualisation.spiceUSBRedirection.enable": True,
         "virtualisation.libvirtd.enable": True,
@@ -29,9 +30,6 @@ def config(host):
             "serviceConfig": {"Type": "oneshot", "ExecStart": concat(exe("libvirt", "virsh"), " net-autostart default"), "RemainAfterExit": "yes"},
         },
     }
-    subvolume = getattr(host, "windows_vm_images_subvolume", None)
-    if subvolume != None:
-        nixos[("fileSystems", "/var/lib/libvirt/images")] = {"device": host.data_device, "fsType": "btrfs", "options": ["subvol=" + subvolume, "noatime"]}
     return {"nixos": nixos}
 
 def user_config(user):

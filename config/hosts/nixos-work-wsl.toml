@@ -8,14 +8,7 @@ machine = "machine_nixos_work_wsl"
 [[users]]
 name = "nixos"
 purposes = [
-  "programming",
-  "run_downloaded_binaries",
-  "web_procedures",
-  "work_ss",
-  "work_fr",
-  "communicate",
-  "draw",
-  "media",
+  "programming_without_ai",
   "etc_nixos_link",
 ]
 admin = true

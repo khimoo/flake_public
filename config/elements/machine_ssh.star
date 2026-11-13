@@ -7,8 +7,11 @@ def _block(user, patterns, hostname):
     return "Host %s\n  HostName %s\n  User %s\n  IdentityFile ~/.ssh/id_lan\n  StrictHostKeyChecking accept-new\n  ConnectTimeout 10\n" % (patterns, hostname, user)
 
 def public(machines):
-    # クライアントが自分用サーバへ接続するときの、tailnet 越しの接続名（Host <短い名前>-ts）。
-    return {"tailnet": {name: _short(name) + "-ts" for name in machines.all if "ssh_user" in machines.all[name]}}
+    # クライアントが自分用サーバへ接続するときの、LAN（Host <短い名前>）と tailnet 越し（Host <短い名前>-ts）の接続名。
+    return {
+        "lan": {name: _short(name) for name in machines.all if "ssh_user" in machines.all[name]},
+        "tailnet": {name: _short(name) + "-ts" for name in machines.all if "ssh_user" in machines.all[name]},
+    }
 
 def config(host, machines, incoming):
     tailnet = len(incoming) > 0

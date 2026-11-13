@@ -98,7 +98,7 @@ rm -r ~/.local/state/agent-sync
 設定例としては spin713 の [agent-instructions.md](../../hosts/nixos-spin713/agent-instructions.md) を参照してください。
 
 1. `hosts/<host>/agent-instructions.md` に指示内容を記述します。
-2. `config/hosts/<host>.toml` で `agent_instructions = "hosts/<host>/agent-instructions.md"` と指定します。利用者の `[[users]]` の `purposes` には、`ai_agents` を `requires` に持つ `"programming"` が必要です。
+2. `config/hosts/<host>.toml` で `agent_instructions = "hosts/<host>/agent-instructions.md"` と指定します。利用者の `[[users]]` の `purposes` には、`use_ai_agents` を通して `codex` と `codex_policy` を入れる `"programming"` が必要です。
 3. switch を実行します。テキスト内容は Nix store を経由して配置されるため、ファイルを編集するたびに switch が必要です。
 
 Claude Code では `/etc/claude-code/CLAUDE.md` として、Codex では `/etc/codex/config.toml` の `developer_instructions` 項目として反映されます。

@@ -16,7 +16,7 @@ def writes(gui_apps):
     ]]
 ```
 
-エントリを削除すると、エントリから自動生成される設定もすべて削除されます。ただし、独立して定義されている外部設定への参照関係は別途確認してください。VS Code や IntelliJ などの開発用アプリは [dev_tools.star](../../config/elements/dev_tools.star) で管理し、Firefox やターミナルエミュレータは専用のモジュールが担当します。また、Slack、Discord、Spotify、Zoom などの URL スキームも各エントリの `mime` で指定します。.desktop の名前や実行ファイルの名前は Starlark から調べられないので、`desktop`、`bin`、`name` に書きます。Wayland 起動と自動起動は、それぞれ `"wayland": True` と `"autostart": True` で指定します。Obsidian の導入とスキーム登録については要素 [memex.star](../../config/elements/memex.star) と [obsidian.star](../../config/elements/obsidian.star) で管理します。GUI アプリの要素を足すときは、要素の `requires` に `gui` を挙げ、アプリを使う行動の要素の `requires` から参照します。
+エントリを削除すると、エントリから自動生成される設定もすべて削除されます。ただし、独立して定義されている外部設定への参照関係は別途確認してください。IntelliJ などの開発用アプリは [dev_tools_gui.star](../../config/elements/dev_tools_gui.star) で管理し、Firefox やターミナルエミュレータは専用のモジュールが担当します。また、Slack、Discord、Spotify、Zoom などの URL スキームも各エントリの `mime` で指定します。.desktop の名前や実行ファイルの名前は Starlark から調べられないので、`desktop`、`bin`、`name` に書きます。Wayland 起動と自動起動は、それぞれ `"wayland": True` と `"autostart": True` で指定します。Obsidian の導入とスキーム登録については要素 [memex.star](../../config/elements/memex.star) と [obsidian.star](../../config/elements/obsidian.star) で管理します。GUI アプリの要素を足すときは、要素の `requires` に `gui` を挙げ、アプリを使う行動の要素の `requires` から参照します。
 
 ## 既定ブラウザの変更と更新
 

@@ -52,7 +52,6 @@ purposes = [
   "use_windows",
   "run_home_server",
   "personal_files",
-  "user_packages",
   "agent_config",
   "agent_compression",
   "etc_nixos_link",

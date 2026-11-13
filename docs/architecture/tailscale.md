@@ -1,7 +1,7 @@
 # Tailscale の設計
 
 使い方: [Tailscale](../howtouse/tailscale.md)
-実装: [tailscale.star](../../config/elements/tailscale.star)、[machine_ssh.star](../../config/elements/machine_ssh.star)（`-ts` の接続名）、[config/elements/machine_nixos_desktop.star](../../config/elements/machine_nixos_desktop.star)（サスペンド、linger、RDP のポート）
+実装: [tailscale.star](../../config/elements/tailscale.star)、[machine_ssh.star](../../config/elements/machine_ssh.star)（`-ts` の接続名）、自分用サーバの [run_home_server.star](../../config/elements/run_home_server.star)（linger）、[stay_awake.star](../../config/elements/stay_awake.star)（サスペンド）、[serve_remote_desktop.star](../../config/elements/serve_remote_desktop.star)（RDP のポート）
 
 自宅 LAN の外にいるラップトップから、デスクトップへの SSH とリモートビルドを通すための構成。
 

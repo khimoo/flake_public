@@ -4,4 +4,5 @@ state_version = "25.11"
 
 [[users]]
 name = "test"
-purposes = ["dev_tools", "shell", "git"]
+# private_repos は、clone する repo を持たない利用者でも pull-repos と空の secrets の activation が動くことを確かめるために選ぶ。
+purposes = ["dev_tools", "shell", "git", "private_repos"]

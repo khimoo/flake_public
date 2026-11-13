@@ -1,4 +1,5 @@
-_codex = """# このファイルは flake の config/elements/ai_agents.star が生成する。直接編集しないこと。
+# 手段: Codex の方針（サブエージェントと sol-handoff を止める）と、マシン固有の指示を、エージェントのシステム層（/etc）に書く。
+_codex = """# このファイルは flake の config/elements/codex_policy.star が生成する。直接編集しないこと。
 
 # サブエージェント (spawn_agent 等のマルチエージェントツール) を無効化する。
 [agents]

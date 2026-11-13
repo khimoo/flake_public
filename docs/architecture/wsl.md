@@ -34,7 +34,7 @@ Git は Home Manager の `~/.config/git/config` と `~/.gitconfig` の両方を�
 以前は agents-private を読み取り専用の deploy key で入れていた（4c54a17 と 1d685c5）。戻すときは次の判断を引き継ぐ。
 
 - deploy key は GitHub に repo ごとに登録する鍵で、`khimoo` の権限と切り離せる。代わりに agents-private の中身（指示、設定、`decisions/` の履歴）は会社から読める
-- `config/users/nixos.toml` に `agent_config_root` だけを指定し、`agent_config_repo` は省略して手で clone する。ホストでは既に `ai_agents` を選んでいる。`agent_config_repo` を指定すると `private_repos` が自動の clone を足す
+- `config/users/nixos.toml` に `agent_config_root` だけを指定し、`agent_config_repo` は省略して手で clone する。`nixos` の `purposes` の `programming_without_ai` を `programming` に替え、AI エージェントの要素（`use_ai_agents`）を入れる。`agent_config_repo` を指定すると `private_repos` が自動の clone を足す
 - deploy key は `github.com` ではなく、別名のホスト `github-agents-private`（`HostName github.com`、`IdentitiesOnly yes`）に結び付け、clone の URL を `git@github-agents-private:khimoo/agents-private.git` にする。GitHub は最初に認証が通った鍵でアカウントを決めるので、`github.com` 全体に deploy key を使うと、会社のリポジトリへの接続まで deploy key で認証されて失敗する
 - この別名は `/etc/ssh/ssh_config`（NixOS の `programs.ssh.extraConfig`）に書く。Home Manager の `programs.ssh` を使うと `~/.ssh/config` が読み取り専用になり、会社の設定を書けなくなる
 - 会社の鍵を `~/.ssh/config` の `Host *` に書くと分離が崩れる。OpenSSH は `~/.ssh/config` を先に読み、一致したブロックの `IdentityFile` をすべて候補に足すので（OpenSSH 10.3p1 の `ssh_config(5)`）、`github-agents-private` への接続でも会社の鍵が先に試される。会社の鍵は `Host github.com` に限って書く。ブロックの一致は `HostName` で置き換える前の名前で判断されるので、`github-agents-private` は `Host github.com` に一致しない。これはリポジトリから強制できないので、戻すときは `ssh -G github-agents-private` で使われる鍵を確かめる手順を使い方の文書に書く
@@ -55,7 +55,7 @@ NixOS-WSL は既定で `wheel` のユーザーにパスワードなしの `sudo`
 ## Home Manager の個人設定を読まない
 
 `nixos` ユーザーは `config/users/pomu.toml` の値を受け取らない。`khimoo` の Git の identity、Gemini の秘密、`antigravity-cli`、agents-private の設定は入らない。
-利用者の行動も [ホストの TOML](../../config/hosts/nixos-work-wsl.toml) で選ぶ。機体の要素の `requires` には GUI として `gui` だけを挙げ、GNOME や fcitx5 は入れない。利用者の `purposes` の `run_downloaded_binaries`（外部のサービスが配るバイナリをそのまま動かして開発する）が、`requires` の `nix_ld` を入れる。自宅への接続経路を持たせない決まりは、機体の要素と `purposes` に `machine_ssh`、`tailscale`、`remote_build`、自分用サーバのクライアントを書かないことで守っている。confgen の検査はまだない（[confgen.md](./confgen.md) の「今後の課題」）。
+利用者の行動も [ホストの TOML](../../config/hosts/nixos-work-wsl.toml) で選ぶ。機体の要素の `requires` には GUI として `gui` だけを挙げ、GNOME や fcitx5 は入れない。利用者の `purposes` は、AI を使わずにプログラムを書く `programming_without_ai` と、このホストの設定を管理する `etc_nixos_link` だけにする。会社の方針で AI を使わないので、AI エージェントの要素（`use_ai_agents`）を入れる `programming` は選ばない。`programming_without_ai` は `requires` の `use_uv` から、uv と nix-ld と uv の設定をまとめて入れる。自宅への接続経路を持たせない決まりは、機体の要素と `purposes` に `machine_ssh`、`tailscale`、`remote_build`、自分用サーバのクライアントを書かないことで守っている。confgen の検査はまだない（[confgen.md](./confgen.md) の「今後の課題」）。
 `flake_root` は既定の `~/sagyo/flake_public` のまま。Neovim の設定がこのパスへの symlink なので、WSL でも同じ場所に clone する。
 
 ## GUI アプリを WSLg で表示する
@@ -88,7 +88,7 @@ Nix の python3 で venv を作る案は退けた。nixpkgs 26.05 には Python 
 2026-10-14 に nixos-desktop で、Nix の Python 3.13 に入れた shapely 2.1.2 の import が `ImportError: libstdc++.so.6: cannot open shared object file` で失敗した。
 nix-ld はこの場合を助けない。Nix の Python は `/nix/store` のローダーを使うので、nix-ld を経由しない。
 
-uv が取得した Python だけを使わせるため、[shell.star](../../config/elements/shell.star) は nix-ld のあるホストで `programs.uv.settings.python-preference` を `only-managed` にする。
+uv が取得した Python だけを使わせるため、[use_uv.star](../../config/elements/use_uv.star) は nix-ld と一緒に `programs.uv.settings.python-preference` を `only-managed` にする。
 uv の既定の `managed` は、取得済みの Python がないと、ダウンロードより PATH 上の Python を優先する（uv の文書の「Python versions」）。PATH には core.nix の Nix の python3 があるので、そのままでは上の venv ができる。
 逆に `only-managed` は、nix-ld がないと起動できない Python しか選ばない。二つは一緒にしか意味がないので、uv の設定は NixOS の `programs.nix-ld.enable` から導き、ホストで切り替えるのは nix-ld だけにする。
 環境変数の `UV_PYTHON_PREFERENCE` ではなく uv の設定ファイル（`~/.config/uv/uv.toml`）に書くのは、環境変数がログインシェルから起動したプロセスにしか設定されないから。

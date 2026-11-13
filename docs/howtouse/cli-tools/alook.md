@@ -1,7 +1,6 @@
 # Alook: ローカル Web UI を使う
 
-`alook-app` は [Nix パッケージ](../../../packages/alook/) で管理し、
-[pomu の個人 profile](../../../config/users/pomu.toml) から x86_64-linux に導入する。
+`alook-app` は [Nix パッケージ](../../../packages/alook/) で管理し、自分用サーバ（nixos-desktop）の `run_home_server` が `requires` に挙げる [serve_alook.star](../../../config/elements/serve_alook.star) から導入する。
 Node.js はパッケージに含まれ、エージェントは導入済みの Claude Code / Codex を使う。
 操作の根拠は [上流の Quick Start（revision 9f236d1）](https://github.com/alookai/alook/blob/9f236d176f1d7981c8a0c0163bbcd4ae938f87ac/src/app/README.md)。
 
@@ -38,19 +37,19 @@ DB・秘密情報・ログは `~/.alook/self-hosted/` に保存される。
 ## 別の PC から開く
 
 `alook-open` は、手元または別の PC の Alook をブラウザで開く。
-spin713 では [ホストの設定](../../../config/hosts/nixos-spin713.toml) の利用者の `[[users]]` の `purposes` に行動 `program_on_home_server` を指定して、`requires` から `alook_open` を入れ、`alook_open_remotes` で接続先を設定する。無効にするには利用者の `purposes` から `program_on_home_server` を外す。
+AI エージェントを使い（`use_ai_agents`）、自宅のマシンへ ssh で接続できる機体には、派生要素 [alook_client.star](../../../config/elements/alook_client.star)（`when = ["use_ai_agents", "machine_ssh", "tailscale"]`）から `alook-open` が入る。接続先は、利用者の値 `home_server`（[pomu.toml](../../../config/users/pomu.toml)）の自分用サーバ。
 
 | コマンド | 開く Alook |
 |----------|-----------|
 | `alook-open local` | このPCの Alook |
-| `alook-open desktop-local` | desktop の Alook。LAN の `ssh desktop` で転送する |
-| `alook-open desktop-ts` | desktop の Alook。tailnet の `ssh desktop-ts` で転送する |
+| `alook-open home` | 自分用サーバの Alook。LAN の ssh の接続名（desktop なら `ssh desktop`）で転送する |
+| `alook-open home-ts` | 自分用サーバの Alook。tailnet の ssh の接続名（`ssh desktop-ts`）で転送する |
 | `alook-open` | 接続先の一覧を表示する |
 
 別の PC を指定すると、1つの ssh 接続で 15210（Web）と 15212（WebSocket）を手元の同じ番号のポートへ転送してから開く。
 ssh の接続はコマンドが終わった後も切らずに残す。次に同じ接続先を指定したときは、両ポートを転送している接続を再利用する。
 15210 だけを転送する旧接続が残っている場合は、同じコマンドの再実行で両ポートの接続に張り直す。
-設定を反映した後は、`alook-open desktop-local` または `alook-open desktop-ts` を再実行し、画面をリロードする。
+設定を反映した後は、`alook-open home` または `alook-open home-ts` を再実行し、画面をリロードする。
 接続先の PC が応答しなくなると、約 30 秒で転送が閉じる。
 接続に失敗したときは、ssh のエラーを表示して終了する。別の接続先へは切り替えない。
 

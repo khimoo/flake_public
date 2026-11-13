@@ -37,7 +37,7 @@ clone 対象の repo と flake 自身に対して `git pull --ff-only` を実行
 private_repos = [{"url": "git@example.org:me/project.git", "dest": "sagyo/project"}]
 ```
 
-エージェント設定は [pomu.toml](../../config/users/pomu.toml) の `agent_config_root`（ホームからの相対パス）と `agent_config_repo`（URL）で指定します。`ai_agents` を選ぶホストでは `agent_links` が clone と GitHub 鍵の配置を宣言します。vault と memex-nix の URL と配置先は [memex.star](../../config/elements/memex.star) にあります。
+エージェント設定は [pomu.toml](../../config/users/pomu.toml) の `agent_config_root`（ホームからの相対パス）と `agent_config_repo`（URL）で指定します。`agent_config` を選んだ利用者には、`agent_links` が clone と GitHub 鍵の配置を宣言します。vault と memex-nix の URL と配置先は [memex.star](../../config/elements/memex.star) にあります。
 
 エージェント設定の `agent_config_repo` を省略した場合、その repo は手動で clone する運用になります。配置先パスだけを残しておけば、symlink や同期、`mirror-vault` などの機能はそのまま利用可能です。
 vault は `services.memex.initializeVault` で作成することも可能ですが、有効にはしません。先に空フォルダが作成されると clone が失敗するためです。

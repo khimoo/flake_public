@@ -50,7 +50,6 @@ def user_config():
         "programs.eza.enable": True,
         "programs.bat.enable": True,
         "programs.bottom.enable": True,
-        "programs.uv.enable": True,
     }}
 
 _NOISE = """noise() {
