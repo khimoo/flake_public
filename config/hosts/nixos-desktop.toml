@@ -35,7 +35,6 @@ supported_features = ["benchmark", "big-parallel", "kvm", "nixos-test"]
 [[users]]
 name = "pomu"
 purposes = [
-  "everyday",
   "programming",
   "study",
   "browse_web",

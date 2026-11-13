@@ -1,4 +1,4 @@
-# 行動: Web を見る。
+# 行動（生活管理）: Web を見る。
 requires = ["web_browsing"]
 
 def writes(gui_apps):

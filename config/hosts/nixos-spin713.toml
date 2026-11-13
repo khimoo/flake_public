@@ -24,7 +24,6 @@ keyd_ids = ["k:0001:0001", "k:18d1:5044", "k:18d1:5052", "k:0000:0000", "k:18d1:
 [[users]]
 name = "pomu"
 purposes = [
-  "everyday",
   "programming",
   "study",
   "browse_web",

@@ -1,4 +1,5 @@
-# 行動: 動画、音楽、写真を見る・聞く・録る。
+# 行動（趣味）: 動画、音楽、写真を見る・聞く・録る。
+requires = ["hobby"]
 def writes(gui_apps):
     return [write(gui_apps, app) for app in [
         {"pkg": pkg("vlc")},

@@ -1,2 +1,2 @@
-# 行動: Minecraft で遊ぶ（インスタンスのバックアップ）。
-requires = ["minecraft_backup"]
+# 行動（趣味）: Minecraft で遊ぶ（インスタンスのバックアップ）。
+requires = ["hobby", "minecraft_backup"]

@@ -8,7 +8,6 @@ machine = "machine_nixos_work_wsl"
 [[users]]
 name = "nixos"
 purposes = [
-  "everyday",
   "programming",
   "browse_web",
   "work_ss",

@@ -6,7 +6,6 @@ machine = "machine_pomu_nixos"
 [[users]]
 name = "pomu"
 purposes = [
-  "everyday",
   "programming",
   "browse_web",
   "work_ss",

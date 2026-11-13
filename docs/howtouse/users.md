@@ -9,7 +9,7 @@
 ```toml
 [[users]]
 name = "alice"
-purposes = ["everyday"]
+purposes = ["browse_web"]
 admin = true
 ```
 

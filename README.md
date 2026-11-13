@@ -70,7 +70,7 @@ NixOSで `etc_nixos_link` を選んだ利用者がいる場合、switch を実�
 
    [[users]]
    name = "alice"
-   purposes = ["everyday"]
+   purposes = ["browse_web"]
    admin = true
    ```
 
