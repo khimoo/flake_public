@@ -15,6 +15,7 @@ def user_config():
             pkg("ripgrep"),
             pkg("jq"),
             pkg("xh"),
+            pkg("tdf"),
         ],
         "programs.home-manager.enable": True,
         "programs.bash.enable": True,

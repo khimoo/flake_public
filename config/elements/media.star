@@ -5,6 +5,7 @@ def writes(gui_apps):
         {"pkg": pkg("digikam")},
         {"pkg": pkg("spotify"), "bin": "spotify", "desktop": "spotify.desktop", "mime": ["x-scheme-handler/spotify"], "wayland": True},
         {"pkg": pkg("yt-dlp")},
+        {"pkg": pkg("showmethekey")},
     ]]
 
 def user_config():
