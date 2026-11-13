@@ -72,3 +72,12 @@ confgen は Nix の評価の途中で build して実行し（import from deriva
 `confgen affected <repo-root> <変更ファイル>...` は1行の JSON `{"elements": [...], "hosts": [...]}` を返す。`elements` は変更した要素、その公開値を読む要素、書き込み先、派生条件にその要素を含む要素。`hosts` は、それらを生成する実在ホストの名前。ホスト・ユーザーの情報を変更した場合は、それぞれ `host`・`machines`・`user` への影響として扱う。要素から影響を辿れない変更は `elements = ["ALL"]` とする。
 
 [scripts/check.sh](../../scripts/check.sh) はこの結果と各 check の札を照合して、ホストの評価とテストのビルドを選ぶ。札と実行範囲は [検証ガイド](../howtouse/validation.md#checksh) を参照。
+
+## 今後の課題
+
+機体の担当（`kind = "machine_role"`）は、今は MVP として残している。
+次の3つを片付ければ、機体によって変わる条件は物理的な事実（`kind = "machine_fact"`）だけになり、`kind = "machine_role"` と、担当を機体の要素以外から参照させない検査を confgen から消せる。
+
+- [ ] `remote_workspace` を、デスクトップが公開する作業場所のサービス（ssh でつながるファイル、cargo のビルド、Alook）と、それを使うデバイスに分ける。spin713 の pomu の `purposes` に「自分用サーバで作業する」行動を書き、`sshfs_editing`、`cargo_remote_run`、`alook_open` をその行動から入れる。
+- [ ] `downloaded_dev_binaries` を、外部のサービス（PyPI と、uv が配る Python）を使うデバイスの行動にする。WSL の利用者の `purposes` に書き、`nix_ld` をその行動から入れる。
+- [ ] `company_isolated` の `conflicts`（`machine_ssh`、`tailscale`、`remote_build`、`remote_workspace`）を、`machine_nixos_work_wsl.star` に直接書く。
