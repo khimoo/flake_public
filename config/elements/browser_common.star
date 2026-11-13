@@ -7,7 +7,6 @@ def public():
             "{da1a7868-5062-4eb9-a787-6d9210703929}": "plamo-translate",
             "enhancerforyoutube@maximerf.addons.mozilla.org": "enhancer-for-youtube",
             "{7058a75b-0f6c-4f10-a54d-bf427dc62b63}": "notebooklmwebimporter",
-            "uBlock0@raymondhill.net": "ublock-origin",
             "floccus@handmadeideas.org": "floccus",
             "extension@one-tab.com": "onetab",
         },
