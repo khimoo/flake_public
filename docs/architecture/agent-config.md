@@ -78,21 +78,27 @@ flake_public にプロファイル名を並べると、設定 repo にファイ�
 設定 repo の指示は全マシンで同じファイルなので、マシンによって変わる指示を書く場所がない。
 例として spin713 には「メモリや GPU を多く使う処理はまずデスクトップで実行できるか確かめ、できなければフリーズしないか概算してから手元で実行する」という指示が要る（[remote-build.md](./remote-build.md#spin713-では手元でビルドしないmax-jobs--0)）。
 
-`config/hosts/<ホスト>.toml` の `agent_instructions` に本文ファイルのパスを指定し、`codex_policy.star` が `repoText` で読んで両方のエージェントのシステム層に同じ本文を書き出す。
+指示を書くのは派生要素の [agent_offload_notes.star](../../config/elements/agent_offload_notes.star) で、利用者が自分用サーバで作業する行動（`program_on_home_server`）を選び、AI エージェントの手段の `codex_policy` も入っているときに入る。
+指示が要るかどうかは、重い処理を任せる自分用サーバがあるかで決まり、ホスト名では決まらない。そこで、ホストごとの本文ファイルにせず、行動から導く要素にした。
+本文に書く接続名は、ホストの `build_host` から作る。利用者の値の `home_server` を読まないのは、書き出し先の `/etc` がホスト全体の設定で、利用者ごとの値を読めない（[規則 B](./rules.md)）からだ。
+
+同じ本文を両方のエージェントのシステム層に書き出す。
 
 - Claude Code: `/etc/claude-code/CLAUDE.md`。公式文書（[How Claude remembers your project](https://code.claude.com/docs/en/memory)、2026-09-24 に参照）が Linux の managed policy の指示ファイルとして挙げるパスで、「Managed policy CLAUDE.md files cannot be excluded」とある
-- Codex: `/etc/codex/config.toml` の `developer_instructions`（0.154.0 にこのキーがある）。ユーザーの層とプロファイルはこのキーを設定していないので、system 層の値が使われる
+- Codex: `/etc/codex/config.toml` の `developer_instructions`（0.154.0 にこのキーがある）。ユーザーの層とプロファイルはこのキーを設定していないので、system 層の値が使われる。`agent_offload_notes` が本文を `codex_policy` に書き込み、`codex_policy.star` が config.toml を組み立てる
 
 TOML では、テーブルの見出しの後に書いたキーはそのテーブルに入る。
-そこで `codex_policy.star` は `developer_instructions` を `[agents]` より前に連結し、値は `toJSON(repoText(path))` で TOML の basic string にする。`toJSON` は本文を読み込んだ後に Nix の `builtins.toJSON` を適用する。引用符、バックスラッシュ、改行、日本語を含む本文が元に戻ることは `tests/default.nix` で確かめている。
+そこで `codex_policy.star` は `developer_instructions` を `[agents]` より前に連結し、値は `toJSON` で TOML の basic string にする。`toJSON` は Nix の `builtins.toJSON` を適用する。改行、バッククォート、日本語を含む本文が元に戻ることは `tests/elements/codex_policy.nix` で確かめている。
 両方のエージェントが実機でこの本文を読むかは、2026-09-24 の時点では確かめていない。
 
 退けた案と理由:
 
 - 共通の `shared/AGENTS.md` に「ホスト名が nixos-spin713 なら」と書く: マシンの事実が flake の外に散らばり、全マシンのエージェントが毎回その条件を読む
 - home-manager が書き出したファイルを `claude/CLAUDE.md` から `@import` する: Codex には import がないので `~/.codex/AGENTS.md` を連結して生成することになり、設定 repo の指示を編集しても switch するまで反映されなくなる
+- ホストの TOML の `agent_instructions` で本文ファイルを指定する: 指示が要るかどうかが行動ではなくホストの値の有無で決まり、`program_on_home_server` を外しても指示が残る
 
 代償として、本文は Nix store を経由するので編集のたびに switch が要り、standalone home-manager の環境には入らない。
+本文はどの機体でも同じで、機体ごとに変わるのは接続名だけになる。
 
 ## Claude の方針は設定 repo からユーザー設定へ反映する
 

@@ -7,5 +7,5 @@ hostname = "test-agent-empty"
 
 [[users]]
 name = "alice"
-purposes = ["machine_base", "codex_policy", "agent_config"]
+purposes = ["machine_base", "codex_policy", "agent_config", "nixos_system", "linux"]
 home_manager = false

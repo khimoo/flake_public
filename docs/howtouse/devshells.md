@@ -10,6 +10,8 @@
 
 Rust 向けの devShell には `RUST_SRC_PATH` があらかじめ設定されているため、rust-analyzer を使って標準ライブラリ（std）の定義へスムーズにジャンプできます。
 
+cargo のビルドは、作業中のほかの処理を重くしないよう、[rust.star](../../config/elements/rust.star) が書く `~/.cargo/config.toml` の `[build] jobs = 8` で 8 並列に抑えています。全スレッドを使ってよいときは、`cargo build -j 32` のように `-j` で上書きします。
+
 設計：[共通 devShell の設計](../architecture/devshells.md)
 
 ## 使い方

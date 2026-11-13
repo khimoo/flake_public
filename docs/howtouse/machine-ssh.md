@@ -15,8 +15,8 @@ ssh spin713     # pomu@nixos-spin713.local
 `ssh nixos-desktop.local` のように完全修飾名で接続することも可能です。初回のホスト鍵は自動的に承認されます（accept-new）。
 短縮名は mDNS で名前解決されるため、同じ LAN 内でのみ有効です。LAN 外から接続する場合は、`ssh desktop-ts` のように `-ts` を付けて tailnet 経由で接続します（詳細は [tailscale.md](./tailscale.md) を参照）。
 
-認証には `~/.ssh/id_lan` を使用します。この鍵は全マシン共通の 1 本であり、`[[users]]` の `purposes` で `personal_files` を選び、`lan_ssh = true` に設定されているユーザーに対してのみ、`switch` 実行時に `secrets/secrets.yaml` から生成・配置されます（[private-repo-clone.md](./private-repo-clone.md) を参照）。
-個人の2台は、それぞれのホストの TOML で有効化しています。共通鍵を所持するユーザーは接続先の `ssh_user` として認証されるため、鍵を配布するユーザーは明示的に選定してください。
+認証には `~/.ssh/id_lan` を使用します。この鍵は全マシン共通の 1 本です。ほかの機体へ ssh で接続する要素（`use_xsaved`、`remote_build` など）が入っている利用者にだけ、`lan_ssh_key` が `switch` 実行時に `secrets/secrets.yaml` から復号して配置します（[private-repo-clone.md](./private-repo-clone.md) を参照）。
+共通鍵を所持するユーザーは接続先の `ssh_user` として認証されるため、利用者に選ばせる行動に注意してください。
 なお、GitHub 用には別の鍵 `~/.ssh/id_github` を使用します。
 
 スタンドアロンの home-manager（macOS）および会社用 PC の nixos-work-wsl（[wsl.md](./wsl.md)）には `id_lan` を配布しません。
@@ -30,9 +30,9 @@ ssh spin713     # pomu@nixos-spin713.local
    ssh_user = "alice"
    ```
 
-   tailnet の接続名も使う場合は機体の要素の `requires` に `tailscale` を追加します。LAN 鍵の配布には `personal_files` と `lan_ssh = true` が必要です。[ホスト追加](../../README.md#新しいホストを追加する)と [ユーザー管理](users.md) を参照してください。
+   tailnet の接続名も使う場合は機体の要素の `requires` に `tailscale` を追加します。LAN 鍵は、ほかの機体へ ssh で接続する要素が入っている利用者に配られます。[ホスト追加](../../README.md#新しいホストを追加する)と [ユーザー管理](users.md) を参照してください。
 
-新規ユーザーの TOML またはホストの TOML で `lan_ssh = true` に設定されていれば、`switch` 時に `secrets/secrets.yaml` から `id_lan` が復号されて配置され、その時点で既存の全マシンと相互に SSH 接続できるようになります。
+新しいマシンの利用者に `lan_ssh_key` が入っていれば、`switch` 時に `secrets/secrets.yaml` から `id_lan` が復号されて配置され、その時点で既存の全マシンと相互に SSH 接続できるようになります。
 既存マシンの `authorized_keys` は変更されないため、既存マシン側で `switch` を実行する必要はありません（既存マシンから `ssh <新しい短縮名>` で接続したい場合のみ `switch` を実行してください）。
 
 ## マシンの削除手順

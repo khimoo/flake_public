@@ -42,7 +42,7 @@ private_repos = [{"url": "git@example.org:me/project.git", "dest": "sagyo/projec
 エージェント設定の `agent_config_repo` を省略した場合、その repo は手動で clone する運用になります。配置先パスだけを残しておけば、symlink や同期、`mirror-vault` などの機能はそのまま利用可能です。
 vault は `services.memex.initializeVault` で作成することも可能ですが、有効にはしません。先に空フォルダが作成されると clone が失敗するためです。
 
-clone 対象の repo がなく、`lan_ssh` が無効で、ユーザーとホストの `secrets` も空なら、age 鍵は不要です。pomu は `lan_ssh = True` を選んでいるため、repo の clone を行わない場合でも age 鍵が必要です。
+clone 対象の repo がなく、`lan_ssh_key` が入っておらず、ユーザーとホストの `secrets` も空なら、age 鍵は不要です。pomu にはほかの機体へ ssh で接続する要素が入っていて、`lan_ssh_key` が鍵を置くため、repo の clone を行わない場合でも age 鍵が必要です。
 
 ## SSH 鍵以外のシークレットを配布する
 
@@ -61,7 +61,7 @@ secrets = [{"secret": "gemini_api_key", "path": ".config/gemini/api-key"}]
 `mode` のデフォルトは `600` であり、home ディレクトリ外のパスを指定すると評価時に拒否されます。
 switch を実行するたびに、宣言されたファイルは暗号化データの内容および指定された mode へ同期されます。シークレットを変更したい場合は `secrets/secrets.yaml` を編集してください。
 宣言から削除されたファイルは次回の switch 時に削除されます（symlink やディレクトリの場合は警告を出してそのまま残します）。
-LAN の SSH 鍵はユーザーまたはホストの `lan_ssh = True` で選びます。GitHub の SSH 鍵は clone を宣言する要素が要求します。
+LAN の SSH 鍵は、ほかの機体へ ssh で接続する要素が `lan_ssh_key` を通して要求します。GitHub の SSH 鍵は clone を宣言する要素が要求します。
 
 ## SSH 鍵を差し替える手順
 

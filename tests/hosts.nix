@@ -47,7 +47,7 @@ let
       1;
   desktopXsavedBackupEnv =
     builtins.elemAt
-      (builtins.elemAt (generatedPackages desktopGenerated.elements.serve_xsaved) 3)."$shellAppEnv"
+      (builtins.head (generatedPackages desktopGenerated.elements.xsaved_backup))."$shellAppEnv"
       2;
   desktopVmEnv =
     builtins.elemAt

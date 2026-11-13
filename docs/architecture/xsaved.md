@@ -161,7 +161,7 @@ xsaved の `xsaved serve` は、ポートを開いて待ち受けるだけの普
 
 nixos-desktop では、ポート番号を覚えずに開けるよう、常駐する Caddy を `http://xsaved.localhost/` の入口にする。
 名前は `/etc/hosts` でループバックへ解決し、Caddy も IPv4・IPv6 のループバックだけで待ち受ける。
-転送先は `xsaved_proxy` が指定するユーザーの `web_port` を同じ要素内で参照する。サーバー本体へ直接転送するとソケットによる起動を迂回するため、既存の起動用ソケットへ渡す。
+転送先は、`xsaved_web_proxy.star` が、`xsaved_proxy` の指定するユーザーの `web_port` を `serve_xsaved` の公開値から読む。サーバー本体へ直接転送するとソケットによる起動を迂回するため、既存の起動用ソケットへ渡す。
 自マシン内の HTTP 接続とし、証明書の配布は行わない。Tailscale 経由でノート PC から開けるようにするのは、あとで決める。
 
 ## バックアップを Google Drive に restic で写す

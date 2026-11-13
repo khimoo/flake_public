@@ -3,4 +3,4 @@ state_version = "25.11"
 
 [[users]]
 name = "test"
-purposes = ["codex_policy", "agent_config"]
+purposes = ["codex_policy", "agent_config", "nixos_system", "linux"]

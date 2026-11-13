@@ -1,6 +1,7 @@
 # 手段: 自分用サーバの Quaderno のアーカイブを使う。Quaderno で書いた PDF を、ssh でアーカイブへ送って取り込む（クライアントの側。docs/howtouse/quaderno.md）。
 # 接続先は利用者の値 home_server。
 needs = ["machine_ssh", "tailscale"]
+requires = ["lan_ssh_key"]
 
 def writes(quaderno, user, host, machine_ssh):
     server = user.home_server

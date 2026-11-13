@@ -8,7 +8,7 @@
 
 ## 自宅への接続経路と秘密を持たせない
 
-`machine_ssh`、`tailscale`、`remote_build` を選ばず、`lan_ssh` も有効にしない。会社 PC から `ssh desktop-ts` のように自宅のマシンへつながる経路を作らない。
+`machine_ssh`、`tailscale`、`remote_build` を選ばず、`lan_ssh_key` が入る行動も選ばない。会社 PC から `ssh desktop-ts` のように自宅のマシンへつながる経路を作らない。
 自宅のデスクトップでビルドできないので、ビルドは WSL の中で完結させる。
 
 age 鍵は置かない。この flake の age 鍵は 1 本で、同じ鍵から GitHub の `git_ssh_key` と自宅へログインする `lan_ssh_key` も復号できる（[.sops.yaml](../../.sops.yaml)）。そのため Gemini の API キーもない。

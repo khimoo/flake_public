@@ -1,13 +1,11 @@
 def public(user):
-    root = getattr(user, "agent_config_root", None)
-    if root != None and (root.startswith("/") or ".." in root.split("/")):
+    root = user.agent_config_root
+    if root.startswith("/") or ".." in root.split("/"):
         fail("agent_links: mutable checkouts must belong to this user's home directory")
-    return {"root": user.home + "/" + root if root != None else None}
+    return {"root": user.home + "/" + root}
 
 def user_config(agent_links):
     root = agent_links.root
-    if root == None:
-        fail("agent_links: set agent_config_root in config/users/<user>.toml")
     home = {}
     links = {
         ".claude/CLAUDE.md": "claude/CLAUDE.md",
@@ -26,10 +24,9 @@ def user_config(agent_links):
     return {"home": home}
 
 def writes(user, agent_links, private_repos, secrets):
+    # 社用の deploy key で手で clone するときは、agent_config_repo を書かず、自動の clone をさせない（docs/architecture/wsl.md）。
     url = getattr(user, "agent_config_repo", None)
-    if url != None and agent_links.root == None:
-        fail("agent_links: a clone URL requires its corresponding checkout path")
-    if agent_links.root == None or url == None:
+    if url == None:
         return []
     return [
         write(private_repos, {"url": url, "dest": agent_links.root}),

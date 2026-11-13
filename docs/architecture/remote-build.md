@@ -66,27 +66,42 @@ Nix 2.31.5（`cc38c0c5`）のソースと、2026-09-24 の spin713 での観測�
 
 `local_builds` の既定は true にした。非力なホストだけが選ぶ設定だからだ。
 
-## ビルダーの能力は `config/hosts/<ホスト>.toml` に置く
+## 任せる先はホストの `build_host`、ジョブ数と feature は `remote_build.star` に置く
 
-`builder.max_jobs` と `builder.supported_features` は呼び出し側ではなくビルダーの性質なので、`config/hosts/` のホスト一覧に置いた。
-ビルダー自身の `nix.settings.max-jobs` と `system-features` も同じ値から設定するので（[machine_base.star](../../config/elements/machine_base.star)）、呼び出し側に伝える値とビルダーの実際の設定は食い違わない。
-`max-jobs` は `auto` ではなく `maxJobs` の値になるので、ビルダーの CPU を替えたときは `maxJobs` を書き換える。
-`system-features` はリスト型で NixOS の既定値に結合されるので、`supportedFeatures` に書かなかった既定の feature もビルダーには残る。
+任せる先は、任せる側のホストの TOML の `build_host` に書く。
+ビルドを任せるのは nix-daemon で、ホスト全体の設定なので、利用者の値の `home_server` は読めない（[規則 B](./rules.md)）。
+
+`maxJobs` は `remote_build.star` に 32 と定数で書いた。
+NixOS の `nix.buildMachines` の `maxJobs` の説明（`nixos/modules/config/nix-remote-build.nix`）に「The build machine will enforce its own limits」とあり、同時に実行する数の上限は、引き受ける側の `nix.settings.max-jobs`（既定の `"auto"` はスレッド数）がかける。
+任せる側の値は割り振りの目安なので、多めにした。既定値の 1 のままだと、1 つずつしか送らない。
+
+`supportedFeatures` も定数で、`benchmark`、`big-parallel`、`kvm`、`nixos-test` にした。デスクトップの `system-features` の既定値と同じ 4 つだ。
 `big-parallel` を載せないと、LLVM のようにそれを要求する derivation はデスクトップでビルドされない。
+
+引き受ける側のホストの TOML に `[builder]` を置き、任せる側が読む案は退けた。
+引き受ける側の要素はその値を読まないので、引き受ける側からは使われていない値に見え、消すと任せる側が壊れる。ビルドを引き受けるかどうかは利用者の行動（`run_home_server`）で決まるのに、値だけがホストに残る。
+
+代償として、`kvm` は「自分用サーバは KVM を持つ」という前提になる。KVM のない機体を自分用サーバにすると、`kvm` を要求するビルドが実行時に失敗し、confgen は気付かない。
 
 ## `builders-use-substitutes = true`
 
 ビルドの入力のうち binary cache にあるものは、デスクトップが cache.nixos.org から直接取る。
 無効だとラップトップが tailnet 越しに送ることになり、出先の回線や DERP 経由の経路は cache.nixos.org への経路より遅いことが多い（[tailscale.md](./tailscale.md#出先のリモートビルドでは---use-substitutes-を付ける)）。
 
-## `trusted-users = [ "@wheel" ]`
+## `trusted-users` は、引き受ける側を `serve_builds`、任せる側を `remote_build` が設定する
 
 デスクトップの nix-daemon は、接続してきたユーザーが trusted でないと derivation のビルドを拒否する（`you are not privileged to build input-addressed derivations`）。
-`--build-host` では成果物を `pomu` のまま手元のストアに取り込むので、呼び出し側でも trusted が要る。
-`nix-settings.nix` は全ホストが読み込むので、両側とも満たす。
+引き受ける側では、`run_home_server` の手段の `serve_builds.star` が、その行動を選んだ利用者を `trusted-users` に入れる。
+任せる側は引き受ける側の `ssh_user` として接続するので、`run_home_server` を選ぶのはその利用者になる。
 
-ユーザー名ではなく `@wheel` にしたのは、wheel がすでに sudo を持っていて、trusted-users の権限（ストアに任意のパスを書ける。実質 root 相当）と信頼の範囲が同じだからだ。
-wheel 以外のユーザーを trusted にするときは、個別に追加する。
+任せる側でも trusted が要る。
+デスクトップでビルドした成果物には署名がなく、`--build-host` で取り戻すときも、デスクトップから `--target-host` で送るときも、`nix-copy-closure` は利用者のまま取り込む（nixos-rebuild-ng 26.05 の `nixos_rebuild/nix.py` の `copy_closure`）。
+そこで `remote_build.star` が、その機体の利用者を `trusted-users` に入れる。
+
+全機体で `@wheel` を信頼する設定を `machine_base` に置く案は退けた。
+ビルドのために要る設定がビルドと関係のない要素にあり、`trusted-users` を絞ってもデスクトップの側では何も壊れないように見えて、spin713 の `nixos-rebuild` だけが断られる。
+
+代償として、ビルドを引き受けも任せもしない機体（会社 PC の WSL）の利用者は trusted でない。flake の `nixConfig` の `extra-substituters` のように trusted を要る設定は、その機体では無視される。
 
 ## `--build-host` は `.local` で接続し、`sudo` を付けずに `--sudo` で実行する
 
@@ -150,7 +165,8 @@ devShell の中でビルドした実行ファイルの ELF interpreter と RUNPA
 - ラップトップにほかのユーザーを追加するなら、そのユーザーのビルドも `pomu` として送られることを見直す。`sshKey` を root 専用の鍵に分ける案がある
 - 出先で DERP 経由になり、手元でビルドするほうが速い場面が続いたら、その場では `--builders '' --max-jobs 4` を付ける。常態化したら、tailnet の経路ごとに有効にする仕組みを考える
 - tailnet をやめるなら、`hostName` を `.local` に戻す。出先では常設ビルダーが使えなくなる
-- デスクトップのスレッド数やメモリが変わったら、`builder` の `maxJobs` と `supportedFeatures` を `nix config show` の値に合わせ直す
+- 自分用サーバを別の機体に移したら、`remote_build.star` の `supportedFeatures` を、その機体の `nix config show system-features` に合わせ直す
+- spin713 から任せたビルドでデスクトップの作業が重くなったら、デスクトップの側から公開する nix コマンドのラッパーを整備し、spin713 はそれを使う。今は `idle` で作業に CPU を譲らせているだけで、引き受ける数は絞っていない
 - 出先で tailnet に入れない場面が増え、`--max-jobs 4` を付ける手間が目立ったら、spin713 の `local_builds` を true に戻す。エージェントが黙って手元でビルドすることは、エージェントへの指示の側で防ぐ
 - `cargo remote-run` で実行ファイルの転送が待ち時間の大半を占めるようになったら（出先の回線など）、持ち帰る前に `objcopy --strip-debug` する。ラップトップの空きが実行ファイル 1 つ分を下回ったときも同じ。Bevy の `dynamic_linking` を使いたくなったら、`target/<profile>/deps/` の共有ライブラリも持ち帰って `LD_LIBRARY_PATH` に加える
 - Ctrl-C の後にデスクトップで cargo が残り、次の実行がロック待ちになるのが目立ったら、rc を別のファイルで送り、ssh の標準入力が閉じたらデスクトップ側で cargo を止める

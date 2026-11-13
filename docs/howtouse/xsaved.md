@@ -112,7 +112,7 @@ Caddy が起動していない場合は、<http://127.0.0.1:8765/> へ直接ア�
 
 ## 定期実行
 
-以下の systemd ユーザータイマーを設定しています。なお、`xsaved-backup` は `xsaved_users["pomu"]["backup_repository"]` が設定されている場合のみ有効化されます。
+以下の systemd ユーザータイマーを設定しています。`xsaved-backup` の写し先は `xsaved_users["pomu"]["backup_repository"]` で、この値がないと評価で止まります。
 
 | タイマー | 実行時刻 | 実行内容 |
 |-------|------|-------------|

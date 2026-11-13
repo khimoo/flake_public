@@ -1,6 +1,7 @@
 # 手段: 自分用サーバの Alook を使う。ssh でポートを転送して Web UI を開く（クライアントの側。docs/howtouse/cli-tools/alook.md）。
 # 接続先は利用者の値 home_server。
 needs = ["machine_ssh", "tailscale"]
+requires = ["lan_ssh_key"]
 
 def user_config(user, machine_ssh):
     server = user.home_server

@@ -37,10 +37,14 @@ root は `id_lan` を持たないので、`sudo nixos-rebuild --build-host` の�
 
 例外は常設のリモートビルダーで、nix-daemon（root）が `/etc/nix/machines` の `sshKey` で primaryUser の `id_lan` を絶対パスで読む（[remote-build.md](./remote-build.md#鍵は-primaryuser-の-id_lan-を絶対パスで読む)）。
 
-## 鍵は `lan_ssh` を選んだユーザーにだけ配る
+## 鍵は ssh で接続する要素が入る利用者にだけ配る
 
-`personal_files` を選び、ホストかユーザーの TOML に `lan_ssh = true` を指定した場合だけ共通鍵を受け取る。OS が NixOS というだけでは配らない。
+ほかの機体へ ssh で接続する要素（`use_xsaved`、`remote_build` など）が `requires` に `lan_ssh_key` を挙げ、その要素が入る利用者だけが共通鍵を受け取る。OS が NixOS というだけでは配らない。
 共通鍵を持つユーザーは、接続先の `ssh_user` として認証できるため。
+
+ホストかユーザーの TOML の `lan_ssh = true` で選ぶ案は退けた。鍵が要る理由（ssh で接続する要素）と鍵を配る指定が別の場所になり、要素を選んだのに鍵がない状態や、要素をやめたのに鍵だけ残る状態を confgen が止められない。
+
+代償として、これらの要素が入らない利用者は、`ssh desktop` のように人が打つ ssh にも使える鍵を持たない。
 
 ## ホスト鍵は accept-new で受け入れる
 

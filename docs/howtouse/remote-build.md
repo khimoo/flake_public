@@ -9,7 +9,7 @@
 ## 普段使う
 
 両ホストが tailnet に参加しており（[tailscale.md](./tailscale.md) 参照）、デスクトップが起動していれば利用できます。
-ラップトップの `pomu` ユーザーには `~/.ssh/id_lan` が必要です（`lan_ssh = true` を設定して switch すると自動で書き出されます）。
+ラップトップの `pomu` ユーザーには `~/.ssh/id_lan` が必要です（`remote_build` が `lan_ssh_key` を通して、switch 時に書き出します）。
 
 ```sh
 nix develop
@@ -49,7 +49,7 @@ journalctl -u nix-daemon --since -10min | grep ssh
 
 - `Could not resolve hostname nixos-desktop`: ラップトップが tailnet に接続されていません。`tailscale status` を確認してください。
 - 接続がタイムアウトする: デスクトップの電源が切れているか、サスペンド状態になっています。
-- `Permission denied (publickey)`: `/home/pomu/.ssh/id_lan` が存在しません。`lan_ssh = true` を設定して switch してください。
+- `Permission denied (publickey)`: `/home/pomu/.ssh/id_lan` が存在しません。switch すると書き出されます。
 - `Host key verification failed`: デスクトップのホスト鍵が変更されています。`sudo ssh-keygen -R nixos-desktop -f /root/.ssh/known_hosts` で古いエントリを削除すれば、次回接続時に新しい鍵が登録されます。
 
 問題をすぐに解決できない場合は、そのコマンドにだけ手元のジョブ数を指定してローカルでビルドします。
@@ -151,13 +151,18 @@ spin713 で実行されるアクティベートのコマンドは、NOPASSWD の
 デスクトップでビルドを行うホストを追加するときは、次の手順で進めます。
 
 1. [machine-ssh.md](./machine-ssh.md) の「マシンを追加するとき」に従い、age 鍵を配置して `config/hosts/<ホスト>.toml` を追加します。
-2. そのホストの機体の要素の `requires` に `remote_build` を追加します。接続できないときに手元でビルドさせない場合は、`config/hosts/<ホスト>.toml` に `local_builds = false` を指定します。
+2. そのホストの機体の要素の `requires` に `remote_build` を追加し、`config/hosts/<ホスト>.toml` に `build_host = "nixos-desktop"` を書きます。接続できないときに手元でビルドさせない場合は、`local_builds = false` も指定します。
 3. switch してから、そのホストを tailnet に参加させます。`remote_build` は `tailscale` を依存として含めます。
 
-機体の要素の `requires` から `remote_build` を外すか、2 の設定を省くと、`--build-host` を明示的に指定したときだけデスクトップでビルドするホストになります。
+機体の要素の `requires` から `remote_build` を外すと、そのホストはデスクトップにビルドを任せなくなります。
+`--build-host` で任せることもできなくなります。デスクトップから取り戻す成果物には署名がなく、取り込む利用者を `trusted-users` に入れているのが `remote_build` だからです。
 
-ビルダーを追加するときは、`config/hosts/<ホスト>.toml` に `[builder]` 設定を記述します。
-`max_jobs` にはそのホストのスレッド数（`nproc`）を、`supported_features` にはそのホストが実際に満たせる feature を書いてください（`kvm` には `/dev/kvm` が要ります）。
-ビルダー自身の `max-jobs` はこの `max_jobs` になり、`system-features` には `supported_features` が足されます。
-switch 後にビルダーで `nix config show max-jobs` と `nix config show system-features` を実行すると、反映を確かめられます。
-機体の要素の `requires` に `remote_build` を含むホストは、次回の switch 以降、`builder` を持つ自身以外の全ホストをビルダーとして利用するようになります。
+## ビルドを引き受ける側
+
+ビルドを引き受けるのは、利用者の `purposes` に `run_home_server` を入れた機体です。`run_home_server` の手段の `serve_builds` が、その利用者を nix-daemon の `trusted-users` に入れます。
+任せる側は引き受ける側の `ssh_user` として接続するので、`run_home_server` はその利用者の `purposes` に入れてください。
+
+同時に実行するジョブの数は、引き受ける側の `nix.settings.max-jobs`（既定の `"auto"` は CPU のスレッド数）で決まります。任せる側の `maxJobs`（32）は割り振りの目安で、上限は引き受ける側がかけます。
+`machine_base` が `nix.daemonCPUSchedPolicy = "idle"` を設定しているので、引き受けたビルドは、作業中は CPU を作業に譲り、作業していないときだけ全スレッドを使います。
+
+任せる側が送るビルドの種類（`supportedFeatures`）は `remote_build.star` の定数で、`kvm` を含みます。KVM のない機体を自分用サーバにするときは、この定数を直してください。

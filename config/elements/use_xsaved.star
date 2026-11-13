@@ -1,6 +1,7 @@
 # 手段: 自分用サーバの xsaved を使う。ssh で接続して検索の Web UI を開き、xsaved のコマンドを実行する（クライアントの側。docs/howtouse/xsaved.md）。
 # 接続先は利用者の値 home_server。
 needs = ["machine_ssh", "tailscale"]
+requires = ["lan_ssh_key"]
 
 def user_config(user, machine_ssh, machines):
     server = user.home_server

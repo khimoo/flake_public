@@ -39,16 +39,18 @@ initial_hashed_password = "$6$..."
 
 ## 個人の値と機能の選択
 
-Git identity、checkout の場所、LAN 鍵の配布は、そのユーザーの TOML に書きます。別のユーザーのファイルは引き継ぎません。
+Git identity と checkout の場所は、そのユーザーの TOML に書きます。別のユーザーのファイルは引き継ぎません。
 
 ```toml
 git_username = "Alice"
 git_email = "alice@example.org"
 flake_root = "sagyo/flake_public"
-lan_ssh = false
 ```
 
-パスはホームからの相対パスです。`lan_ssh = true` は、利用者が `personal_files` を選んでいる場合に共有鍵を配布します。共有鍵を持つ人は他のマシンにもログインできるので、配布するユーザーを選んでください。
+パスはホームからの相対パスです。
+
+自宅の機体どうしの ssh に使う共有鍵（`~/.ssh/id_lan`）は、ほかの機体へ ssh で接続する要素（`use_xsaved`、`remote_build` など）が、`lan_ssh_key` を通して利用者のホームに置きます。どの要素が置くかは、`lan_ssh_key` を `confgen explain` に渡したときの `required by` で分かります（[confgen](confgen.md#変更の範囲を見る)）。
+共有鍵を持つ人はほかのマシンにもログインできるので、利用者に選ばせる行動に注意してください。`remote_build` は機体の要素から入るので、その機体の全利用者が鍵を受け取ります。
 
 GUI の `gui`、`gnome`、`japanese_input` は機体の要素の `requires` で選び、音楽アプリは利用者の `purposes` に `make_music` を指定します。`gnome` と `japanese_input` は `gui` を自動で含めます。詳細は [confgen](confgen.md) と [GUI アプリ](gui-apps.md) を参照してください。
 

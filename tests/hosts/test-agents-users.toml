@@ -6,12 +6,12 @@ hostname = "test-agents-users"
 
 [[users]]
 name = "alice"
-purposes = ["machine_base", "personal_files", "codex_policy", "git", "agent_config", "etc_nixos_link"]
+purposes = ["machine_base", "lan_ssh_key", "codex_policy", "git", "agent_config", "etc_nixos_link", "nixos_system", "linux"]
 
 [[users]]
 name = "bob"
 # clone する repo を持たない利用者でも、pull-repos が flake の checkout を更新できることを確かめる。
-purposes = ["machine_base", "codex_policy", "git", "private_repos"]
+purposes = ["machine_base", "codex_policy", "git", "private_repos", "nixos_system"]
 
 [[users]]
 name = "unmanaged"

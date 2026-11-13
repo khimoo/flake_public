@@ -3,6 +3,7 @@ state_version = "25.11"
 timezone = "Asia/Tokyo"
 hostname = "test-xsaved"
 data_device = "/dev/disk/by-uuid/test-data"
+xsaved_proxy = { user = "alice", name = "xsaved.localhost" }
 
 
 [[users]]
@@ -17,9 +18,13 @@ data_dir = "/home/alice/.local/share/xsaved"
 project_dir = "/home/alice/xsaved"
 database = "xsaved_alice"
 data_subvolume = "@xsaved-alice"
+backup_repository = "rclone:test:xsaved-alice"
+backup_password_file = "/home/alice/.config/xsaved/restic-password"
 
 [xsaved_users.bob]
 data_dir = "/home/bob/.local/share/xsaved"
 project_dir = "/home/bob/xsaved"
 database = "xsaved_bob"
 data_subvolume = "@xsaved-bob"
+backup_repository = "rclone:test:xsaved-bob"
+backup_password_file = "/home/bob/.config/xsaved/restic-password"

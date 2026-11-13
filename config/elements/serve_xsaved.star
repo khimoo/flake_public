@@ -8,7 +8,7 @@ def _database(value):
     return value
 
 needs = ["nixos_system"]
-requires = ["xsaved_data"]
+requires = ["xsaved_data", "xsaved_web_proxy", "xsaved_backup"]
 
 def _settings(host):
     return {
@@ -36,17 +36,6 @@ def config(host):
         "services.postgresql.extensions": pkgSetFn(["pgvector", "pgroonga"]),
         "systemd.tmpfiles.rules": ["f " + xsaved.gpu_lock + " 0644 root root -"],
     }
-    proxy = getattr(host, "xsaved_proxy", None)
-    if proxy != None:
-        proxy_port = xsaved.users[proxy["user"]].get("web_port", 8765)
-        nixos[("networking", "hosts", "127.0.0.1")] = [proxy["name"]]
-        nixos[("networking", "hosts", "::1")] = [proxy["name"]]
-        nixos["services.caddy.enable"] = True
-        nixos["services.caddy.openFirewall"] = False
-        nixos[("services", "caddy", "virtualHosts", "http://" + proxy["name"])] = {
-            "listenAddresses": ["127.0.0.1", "[::1]"],
-            "extraConfig": "reverse_proxy 127.0.0.1:" + str(proxy_port) + "\n",
-        }
     return {"nixos": nixos}
 
 def user_config(host, user, failure_notify):
@@ -63,10 +52,6 @@ def user_config(host, user, failure_notify):
     port = values.get("web_port", 8765)
     if type(port) != "int" or port < 1 or port > 65535:
         fail("xsaved: invalid web port")
-    repository = values.get("backup_repository", None)
-    password = values.get("backup_password_file", None)
-    if repository != None and (password == None or not password.startswith("/")):
-        fail("xsaved: backup repository requires an absolute password file path")
     check_mount = values.get("check_mount", False)
     env = repoPkgWith("packages/xsaved-env", {
         "dataDir": data,
@@ -78,22 +63,11 @@ def user_config(host, user, failure_notify):
     cli = shellAppEnv("xsaved", [env, pkg("util-linux")], {"XSAVED_PROJECT_DIR": project}, repoText("modules/home-manager/xsaved/xsaved.sh"))
     cli_exe = concat(cli, "/bin/xsaved")
     process = shellApp("xsaved-process", [cli, xsaved.systemd], repoText("modules/home-manager/xsaved/process.sh"))
-    backup_env = {
-        "XSAVED_DATA_DIR": data,
-        "XSAVED_PROJECT_DIR": project,
-        "XSAVED_DATABASE": database,
-        "XSAVED_CHECK_MOUNT": "true" if check_mount else "false",
-        "RESTIC_REPOSITORY": repository or "",
-        "RESTIC_PASSWORD_FILE": password or "",
-        "FLAKE_REV": flakeRev(),
-    }
-    backup = shellAppEnv("xsaved-backup", [pkg(p) for p in ["restic", "rclone", "util-linux", "git"]] + [xsaved.postgresql], backup_env, repoText("modules/home-manager/xsaved/backup.sh"))
+    # 更新の前に、xsaved_backup の xsaved-backup.service でバックアップを取る。
     update = shellAppEnv("xsaved-update", [pkg("git"), pkg("util-linux"), xsaved.systemd, cli], {
         "XSAVED_PROJECT_DIR": project,
-        "RESTIC_REPOSITORY": repository or "",
     }, repoText("modules/home-manager/xsaved/update.sh"))
-    restore = shellAppEnv("xsaved-restore-check", [pkg(p) for p in ["restic", "rclone", "coreutils", "gnused"]] + [xsaved.postgresql_extensions], backup_env, repoText("modules/home-manager/xsaved/restore-check.sh"))
-    home = {"home.packages": [env, cli, update] + ([restore] if repository != None else [])}
+    home = {"home.packages": [env, cli, update]}
     # 動いている oneshot を switch で起動し直すと処理をやり直し、switch も完了を待ち続ける。
     for name, description, kind, start, priority in [
         ("sync", "X のいいねとブックマーク、返信先と引用元を取得して登録する", "oneshot", concat(cli_exe, " sync"), {}),
@@ -134,16 +108,6 @@ def user_config(host, user, failure_notify):
             "TimeoutStartSec": "5min",
         },
     }
-    if repository != None:
-        home["systemd.user.services.xsaved-backup"] = {
-            "Unit": {"Description": "取得したツイートとデータベースを restic で写す", "OnFailure": failure_notify.on_failure, "X-SwitchMethod": "keep-old"},
-            "Service": {"Type": "oneshot", "ExecStart": concat(backup, "/bin/xsaved-backup"), "Nice": 10, "IOSchedulingClass": "idle"},
-        }
-        home["systemd.user.timers.xsaved-backup"] = {
-            "Unit": {"Description": "取得したツイートとデータベースを毎日写す"},
-            "Timer": {"OnCalendar": "*-*-* 06:00:00", "Persistent": True},
-            "Install": {"WantedBy": ["timers.target"]},
-        }
     owner = user.name.replace('"', '""')
     nixos = {
         "services.postgresql.ensureDatabases": [database],

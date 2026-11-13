@@ -31,7 +31,7 @@ checkout の場所はホームからの相対パス `flake_root` とし、`check
 
 ## OS との接点
 
-SSH の IdentityFile は `~/.ssh/` を使い、全ユーザーへ最初のユーザーの絶対パスを配らない。接続先のユーザー名は各ホストの `ssh_user` から作る。LAN 鍵は `personal_files` と `lan_ssh = true` を選んだ場合だけ配る。
+SSH の IdentityFile は `~/.ssh/` を使い、全ユーザーへ最初のユーザーの絶対パスを配らない。接続先のユーザー名は各ホストの `ssh_user` から作る。LAN 鍵は、ほかの機体へ ssh で接続する要素が `lan_ssh_key` を通して要求した利用者にだけ配る。
 
 例外は常設のリモートビルドで、nix-daemon（root）が最初のユーザーの `id_lan` を絶対パスで読む（[remote-build.md](remote-build.md)）。`--build-host` は root を使わず、実行ユーザーのまま SSH する。
 

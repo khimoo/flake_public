@@ -27,13 +27,10 @@ def config(host):
         "security.sudo.extraRules": sudo,
         "nixpkgs.config.allowUnfree": True,
         "nix.settings.experimental-features": ["nix-command", "flakes"],
-        # リモートビルドの一般ユーザーが署名なしの成果物を構築・取り込みできるようにする。
-        "nix.settings.trusted-users": ["@wheel"],
+        # Nix のビルドは、ほかの作業に CPU を譲り、作業していないときだけ全スレッドを使う。
+        "nix.daemonCPUSchedPolicy": "idle",
         "nix.gc": {"automatic": True, "dates": "weekly", "options": "--delete-older-than 30d"},
         "nix.settings.auto-optimise-store": True,
         "environment.systemPackages": [inputPkg("home-manager", "home-manager")],
     }
-    if hasattr(host, "builder"):
-        result["nix.settings.max-jobs"] = host.builder["max_jobs"]
-        result["nix.settings.system-features"] = host.builder["supported_features"]
     return {"nixos": result}

@@ -1,7 +1,7 @@
-def user_config(user, host, agent_links):
+needs = ["linux"]
+
+def user_config(user, agent_links):
     root = agent_links.root
-    if root == None:
-        fail("agent_sync: set agent_config_root in config/users/<user>.toml")
     launcher_dir = user.home + "/.local/share/agent-launchers/bin"
     sync = shellAppEnv("agent-sync", [pkg("coreutils"), pkg("gnugrep"), pkg("jq")], {
         "root": root,
@@ -23,17 +23,16 @@ def user_config(user, host, agent_links):
             sync_exe, ' || echo "agent-sync が失敗した。設定 repo の内容を確かめて agent-sync を実行し直す" >&2\nfi\n',
         )),
     }
-    if host.linux:
-        home["systemd.user.paths.agent-sync"] = {
-            "Unit": {"Description": "エージェント設定 repo のプロファイルと設定の変更を反映する"},
-            "Path": {
-                "PathChanged": [root + "/claude/profiles", root + "/claude/settings.json", root + "/codex"],
-                "Unit": "agent-sync.service",
-            },
-            "Install": {"WantedBy": ["default.target"]},
-        }
-        home["systemd.user.services.agent-sync"] = {
-            "Unit": {"Description": "エージェント設定 repo のプロファイルと設定を反映する"},
-            "Service": {"Type": "oneshot", "ExecStart": sync_exe},
-        }
+    home["systemd.user.paths.agent-sync"] = {
+        "Unit": {"Description": "エージェント設定 repo のプロファイルと設定の変更を反映する"},
+        "Path": {
+            "PathChanged": [root + "/claude/profiles", root + "/claude/settings.json", root + "/codex"],
+            "Unit": "agent-sync.service",
+        },
+        "Install": {"WantedBy": ["default.target"]},
+    }
+    home["systemd.user.services.agent-sync"] = {
+        "Unit": {"Description": "エージェント設定 repo のプロファイルと設定を反映する"},
+        "Service": {"Type": "oneshot", "ExecStart": sync_exe},
+    }
     return {"home": home}

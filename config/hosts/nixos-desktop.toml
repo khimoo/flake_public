@@ -10,7 +10,6 @@ backup_dir = "/mnt/backup"
 data_device = "/dev/disk/by-uuid/57ba3e14-4099-4708-a643-edfc45d3eb18"
 turbo_interval_ms = 40
 echo_cancel_source = "alsa_input.usb-Kingston_HyperX_SoloCast-00.analog-stereo"
-lan_ssh = true
 private_repos = [
   { url = "git@github.com:khimoo/llm-wikis.git", dest = "sagyo/llm-wikis" },
   { url = "git@github.com:khimoo/xsaved.git", dest = "sagyo/xsaved" },
@@ -25,14 +24,6 @@ secrets = [{ secret = "xsaved_restic_password", path = ".config/xsaved/restic-pa
 windows_vm_domain = "win11"
 windows_vm_images_subvolume = "@vm"
 xsaved_proxy = { user = "pomu", name = "xsaved.localhost" }
-
-# デスクトップのスレッド数。デスクトップ自身の max-jobs もこの値になる。
-# スロットが埋まると、呼び出し側は手元でビルドするか（local_builds = true）、空きを待つ。
-# supported_features はデスクトップ自身の system-features にも足される。載せていない
-# feature を要求する derivation（big-parallel の LLVM など）は、ここに回らない。
-[builder]
-max_jobs = 32
-supported_features = ["benchmark", "big-parallel", "kvm", "nixos-test"]
 
 [[users]]
 name = "pomu"

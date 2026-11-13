@@ -4,9 +4,11 @@ timezone = "Asia/Tokyo"
 hostname = "test-agent-instructions"
 
 
-agent_instructions = "tests/agent-instructions-test.md"
+# 自分用サーバで作業し、AI エージェントを使う機体。重い処理を自分用サーバに任せる指示がシステム層に入る。
+build_host = "nixos-desktop"
+cargo_remote_run_host = "desktop-ts"
 
 [[users]]
 name = "alice"
-purposes = ["machine_base", "codex_policy", "agent_config"]
+purposes = ["machine_base", "codex_policy", "agent_config", "program_on_home_server", "nixos_system", "linux"]
 home_manager = false

@@ -15,17 +15,14 @@ def writes(user, host, private_repos, secrets):
             fail("personal_files: duplicate secret destination")
         destinations[path] = True
         result.append(write(secrets, {"secret": item["secret"], "path": path, "mode": item.get("mode", "600")}))
-    lan = getattr(host, "lan_ssh", False) or getattr(user, "lan_ssh", False)
     names = {}
     for key in getattr(user, "ssh_keys", []):
         name = key["name"]
         first_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_"
         if not name or name[0] not in first_chars or any([name[i] not in first_chars + ".-" for i in range(len(name))]):
             fail("personal_files: invalid SSH key filename")
-        if name in names or (lan and name == "id_lan"):
+        if name in names:
             fail("personal_files: duplicate SSH key filename")
         names[name] = True
         result.append(write(secrets, {"secret": key["secret"], "path": user.home + "/.ssh/" + name, "mode": "600", "ssh_key": True}))
-    if lan:
-        result.append(write(secrets, {"secret": "lan_ssh_key", "path": user.home + "/.ssh/id_lan", "mode": "600"}))
     return result

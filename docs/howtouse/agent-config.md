@@ -94,15 +94,15 @@ rm -r ~/.local/state/agent-sync
 
 ## マシン固有の指示
 
-特定のマシンでのみ守らせたい指示がある場合は、flake_public のホスト設定に記述します。
-設定例としては spin713 の [agent-instructions.md](../../hosts/nixos-spin713/agent-instructions.md) を参照してください。
+自分用サーバで作業する機体（spin713）では、重い処理を自分用サーバで実行するよう、Claude Code と Codex のシステム層に指示を書きます。
+指示の本文は [agent_offload_notes.star](../../config/elements/agent_offload_notes.star) にあり、本文に書く自分用サーバの接続名は、ホストの TOML の `build_host` から作ります。
 
-1. `hosts/<host>/agent-instructions.md` に指示内容を記述します。
-2. `config/hosts/<host>.toml` で `agent_instructions = "hosts/<host>/agent-instructions.md"` と指定します。利用者の `[[users]]` の `purposes` には、`use_ai_agents` を通して `codex` と `codex_policy` を入れる `"programming"` が必要です。
-3. switch を実行します。テキスト内容は Nix store を経由して配置されるため、ファイルを編集するたびに switch が必要です。
+1. `config/hosts/<host>.toml` に `build_host = "<自分用サーバのホスト名>"` を書きます。[リモートビルド](remote-build.md)の任せる先と同じ値です。
+2. 利用者の `[[users]]` の `purposes` に、`program_on_home_server` と、`use_ai_agents` を含む行動（`programming` など）を入れます。`program_on_home_server` と `codex_policy` がそろうと、`agent_offload_notes` が入ります。
+3. switch を実行します。本文は Nix store を経由して配置されるため、`agent_offload_notes.star` の本文を編集するたびに switch が必要です。
 
 Claude Code では `/etc/claude-code/CLAUDE.md` として、Codex では `/etc/codex/config.toml` の `developer_instructions` 項目として反映されます。
-この機能は NixOS ホスト（nixos-work-wsl を含む）のみが対象であり、macOS のスタンドアロン Home Manager 環境には適用されません。
+この機能は NixOS ホストのみが対象であり、macOS のスタンドアロン Home Manager 環境には適用されません。
 
 switch 後の反映確認方法:
 
