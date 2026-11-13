@@ -1,6 +1,6 @@
 # Quaderno を LAN で探し、見つかったら受け渡す systemd のユーザー timer。
-# 何を受け渡すかは、書き込んだ要素で決まる（quaderno_pull は取り込み、quaderno_send は送信）。
-def user_config(user, host, failure_notify, incoming):
+# 何を受け渡すかは、書き込んだ要素で決まる（quaderno_backup は取り込み、quaderno_send は送信）。
+def user_config(host, failure_notify, incoming):
     pull = None
     send = None
     for w in incoming:
@@ -12,19 +12,18 @@ def user_config(user, host, failure_notify, incoming):
     }
     unit = {"Description": "Quaderno と PDF を受け渡す", "OnFailure": failure_notify.on_failure}
     if pull:
-        env["QUADERNO_ARCHIVE_DIR"] = pull["archive"]
+        env["QUADERNO_ARCHIVE_SSH"] = pull["ssh"]
         env["QUADERNO_REMOTE_ROOT"] = pull["remote_root"]
-        env["QUADERNO_STATE_FILE"] = user.home + "/.local/state/quaderno/state.json"
-        unit["ConditionPathIsDirectory"] = pull["archive"]
     if send:
         env["QUADERNO_SEND_DIR"] = send["dir"]
         env["QUADERNO_SEND_REMOTE"] = send["remote"]
     dptrp1 = repoPkg("packages/dpt-rp1-py")
     scripts = command("quaderno-scripts", concat(
         'mkdir -p "$out"\ncp ', repoPath("modules/home-manager/quaderno_plan.py"), ' "$out/quaderno_plan.py"\ncp ',
+        repoPath("modules/home-manager/quaderno_archive.py"), ' "$out/quaderno_archive.py"\ncp ',
         repoPath("modules/home-manager/quaderno_transfer.py"), ' "$out/quaderno_transfer.py"\n',
     ))
-    transfer = shellAppEnv("quaderno-transfer", [pythonWithModules([dptrp1])], env,
+    transfer = shellAppEnv("quaderno-transfer", [pythonWithModules([dptrp1]), pkg("openssh")], env,
         concat('exec python3 ', scripts, '/quaderno_transfer.py "$@"\n'))
     return {"home": {
         "home.packages": [transfer, dptrp1],

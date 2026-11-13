@@ -1,5 +1,5 @@
 kind = "machine"
-requires = ["x86_64_linux", "nixos_system", "rocm_compute", "local_kvm", "keep_quaderno_archive", "keep_x_posts", "keep_windows_vm", "machine_base", "systemd_boot", "network_manager", "machine_ssh", "tailscale", "pipewire", "gui", "gnome", "japanese_input", "desktop", "printing", "bluetooth", "call_audio", "twindesk"]
+requires = ["x86_64_linux", "nixos_system", "rocm_compute", "local_kvm", "machine_base", "systemd_boot", "network_manager", "machine_ssh", "tailscale", "pipewire", "gui", "gnome", "japanese_input", "desktop", "printing", "bluetooth", "call_audio", "twindesk"]
 
 def config(host, tailscale):
     primary = host.users[0]["name"]

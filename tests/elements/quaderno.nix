@@ -43,9 +43,16 @@ in
                 ]
               ) null result.elements.quaderno.home;
             in
-            (builtins.elemAt (builtins.head packages.value)."$shellAppEnv" 2).QUADERNO_SERIAL == ""
+            let
+              env = builtins.elemAt (builtins.head packages.value)."$shellAppEnv" 2;
+            in
+            # 取り込みは自分用サーバへ ssh で送る。手元にアーカイブと記録を持たない。
+            env.QUADERNO_SERIAL == ""
+            && env.QUADERNO_ARCHIVE_SSH == "desktop-ts"
+            && !(env ? QUADERNO_ARCHIVE_DIR)
+            && !(env ? QUADERNO_STATE_FILE)
           );
-        # 送信だけを選んだホストは、取り込みの設定を持たない（2台で全件を取り込まない）。
+        # 自分用サーバへ接続できないホストは、送信だけをして、取り込みの設定を持たない。
         assert
           system != "x86_64-linux"
           || (
@@ -82,9 +89,11 @@ in
     // {
       elements = [
         "failure_notify"
+        "machine_ssh"
         "quaderno"
-        "quaderno_pull"
+        "quaderno_backup"
         "quaderno_send"
+        "serve_quaderno_archive"
       ];
     };
 
@@ -93,8 +102,11 @@ in
       derivation = (
         pkgs.runCommand "quaderno-plan" { nativeBuildInputs = [ pkgs.python3 ]; } ''
           cp ${../../modules/home-manager/quaderno_plan.py} quaderno_plan.py
+          cp ${../../modules/home-manager/quaderno_archive.py} quaderno_archive.py
           cp ${../quaderno-plan.py} test_quaderno_plan.py
+          cp ${../quaderno-archive.py} test_quaderno_archive.py
           python test_quaderno_plan.py
+          python test_quaderno_archive.py
           touch "$out"
         ''
       );

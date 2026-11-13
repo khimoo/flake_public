@@ -1,4 +1,4 @@
-needs = ["nixos_system", "local_kvm", "keep_windows_vm"]
+needs = ["nixos_system", "local_kvm"]
 
 def public(host):
     return {

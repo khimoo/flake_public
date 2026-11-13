@@ -80,9 +80,6 @@ func buildHost(dir, host, system string) (*hostResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := checkUniqueRoles(dir, elems); err != nil {
-		return nil, err
-	}
 	spec, err := loadHost(filepath.Join(dir, "hosts", host+".toml"), elems)
 	if err != nil {
 		return nil, err

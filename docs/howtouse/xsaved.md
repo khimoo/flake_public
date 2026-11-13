@@ -4,7 +4,7 @@ X で「いいね」またはブックマークしたポストを、本文・画
 ツール本体には、プライベートリポジトリ [khimoo/xsaved](https://github.com/khimoo/xsaved) の本番用チェックアウト（`~/.local/share/xsaved-app`）を使用します。開発用チェックアウトは `~/sagyo/xsaved` に配置します。利用可能なコマンド一覧はリポジトリ本体の README を参照してください。
 nixos-desktop の pomu 環境では、開発用チェックアウトのみが `clone-repos` の対象です。本番用チェックアウトの作成・更新手順は「[本番用チェックアウトの更新](#本番用チェックアウトの更新)」を、新規環境のセットアップ手順は [SSH 鍵の配布と private repo の clone](private-repo-clone.md) を、保存済みポストとデータベースの復元方法は「[バックアップ](#バックアップ)」をそれぞれ参照してください。
 
-設定箇所は [nixos-desktop.toml](../../config/hosts/nixos-desktop.toml) の `xsaved_users` です。値を指定した利用者が `[[users]]` の `purposes` で `grow_notes` か `programming` を選ぶと、どちらも `requires` に挙げる `x_posts` と、機体の要素 `machine_nixos_desktop.star` の `requires` にある担当 `keep_x_posts` がそろい、派生要素 `xsaved_for_reference` の `requires` の `xsaved` が有効になります。`keep_x_posts` を持たない機体では、`grow_notes` や `programming` を選んでも xsaved は入りません。値のない利用者について xsaved が有効になるとエラーになります。無効にするには、`machine_nixos_desktop.star` の `requires` から `keep_x_posts` を外します。
+xsaved は、自分用サーバ（nixos-desktop）で動かし、ほかの機体からは ssh で接続して使います。サーバの側は、nixos-desktop の pomu の `purposes` にある `run_home_server` から入る `serve_x_posts` が、`requires` の `xsaved`（PostgreSQL、取得と推論の定期実行、Web UI、バックアップ）を有効にします。設定箇所は [nixos-desktop.toml](../../config/hosts/nixos-desktop.toml) の `xsaved_users` で、値のない利用者について xsaved が有効になるとエラーになります。クライアントの側は、`grow_notes` か `programming` が `requires` に挙げる `x_posts` から、自宅のマシンへ ssh で接続できる機体にだけ入る派生要素 `xsaved_client`（`when = ["x_posts", "machine_ssh", "tailscale"]`）です。接続先は利用者の値 `home_server`（[pomu.toml](../../config/users/pomu.toml)）です。サーバを止めるには、nixos-desktop の pomu の `purposes` から `run_home_server` を外します。
 
 設計ドキュメント: [X のいいねとブックマークの保存の設計](../architecture/xsaved.md)
 
@@ -83,6 +83,8 @@ git clone ~/sagyo/xsaved ~/.local/share/xsaved-app
 ## Web UI
 
 nixos-desktop 上のブラウザで <http://xsaved.localhost/> を開くと、ポストの検索や類似ポスト検索を利用できます。
+ほかの機体（spin713 など）では、アプリ一覧の「X の保存（xsaved）」か `xsaved-web` で開きます。`xsaved-web` は、手元の `web_port` + 10000 番（既定 18765）から自分用サーバの `web_port` へ ssh のポート転送を始めてから、<http://127.0.0.1:18765/> を開きます。
+コマンドは `xsaved-remote <引数>` で、自分用サーバの `xsaved` を ssh 越しに実行します。
 「検索対象」で「すべて」「いいね」「ブックマーク」を選択でき、この設定は「似たツイート」や「もっと表示」の検索条件にも引き継がれます。
 検索を実行すると、ruri（本文＋OCR テキスト）、Qwen（本文＋OCR テキスト）、Qwen（画像・動画）、全文検索、PixAI タグの結果が、それぞれ独立した列に並んで表示されます。全文検索では、スペース区切りで AND 検索、`OR` 区切りで OR 検索が可能です。全文検索の対象には投稿者のユーザー ID（`@` 付き）や表示名も含まれます。
 Qwen（画像・動画）の列では、動画から抽出したフレームも画像と同様に照合され、動画ポストは最も類似度の高いフレームのスコア順にランク付けされます。

@@ -70,20 +70,30 @@ Quaderno はスリープすると Wi-Fi ごと消え、起きている短い間�
 
 ## 取り込みの記録はアーカイブの外に置く
 
-`entry_id` から `file_revision` への対応は `$XDG_STATE_HOME/quaderno/state.json` に置く。
+`entry_id` から `file_revision` への対応は、自分用サーバの利用者の `$XDG_STATE_HOME/quaderno/state.json` に置く。
 アーカイブは手で Google Drive へ上げるので、同期の記録が中身に混ざらないようにする。
 各文書は一時ファイルに書いてから rename し、その後で記録を更新する。途中で電源が落ちても書きかけのファイルは残らず、記録されなかった分は次に取り込み直す。
 
-記録はマシンごとに分かれるので、2 台で有効にすると両方が全件を取り込む。取り込みは nixos-desktop の 1 台に限る。
+## 取り込みは自分用サーバに集める
+
+取り込み先のアーカイブと取り込みの記録は、自分用サーバ（nixos-desktop）の1か所に置く。
+Quaderno を見つけた機体（クライアント）は、文書を落として検査し、ssh でサーバの `quaderno-archive store` に渡す（[quaderno_archive.py](../../modules/home-manager/quaderno_archive.py)）。
+サーバは記録を `flock` で排他してから、一時ファイルに書いて rename し、記録を更新する。
+同じ改訂がすでに記録されていれば書かずに答えるので、desktop と spin713 が同時に Quaderno を見つけても、アーカイブは1つで、同じ改訂を二度取り込まない。
+記録が機体ごとに分かれていたときは、2台で有効にすると両方が全件を取り込むので、取り込む機体を1台に限る必要があった。
+
+desktop 自身も、自分に ssh で接続して渡す。desktop でだけアーカイブに直接書く形にすると、要素の中で「自分がサーバなら」と分岐することになる。
+サーバへ接続できない（ssh が 255 で終わる）ときは、取り込みを飛ばして 0 で終わる。出先で desktop の電源が切れている間、1 分ごとに失敗の通知が鳴らないようにするため。文書は Quaderno に残り、次に接続できたときに取り込む。
+サーバのパスやサイズの検査で断られたときは、非 0 で終わる。
 
 ## 取り込みと送信を別の要素にする
 
-desktop の電源を切って spin713 だけで出かけたときにも送れるよう、spin713 でも送信を動かす。取り込みは 1 台に限るので、取り込み（`quaderno_pull`）と送信（`quaderno_send`）を別の要素に分ける。`quaderno_send` は行動 `read_materials` の `requires` から、`quaderno_pull` は派生要素 `quaderno_pull_for_reading`（`when = ["read_materials", "keep_quaderno_archive"]`）の `requires` から入る。取り込む機体は、機体の要素の `requires` に担当 `keep_quaderno_archive` を挙げて決める。`keep_quaderno_archive` は `unique = True` なので、2台が挙げると confgen が止める。
-探索と systemd の timer は `quaderno` の要素が 1 つだけ持ち、二つの要素は `quaderno` へ設定を書き込む。両方が入る desktop でも、探すのは 1 分に 1 回で、見つかったら取り込みの後に送信する。
+desktop の電源を切って spin713 だけで出かけたときにも送れるよう、送信は自分用サーバを使わずに動かす。取り込み（`quaderno_backup`）と送信（`quaderno_send`）を別の要素に分け、`quaderno_send` は行動 `read_materials` の `requires` から、`quaderno_backup` は派生要素として、`quaderno` が入り自宅へ ssh で接続できる機体（`when = ["quaderno", "machine_ssh", "tailscale"]`）に入る。WSL のように自宅へ接続しない機体でも、送信だけは使える。
+探索と systemd の timer は `quaderno` の要素が 1 つだけ持ち、二つの要素は `quaderno` へ設定を書き込む。両方が入る機体でも、探すのは 1 分に 1 回で、見つかったら取り込みの後に送信する。
 
 ## 取り込み先は SATA の `@backup` にし、vault には置かない
 
-`quaderno_archive` は `/mnt/backup/quaderno` で、ディレクトリは `quaderno_pull` の `user_config` が tmpfiles で作る。`minecraft-backup` と同じく、置き場所と書き込み権限はホストが用意し、モジュールは受け取るだけにする。
+`quaderno_archive` は `/mnt/backup/quaderno` で、ディレクトリはサーバの `serve_quaderno_archive` の `user_config` が tmpfiles で作る。`minecraft-backup` と同じく、置き場所と書き込み権限はホストが用意し、モジュールは受け取るだけにする。
 PDF は増え続ける一方で読むのは時々なので SATA に置く（最初の 62 件で 428 MiB、[disk-tiering.md](./disk-tiering.md)）。
 `~/sagyo/memex`（vault の clone）には置かない。obsidian-git が 2 台で同期しているので、数百 MiB の PDF を持ち込むと同期の対象が膨らむ。
 
@@ -92,7 +102,7 @@ PDF は増え続ける一方で読むのは時々なので SATA に置く（最�
 workflow 側には vault の資料の Drive 同期があり、取り込み先を vault の下にすれば Drive へ運べる。
 しかし既存の同期は `rclone bisync` だけで片方向の `copy` がなく、Drive 側の削除が手元に伝わる。一方向にした判断と合わない。
 Drive への同期を自動化するときは、片方向の層を足してから workflow へ移す。
-`quaderno_pull` はホストの `quaderno_archive` とユーザーのホームを受け取り、`quaderno_archive` に既定値を置かない。失敗の通知は `failure_notify` の公開値を使う。
+`serve_quaderno_archive` はホストの `quaderno_archive` とユーザーのホームを受け取り、`quaderno_archive` に既定値を置かない。失敗の通知は `failure_notify` の公開値を使う。
 
 ## まだ分からないこと
 

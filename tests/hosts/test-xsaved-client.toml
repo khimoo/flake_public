@@ -1,0 +1,7 @@
+system = "x86_64-linux"
+state_version = "25.11"
+
+# クライアントの側。X の投稿を参照し、自分用サーバ（nixos-desktop の xsaved_users.pomu）へ ssh で接続する。
+[[users]]
+name = "pomu"
+purposes = ["x_posts", "machine_ssh", "tailscale"]

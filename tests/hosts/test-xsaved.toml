@@ -6,11 +6,11 @@ hostname = "test-xsaved"
 
 [[users]]
 name = "alice"
-purposes = ["machine_base", "xsaved", "keep_x_posts", "etc_nixos_link"]
+purposes = ["machine_base", "xsaved", "nixos_system", "etc_nixos_link"]
 
 [[users]]
 name = "bob"
-purposes = ["machine_base", "xsaved", "keep_x_posts"]
+purposes = ["machine_base", "xsaved", "nixos_system"]
 [xsaved_users.alice]
 data_dir = "/home/alice/.local/share/xsaved"
 project_dir = "/home/alice/xsaved"

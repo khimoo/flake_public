@@ -462,22 +462,6 @@ func TestConflictsStopTheBuildEvenAcrossUsers(t *testing.T) {
 	}
 }
 
-func TestUniqueRoleOnTwoMachinesStopsEveryBuild(t *testing.T) {
-	elements := map[string]string{
-		"desk":         "kind = \"machine\"\nrequires = [\"keep_archive\"]",
-		"server":       "kind = \"machine\"\nrequires = [\"keep_archive\"]",
-		"keep_archive": "kind = \"machine_role\"\nunique = True",
-	}
-	dir := writeConfig(t, elements, map[string]string{
-		"d": machineHost("desk", `[]`),
-		"s": machineHost("server", `[]`),
-	})
-	_, err := buildHost(dir, "d", "x86_64-linux")
-	if err == nil || !strings.Contains(err.Error(), "hosts d, s") {
-		t.Fatalf("%v, want the unique role reported on hosts d and s", err)
-	}
-}
-
 func TestRejectedForMachineDescriptions(t *testing.T) {
 	cases := []struct {
 		name     string
@@ -495,8 +479,6 @@ func TestRejectedForMachineDescriptions(t *testing.T) {
 			"p": ``, "m": `kind = "machine"`, "kvm": `kind = "machine_fact"`}, machineHost("m", `["kvm"]`), "require it from the machine element"},
 		{"machine element listed in purposes", map[string]string{
 			"p": ``, "m": `kind = "machine"`}, one(`["m"]`), "write it as machine"},
-		{"unique on a fact", map[string]string{
-			"p": ``, "kvm": "kind = \"machine_fact\"\nunique = True"}, one(`["p"]`), "unique applies only"},
 		{"unknown kind", map[string]string{
 			"p": `kind = "action"`}, one(`["p"]`), "kind must be"},
 		{"unknown element in needs", map[string]string{

@@ -6,7 +6,7 @@ def _database(value):
         fail("xsaved: invalid database identifier")
     return value
 
-needs = ["keep_x_posts"]
+needs = ["nixos_system"]
 
 def _settings(host):
     return {

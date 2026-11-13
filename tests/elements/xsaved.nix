@@ -10,7 +10,9 @@ let
     xsavedHost
     systemAssertionsHold
     purposeHome
-    allAssertions
+    rejectsPurpose
+    inputs
+    configDir
     ;
 in
 {
@@ -25,13 +27,37 @@ in
             "xsaved_bob"
           ];
         assert builtins.elem "f /run/xsaved-gpu.lock 0644 root root -" xsavedHost.systemd.tmpfiles.rules;
-        # データベースは NixOS 側が作るので、Home Manager 単独では有効にできない。
-        # Home Manager は失敗した assertion を評価のエラーにすることがあるので、tryEval で受ける。
+        # データベースは NixOS 側が作るので、NixOS の設定を作らないホストでは confgen が止める。
+        assert rejectsPurpose "test-xsaved-standalone" "x86_64-linux" "needs nixos_system";
+        # クライアントは、自分用サーバ（home_server）の xsaved_users の web_port へ ssh で転送する。
         assert
-          let
-            r = builtins.tryEval (allAssertions (purposeHome "x86_64-linux" "test-xsaved-standalone"));
-          in
-          !r.success || !r.value;
+          system != "x86_64-linux"
+          || (
+            let
+              result =
+                (import ../../lib/confgen.nix {
+                  pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux;
+                  inherit configDir;
+                }).read
+                  "test-xsaved-client"
+                  system
+                  "pomu";
+              packages = lib.findFirst (
+                s:
+                s.path == [
+                  "home"
+                  "packages"
+                ]
+              ) null result.elements.xsaved_client.home;
+              env = builtins.elemAt (builtins.head packages.value)."$shellAppEnv" 2;
+            in
+            env == {
+              XSAVED_SERVER = "desktop-ts";
+              XSAVED_SERVER_PORT = "8765";
+              XSAVED_LOCAL_PORT = "18765";
+            }
+            && !(result.elements ? xsaved)
+          );
         pkgs.runCommand "xsaved-contracts" { } ''
           echo "xsaved contracts passed" > "$out"
         ''
@@ -42,7 +68,9 @@ in
         "checkout"
         "failure_notify"
         "machine_base"
+        "machine_ssh"
         "xsaved"
+        "xsaved_client"
       ];
     };
 }

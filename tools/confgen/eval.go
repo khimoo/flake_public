@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"path/filepath"
 	"sort"
 	"strings"
 
@@ -94,41 +93,6 @@ func checkConflicts(host string, spec *hostSpec, judgments map[string]map[string
 					}
 				}
 			}
-		}
-	}
-	return nil
-}
-
-// checkUniqueRoles stops the build when the machine elements of two hosts provide a role that
-// only one host may hold, such as the machine that collects the Quaderno archive.
-func checkUniqueRoles(dir string, elems map[string]*element) error {
-	files, err := filepath.Glob(filepath.Join(dir, "hosts", "*.toml"))
-	if err != nil {
-		return err
-	}
-	holders := map[string][]string{}
-	for _, file := range files {
-		values, err := loadTOML(file)
-		if err != nil {
-			return err
-		}
-		m, ok := values["machine"].(starlark.String)
-		if !ok {
-			continue
-		}
-		if e, ok := elems[string(m)]; !ok || e.kind != kindMachine {
-			continue // loadHost reports this host's machine key when the host is built
-		}
-		for name := range derive(elems, map[string]string{string(m): "machine"}) {
-			if elems[name].unique {
-				holders[name] = append(holders[name], strings.TrimSuffix(filepath.Base(file), ".toml"))
-			}
-		}
-	}
-	for _, name := range sortedKeys(holders) {
-		if hosts := holders[name]; len(hosts) > 1 {
-			sort.Strings(hosts)
-			return fmt.Errorf("%s: unique role %s is provided by the machine elements of hosts %s; only one host may hold it", elems[name].file, name, strings.Join(hosts, ", "))
 		}
 	}
 	return nil

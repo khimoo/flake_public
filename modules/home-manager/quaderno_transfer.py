@@ -1,8 +1,9 @@
 """Quaderno が見つかったら、文書を取り込んでから Send フォルダの PDF を送る。
 
-取り込みは未取得・改訂された文書だけをアーカイブへ落とす。送信は Send フォルダの
-ファイルだけを、デバイス上の文書を上書きせずに送り、送れたら Send から消す。双方向の
-マージはしない。設計判断は docs/architecture/quaderno.md にある。
+取り込みは未取得・改訂された文書だけを、自分用サーバのアーカイブへ ssh で送る。取り込みの
+記録もサーバが持つので、どの機体が Quaderno を見つけても同じ改訂を二度取り込まない。
+送信は Send フォルダのファイルだけを、デバイス上の文書を上書きせずに送り、送れたら Send から
+消す。双方向のマージはしない。設計判断は docs/architecture/quaderno.md にある。
 """
 import json
 import os
@@ -16,6 +17,7 @@ import requests
 from dptrp1.dptrp1 import DigitalPaper, DigitalPaperException, find_auth_files
 from zeroconf import ServiceBrowser, Zeroconf
 
+from quaderno_archive import ArchiveRefused, ServerUnreachable, SshArchive
 from quaderno_plan import plan_downloads, plan_uploads
 
 SERVICE_TYPES = ["_digitalpaper._tcp.local.", "_dp_fujitsu._tcp.local."]
@@ -106,27 +108,8 @@ def connect(addr):
     return paper
 
 
-def load_state(path):
-    try:
-        return json.loads(path.read_text())
-    except FileNotFoundError:
-        return {}
-    except json.JSONDecodeError:
-        # 壊れた記録は空として扱う。全件落とし直すが、手元のファイルは壊れない。
-        print("状態ファイルが読めないので、記録なしとして進めます: {}".format(path))
-        return {}
-
-
-def save_state(path, state):
-    """一時ファイルへ書いてから置き換える。中断しても半端な記録が残らない。"""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(".tmp")
-    tmp.write_text(json.dumps(state, ensure_ascii=False, indent=2, sort_keys=True))
-    tmp.replace(path)
-
-
-def store(paper, entry, archive_dir):
-    """文書 1 件を落として、アーカイブ内の同じ相対パスへ置く。
+def fetch(paper, entry):
+    """文書 1 件を落として、中身を検査してから返す。
 
     paper.download() はライブラリ内部で raise_for_status() を呼ばないため、
     HTTP エラーが返ってもエラーの JSON 本文がそのまま返る。それを検査せず保存すると、
@@ -134,8 +117,6 @@ def store(paper, entry, archive_dir):
     （PDF なら）先頭バイトを検査し、食い違うなら呼び出し側の except に委ねて
     state を更新させない。
     """
-    destination = archive_dir / entry["entry_path"]
-    destination.parent.mkdir(parents=True, exist_ok=True)
     data = paper.download(entry["entry_path"])
     # デバイスは file_size を文字列で返す（例 "1964912"）。int に直さずに
     # len(data) と比べると常に不一致になり、全件が失敗する。
@@ -152,17 +133,7 @@ def store(paper, entry, archive_dir):
         raise DigitalPaperException(
             "PDF として認識できない中身です: {}".format(entry["entry_path"])
         )
-    tmp = destination.with_name(destination.name + ".part")
-    try:
-        tmp.write_bytes(data)
-        tmp.replace(destination)
-    except BaseException:
-        # 容量不足などで書き込みや置き換えが失敗しても、.part を残さない。
-        # 取り込み先は手動で Google Drive へ上げる単位なので、拾われない .part が
-        # 溜まると邪魔になる。
-        tmp.unlink(missing_ok=True)
-        raise
-    return len(data)
+    return data
 
 
 def settled_pdfs(send_dir, now):
@@ -237,8 +208,8 @@ def main():
     # 空文字は「指定なし」を意味する。Nix 側は null をこの形で渡す。
     serial = os.environ.get("QUADERNO_SERIAL") or None
     timeout = int(os.environ.get("QUADERNO_DISCOVERY_TIMEOUT", "15"))
-    # 取り込みと送信は、ホストで選んだ要素（quaderno_pull、quaderno_send）の分だけ設定される。
-    archive = os.environ.get("QUADERNO_ARCHIVE_DIR")
+    # 取り込みと送信は、利用者に入った要素（quaderno_backup、quaderno_send）の分だけ設定される。
+    archive = os.environ.get("QUADERNO_ARCHIVE_SSH")
     remote_root = os.environ.get("QUADERNO_REMOTE_ROOT", "Document")
     send_dir = os.environ.get("QUADERNO_SEND_DIR")
     send_remote = os.environ.get("QUADERNO_SEND_REMOTE", "Document/Received")
@@ -282,15 +253,22 @@ def main():
         return 1
     status = 0
     if archive:
-        state_file = Path(os.environ["QUADERNO_STATE_FILE"])
-        state = load_state(state_file)
-        status = pull(paper, docs, state, state_file, Path(archive), remote_root, addr)
+        status = pull(paper, docs, SshArchive(archive), remote_root, addr)
     if send_dir:
         status = max(status, send(paper, send_dir, send_remote, docs))
     return status
 
 
-def pull(paper, docs, state, state_file, archive_dir, remote_root, addr):
+def pull(paper, docs, archive, remote_root, addr):
+    try:
+        state = archive.state()
+    except ServerUnreachable as e:
+        # 出先で自分用サーバに届かないときは、文書を Quaderno に残して次の機会に取り込む。
+        print("自分用サーバ {} に接続できないので、取り込みは次の機会にします。({})".format(archive.destination, e))
+        return 0
+    except (ArchiveRefused, OSError, ValueError) as e:
+        print("自分用サーバから取り込みの記録を読めません: {}".format(e))
+        return 1
     planned = plan_downloads(docs, state, remote_root)
     if not planned:
         print("{} に接続しました。新しい文書はありません。".format(addr))
@@ -299,17 +277,21 @@ def pull(paper, docs, state, state_file, archive_dir, remote_root, addr):
     print("{} に接続しました。{} 件を取り込みます。".format(addr, len(planned)))
     for entry in planned:
         try:
-            size = store(paper, entry, archive_dir)
-            state[entry["entry_id"]] = entry["file_revision"]
-            # 1 件ごとに記録を更新する。途中で落ちても、済んだ分は次回落とし直さない。
-            save_state(state_file, state)
-            print("  取り込み: {} ({} バイト)".format(entry["entry_path"], size))
-        except (requests.RequestException, OSError, DigitalPaperException, KeyError, ValueError) as e:
-            # requests: 通信断。OSError: ファイル I/O 失敗（容量不足など）。
+            data = fetch(paper, entry)
+            # サーバは 1 件ごとに記録を更新する。途中で落ちても、済んだ分は次回落とし直さない。
+            placed = archive.store(entry, data)
+            print("  {}: {} ({} バイト)".format("取り込み" if placed else "取り込み済み", entry["entry_path"], len(data)))
+        except ServerUnreachable as e:
+            print("自分用サーバとの接続が切れました: {}".format(e))
+            print("  済んだ分はサーバに記録されています。次回の実行が続きから取り込みます。")
+            return 1
+        except (requests.RequestException, OSError, DigitalPaperException, ArchiveRefused, KeyError, ValueError) as e:
+            # requests: 通信断。OSError: ssh を起動できないなど。
             # DigitalPaperException: 文書が途中で消えた、またはダウンロード内容の検証に失敗。
+            # ArchiveRefused: サーバがパスやサイズを理由に受け取りを断った。
             # KeyError/ValueError: セッション切れ等で HTTP エラーの JSON がそのまま返った場合。
             print("取り込みに失敗: {} ({})".format(entry["entry_path"], e))
-            print("  状態ファイルは{}まで更新されています。次回の実行が続きから取り込みます。".format(state_file))
+            print("  済んだ分はサーバに記録されています。次回の実行が続きから取り込みます。")
             return 1
     return 0
 

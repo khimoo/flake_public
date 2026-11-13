@@ -33,7 +33,6 @@ type element struct {
 	needs     []string
 	conflicts []string
 	kind      string // "", kindMachine, kindFact or kindRole
-	unique    bool   // a role that at most one host's machine element may provide
 	funcs     map[string]*funcInfo
 }
 
@@ -175,14 +174,9 @@ func parseElement(file string) (*element, error) {
 					return nil, fmt.Errorf("%s: kind must be %q, %q or %q", id.NamePos, kindMachine, kindFact, kindRole)
 				}
 				e.kind = lit.Value.(string)
-			case id.Name == "unique":
-				if b, ok := s.RHS.(*syntax.Ident); !ok || b.Name != "True" {
-					return nil, fmt.Errorf("%s: unique must be True", id.NamePos)
-				}
-				e.unique = true
 			case strings.HasPrefix(id.Name, "_"):
 			default:
-				return nil, fmt.Errorf("%s: top-level name %q is not allowed (use requires, when, needs, conflicts, kind, unique or a name starting with _)", id.NamePos, id.Name)
+				return nil, fmt.Errorf("%s: top-level name %q is not allowed (use requires, when, needs, conflicts, kind or a name starting with _)", id.NamePos, id.Name)
 			}
 		case *syntax.ExprStmt:
 			if _, ok := s.X.(*syntax.Literal); !ok {
@@ -193,9 +187,6 @@ func parseElement(file string) (*element, error) {
 			start, _ := stmt.Span()
 			return nil, fmt.Errorf("%s: this statement is not allowed at top level", start)
 		}
-	}
-	if e.unique && e.kind != kindRole {
-		return nil, fmt.Errorf("%s: unique applies only to kind = %q", file, kindRole)
 	}
 	if e.declaresMachine() && (len(e.when) > 0 || len(e.needs) > 0) {
 		return nil, fmt.Errorf("%s: an element with kind = %q describes the machine and takes no when or needs", file, e.kind)

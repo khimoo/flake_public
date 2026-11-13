@@ -1,7 +1,8 @@
 system = "x86_64-linux"
 state_version = "25.11"
-quaderno_archive = "/home/test/quaderno"
 
+# クライアントの側。Quaderno を使い、自分用サーバへ ssh で接続できる機体。
 [[users]]
 name = "test"
-purposes = ["quaderno_pull", "keep_quaderno_archive"]
+purposes = ["quaderno_send", "machine_ssh", "tailscale"]
+home_server = "nixos-desktop"
