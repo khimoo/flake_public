@@ -23,20 +23,21 @@ keyd_ids = ["k:0001:0001", "k:18d1:5044", "k:18d1:5052", "k:0000:0000", "k:18d1:
 [[users]]
 name = "pomu"
 purposes = [
-  "programming",
-  "program_on_home_server",
+  # 勉強
   "grow_notes",
   "read_materials",
-  "web_procedures",
-  "work_ss",
-  "work_fr",
-  "communicate",
+  # 趣味
+  "programming",
+  "program_on_home_server",
   "draw",
   "media",
-  "personal_files",
-  "agent_config",
-  "agent_compression",
+  "communicate",
+  # 生活管理
+  "web_procedures",
+  # このマシンが引き受けること
   "etc_nixos_link",
+  # 利用者の個人のファイルと秘密
+  "personal_files",
 ]
 admin = true
 

@@ -13,9 +13,6 @@ def config(host):
     ])
     nixos = {
         "boot.kernelParams": ["btusb.enable_autosuspend=n"],
-        "programs.steam.enable": True,
-        # Steam の 32bit のゲームの音のため。pipewire 要素に置くと、ゲームをしない spin713 にも 32bit 版の PipeWire が入る。
-        "services.pipewire.alsa.support32Bit": True,
         "fileSystems": {path: {"device": host.data_device, "fsType": "btrfs", "options": ["subvol=" + subvol] + opts} for subvol, path, opts in mounts},
         "boot.supportedFilesystems": ["btrfs"],
         "environment.systemPackages": [pkg("btrfs-progs")],
@@ -28,6 +25,6 @@ def config(host):
 
 def user_config():
     return {"home": {
-        "home.packages": [pkg("wine64"), pkg("pkgsRocm.blender"), pkg("gnomeExtensions.display-configuration-switcher")],
+        "home.packages": [pkg("gnomeExtensions.display-configuration-switcher")],
         ("dconf", "settings", "org/gnome/shell", "enabled-extensions"): mkAfter(["display-configuration-switcher@knokelmaat.gitlab.com"]),
     }}

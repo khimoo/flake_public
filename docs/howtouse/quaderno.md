@@ -3,11 +3,11 @@
 Fujitsu Quaderno A4 Gen2 と、同じ LAN 内で PDF を受け渡します。
 1 分ごとに Quaderno を探し、見つかったら、利用者に入った要素に応じて次の順に処理します。
 
-1. `quaderno_backup`: Quaderno で作成・書き込みした PDF を、自分用サーバのアーカイブへ ssh で送って取り込む
+1. `use_quaderno_archive`: Quaderno で作成・書き込みした PDF を、自分用サーバのアーカイブへ ssh で送って取り込む
 2. `quaderno_send`: 送信用フォルダ（Send）に置いた PDF を Quaderno の `Document/Received` へ送る
 
 Quaderno はスリープ中は Wi-Fi から外れるので、受け渡しは Quaderno のスリープを解除してから 1 分ほどで始まります。
-[nixos-desktop.toml](../../config/hosts/nixos-desktop.toml) と [nixos-spin713.toml](../../config/hosts/nixos-spin713.toml) の pomu は `[[users]]` の `purposes` で `read_materials` を選び、`requires` の `quaderno_send` と、Quaderno を探す `quaderno` が入ります。取り込みのクライアント `quaderno_backup` は派生要素（`when = ["quaderno", "machine_ssh", "tailscale"]`）で、自宅のマシンへ ssh で接続できる機体にだけ入ります。取り込んだ PDF と取り込みの記録は、利用者の値 `home_server`（[pomu.toml](../../config/users/pomu.toml) では `nixos-desktop`）の自分用サーバが持ちます。サーバの側は、nixos-desktop の pomu の `purposes` にある `run_home_server` から入る `serve_quaderno_archive` で、取り込み先を `quaderno_archive` で指定しています。記録がサーバの1か所にあるので、desktop と spin713 のどちらが Quaderno を見つけても、同じ改訂を二度取り込みません。自分用サーバに接続できないとき（出先でデスクトップの電源が切れているときなど）は取り込みを飛ばし、PDF は Quaderno に残ります。取り込みと送信を無効にするには、利用者の `purposes` から `read_materials` を外します。サーバを止めるには、nixos-desktop の pomu の `purposes` から `run_home_server` を外します。
+[nixos-desktop.toml](../../config/hosts/nixos-desktop.toml) と [nixos-spin713.toml](../../config/hosts/nixos-spin713.toml) の pomu は `[[users]]` の `purposes` で `read_materials` を選び、`requires` の `quaderno_send` と、Quaderno を探す `quaderno` が入ります。取り込みのクライアント `use_quaderno_archive` も `read_materials` の `requires` から入り、`needs` に `machine_ssh` と `tailscale` を挙げるので、自宅のマシンへ ssh で接続できない機体で `read_materials` を選ぶと confgen が止まります。取り込んだ PDF と取り込みの記録は、利用者の値 `home_server`（[pomu.toml](../../config/users/pomu.toml) では `nixos-desktop`）の自分用サーバが持ちます。サーバの側は、nixos-desktop の pomu の `purposes` にある `run_home_server` から入る `serve_quaderno_archive` で、取り込み先を `quaderno_archive` で指定しています。記録がサーバの1か所にあるので、desktop と spin713 のどちらが Quaderno を見つけても、同じ改訂を二度取り込みません。自分用サーバに接続できないとき（出先でデスクトップの電源が切れているときなど）は取り込みを飛ばし、PDF は Quaderno に残ります。取り込みと送信を無効にするには、利用者の `purposes` から `read_materials` を外します。サーバを止めるには、nixos-desktop の pomu の `purposes` から `run_home_server` を外します。
 
 設計ドキュメント: [Quaderno の取り込みと送信の設計](../architecture/quaderno.md)
 

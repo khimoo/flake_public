@@ -91,7 +91,7 @@ in
         "failure_notify"
         "machine_ssh"
         "quaderno"
-        "quaderno_backup"
+        "use_quaderno_archive"
         "quaderno_send"
         "serve_quaderno_archive"
       ];

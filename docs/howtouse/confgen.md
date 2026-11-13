@@ -43,7 +43,7 @@ requires = ["mimikopi"]
 
 新しい機体を足すときは、機体の要素の `requires` に、その機体の事実を書くだけです。行動と派生要素は変えません。
 
-`needs = [...]` は、判定が済んだ後の検査で、要素を有効にはしません。要素が入る利用者について、挙げた要素（機体の事実、`machine_ssh` など）も入っていなければ止めます。例: `windows_vm.star` の `needs = ["nixos_system", "local_kvm"]` により、WSL で `use_windows` を選ぶと、足りない名前を示して止まります。
+`needs = [...]` は、判定が済んだ後の検査で、要素を有効にはしません。要素が入る利用者について、挙げた要素（機体の事実、`machine_ssh` など）も入っていなければ止めます。例: `windows_vm.star` の `needs = ["nixos_system", "local_kvm"]` により、WSL で `write_doc_with_windows` を選ぶと、足りない名前を示して止まります。
 
 機体の要素を持たないホスト（`tests/hosts/`）は、機体の事実を `purposes` に書きます。
 
@@ -52,8 +52,8 @@ requires = ["mimikopi"]
 機体によって変わる処理のうち、機体の事実（物理的な条件）で決まらないものは、自分用サーバ（サービスを公開する側）とクライアント（サービスを使う側）に分けます。
 「どの機体でするか」を機体ごとに書くと、行動と機体の組み合わせを人が管理することになり、1台に限るものは2台に書いたときに止める仕組みも要るからです。
 
-- サーバの側: サーバを置くホストの利用者が、`purposes` に `run_home_server` を書きます。`run_home_server.star` は `requires` に `serve_quaderno_archive`（Quaderno のアーカイブ）、`xsaved`、`serve_workspace`（ssh でつながる作業場所）、`serve_alook`（Alook）、`serve_remote_desktop`（GNOME の画面の RDP）、`stay_awake`（自動 suspend の停止）を挙げ、サーバを動かす利用者を linger にします。
-- クライアントの側: サービスを使う要素（`quaderno`、`x_posts`）と、自宅へ接続できること（`machine_ssh`、`tailscale`）を `when` に挙げた派生要素（`quaderno_backup`、`xsaved_client`）が、ssh でサーバに接続します。サーバの機体でも、同じ内容で自分に接続します。利用者が自分で選ぶクライアントは行動にします。spin713 の `program_on_home_server`（ファイルを sshfs で開き、build と Alook を自分用サーバで動かす）がその例です。
+- サーバの側: サーバを置くホストの利用者が、`purposes` に `run_home_server` を書きます。`run_home_server.star` は `requires` に `serve_quaderno_archive`（Quaderno のアーカイブ）、`serve_xsaved`（xsaved）、`serve_workspace`（ssh でつながる作業場所）、`serve_alook`（Alook）、`serve_remote_desktop`（GNOME の画面の RDP）、`stay_awake`（自動 suspend の停止）を挙げ、サーバを動かす利用者を linger にします。
+- クライアントの側: `use_quaderno_archive`、`use_xsaved`、`use_alook` が、ssh でサーバに接続します。使う行動か手段が `requires` に挙げ、どれも `needs` に `machine_ssh` と `tailscale` を挙げます。自宅へ接続できない機体で選ぶと confgen が止まります。サーバの機体でも、同じ内容で自分に接続します。利用者が自分で選ぶクライアントは行動にします。spin713 の `program_on_home_server`（ファイルを sshfs で開き、build と Alook を自分用サーバで動かす）がその例です。
 - 外部のサービスを使う側: サービスが外部（PyPI や uv が配る Python）にあるときは、使う側の手段だけを書きます。`use_uv` が `requires` の `nix_ld` を入れます。
 - 接続先: 利用者の値 `home_server`（`config/users/<ユーザー>.toml`）に、サーバのホストの名前を書きます。クライアントは `machine_ssh` の公開値 `tailnet` から接続名（`desktop-ts` など）を、`machines` からサーバのホストの値（xsaved の `web_port` など）を読みます。
 

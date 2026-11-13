@@ -48,7 +48,7 @@ in
                   "home"
                   "packages"
                 ]
-              ) null result.elements.xsaved_client.home;
+              ) null result.elements.use_xsaved.home;
               env = builtins.elemAt (builtins.head packages.value)."$shellAppEnv" 2;
             in
             env == {
@@ -56,7 +56,7 @@ in
               XSAVED_SERVER_PORT = "8765";
               XSAVED_LOCAL_PORT = "18765";
             }
-            && !(result.elements ? xsaved)
+            && !(result.elements ? serve_xsaved)
           );
         pkgs.runCommand "xsaved-contracts" { } ''
           echo "xsaved contracts passed" > "$out"
@@ -69,8 +69,9 @@ in
         "failure_notify"
         "machine_base"
         "machine_ssh"
-        "xsaved"
-        "xsaved_client"
+        "serve_xsaved"
+        "use_xsaved"
+        "xsaved_data"
       ];
     };
 }

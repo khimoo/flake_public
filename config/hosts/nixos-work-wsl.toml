@@ -8,7 +8,9 @@ machine = "machine_nixos_work_wsl"
 [[users]]
 name = "nixos"
 purposes = [
+  # 仕事
   "programming_without_ai",
+  # このマシンが引き受けること
   "etc_nixos_link",
 ]
 admin = true

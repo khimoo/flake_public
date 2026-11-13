@@ -43,11 +43,11 @@ let
       ]
     ) null element.home).value;
   desktopXsavedEnv =
-    builtins.elemAt (builtins.head (generatedPackages desktopGenerated.elements.xsaved))."$repoPkgWith"
+    builtins.elemAt (builtins.head (generatedPackages desktopGenerated.elements.serve_xsaved))."$repoPkgWith"
       1;
   desktopXsavedBackupEnv =
     builtins.elemAt
-      (builtins.elemAt (generatedPackages desktopGenerated.elements.xsaved) 3)."$shellAppEnv"
+      (builtins.elemAt (generatedPackages desktopGenerated.elements.serve_xsaved) 3)."$shellAppEnv"
       2;
   desktopVmEnv =
     builtins.elemAt

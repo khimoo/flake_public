@@ -115,13 +115,3 @@ xh :8080/api/health                       # localhost:8080 の短縮記法
 ```
 
 → [xh](./shell-tools.md#xh)
-
-
-### 7. 環境音・ノイズ再生 (集中用)
-
-```bash
-noise                         # ~/音楽/noise/ をシャッフル再生 (デフォルト音量: 50)
-noise ~/音楽/rain 30          # ディレクトリと音量を指定して再生
-```
-
-> `noise` は bash 関数として定義されています (shell.star)。内部で mpv をバックグラウンド実行します。

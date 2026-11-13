@@ -2,7 +2,7 @@
 
 JJazzLab は、コード進行とリズムのスタイルから伴奏を生成するアプリ。
 パッケージは [packages/jjazzlab](../../packages/jjazzlab/default.nix) で、[music_production.star](../../config/elements/music_production.star) が行動 `make_music` の `requires` から入ると導入する。利用者の `[[users]]` の `purposes` で `make_music` を選ぶ。無効にするには利用者の `purposes` から `make_music` を外す。
-行動 `make_music` は nixos-desktop と standalone Home Manager の pomu-nixos の pomu が選んでいる。
+行動 `make_music` は nixos-desktop の pomu が選んでいる。
 
 ## 起動する
 

@@ -1,6 +1,6 @@
-# 自分用サーバの xsaved に ssh で接続する（クライアントの側。docs/howtouse/xsaved.md）。
-# 自宅のマシンへ ssh で接続できる機体でだけ入る。接続先は利用者の値 home_server。
-when = ["x_posts", "machine_ssh", "tailscale"]
+# 手段: 自分用サーバの xsaved を使う。ssh で接続して検索の Web UI を開き、xsaved のコマンドを実行する（クライアントの側。docs/howtouse/xsaved.md）。
+# 接続先は利用者の値 home_server。
+needs = ["machine_ssh", "tailscale"]
 
 def user_config(user, machine_ssh, machines):
     server = user.home_server

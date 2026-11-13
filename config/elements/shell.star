@@ -8,9 +8,6 @@ def user_config():
             pkg("fastfetch"),
             pkg("python3"),  # agents-private のスキルと scripts/check.sh が直接呼ぶ。
             pkg("gh"),
-            pkg("ghostscript"),
-            pkg("poppler-utils"),
-            pkg("mpv"),
             pkg("fd"),
             pkg("ripgrep"),
             pkg("jq"),
@@ -31,7 +28,6 @@ def user_config():
             "cd": "z",
             # yazi=y は、y の中の yazi の呼び出しと無限に再帰するので置かない。
         },
-        "programs.bash.initExtra": _NOISE,
         "programs.starship.enable": True,
         "programs.starship.settings": {
             "add_newline": True,
@@ -51,10 +47,3 @@ def user_config():
         "programs.bat.enable": True,
         "programs.bottom.enable": True,
     }}
-
-_NOISE = """noise() {
-  local dir="${1:-$HOME/音楽/noise}"
-  local volume="${2:-50}"
-  mpv --shuffle --loop-playlist --no-video --really-quiet "--volume=$volume" "$dir"
-}
-"""

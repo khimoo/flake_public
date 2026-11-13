@@ -37,24 +37,32 @@ supported_features = ["benchmark", "big-parallel", "kvm", "nixos-test"]
 [[users]]
 name = "pomu"
 purposes = [
-  "programming",
+  # 勉強
   "grow_notes",
   "read_materials",
-  "web_procedures",
-  "write_documents",
-  "work_ss",
-  "work_fr",
-  "communicate",
+  "follow_communities",
+  # 趣味
+  "programming",
   "draw",
   "media",
   "make_music",
-  "play_minecraft",
-  "use_windows",
+  "game",
+  "game_development",
+  "communicate",
+  # 生活管理
+  "web_procedures",
+  "write_documents",
+  "write_doc_with_windows",
+  "manage_data",
+  "organize_mail",
+  # 仕事
+  "work_ss",
+  "work_fr",
+  # このマシンが引き受けること
   "run_home_server",
-  "personal_files",
-  "agent_config",
-  "agent_compression",
   "etc_nixos_link",
+  # 利用者の個人のファイルと秘密
+  "personal_files",
 ]
 admin = true
 

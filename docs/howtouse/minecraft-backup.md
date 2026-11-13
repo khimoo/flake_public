@@ -2,7 +2,7 @@
 
 PrismLauncher のインスタンスを終了した際、restic を用いてローカルリポジトリ（`/mnt/backup/minecraft/repo`）へデータを取り込み、さらに Google Drive（`gdrive:minecraft-backups/<ホスト名>`）へ同期します。
 Drive 上のリポジトリはマシンごとに隔離されており、各マシンは自身の領域にのみ書き込みを行い、他マシンの領域は読み取り専用として扱います。
-[nixos-desktop.toml](../../config/hosts/nixos-desktop.toml) の利用者の `[[users]]` の `purposes` で行動 `play_minecraft` を選び、`requires` の `minecraft_backup` を有効にし、同ファイルの `minecraft_repo` と `minecraft_remote` で保存先を指定します。nixos-desktop でのみ有効化しています。無効にするには利用者の `purposes` から `play_minecraft` を外します。
+[nixos-desktop.toml](../../config/hosts/nixos-desktop.toml) の利用者の `[[users]]` の `purposes` で行動 `game` を選び、`requires` の `minecraft` から、`requires` の `minecraft_backup` を有効にし、同ファイルの `minecraft_repo` と `minecraft_remote` で保存先を指定します。nixos-desktop でのみ有効化しています。無効にするには利用者の `purposes` から `play_minecraft` を外します。
 
 設計ドキュメント: [Minecraft バックアップの設計](../architecture/minecraft-backup.md)
 

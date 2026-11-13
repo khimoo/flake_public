@@ -1,3 +1,4 @@
+# 目的: 自分用サーバとして xsaved を公開する。X のいいねとブックマークを集めて保管し、検索の Web UI を動かす（サーバの側。docs/howtouse/xsaved.md）。
 def _quote(value):
     return "'" + value.replace("'", "'\"'\"'") + "'"
 

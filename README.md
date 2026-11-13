@@ -23,7 +23,7 @@
 
 - NixOS: `nixos-desktop`, `nixos-spin713`（x86_64 Linux）。GUI は機体の `requires`、vault 同期は利用者の行動 `grow_notes` で選択。音楽制作は利用者の行動 `make_music` で選択し、`nixos-desktop` だけで有効。
 - NixOS-WSL: `nixos-work-wsl`（x86_64 Linux、会社PC。GUI アプリは WSLg で表示）。秘密情報と自宅への接続経路を持たせない。[手順](docs/howtouse/wsl.md) · [設計判断](docs/architecture/wsl.md)
-- Home Manager: `pomu-nixos`（x86_64 Linux GUI・音楽制作）。`pomu-macos`（aarch64 Darwin CLI）は使い始めるまで `flake.nix` で外している。
+- Home Manager 単独: `pomu-macos`（aarch64 Darwin CLI）は使い始めるまで `flake.nix` で外している。書き方は「新しいホストを追加する」の例を参照。
 - RustOwlの自動導入はx86_64 Linux限定。macOSのGUI・音楽制作・vaultプロファイルは未対応。
 - macOS構成の評価と実機での適用は別の確認です。検証範囲は[検証ガイド](docs/howtouse/validation.md)を参照。
 
@@ -38,8 +38,8 @@ checkoutの既定位置は `<ホーム>/sagyo/flake_public`。別の場所に置
 ```sh
 bash scripts/check.sh
 sudo nixos-rebuild switch --flake .#nixos-desktop
-# または standalone Home Manager
-home-manager switch --flake .#pomu-nixos
+# または Home Manager 単独のホスト（ホストの TOML に kind = "home" を書いたもの）
+home-manager switch --flake .#<構成名>
 ```
 
 別ディレクトリからは `--flake /絶対パス/flake_public#<構成名>` を使います。
@@ -73,6 +73,8 @@ NixOSで `etc_nixos_link` を選んだ利用者がいる場合、switch を実�
    purposes = ["web_procedures"]
    admin = true
    ```
+
+Home Manager だけで管理するホストは `kind = "home"` にし、NixOS の設定を作らないので、機体の要素の `requires` に `nixos_system` を書きません。`home-manager switch --flake .#<構成名>` で適用します。
 
 `state_version` は初回導入時の値を維持します。マシン間 SSH に参加する場合はホストの TOML に `ssh_user` を指定し、機体の要素の `requires` に `machine_ssh` を追加します。tailnet には同じ `requires` に `tailscale` を追加します。
 
