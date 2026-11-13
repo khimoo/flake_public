@@ -4,4 +4,4 @@ quaderno_archive = "/home/test/quaderno"
 
 [[users]]
 name = "test"
-purposes = ["quaderno_pull"]
+purposes = ["quaderno_pull", "keep_quaderno_archive"]

@@ -3,7 +3,7 @@
 外出先のラップトップ（`nixos-spin713`）から、デスクトップ（`nixos-desktop`）のファイルを sshfs でマウントして編集します。
 デスクトップで動いているエージェントと同じファイルを、手元のエディタとツールで扱えます。
 
-設定: [sshfs_editing.star](../../config/elements/sshfs_editing.star)、[tinymist_on_sshfs.star](../../config/elements/tinymist_on_sshfs.star)、[direnv_on_sshfs.star](../../config/elements/direnv_on_sshfs.star)。[nixos-spin713.toml](../../config/hosts/nixos-spin713.toml) の利用者の `[[users]]` の `purposes` で行動 `programming` を選ぶと、派生要素 `programming_on_spin713` の `requires` から `sshfs_editing` が入る（[confgen.md](./confgen.md)）。無効にするには利用者の `purposes` から `programming` を外すか、`programming_on_spin713.star` の `requires` から `sshfs_editing` を外す。
+設定: [sshfs_editing.star](../../config/elements/sshfs_editing.star)、[tinymist_on_sshfs.star](../../config/elements/tinymist_on_sshfs.star)、[direnv_on_sshfs.star](../../config/elements/direnv_on_sshfs.star)。[nixos-spin713.toml](../../config/hosts/nixos-spin713.toml) の利用者の `[[users]]` の `purposes` で行動 `programming` を選ぶと、機体の要素 `machine_nixos_spin713.star` の `requires` にある担当 `remote_workspace` とそろうので、派生要素 `programming_remote` の `requires` から `sshfs_editing` が入る（[confgen.md](./confgen.md)）。無効にするには利用者の `purposes` から `programming` を外すか、`programming_remote.star` の `requires` から `sshfs_editing` を外す。別のノート PC でも同じ使い方をするなら、その機体の要素の `requires` に `remote_workspace` を足す。
 
 ## マウントする
 

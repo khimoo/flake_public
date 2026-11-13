@@ -33,14 +33,14 @@ uv はキャッシュから環境へハードリンクで展開するので、�
 
 `HSA_OVERRIDE_GFX_VERSION` は GPU で決まる値なので、パッケージの引数にして [nixos-desktop.toml](../../config/hosts/nixos-desktop.toml) の `mimikopi_hsa_override` から渡す。
 PyTorch の ROCm 版の wheel には gfx1032 向けのカーネルが入っていないので、`10.3.0` を指定して gfx1030 として扱わせる。
-データディスクも GPU も nixos-desktop に固有なので、[shell.star](../../config/elements/shell.star) ではなく派生要素 `make_music_on_desktop`（`when = ["make_music", "machine_nixos_desktop"]`）の `requires` で `mimikopi` を入れる。
+GPU（ROCm）が要るので、[shell.star](../../config/elements/shell.star) ではなく派生要素 `mimikopi_for_music`（`when = ["make_music", "rocm_compute"]`）の `requires` で `mimikopi` を入れる。`rocm_compute` は、ROCm で計算できる機体の要素が `requires` に挙げる機体の事実で、今はデスクトップだけが挙げる。
 
 ## データを SATA の専用 subvol に置く
 
 ルートの空き約 18GB に対して、ROCm 版の torch だけで約 15GB を使う。
-[mimikopi.star](../../config/elements/mimikopi.star) がホストの `mimikopi_data_dir` をパッケージに渡す。OS のマウント先も [machine_nixos_desktop.star](../../config/elements/machine_nixos_desktop.star) が同じ値から作る。
+[mimikopi.star](../../config/elements/mimikopi.star) がホストの `mimikopi_data_dir` をパッケージに渡す。OS のマウント先も [mimikopi.star](../../config/elements/mimikopi.star) が同じ値と `mimikopi_data_subvolume` から作る。
 
-SATA SSD に `@mimikopi` を作り、`~/.local/share/mimikopi` にマウントする（[machine_nixos_desktop.star](../../config/elements/machine_nixos_desktop.star)）。
+SATA SSD に `@mimikopi` を作り、`~/.local/share/mimikopi` にマウントする（[mimikopi.star](../../config/elements/mimikopi.star)）。mimikopi が入らない機体ではマウントも作らない。
 モデルの読み込みはシーケンシャル読みが中心で、[disk-tiering.md](./disk-tiering.md) の分け方ではコールド層に当たる。
 
 `/mnt/backup` の下にディレクトリを作る案もあった。`systemd.tmpfiles` に一行足すだけで済むが、再取得できる数十 GB をバックアップの退避先に混ぜることになるので退けた。

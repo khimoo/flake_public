@@ -1,7 +1,7 @@
 # デスクトップの Windows VM
 
 nixos-desktop 上の libvirt VM は、必要なときだけ起動し、画面はホスト側の FreeRDP で表示します。
-VM 名は [nixos-desktop.toml](../../config/hosts/nixos-desktop.toml) の `windows_vm_domain` で指定します。利用者の `[[users]]` の `purposes` で分類 `category_work` か `category_life` を選ぶと、分類の `requires` の `windows_vm` が有効になり、利用者が libvirtd グループに入ります。`gui` もある構成では、派生要素 `windows_vm_gui` が利用者の Home Manager にランチャーを追加します。無効にするには、利用者の `purposes` から両方の分類を外すか、両方の分類の要素の `requires` から `windows_vm` を外します。
+VM 名は [nixos-desktop.toml](../../config/hosts/nixos-desktop.toml) の `windows_vm_domain` で指定します。利用者の `[[users]]` の `purposes` で `use_windows` を選ぶと、`requires` の `windows_vm` が有効になり、利用者が libvirtd グループに入ります。`gui` もある構成では、派生要素 `windows_vm_gui` が利用者の Home Manager にランチャーを追加します。無効にするには利用者の `purposes` から `use_windows` を外します。`windows_vm.star` は `needs` に `nixos_system`、`local_kvm`、`keep_windows_vm` を挙げるので、機体の要素がこの3つを `requires` に挙げていない機体（今はデスクトップ以外）で `use_windows` を選ぶと、confgen が足りない名前を示して止めます。
 
 設計: [デスクトップの Windows VM の設計](../architecture/windows-vm.md)
 

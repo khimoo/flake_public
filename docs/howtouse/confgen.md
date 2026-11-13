@@ -22,9 +22,34 @@ purposes = ["programming", "read_materials"]
 
 行動を外すと、その利用者について、その行動からしか導けない要素と、その行動を条件に持つ派生要素が外れます。外れた要素の Home Manager の設定はその利用者から消えます。ほかの利用者について入っている要素の NixOS の設定は残ります。
 
-`category_` で始まる要素は分類（勉強、生活管理、趣味、仕事）です。分類は、配下の行動と、分類の行動に共通の道具を `requires` に挙げます。`purposes` に分類を書くと、配下の行動がすべて入ります。分類の一部の行動だけが要る利用者は、行動を個別に書きます。分類の `requires` に直接書いた道具（`task_management` など）は、行動を個別に書く利用者には入りません。
-
 `purposes = []` の利用者には、機体から導ける要素だけが入ります。`purposes` は利用者ごとに必ず書きます。
+
+## 機体の事実と担当
+
+機体によって入るかどうかが変わる要素は、機体の名前ではなく、機体の事実か担当を条件にします。
+
+- 機体の要素（`kind = "machine"`）は、ホストのファイルの `machine` にだけ書けます。ほかの要素の `requires` や `when` には書けません。
+- 機体の事実（`kind = "machine_fact"`）は、設定では用意できない機体の性質です。例: `x86_64_linux`、`nixos_system`（confgen が NixOS の設定を作る）、`rocm_compute`（ROCm で GPU の計算ができる）、`local_kvm`（KVM の仮想マシンを動かせる）。
+- 担当（`kind = "machine_role"`）は、どの機体に任せるかという人間の決定です。例: `keep_quaderno_archive`（Quaderno の PDF を取り込んで保管する）、`keep_x_posts`、`keep_windows_vm`、`remote_workspace`（プログラムのファイルとビルドをデスクトップに置く）、`company_isolated`（会社の機体として自宅への接続経路を持たない）。1台だけが持てる担当には `unique = True` を書きます。
+
+機体の事実と担当は、機体の要素の `requires` にだけ書けます。行動や道具の `requires` に書くと止まります。行動を選んだだけで「KVM を動かせる」が真になってしまうからです。
+
+機体によって変わる要素は、派生要素の `when` に行動と、事実か担当を書きます。
+
+```python
+# quaderno_pull_for_reading.star
+when = ["read_materials", "keep_quaderno_archive"]
+requires = ["quaderno_pull"]
+```
+
+新しい機体を足すときは、機体の要素の `requires` に、その機体の事実と担当を書くだけです。行動と派生要素は変えません。
+
+`needs` と `conflicts` は、判定が済んだ後の検査です。要素を有効にはしません。
+
+- `needs = [...]`: 要素が入る利用者について、挙げた事実か担当も入っていなければ止めます。例: `windows_vm.star` の `needs = ["nixos_system", "local_kvm", "keep_windows_vm"]` により、WSL で `use_windows` を選ぶと、足りない名前を示して止まります。
+- `conflicts = [...]`: 要素がホストに入るとき、挙げた要素がどの利用者についても入っていれば止めます。例: `company_isolated.star` は `machine_ssh`、`tailscale`、`remote_build`、`remote_workspace` を挙げます。
+
+機体の要素を持たないホスト（`tests/hosts/`）は、機体の事実と担当を `purposes` に書きます。
 
 ## ホストとユーザーの値
 
@@ -44,7 +69,7 @@ purposes = ["programming", "read_materials"]
 
 ## 要素を書く
 
-1つのファイルが1つの要素です。ファイル名が要素の名前です。書けるのは次の6つと、`_` で始まる補助の名前だけです。
+1つのファイルが1つの要素です。ファイル名が要素の名前です。書けるのは次の10個と、`_` で始まる補助の名前だけです。
 
 | 名前 | 中身 |
 |---|---|
@@ -54,6 +79,10 @@ purposes = ["programming", "read_materials"]
 | `def config(..., incoming)` | ホスト全体の設定。`{"nixos": {"option.path": 値}, "nixos_imports": [...]}` を返す。`incoming` は自分への書き込みの一覧（`w.source`、`w.value`） |
 | `def user_config(..., incoming)` | 利用者ごとの設定。要素が入る利用者ごとに呼ばれ、`{"home": {...}, "home_imports": [...], "nixos": {...}}` を返す。`nixos` には、その利用者だけの NixOS の設定（`("users", "users", user.name, "extraGroups")` など）を書く |
 | `when = [...]` | 派生要素の条件。同じ利用者について、挙げた要素がすべて入るときだけ、この要素が入る |
+| `needs = [...]` | この要素が入る利用者について、入っていなければならない機体の事実と担当。足りなければ止める |
+| `conflicts = [...]` | この要素と同じホストに入ってはいけない要素 |
+| `kind = "..."` | `"machine"`（機体の要素）、`"machine_fact"`（機体の事実）、`"machine_role"`（担当）。行動と道具には書かない |
+| `unique = True` | 担当のうち、1台の機体の要素だけが挙げられるもの |
 
 `config` は、利用者によって変わる値を読めません。利用者によって変わる値は、`user` と、`public` が利用者によって変わる値を読む要素の公開値です（`checkout.root` など）。`public` と `writes` は、利用者によって変わる値を読むと利用者ごとに呼ばれ、読まなければホストごとに1回呼ばれます。
 
@@ -99,6 +128,11 @@ Nix にしか作れない値は印で書きます。
 - 要素が入っているのに、`config` と `writes` が何も返さない（ホストごと）、`user_config` と `writes` が何も返さない（利用者ごと）。`return {}` や `return []` で設定を出さない書き方がこれにあたる
 - 利用者ごとに呼ばれる `writes` が、`user_config` を持たない要素に書き込む
 - ホストのファイルの先頭に `purposes` を書く、`[[users]]` に `purposes` を書かない
+- `machine` に `kind = "machine"` でない要素を書く、機体の要素を `requires` か `when` か `purposes` に書く
+- 機体の事実か担当を、機体の要素以外の `requires` に書く、機体の要素を持つホストの `purposes` に書く
+- 要素が入る利用者について、`needs` に挙げた要素が入っていない
+- ホストに入る要素どうしが `conflicts` に当たる
+- `unique = True` の担当を、2台以上のホストの機体の要素が挙げる
 
 ## 変更の範囲を見る
 

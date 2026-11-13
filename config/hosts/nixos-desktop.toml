@@ -19,9 +19,11 @@ minecraft_repo = "/mnt/backup/minecraft/repo"
 minecraft_remote = "gdrive:minecraft-backups"
 quaderno_archive = "/mnt/backup/quaderno"
 mimikopi_data_dir = "/home/pomu/.local/share/mimikopi"
+mimikopi_data_subvolume = "@mimikopi"
 mimikopi_hsa_override = "10.3.0"
 secrets = [{ secret = "xsaved_restic_password", path = ".config/xsaved/restic-password" }]
 windows_vm_domain = "win11"
+windows_vm_images_subvolume = "@vm"
 xsaved_proxy = { user = "pomu", name = "xsaved.localhost" }
 
 # デスクトップのスレッド数。デスクトップ自身の max-jobs もこの値になる。
@@ -35,10 +37,19 @@ supported_features = ["benchmark", "big-parallel", "kvm", "nixos-test"]
 [[users]]
 name = "pomu"
 purposes = [
-  "category_study",
-  "category_life",
-  "category_work",
-  "category_hobby",
+  "programming",
+  "grow_notes",
+  "read_materials",
+  "web_procedures",
+  "write_documents",
+  "work_ss",
+  "work_fr",
+  "communicate",
+  "draw",
+  "media",
+  "make_music",
+  "play_minecraft",
+  "use_windows",
   "personal_files",
   "user_packages",
   "agent_config",
@@ -56,6 +67,7 @@ initial_hashed_password = "$6$jQHubQo9MXPX15.x$LSWMJBiOQT75T/HOeMyKlFmWZjl.wTi7C
 
 [xsaved_users.pomu]
 data_dir = "/home/pomu/.local/share/xsaved"
+data_subvolume = "@xsaved"
 project_dir = "/home/pomu/.local/share/xsaved-app"
 database = "xsaved"
 hsa_override = "10.3.0"

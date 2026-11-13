@@ -265,7 +265,7 @@ def config(incoming):
 
 func TestEachUserGetsTheElementsItsOwnPurposesDerive(t *testing.T) {
 	elements := map[string]string{
-		"m":      `requires = ["base"]`,
+		"m":      "kind = \"machine\"\nrequires = [\"base\"]",
 		"base":   "def user_config(user):\n    return {\"home\": {\"who\": user.name}}",
 		"a":      `requires = ["only_a"]`,
 		"only_a": "def user_config():\n    return {\"home\": {\"a\": True}}",
@@ -335,7 +335,7 @@ def user_config(host, machines):
         "machine": "machine" in machines.all["h"],
     }}
 `,
-		"m": ``,
+		"m": `kind = "machine"`,
 	}
 	r := buildHosts(t, elements, map[string]string{"h": "machine = \"m\"\n" + one(`["p"]`)})["h"]
 	got := r.Users["test"].Elements["p"]["home"]
@@ -385,5 +385,140 @@ func TestRejectedForRulesAAndB(t *testing.T) {
 				t.Errorf("error %q does not mention %q", err, c.want)
 			}
 		})
+	}
+}
+
+// machineHost is a host file whose machine element is m and whose only user, test, selects purposes.
+func machineHost(m, purposes string) string {
+	return "machine = \"" + m + "\"\n" + one(purposes)
+}
+
+func TestMachineFactsAndRolesGateDerivedElementsWithoutNamingTheMachine(t *testing.T) {
+	elements := map[string]string{
+		"desk":          "kind = \"machine\"\nrequires = [\"keep_archive\"]",
+		"laptop":        `kind = "machine"`,
+		"keep_archive":  `kind = "machine_role"`,
+		"read":          ``,
+		"pull":          ``,
+		"pull_for_read": "when = [\"read\", \"keep_archive\"]\nrequires = [\"pull\"]",
+	}
+	r := buildHosts(t, elements, map[string]string{
+		"d": machineHost("desk", `["read"]`),
+		"l": machineHost("laptop", `["read"]`),
+	})
+	if got, want := r["d"].Generated, []string{"desk", "keep_archive", "pull", "pull_for_read", "read"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("desk: %v, want %v", got, want)
+	}
+	if got, want := r["l"].Generated, []string{"laptop", "read"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("laptop: %v, want %v", got, want)
+	}
+}
+
+func TestNeedsStopsTheBuildWithoutMakingTheFactTrue(t *testing.T) {
+	elements := map[string]string{
+		"desk":      "kind = \"machine\"\nrequires = [\"local_kvm\"]",
+		"wsl":       `kind = "machine"`,
+		"local_kvm": `kind = "machine_fact"`,
+		"use_vm":    `requires = ["vm"]`,
+		"vm":        `needs = ["local_kvm"]`,
+	}
+	dir := writeConfig(t, elements, map[string]string{
+		"d": machineHost("desk", `["use_vm"]`),
+		"w": machineHost("wsl", `["use_vm"]`),
+	})
+	if _, err := buildHost(dir, "d", "x86_64-linux"); err != nil {
+		t.Fatalf("desk: %v", err)
+	}
+	_, err := buildHost(dir, "w", "x86_64-linux")
+	if err == nil {
+		t.Fatal("wsl: build succeeded, want an error")
+	}
+	for _, want := range []string{"use_vm → vm", "needs local_kvm"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("error %q does not mention %q", err, want)
+		}
+	}
+}
+
+func TestConflictsStopTheBuildEvenAcrossUsers(t *testing.T) {
+	elements := map[string]string{
+		"wsl":      "kind = \"machine\"\nrequires = [\"isolated\"]",
+		"isolated": "kind = \"machine_role\"\nconflicts = [\"secrets\"]",
+		"notes":    `requires = ["secrets"]`,
+		"secrets":  ``,
+		"browse":   ``,
+	}
+	hosts := map[string]string{
+		"ok":  machineHost("wsl", `["browse"]`),
+		"bad": "machine = \"wsl\"\n[[users]]\nname = \"a\"\npurposes = [\"browse\"]\n[[users]]\nname = \"b\"\npurposes = [\"notes\"]\n",
+	}
+	dir := writeConfig(t, elements, hosts)
+	if _, err := buildHost(dir, "ok", "x86_64-linux"); err != nil {
+		t.Fatalf("ok: %v", err)
+	}
+	_, err := buildHost(dir, "bad", "x86_64-linux")
+	if err == nil || !strings.Contains(err.Error(), "conflicts with secrets (notes → secrets for user b)") {
+		t.Fatalf("bad: %v, want a conflict with secrets through notes", err)
+	}
+}
+
+func TestUniqueRoleOnTwoMachinesStopsEveryBuild(t *testing.T) {
+	elements := map[string]string{
+		"desk":         "kind = \"machine\"\nrequires = [\"keep_archive\"]",
+		"server":       "kind = \"machine\"\nrequires = [\"keep_archive\"]",
+		"keep_archive": "kind = \"machine_role\"\nunique = True",
+	}
+	dir := writeConfig(t, elements, map[string]string{
+		"d": machineHost("desk", `[]`),
+		"s": machineHost("server", `[]`),
+	})
+	_, err := buildHost(dir, "d", "x86_64-linux")
+	if err == nil || !strings.Contains(err.Error(), "hosts d, s") {
+		t.Fatalf("%v, want the unique role reported on hosts d and s", err)
+	}
+}
+
+func TestRejectedForMachineDescriptions(t *testing.T) {
+	cases := []struct {
+		name     string
+		elements map[string]string
+		host     string
+		want     string
+	}{
+		{"action requires a fact", map[string]string{
+			"p": `requires = ["kvm"]`, "kvm": `kind = "machine_fact"`}, one(`["p"]`), "describes the machine"},
+		{"when names the machine element", map[string]string{
+			"p": ``, "m": `kind = "machine"`, "d": `when = ["p", "m"]`}, one(`["p"]`), "names the machine element"},
+		{"machine key names an ordinary element", map[string]string{
+			"p": ``, "m": ``}, machineHost("m", `["p"]`), "kind = \"machine\""},
+		{"fact listed in purposes on a host with a machine", map[string]string{
+			"p": ``, "m": `kind = "machine"`, "kvm": `kind = "machine_fact"`}, machineHost("m", `["kvm"]`), "require it from the machine element"},
+		{"machine element listed in purposes", map[string]string{
+			"p": ``, "m": `kind = "machine"`}, one(`["m"]`), "write it as machine"},
+		{"unique on a fact", map[string]string{
+			"p": ``, "kvm": "kind = \"machine_fact\"\nunique = True"}, one(`["p"]`), "unique applies only"},
+		{"unknown kind", map[string]string{
+			"p": `kind = "action"`}, one(`["p"]`), "kind must be"},
+		{"unknown element in needs", map[string]string{
+			"p": `needs = ["kvm"]`}, one(`["p"]`), "needs or conflicts"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			_, err := buildHost(writeConfig(t, c.elements, map[string]string{"h": c.host}), "h", "x86_64-linux")
+			if err == nil || !strings.Contains(err.Error(), c.want) {
+				t.Errorf("error %v does not mention %q", err, c.want)
+			}
+		})
+	}
+}
+
+func TestHostWithoutMachineListsFactsInPurposes(t *testing.T) {
+	elements := map[string]string{
+		"kvm": `kind = "machine_fact"`,
+		"vm":  `needs = ["kvm"]`,
+	}
+	r := buildHosts(t, elements, map[string]string{"t": one(`["vm", "kvm"]`)})
+	if got, want := r["t"].Generated, []string{"kvm", "vm"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("%v, want %v", got, want)
 	}
 }

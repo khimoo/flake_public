@@ -1,5 +1,5 @@
 # 行動: 資料を読んで覚える（PDF、電子書籍、手書きのノート、Quaderno への送信、Anki、SNS を塞いで集中する）。
-requires = ["quaderno_send", "sns_block"]
+requires = ["quaderno_send", "sns_block", "task_management"]
 
 def writes(gui_apps):
     # Obsidian は memex が git / claude を含むラッパーを入れるため、素のパッケージを重ねない。

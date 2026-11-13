@@ -1,5 +1,4 @@
-# 機体は x86_64 の Linux であることだけを表す。RustOwl は x86_64 の Linux の機体でだけ入る。
-machine = "x86_64_linux"
+# 機体の要素を持たないテスト用のホストなので、機体の事実 x86_64_linux を purposes に書く。RustOwl は x86_64 の Linux の機体でだけ入る。
 [[users]]
 name = "pomu"
-purposes = ["daily_editing"]
+purposes = ["daily_editing", "x86_64_linux"]

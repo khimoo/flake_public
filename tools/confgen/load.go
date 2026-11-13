@@ -28,10 +28,25 @@ type element struct {
 	src      []byte
 	requires []string
 	when     []string
-	funcs    map[string]*funcInfo
+	// needs and conflicts are checked after the judgments and never make an element true:
+	// a fact the machine lacks must stop the build, not be supplied by the element asking.
+	needs     []string
+	conflicts []string
+	kind      string // "", kindMachine, kindFact or kindRole
+	unique    bool   // a role that at most one host's machine element may provide
+	funcs     map[string]*funcInfo
 }
 
+const (
+	kindMachine = "machine"
+	kindFact    = "machine_fact"
+	kindRole    = "machine_role"
+)
+
 func (e *element) derived() bool { return len(e.when) > 0 }
+
+// declaresMachine reports whether the element describes the machine rather than what a user does.
+func (e *element) declaresMachine() bool { return e.kind != "" }
 
 // refs returns every element this element references (E = R ∪ W ∪ U).
 func (e *element) refs() []string {
@@ -61,7 +76,8 @@ const (
 )
 
 var elementFuncs = map[string]bool{"public": true, "writes": true, "config": true, "user_config": true}
-var elementLists = map[string]bool{"requires": true, "when": true}
+var elementLists = map[string]bool{"requires": true, "when": true, "needs": true, "conflicts": true}
+var elementKinds = map[string]bool{kindMachine: true, kindFact: true, kindRole: true}
 var identRe = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
 
 func predeclaredNames() map[string]bool {
@@ -143,14 +159,30 @@ func parseElement(file string) (*element, error) {
 				if !ok {
 					return nil, fmt.Errorf("%s: %s must be a list of string literals", id.NamePos, id.Name)
 				}
-				if id.Name == "requires" {
+				switch id.Name {
+				case "requires":
 					e.requires = list
-				} else {
+				case "when":
 					e.when = list
+				case "needs":
+					e.needs = list
+				case "conflicts":
+					e.conflicts = list
 				}
+			case id.Name == "kind":
+				lit, ok := s.RHS.(*syntax.Literal)
+				if !ok || lit.Token != syntax.STRING || !elementKinds[lit.Value.(string)] {
+					return nil, fmt.Errorf("%s: kind must be %q, %q or %q", id.NamePos, kindMachine, kindFact, kindRole)
+				}
+				e.kind = lit.Value.(string)
+			case id.Name == "unique":
+				if b, ok := s.RHS.(*syntax.Ident); !ok || b.Name != "True" {
+					return nil, fmt.Errorf("%s: unique must be True", id.NamePos)
+				}
+				e.unique = true
 			case strings.HasPrefix(id.Name, "_"):
 			default:
-				return nil, fmt.Errorf("%s: top-level name %q is not allowed (use requires, when or a name starting with _)", id.NamePos, id.Name)
+				return nil, fmt.Errorf("%s: top-level name %q is not allowed (use requires, when, needs, conflicts, kind, unique or a name starting with _)", id.NamePos, id.Name)
 			}
 		case *syntax.ExprStmt:
 			if _, ok := s.X.(*syntax.Literal); !ok {
@@ -161,6 +193,12 @@ func parseElement(file string) (*element, error) {
 			start, _ := stmt.Span()
 			return nil, fmt.Errorf("%s: this statement is not allowed at top level", start)
 		}
+	}
+	if e.unique && e.kind != kindRole {
+		return nil, fmt.Errorf("%s: unique applies only to kind = %q", file, kindRole)
+	}
+	if e.declaresMachine() && (len(e.when) > 0 || len(e.needs) > 0) {
+		return nil, fmt.Errorf("%s: an element with kind = %q describes the machine and takes no when or needs", file, e.kind)
 	}
 	if len(e.when) > 0 {
 		if len(e.when) < 2 || len(uniq(e.when)) != len(e.when) {
@@ -378,12 +416,50 @@ func checkGraph(elems map[string]*element) error {
 			if t.derived() {
 				return fmt.Errorf("%s: %q is a derived element and must not be referenced", e.file, r)
 			}
-		}
-		for _, w := range e.when {
-			if _, ok := elems[w]; !ok {
-				return fmt.Errorf("%s: unknown element %q in when", e.file, w)
+			if t.kind == kindMachine {
+				return fmt.Errorf("%s: %q is a machine element; only the machine key of a host file selects it", e.file, r)
+			}
+			// An action that requires a fact would make the fact true wherever the action is chosen.
+			if t.declaresMachine() && !e.declaresMachine() {
+				return fmt.Errorf("%s: %q describes the machine; only machine elements and other machine facts or roles may require it. Name it in when or needs instead", e.file, r)
 			}
 		}
+		for _, w := range e.when {
+			t, ok := elems[w]
+			if !ok {
+				return fmt.Errorf("%s: unknown element %q in when", e.file, w)
+			}
+			// A machine name in when ties the element to one host; name the fact or role that makes it work.
+			if t.kind == kindMachine {
+				return fmt.Errorf("%s: when names the machine element %q; name a machine fact or role that the machine element requires", e.file, w)
+			}
+		}
+		for _, n := range append(append([]string{}, e.needs...), e.conflicts...) {
+			t, ok := elems[n]
+			if !ok {
+				return fmt.Errorf("%s: unknown element %q in needs or conflicts", e.file, n)
+			}
+			if t.virtual {
+				return fmt.Errorf("%s: %q is provided by confgen and cannot be in needs or conflicts", e.file, n)
+			}
+		}
+	}
+	return nil
+}
+
+// selectablePurpose checks one name in a user's purposes. A host with a machine element gets
+// the machine's facts and roles from that element; only hosts without one (the hosts under
+// tests/) list them in purposes.
+func selectablePurpose(file string, elems map[string]*element, name string, hasMachine bool) error {
+	if err := selectable(file, elems, name); err != nil {
+		return err
+	}
+	e := elems[name]
+	if e.kind == kindMachine {
+		return fmt.Errorf("%s: %q is a machine element; write it as machine = %q", file, name, name)
+	}
+	if e.declaresMachine() && hasMachine {
+		return fmt.Errorf("%s: %q describes the machine; require it from the machine element instead of listing it in purposes", file, name)
 	}
 	return nil
 }
@@ -428,6 +504,9 @@ func loadHost(file string, elems map[string]*element) (*hostSpec, error) {
 		if err := selectable(file, elems, string(name)); err != nil {
 			return nil, err
 		}
+		if elems[string(name)].kind != kindMachine {
+			return nil, fmt.Errorf("%s: machine must name an element with kind = %q, but %q has none", file, kindMachine, string(name))
+		}
 		spec.machine = string(name)
 		delete(values, "machine")
 	}
@@ -462,7 +541,7 @@ func loadHost(file string, elems map[string]*element) (*hostSpec, error) {
 					if !ok {
 						return nil, fmt.Errorf("%s: purposes must be a list of element names", file)
 					}
-					if err := selectable(file, elems, string(name)); err != nil {
+					if err := selectablePurpose(file, elems, string(name), spec.machine != ""); err != nil {
 						return nil, err
 					}
 					u.purposes = append(u.purposes, string(name))

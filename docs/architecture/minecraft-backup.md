@@ -74,7 +74,7 @@ Drive の一覧が取れなければ、その旨を出して 0 で返す。
 `/mnt/backup` は nixos-desktop にしかない。
 インスタンスの場所は PrismLauncher が決める `~/.local/share/PrismLauncher/instances` を使う。
 
-`/mnt/backup` は root のものなので、`machine_nixos_desktop` の tmpfiles が `minecraft_repo` の親を primaryUser のものとして作る。
+`/mnt/backup` は root のものなので、`minecraft_backup` の `user_config` が tmpfiles で `minecraft_repo` の親を、`play_minecraft` を選んだ利用者のものとして作る。
 `/mnt/backup` の直下は、用途ごとに所有者を分けられるよう root のまま残す。
 tmpfiles は `local-fs.target` の後に実行されるので、マウント前のルートにディレクトリができてマウントに隠されることはない。
 

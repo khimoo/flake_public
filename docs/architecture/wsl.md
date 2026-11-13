@@ -55,7 +55,7 @@ NixOS-WSL は既定で `wheel` のユーザーにパスワードなしの `sudo`
 ## Home Manager の個人設定を読まない
 
 `nixos` ユーザーは `config/users/pomu.toml` の値を受け取らない。`khimoo` の Git の identity、Gemini の秘密、`antigravity-cli`、agents-private の設定は入らない。
-利用者の行動も [ホストの TOML](../../config/hosts/nixos-work-wsl.toml) で選ぶ。機体の要素の `requires` には GUI として `gui` だけを挙げ、GNOME や fcitx5 は入れない。
+利用者の行動も [ホストの TOML](../../config/hosts/nixos-work-wsl.toml) で選ぶ。機体の要素の `requires` には GUI として `gui` だけを挙げ、GNOME や fcitx5 は入れない。担当として、配布されたバイナリを直接動かす `downloaded_dev_binaries`（`programming` とそろうと nix-ld が入る）と、自宅への接続経路を持たない `company_isolated` を挙げる。`company_isolated.star` の `conflicts` に `machine_ssh`、`tailscale`、`remote_build`、`remote_workspace` を挙げてあり、行動の選び方でどれかが WSL に入ると confgen が止める。
 `flake_root` は既定の `~/sagyo/flake_public` のまま。Neovim の設定がこのパスへの symlink なので、WSL でも同じ場所に clone する。
 
 ## GUI アプリを WSLg で表示する

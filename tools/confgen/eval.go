@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -51,6 +52,86 @@ func derive(elems map[string]*element, axioms map[string]string) map[string]reas
 		}
 	}
 	return g
+}
+
+// chain names the elements from an axiom down to name, following the first antecedent of each rule.
+func chain(g map[string]reason, name string) string {
+	path := []string{name}
+	for r := g[name]; r.Axiom == "" && len(r.From) > 0; r = g[r.From[0]] {
+		path = append([]string{r.From[0]}, path...)
+	}
+	return strings.Join(path, " → ")
+}
+
+// checkNeeds stops the build when an element is true for a user but a fact or role it needs is not.
+func checkNeeds(host string, spec *hostSpec, judgments map[string]map[string]reason, elems map[string]*element) error {
+	for _, u := range spec.users {
+		g := judgments[u.name]
+		for _, name := range sortedKeys(g) {
+			var missing []string
+			for _, n := range elems[name].needs {
+				if _, ok := g[n]; !ok {
+					missing = append(missing, n)
+				}
+			}
+			if len(missing) > 0 {
+				return fmt.Errorf("%s: %s is true for user %s on host %s (%s) but needs %s, which is not true for the user; choose this on a machine whose machine element requires them", elems[name].file, name, u.name, host, chain(g, name), strings.Join(missing, ", "))
+			}
+		}
+	}
+	return nil
+}
+
+// checkConflicts stops the build when an element and an element it conflicts with are both
+// on the host, for the same user or for different users.
+func checkConflicts(host string, spec *hostSpec, judgments map[string]map[string]reason, elems map[string]*element) error {
+	for _, u := range spec.users {
+		for _, name := range sortedKeys(judgments[u.name]) {
+			for _, c := range elems[name].conflicts {
+				for _, v := range spec.users {
+					if _, ok := judgments[v.name][c]; ok {
+						return fmt.Errorf("%s: %s is true on host %s (%s for user %s) and conflicts with %s (%s for user %s)", elems[name].file, name, host, chain(judgments[u.name], name), u.name, c, chain(judgments[v.name], c), v.name)
+					}
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// checkUniqueRoles stops the build when the machine elements of two hosts provide a role that
+// only one host may hold, such as the machine that collects the Quaderno archive.
+func checkUniqueRoles(dir string, elems map[string]*element) error {
+	files, err := filepath.Glob(filepath.Join(dir, "hosts", "*.toml"))
+	if err != nil {
+		return err
+	}
+	holders := map[string][]string{}
+	for _, file := range files {
+		values, err := loadTOML(file)
+		if err != nil {
+			return err
+		}
+		m, ok := values["machine"].(starlark.String)
+		if !ok {
+			continue
+		}
+		if e, ok := elems[string(m)]; !ok || e.kind != kindMachine {
+			continue // loadHost reports this host's machine key when the host is built
+		}
+		for name := range derive(elems, map[string]string{string(m): "machine"}) {
+			if elems[name].unique {
+				holders[name] = append(holders[name], strings.TrimSuffix(filepath.Base(file), ".toml"))
+			}
+		}
+	}
+	for _, name := range sortedKeys(holders) {
+		if hosts := holders[name]; len(hosts) > 1 {
+			sort.Strings(hosts)
+			return fmt.Errorf("%s: unique role %s is provided by the machine elements of hosts %s; only one host may hold it", elems[name].file, name, strings.Join(hosts, ", "))
+		}
+	}
+	return nil
 }
 
 func allIn[V any](xs []string, set map[string]V) bool {
@@ -406,6 +487,12 @@ func evaluateHost(host, system string, spec *hostSpec, userFiles map[string]star
 		for n := range judgments[u.name] {
 			all[n] = true
 		}
+	}
+	if err := checkNeeds(host, spec, judgments, elems); err != nil {
+		return nil, err
+	}
+	if err := checkConflicts(host, spec, judgments, elems); err != nil {
+		return nil, err
 	}
 
 	thread := &starlark.Thread{Name: host, Print: func(*starlark.Thread, string) {}}

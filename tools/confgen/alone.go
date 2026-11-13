@@ -52,6 +52,11 @@ func alone(dir string) ([]string, error) {
 			if checked[name] || e.virtual || e.derived() {
 				continue
 			}
+			if e.declaresMachine() {
+				// Machine elements, facts and roles come from the machine key, not from purposes.
+				checked[name] = true
+				continue
+			}
 			checked[name] = true
 			first := spec.users[0]
 			first.purposes = []string{name}

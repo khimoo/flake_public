@@ -1,7 +1,7 @@
 # ディスク階層構成
 
 nixos-desktop では NVMe（`/`、`/nix/store`、`~/sagyo`）と SATA SSD を使い分け、高速アクセスを必要としないデータを SATA ドライブ上の btrfs サブボリューム（subvol）に配置しています。
-各 subvol のマウント先は [machine_nixos_desktop.star](../../config/elements/machine_nixos_desktop.star) 内の `mounts` で定義されており、それぞれの最終パスへ直接マウントされます（`~/ダウンロード`、`~/Games`、`/var/lib/libvirt/images`、`/mnt/backup` など）。
+ホームのディレクトリと `@backup` の subvol のマウント先は [machine_nixos_desktop.star](../../config/elements/machine_nixos_desktop.star) 内の `mounts` で定義されており、それぞれの最終パスへ直接マウントされます（`~/ダウンロード`、`~/Games`、`/mnt/backup` など）。`@vm`、`@mimikopi`、`@xsaved` は、使う要素（[windows_vm.star](../../config/elements/windows_vm.star)、[mimikopi.star](../../config/elements/mimikopi.star)、[xsaved.star](../../config/elements/xsaved.star)）が、ホストのファイルの `windows_vm_images_subvolume`、`mimikopi_data_subvolume`、`xsaved_users` の `data_subvolume` からマウントします。
 
 設計ドキュメント: [ディスク階層構成の設計](../architecture/disk-tiering.md)
 

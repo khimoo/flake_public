@@ -80,6 +80,9 @@ func buildHost(dir, host, system string) (*hostResult, error) {
 	if err != nil {
 		return nil, err
 	}
+	if err := checkUniqueRoles(dir, elems); err != nil {
+		return nil, err
+	}
 	spec, err := loadHost(filepath.Join(dir, "hosts", host+".toml"), elems)
 	if err != nil {
 		return nil, err
@@ -155,7 +158,7 @@ func explain(dir, host, system, name string) error {
 	if !ok {
 		return fmt.Errorf("unknown element %q", name)
 	}
-	var readBy, writtenBy, conditionOf, requiredBy []string
+	var readBy, writtenBy, conditionOf, requiredBy, neededBy []string
 	for _, other := range sortedElems(elems) {
 		for _, f := range other.funcs {
 			if f.reads[name] {
@@ -175,6 +178,11 @@ func explain(dir, host, system, name string) error {
 				requiredBy = append(requiredBy, other.name)
 			}
 		}
+		for _, q := range other.needs {
+			if q == name {
+				neededBy = append(neededBy, other.name)
+			}
+		}
 	}
 	generated := false
 	for _, g := range r.Generated {
@@ -186,6 +194,9 @@ func explain(dir, host, system, name string) error {
 	fmt.Printf("  written by:     %s\n", strings.Join(uniq(writtenBy), ", "))
 	fmt.Printf("  required by:    %s\n", strings.Join(requiredBy, ", "))
 	fmt.Printf("  condition of:   %s\n", strings.Join(conditionOf, ", "))
+	fmt.Printf("  needed by:      %s\n", strings.Join(neededBy, ", "))
+	fmt.Printf("  needs:          %s\n", strings.Join(e.needs, ", "))
+	fmt.Printf("  conflicts with: %s\n", strings.Join(e.conflicts, ", "))
 	if g, ok := r.Graph[name]; ok {
 		fmt.Printf("  writes to:      %s\n", strings.Join(g.Writes, ", "))
 		fmt.Printf("  sets options:   %s\n", strings.Join(g.Options, ", "))

@@ -7,4 +7,4 @@ project_dir = "/home/test/xsaved"
 
 [[users]]
 name = "test"
-purposes = ["xsaved"]
+purposes = ["xsaved", "keep_x_posts"]

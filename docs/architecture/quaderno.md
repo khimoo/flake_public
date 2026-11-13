@@ -78,12 +78,12 @@ Quaderno はスリープすると Wi-Fi ごと消え、起きている短い間�
 
 ## 取り込みと送信を別の要素にする
 
-desktop の電源を切って spin713 だけで出かけたときにも送れるよう、spin713 でも送信を動かす。取り込みは 1 台に限るので、取り込み（`quaderno_pull`）と送信（`quaderno_send`）を別の要素に分ける。`quaderno_send` は行動 `read_materials` の `requires` から、`quaderno_pull` は派生要素 `read_materials_on_desktop`（`when = ["read_materials", "machine_nixos_desktop"]`）の `requires` から入る。
+desktop の電源を切って spin713 だけで出かけたときにも送れるよう、spin713 でも送信を動かす。取り込みは 1 台に限るので、取り込み（`quaderno_pull`）と送信（`quaderno_send`）を別の要素に分ける。`quaderno_send` は行動 `read_materials` の `requires` から、`quaderno_pull` は派生要素 `quaderno_pull_for_reading`（`when = ["read_materials", "keep_quaderno_archive"]`）の `requires` から入る。取り込む機体は、機体の要素の `requires` に担当 `keep_quaderno_archive` を挙げて決める。`keep_quaderno_archive` は `unique = True` なので、2台が挙げると confgen が止める。
 探索と systemd の timer は `quaderno` の要素が 1 つだけ持ち、二つの要素は `quaderno` へ設定を書き込む。両方が入る desktop でも、探すのは 1 分に 1 回で、見つかったら取り込みの後に送信する。
 
 ## 取り込み先は SATA の `@backup` にし、vault には置かない
 
-`quaderno_archive` は `/mnt/backup/quaderno` で、ディレクトリは `machine_nixos_desktop` の tmpfiles が作る。`minecraft-backup` と同じく、置き場所と書き込み権限はホストが用意し、モジュールは受け取るだけにする。
+`quaderno_archive` は `/mnt/backup/quaderno` で、ディレクトリは `quaderno_pull` の `user_config` が tmpfiles で作る。`minecraft-backup` と同じく、置き場所と書き込み権限はホストが用意し、モジュールは受け取るだけにする。
 PDF は増え続ける一方で読むのは時々なので SATA に置く（最初の 62 件で 428 MiB、[disk-tiering.md](./disk-tiering.md)）。
 `~/sagyo/memex`（vault の clone）には置かない。obsidian-git が 2 台で同期しているので、数百 MiB の PDF を持ち込むと同期の対象が膨らむ。
 

@@ -1,4 +1,5 @@
-requires = ["x86_64_linux", "machine_base", "systemd_boot", "network_manager", "machine_ssh", "tailscale", "pipewire", "gui", "gnome", "japanese_input", "desktop", "printing", "bluetooth", "call_audio", "twindesk"]
+kind = "machine"
+requires = ["x86_64_linux", "nixos_system", "rocm_compute", "local_kvm", "keep_quaderno_archive", "keep_x_posts", "keep_windows_vm", "machine_base", "systemd_boot", "network_manager", "machine_ssh", "tailscale", "pipewire", "gui", "gnome", "japanese_input", "desktop", "printing", "bluetooth", "call_audio", "twindesk"]
 
 def config(host, tailscale):
     primary = host.users[0]["name"]
@@ -9,10 +10,6 @@ def config(host, tailscale):
         mounts.append(("@" + subvol, home + "/" + directory, data_opts))
     mounts.extend([
         ("@backup", host.backup_dir, data_opts),
-        ("@vm", "/var/lib/libvirt/images", ["noatime"]),
-        # 手で subvol を作る前でも起動できるよう nofail にする。書き込み前の mount 確認は各アプリが行う。
-        ("@mimikopi", host.mimikopi_data_dir, data_opts + ["nofail"]),
-        ("@xsaved", host.xsaved_users[primary]["data_dir"], data_opts + ["nofail"]),
     ])
     nixos = {
         "boot.kernelParams": ["btusb.enable_autosuspend=n"],
@@ -27,7 +24,6 @@ def config(host, tailscale):
         # Steam の 32bit のゲームの音のため。pipewire 要素に置くと、ゲームをしない spin713 にも 32bit 版の PipeWire が入る。
         "services.pipewire.alsa.support32Bit": True,
         "fileSystems": {path: {"device": host.data_device, "fsType": "btrfs", "options": ["subvol=" + subvol] + opts} for subvol, path, opts in mounts},
-        "systemd.tmpfiles.rules": ["d " + host.backup_dir + "/" + app + " 0755 " + primary + " users -" for app in ["minecraft", "quaderno"]],
         "boot.supportedFilesystems": ["btrfs"],
         "environment.systemPackages": [pkg("btrfs-progs")],
         "services.keyd": {"enable": True, "keyboards": {"default": {

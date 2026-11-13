@@ -6,6 +6,8 @@ def _database(value):
         fail("xsaved: invalid database identifier")
     return value
 
+needs = ["keep_x_posts"]
+
 def _settings(host):
     return {
         "users": host.xsaved_users,
@@ -26,20 +28,11 @@ def config(host):
     databases = [_database(v.get("database", "xsaved")) for v in xsaved.users.values()]
     if len(databases) != len({name: True for name in databases}):
         fail("xsaved: database names must be unique per user")
-    setup = ""
-    for owner, values in xsaved.users.items():
-        database = _database(values.get("database", "xsaved"))
-        setup += "psql -tAc " + _quote('ALTER DATABASE "' + database + '" OWNER TO "' + owner.replace('"', '""') + '"') + "\n"
-        setup += "psql -d " + _quote(database) + " -tAc 'CREATE EXTENSION IF NOT EXISTS vector; CREATE EXTENSION IF NOT EXISTS pgroonga'\n"
     nixos = {
         "services.postgresql.enable": True,
         "services.postgresql.package": xsaved.postgresql,
         "services.postgresql.extensions": pkgSetFn(["pgvector", "pgroonga"]),
-        "services.postgresql.ensureDatabases": databases,
-        "services.postgresql.ensureUsers": [{"name": owner} for owner in xsaved.users],
         "systemd.tmpfiles.rules": ["f " + xsaved.gpu_lock + " 0644 root root -"],
-        # 所有者では拡張を作れないので、DB とロールの作成後に superuser で流す。
-        "systemd.services.postgresql-setup.script": mkAfter(setup),
     }
     proxy = getattr(host, "xsaved_proxy", None)
     if proxy != None:
@@ -149,4 +142,17 @@ def user_config(host, user, failure_notify):
             "Timer": {"OnCalendar": "*-*-* 06:00:00", "Persistent": True},
             "Install": {"WantedBy": ["timers.target"]},
         }
-    return {"home": home, "home_imports": [repoModule("modules/home-manager/xsaved/nixos-only.nix")]}
+    owner = user.name.replace('"', '""')
+    nixos = {
+        "services.postgresql.ensureDatabases": [database],
+        "services.postgresql.ensureUsers": [{"name": user.name}],
+        # 所有者では拡張を作れないので、DB とロールの作成後に superuser で流す。
+        "systemd.services.postgresql-setup.script": mkAfter(
+            "psql -tAc " + _quote('ALTER DATABASE "' + database + '" OWNER TO "' + owner + '"') + "\n" +
+            "psql -d " + _quote(database) + " -tAc 'CREATE EXTENSION IF NOT EXISTS vector; CREATE EXTENSION IF NOT EXISTS pgroonga'\n"),
+    }
+    subvolume = values.get("data_subvolume", None)
+    if subvolume != None:
+        # 手で subvol を作る前でも起動できるよう nofail にする。書き込み前の mount 確認は xsaved が行う（check_mount）。
+        nixos[("fileSystems", data)] = {"device": host.data_device, "fsType": "btrfs", "options": ["subvol=" + subvolume, "noatime", "compress=zstd", "nofail"]}
+    return {"home": home, "home_imports": [repoModule("modules/home-manager/xsaved/nixos-only.nix")], "nixos": nixos}

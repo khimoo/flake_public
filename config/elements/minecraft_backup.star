@@ -1,4 +1,5 @@
 def user_config(user, host, failure_notify):
+    repo_parent = host.minecraft_repo.rsplit("/", 1)[0]
     env = {
         "MC_INSTANCES": user.home + "/.local/share/PrismLauncher/instances",
         "MC_REPO": host.minecraft_repo,
@@ -12,7 +13,7 @@ def user_config(user, host, failure_notify):
             concat(repoText("modules/home-manager/minecraft-common.sh"), repoText("modules/home-manager/minecraft-" + name + ".sh")))
     setup = shellAppEnv("mc-setup-hooks", [pkg(p) for p in ["procps", "coreutils", "gnugrep", "gawk"]],
         {"MC_PRISM_CFG": user.home + "/.local/share/PrismLauncher/prismlauncher.cfg"}, repoText("modules/home-manager/minecraft-setup-hooks.sh"))
-    return {"home": {
+    return {"nixos": {"systemd.tmpfiles.rules": ["d " + repo_parent + " 0755 " + user.name + " users -"]}, "home": {
         "home.packages": commands.values() + [setup],
         "systemd.user.services.mc-sync": {
             "Unit": {"Description": "Minecraft バックアップの刈り込みと Drive への同期", "OnFailure": failure_notify.on_failure},

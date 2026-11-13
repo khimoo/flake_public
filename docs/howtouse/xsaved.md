@@ -4,7 +4,7 @@ X で「いいね」またはブックマークしたポストを、本文・画
 ツール本体には、プライベートリポジトリ [khimoo/xsaved](https://github.com/khimoo/xsaved) の本番用チェックアウト（`~/.local/share/xsaved-app`）を使用します。開発用チェックアウトは `~/sagyo/xsaved` に配置します。利用可能なコマンド一覧はリポジトリ本体の README を参照してください。
 nixos-desktop の pomu 環境では、開発用チェックアウトのみが `clone-repos` の対象です。本番用チェックアウトの作成・更新手順は「[本番用チェックアウトの更新](#本番用チェックアウトの更新)」を、新規環境のセットアップ手順は [SSH 鍵の配布と private repo の clone](private-repo-clone.md) を、保存済みポストとデータベースの復元方法は「[バックアップ](#バックアップ)」をそれぞれ参照してください。
 
-設定箇所は [nixos-desktop.toml](../../config/hosts/nixos-desktop.toml) の `xsaved_users` です。値を指定した利用者が `[[users]]` の `purposes` で分類 `category_study` を選ぶと、分類の `requires` の `xsaved` が有効になります。値のない利用者が `category_study` を選ぶとエラーになります。無効にするには、利用者の `purposes` から `category_study` を外すか、`category_study.star` の `requires` から `xsaved` を外します。
+設定箇所は [nixos-desktop.toml](../../config/hosts/nixos-desktop.toml) の `xsaved_users` です。値を指定した利用者が `[[users]]` の `purposes` で `grow_notes` か `programming` を選ぶと、どちらも `requires` に挙げる `x_posts` と、機体の要素 `machine_nixos_desktop.star` の `requires` にある担当 `keep_x_posts` がそろい、派生要素 `xsaved_for_reference` の `requires` の `xsaved` が有効になります。`keep_x_posts` を持たない機体では、`grow_notes` や `programming` を選んでも xsaved は入りません。値のない利用者について xsaved が有効になるとエラーになります。無効にするには、`machine_nixos_desktop.star` の `requires` から `keep_x_posts` を外します。
 
 設計ドキュメント: [X のいいねとブックマークの保存の設計](../architecture/xsaved.md)
 

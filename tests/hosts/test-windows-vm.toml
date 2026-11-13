@@ -4,4 +4,4 @@ windows_vm_domain = "win11"
 
 [[users]]
 name = "test"
-purposes = ["windows_vm", "gui"]
+purposes = ["windows_vm", "gui", "nixos_system", "local_kvm", "keep_windows_vm"]

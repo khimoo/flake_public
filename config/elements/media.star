@@ -1,4 +1,5 @@
 # 行動: 動画、音楽、写真を見る・聞く・録る。
+requires = ["temp_storage"]
 def writes(gui_apps):
     return [write(gui_apps, app) for app in [
         {"pkg": pkg("vlc")},
