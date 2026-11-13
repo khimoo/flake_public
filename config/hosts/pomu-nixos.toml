@@ -7,7 +7,7 @@ machine = "machine_pomu_nixos"
 name = "pomu"
 purposes = [
   "programming",
-  "browse_web",
+  "web_procedures",
   "work_ss",
   "work_fr",
   "communicate",

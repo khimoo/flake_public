@@ -17,10 +17,12 @@ machine = "machine_nixos_spin713"
 
 [[users]]
 name = "pomu"
-purposes = ["programming", "study"]
+purposes = ["programming", "read_materials"]
 ```
 
 行動を外すと、その利用者について、その行動からしか導けない要素と、その行動を条件に持つ派生要素が外れます。外れた要素の Home Manager の設定はその利用者から消えます。ほかの利用者について入っている要素の NixOS の設定は残ります。
+
+`category_` で始まる要素は分類（勉強、生活管理、趣味、仕事）です。分類は、配下の行動と、分類の行動に共通の道具を `requires` に挙げます。`purposes` に分類を書くと、配下の行動がすべて入ります。分類の一部の行動だけが要る利用者は、行動を個別に書きます。分類の `requires` に直接書いた道具（`task_management` など）は、行動を個別に書く利用者には入りません。
 
 `purposes = []` の利用者には、機体から導ける要素だけが入ります。`purposes` は利用者ごとに必ず書きます。
 

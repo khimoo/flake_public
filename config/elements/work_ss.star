@@ -1,2 +1,2 @@
-# 行動（仕事）: ss の仕事の連絡（Teams の複数アカウント）。
-requires = ["category_work", "teams_dispatcher"]
+# 行動: ss の仕事（Teams の複数アカウント）。
+requires = ["web_browsing", "teams_dispatcher"]

@@ -3,7 +3,7 @@
 既定ブラウザとリンクの振り分け: [デフォルトアプリ](../architecture/default-apps.md)
 実装: [browser_common.star](../../config/elements/browser_common.star) / [firefox.star](../../config/elements/firefox.star) / [zen_browser.star](../../config/elements/zen_browser.star) / [brave.star](../../config/elements/brave.star) / [google_chrome.star](../../config/elements/google_chrome.star)
 
-`[[users]]` の `purposes` で行動 `browse_web` を選んだ利用者には、`requires` の `web_browsing` を通じて、Firefox、Zen、Brave、Google Chrome が入ります。Firefox と Zen は拡張機能の一覧と pref を Nix で宣言し、履歴などの使いながら増えるデータは同期サービスに任せます（分担は「設計」の節）。Brave には Bitwarden と floccus だけを宣言で入れ（「Brave」の節）、Chrome はパッケージを入れるだけです（「Google Chrome」の節）。無効にするには利用者の `purposes` から `browse_web` を外します。
+`requires` に `web_browsing` を挙げる行動（`programming`、`grow_notes`、`web_procedures`、`write_documents`、`work_ss`、`work_fr`）を選んだ利用者には、`web_browsing` を通じて、Firefox、Zen、Brave、Google Chrome が入ります。Firefox と Zen は拡張機能の一覧と pref を Nix で宣言し、履歴などの使いながら増えるデータは同期サービスに任せます（分担は「設計」の節）。Brave には Bitwarden と floccus だけを宣言で入れ（「Brave」の節）、Chrome はパッケージを入れるだけです（「Google Chrome」の節）。無効にするには、`web_browsing` を `requires` に挙げる行動をすべて、利用者の `purposes` から外します。
 
 ## 拡張機能を足す・外す
 

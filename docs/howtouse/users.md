@@ -9,7 +9,7 @@
 ```toml
 [[users]]
 name = "alice"
-purposes = ["browse_web"]
+purposes = ["web_procedures"]
 admin = true
 ```
 
@@ -52,7 +52,7 @@ lan_ssh = false
 
 GUI の `gui`、`gnome`、`japanese_input` は機体の要素の `requires` で選び、音楽アプリは利用者の `purposes` に `make_music` を指定します。`gnome` と `japanese_input` は `gui` を自動で含めます。詳細は [confgen](confgen.md) と [GUI アプリ](gui-apps.md) を参照してください。
 
-音楽制作は `make_music` を選んだ利用者に audio グループを付与します。VM の利用者は自身の `purposes` に `use_windows` を指定します（[Windows VM](windows-vm.md)）。
+音楽制作は `make_music` を選んだ利用者に audio グループを付与します。VM の利用者は、`requires` に `windows_vm` を挙げる分類（`category_work`、`category_life`）を自身の `purposes` で選びます（[Windows VM](windows-vm.md)）。
 
 ## 管理者の権限と反映
 

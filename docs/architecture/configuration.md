@@ -27,7 +27,7 @@ checkout の場所はホームからの相対パス `flake_root` とし、`check
 
 [music_production.star](../../config/elements/music_production.star) は musnix・JACK・低レイテンシー設定と音楽アプリを選び、行動 `make_music` を選んだ利用者を audio グループに入れる。`call_audio` とともに `pipewire` を依存に含める。musnix の import も音楽制作を選んだホストだけに入る。
 
-[windows_vm.star](../../config/elements/windows_vm.star) は libvirt・OVMF とネットワークの自動起動を設定し、行動 `use_windows` を選んだ利用者を libvirtd グループに入れる。GUI もあるホストでは、派生要素 `windows_vm_gui` が `windows_vm_domain` の VM を開くランチャーを作る。GUI が無ければ `windows_vm_domain` は使われない。
+[windows_vm.star](../../config/elements/windows_vm.star) は libvirt・OVMF とネットワークの自動起動を設定し、`windows_vm` が入る利用者（分類 `category_work` か `category_life` を選んだ利用者）を libvirtd グループに入れる。GUI もあるホストでは、派生要素 `windows_vm_gui` が `windows_vm_domain` の VM を開くランチャーを作る。GUI が無ければ `windows_vm_domain` は使われない。
 
 ## OS との接点
 

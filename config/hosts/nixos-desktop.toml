@@ -35,18 +35,10 @@ supported_features = ["benchmark", "big-parallel", "kvm", "nixos-test"]
 [[users]]
 name = "pomu"
 purposes = [
-  "programming",
-  "study",
-  "browse_web",
-  "work_ss",
-  "work_fr",
-  "communicate",
-  "draw",
-  "media",
-  "make_music",
-  "play_minecraft",
-  "use_windows",
-  "save_x_posts",
+  "category_study",
+  "category_life",
+  "category_work",
+  "category_hobby",
   "personal_files",
   "user_packages",
   "agent_config",

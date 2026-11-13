@@ -1,2 +1,2 @@
-# 分類: 趣味。趣味の行動が requires に挙げる。趣味の行動に共通の部品を requires に書く。
-requires = ["temp_storage"]
+# 分類: 趣味。配下の行動と、趣味の行動に共通の道具を requires に挙げる。
+requires = ["programming", "draw", "media", "make_music", "play_minecraft", "communicate", "temp_storage"]

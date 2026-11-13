@@ -1,5 +1,5 @@
-# 行動（趣味）: 絵や図を描く。
-requires = ["category_hobby", "inkscape"]
+# 行動: 絵や図を描く。
+requires = ["inkscape"]
 
 def writes(gui_apps):
     return [write(gui_apps, app) for app in [

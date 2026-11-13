@@ -7,7 +7,7 @@
 
 `config/hosts/<ホスト>.toml` の `users` から、`machine_base` が OS アカウントと sudo を、factory が Home Manager の管理対象を作る。同じ人の一覧を手で合わせずに済む。
 
-全ユーザーに networkmanager グループを付与する。`admin = true` は wheel と nixos-rebuild の NOPASSWD を設定する。audio は `music_production` が行動 `make_music` を選んだ利用者に、libvirtd は `windows_vm` が行動 `use_windows` を選んだ利用者に付与する。
+全ユーザーに networkmanager グループを付与する。`admin = true` は wheel と nixos-rebuild の NOPASSWD を設定する。audio は `music_production` が行動 `make_music` を選んだ利用者に、libvirtd は `windows_vm` が入る利用者に付与する。
 
 ## nixos-rebuild の NOPASSWD
 

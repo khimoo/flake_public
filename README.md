@@ -21,7 +21,7 @@
 
 ## 対応範囲
 
-- NixOS: `nixos-desktop`, `nixos-spin713`（x86_64 Linux）。GUI は機体の `requires`、vault 同期は利用者の行動 `study` で選択。音楽制作は利用者の行動 `make_music` で選択し、`nixos-desktop` だけで有効。
+- NixOS: `nixos-desktop`, `nixos-spin713`（x86_64 Linux）。GUI は機体の `requires`、vault 同期は利用者の行動 `grow_notes` で選択。音楽制作は利用者の行動 `make_music` で選択し、`nixos-desktop` だけで有効。
 - NixOS-WSL: `nixos-work-wsl`（x86_64 Linux、会社PC。GUI アプリは WSLg で表示）。秘密情報と自宅への接続経路を持たせない。[手順](docs/howtouse/wsl.md) · [設計判断](docs/architecture/wsl.md)
 - Home Manager: `pomu-nixos`（x86_64 Linux GUI・音楽制作）。`pomu-macos`（aarch64 Darwin CLI）は使い始めるまで `flake.nix` で外している。
 - RustOwlの自動導入はx86_64 Linux限定。macOSのGUI・音楽制作・vaultプロファイルは未対応。
@@ -70,7 +70,7 @@ NixOSで `etc_nixos_link` を選んだ利用者がいる場合、switch を実�
 
    [[users]]
    name = "alice"
-   purposes = ["browse_web"]
+   purposes = ["web_procedures"]
    admin = true
    ```
 

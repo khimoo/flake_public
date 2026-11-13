@@ -5,9 +5,9 @@
 
 ## 追加・削除の手順と場所
 
-アプリは利用者の行動ごとに選びます。ホストのファイル（`config/hosts/<ホスト>.toml`）の利用者の `[[users]]` の `purposes` に、`browse_web`（`requires` の `web_browsing` が Zen を既定ブラウザにし、Firefox、Brave、Google Chrome も入れる）、`draw`（`requires` の `inkscape`）、`work_ss`（`requires` の `teams_dispatcher`）などを挙げます（[confgen.md](./confgen.md)）。無効にするには利用者の `purposes` から対応する行動を外します。kitty とフォントは [gui.star](../../config/elements/gui.star) が担当します。`gui`、`gnome`、`japanese_input` は機体の要素の `requires` で選び、無効にする場合も機体の要素の `requires` から外します。
+アプリは利用者の行動ごとに選びます。ホストのファイル（`config/hosts/<ホスト>.toml`）の利用者の `[[users]]` の `purposes` に、`web_procedures`（`requires` の `web_browsing` が Zen を既定ブラウザにし、Firefox、Brave、Google Chrome も入れる）、`draw`（`requires` の `inkscape`）、`work_ss`（`requires` の `teams_dispatcher`）などを挙げます（[confgen.md](./confgen.md)）。無効にするには利用者の `purposes` から対応する行動を外します。kitty とフォントは [gui.star](../../config/elements/gui.star) が担当します。`gui`、`gnome`、`japanese_input` は機体の要素の `requires` で選び、無効にする場合も機体の要素の `requires` から外します。
 
-`gui_apps` は `purposes` で選びません。行動の要素の `writes(gui_apps)` が `write(gui_apps, アプリ)` を返し、[gui_apps.star](../../config/elements/gui_apps.star) が受け取ったアプリのパッケージ、Wayland 起動設定、自動起動、MIME タイプの関連付けをまとめて生成します。アプリを追加・削除するときは、アプリを使う行動の要素の `writes` を変更します。例えば、PDF の既定アプリは [study.star](../../config/elements/study.star) で次のように定義します。
+`gui_apps` は `purposes` で選びません。行動の要素の `writes(gui_apps)` が `write(gui_apps, アプリ)` を返し、[gui_apps.star](../../config/elements/gui_apps.star) が受け取ったアプリのパッケージ、Wayland 起動設定、自動起動、MIME タイプの関連付けをまとめて生成します。アプリを追加・削除するときは、アプリを使う行動の要素の `writes` を変更します。例えば、PDF の既定アプリは [read_materials.star](../../config/elements/read_materials.star) で次のように定義します。
 
 ```python
 def writes(gui_apps):

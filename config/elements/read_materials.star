@@ -1,5 +1,5 @@
-# 行動（勉強）: 勉強する（ノート、資料の閲覧、Quaderno への送信、SNS を塞いで集中する）。
-requires = ["category_study", "shell", "git", "daily_editing", "memex_sync", "obsidian", "quaderno_send", "sns_block"]
+# 行動: 資料を読んで覚える（PDF、電子書籍、手書きのノート、Quaderno への送信、Anki、SNS を塞いで集中する）。
+requires = ["quaderno_send", "sns_block"]
 
 def writes(gui_apps):
     # Obsidian は memex が git / claude を含むラッパーを入れるため、素のパッケージを重ねない。

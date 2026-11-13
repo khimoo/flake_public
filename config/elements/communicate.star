@@ -1,5 +1,4 @@
-# 行動（趣味、生活管理）: 人と連絡を取る（チャット、メール、ビデオ会議）。
-requires = ["category_hobby"]
+# 行動: 人と連絡を取る（チャット、メール、ビデオ会議）。
 def writes(gui_apps):
     return [write(gui_apps, app) for app in [
         {"pkg": pkg("discord"), "name": "discord", "bin": "Discord", "desktop": "discord.desktop", "mime": ["x-scheme-handler/discord"], "wayland": True, "autostart": True, "flags": "--start-minimized"},
