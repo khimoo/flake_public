@@ -48,8 +48,6 @@ in
             in
             # 取り込みは自分用サーバへ ssh で送る。手元にアーカイブと記録を持たない。
             env.QUADERNO_SERIAL == ""
-            # quaderno_bluetooth を書かないホストは、Bluetooth の接続を試さない。
-            && !(env ? QUADERNO_PAN_CONNECTION)
             && env.QUADERNO_ARCHIVE_SSH == "desktop-ts"
             && !(env ? QUADERNO_ARCHIVE_DIR)
             && !(env ? QUADERNO_STATE_FILE)
@@ -76,9 +74,7 @@ in
               ) null result.elements.quaderno.home;
               env = builtins.elemAt (builtins.head packages.value)."$shellAppEnv" 2;
             in
-            !(env ? QUADERNO_ARCHIVE_DIR)
-            && env.QUADERNO_SEND_DIR == "/home/test/Quaderno/Send"
-            && env.QUADERNO_PAN_CONNECTION == "quaderno-pan"
+            !(env ? QUADERNO_ARCHIVE_DIR) && env.QUADERNO_SEND_DIR == "/home/test/Quaderno/Send"
           );
         assert rejectsPurpose "test-quaderno-other-home" "x86_64-linux"
           "quaderno: archive points to another user's home";

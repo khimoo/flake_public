@@ -1,6 +1,6 @@
 """Quaderno が見つかったら、文書を取り込んでから Send フォルダの PDF を送る。
 
-同じ LAN に見つからなければ、設定があるときだけ Bluetooth の PAN をつないで探し直す。
+同じ LAN に見つからなければ、ペアリング済みの Digital Paper に Bluetooth の PAN をつないで探し直す。
 
 取り込みは未取得・改訂された文書だけを、自分用サーバのアーカイブへ ssh で送る。取り込みの
 記録もサーバが持つので、どの機体が Quaderno を見つけても同じ改訂を二度取り込まない。
@@ -82,22 +82,63 @@ def discover(serial, timeout):
     return finder.addr
 
 
-def pan_up(connection):
-    """NetworkManager の接続プロファイルで Bluetooth の PAN をつなぐ。つながれば True。"""
-    result = subprocess.run(
-        ["nmcli", "--wait", "30", "connection", "up", "id", connection],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
-    return result.returncode == 0
+# Bluetooth の機器名は「機種名_シリアルの末尾」の形をしている（例 FMVDP41_2006338）。
+# スマホもテザリング用に NAP を公開するので、NAP の有無だけで選ぶとスマホの回線につながる。
+PAN_NAME_PREFIXES = ("FMVDP", "DPT-")
+PAN_PROFILE = "quaderno-pan"
 
 
-def pan_down(connection):
-    subprocess.run(
-        ["nmcli", "connection", "down", "id", connection],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
+def _run(args, timeout):
+    """コマンドを実行して標準出力を返す。失敗や時間切れ、コマンドが無いときは None。"""
+    try:
+        result = subprocess.run(
+            args, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, timeout=timeout
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return result.stdout if result.returncode == 0 else None
+
+
+def paired_papers():
+    """ペアリング済みの Digital Paper の Bluetooth アドレスを返す。"""
+    listed = _run(["bluetoothctl", "devices", "Paired"], 5)
+    if listed is None:
+        return []
+    found = []
+    for line in listed.splitlines():
+        parts = line.split(" ", 2)
+        if len(parts) == 3 and parts[0] == "Device" and parts[2].startswith(PAN_NAME_PREFIXES):
+            found.append(parts[1])
+    return found
+
+
+def pan_up(bdaddr):
+    """Bluetooth の PAN をつなぐ。つながれば True。
+
+    接続プロファイルは保存せずに作り、pan_down で消す。default route は受け取らない。
+    Quaderno は PAN の DHCP で default route を配るので、受け取ると Wi-Fi が無いときに
+    全通信が Quaderno へ向く。
+    """
+    pan_down()
+    added = _run(
+        [
+            "nmcli", "connection", "add", "save", "no", "type", "bluetooth",
+            "con-name", PAN_PROFILE, "bluetooth.bdaddr", bdaddr, "bluetooth.type", "panu",
+            "connection.autoconnect", "no",
+            "ipv4.never-default", "yes", "ipv6.never-default", "yes",
+        ],
+        10,
     )
+    if added is None:
+        return False
+    if _run(["nmcli", "--wait", "30", "connection", "up", "id", PAN_PROFILE], 40) is None:
+        pan_down()
+        return False
+    return True
+
+
+def pan_down():
+    _run(["nmcli", "connection", "delete", "id", PAN_PROFILE], 10)
 
 
 def connect(addr):
@@ -229,7 +270,6 @@ def main():
     # 空文字は「指定なし」を意味する。Nix 側は null をこの形で渡す。
     serial = os.environ.get("QUADERNO_SERIAL") or None
     timeout = int(os.environ.get("QUADERNO_DISCOVERY_TIMEOUT", "15"))
-    pan = os.environ.get("QUADERNO_PAN_CONNECTION") or None
     # 取り込みと送信は、利用者に入った要素（quaderno_backup、quaderno_send）の分だけ設定される。
     archive = os.environ.get("QUADERNO_ARCHIVE_SSH")
     remote_root = os.environ.get("QUADERNO_REMOTE_ROOT", "Document")
@@ -251,10 +291,13 @@ def main():
 
     addr = discover(serial, timeout)
     raised = False
-    if addr is None and pan and pan_up(pan):
-        # zeroconf は作った時点のインターフェースしか見ない。PAN をつないだ後に探し直す。
-        raised = True
-        addr = discover(serial, timeout)
+    if addr is None:
+        for bdaddr in paired_papers():
+            if pan_up(bdaddr):
+                # zeroconf は作った時点のインターフェースしか見ない。PAN をつないだ後に探し直す。
+                raised = True
+                addr = discover(serial, timeout)
+                break
     try:
         if addr is None:
             # スリープ中は Wi-Fi も Bluetooth も切れている。これは異常ではない。
@@ -263,7 +306,7 @@ def main():
         return transfer(addr, listed, archive, remote_root, send_dir, send_remote)
     finally:
         if raised:
-            pan_down(pan)
+            pan_down()
 
 
 def transfer(addr, listed, archive, remote_root, send_dir, send_remote):
