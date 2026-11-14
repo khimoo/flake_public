@@ -1,5 +1,6 @@
 system = "x86_64-linux"
 state_version = "25.11"
+quaderno_bluetooth = "00:11:22:33:44:55"
 
 [[users]]
 name = "test"

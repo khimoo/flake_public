@@ -85,3 +85,4 @@ Home Manager だけで管理するホストは `kind = "home"` にし、NixOS �
 ## TODO
 
 - 会社 PC（`nixos-work-wsl`）で使ってはいけない機能（自宅への接続経路、秘密の復号、Git identity）や、Linux 以外で動かない機能を選んだとき、設定の生成を止める仕組み。今は止まらない。
+- Quaderno の Bluetooth アドレスを `nixos-spin713.toml` の `quaderno_bluetooth` に直接書いている。ペアリング済みの機器から実行時に探す形にして、設定から消す（[設計](docs/architecture/quaderno.md)）。

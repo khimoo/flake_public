@@ -1,5 +1,7 @@
 """Quaderno が見つかったら、文書を取り込んでから Send フォルダの PDF を送る。
 
+同じ LAN に見つからなければ、設定があるときだけ Bluetooth の PAN をつないで探し直す。
+
 取り込みは未取得・改訂された文書だけを、自分用サーバのアーカイブへ ssh で送る。取り込みの
 記録もサーバが持つので、どの機体が Quaderno を見つけても同じ改訂を二度取り込まない。
 送信は Send フォルダのファイルだけを、デバイス上の文書を上書きせずに送り、送れたら Send から
@@ -8,6 +10,7 @@
 import json
 import os
 import socket
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -77,6 +80,24 @@ def discover(serial, timeout):
     finally:
         zc.close()
     return finder.addr
+
+
+def pan_up(connection):
+    """NetworkManager の接続プロファイルで Bluetooth の PAN をつなぐ。つながれば True。"""
+    result = subprocess.run(
+        ["nmcli", "--wait", "30", "connection", "up", "id", connection],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    return result.returncode == 0
+
+
+def pan_down(connection):
+    subprocess.run(
+        ["nmcli", "connection", "down", "id", connection],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
 
 
 def connect(addr):
@@ -208,6 +229,7 @@ def main():
     # 空文字は「指定なし」を意味する。Nix 側は null をこの形で渡す。
     serial = os.environ.get("QUADERNO_SERIAL") or None
     timeout = int(os.environ.get("QUADERNO_DISCOVERY_TIMEOUT", "15"))
+    pan = os.environ.get("QUADERNO_PAN_CONNECTION") or None
     # 取り込みと送信は、利用者に入った要素（quaderno_backup、quaderno_send）の分だけ設定される。
     archive = os.environ.get("QUADERNO_ARCHIVE_SSH")
     remote_root = os.environ.get("QUADERNO_REMOTE_ROOT", "Document")
@@ -228,11 +250,23 @@ def main():
         send_dir.mkdir(parents=True, exist_ok=True)
 
     addr = discover(serial, timeout)
-    if addr is None:
-        # スリープ中は Wi-Fi ごと落ちる。これは異常ではない。
-        print("Quaderno が見つかりません（スリープ中とみられます）。何もしません。")
-        return 0
+    raised = False
+    if addr is None and pan and pan_up(pan):
+        # zeroconf は作った時点のインターフェースしか見ない。PAN をつないだ後に探し直す。
+        raised = True
+        addr = discover(serial, timeout)
+    try:
+        if addr is None:
+            # スリープ中は Wi-Fi も Bluetooth も切れている。これは異常ではない。
+            print("Quaderno が見つかりません（スリープ中とみられます）。何もしません。")
+            return 0
+        return transfer(addr, listed, archive, remote_root, send_dir, send_remote)
+    finally:
+        if raised:
+            pan_down(pan)
 
+
+def transfer(addr, listed, archive, remote_root, send_dir, send_remote):
     paper = connect(addr)
     try:
         docs = paper.traverse_folder_recursively(listed)
