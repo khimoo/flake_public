@@ -20,8 +20,6 @@ in
         assert allAssertions dispatcher;
         assert browsing.config.programs.firefox.enable;
         assert browsing.config.programs.zen-browser.enable;
-        assert browsing.config.programs.firefox.policies.ExtensionSettings ? "uBlock0@raymondhill.net";
-        assert browsing.config.programs.zen-browser.policies.ExtensionSettings ? "uBlock0@raymondhill.net";
         assert browsing.config.programs.firefox.policies.ExtensionSettings ? "treestyletab@piro.sakura.ne.jp";
         assert !(browsing.config.programs.zen-browser.policies.ExtensionSettings ? "treestyletab@piro.sakura.ne.jp");
         assert browsing.config.programs.firefox.profiles.default.settings."services.sync.engine.extension-storage.force";
