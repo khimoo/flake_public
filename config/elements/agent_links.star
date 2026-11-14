@@ -23,6 +23,8 @@ def user_config(agent_links):
     # 設定と履歴を CLI が書き込むため、~/.claude や ~/.codex 全体はリンクにしない。
     for target, source in links.items():
         home[("home", "file", target, "source")] = outOfStoreLink(root + "/" + source)
+    # agents-private の english-draft skill が使う cold-reader は、vale が無いと検査を始めずに止まる。
+    home["home.packages"] = [pkg("vale")]
     return {"home": home}
 
 def writes(owner, agent_links, private_repos, secrets):
