@@ -82,7 +82,8 @@ NixOS の `nix.buildMachines` の `maxJobs` の説明（`nixos/modules/config/ni
 引き受ける側のホストの TOML に `[builder]` を置き、任せる側が読む案は退けた。
 引き受ける側の要素はその値を読まないので、引き受ける側からは使われていない値に見え、消すと任せる側が壊れる。ビルドを引き受けるかどうかは利用者の行動（`run_home_server`）で決まるのに、値だけがホストに残る。
 
-代償として、`kvm` は「自分用サーバは KVM を持つ」という前提になる。KVM のない機体を自分用サーバにすると、`kvm` を要求するビルドが実行時に失敗し、confgen は気付かない。
+`kvm` を定数に載せられるように、引き受ける側の `serve_builds.star` が `needs` に機体の事実 `local_kvm` を挙げる。KVM のない機体の利用者が `run_home_server` を選ぶと、confgen が生成を止める。
+代償として、KVM のない機体は自分用サーバにできない。残りの 3 つは、引き受ける側の設定と機械的には結ばれていない（[confgen.md](./confgen.md) の「今後の課題」）。
 
 ## `builders-use-substitutes = true`
 

@@ -3,7 +3,7 @@ requires = ["find_home_server", "tailscale"]
 
 # 同時に何ジョブ送るか。上限は任せる先の機体が自分の max-jobs でかけるので、ここでは多めに送る。
 _MAX_JOBS = 32
-# 自分用サーバが引き受けられるビルドの種類。kvm は「自分用サーバは KVM を持つ」という前提（docs/architecture/confgen.md の「今後の課題」）。
+# 自分用サーバが引き受けられるビルドの種類。kvm を載せられるのは、serve_builds が needs で KVM のない機体を止めるから。
 _FEATURES = ["benchmark", "big-parallel", "kvm", "nixos-test"]
 
 def config(host, find_home_server):

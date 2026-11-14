@@ -81,5 +81,5 @@ confgen は Nix の評価の途中で build して実行し（import from deriva
 
 ## 今後の課題
 
-- [ ] 任せる側の `remote_build` が、自分用サーバの機体の事実から `supportedFeatures` を作る仕組み。今は `remote_build.star` に `kvm` を定数で書いており、KVM のない機体を自分用サーバにすると、`kvm` を要求するビルドが実行時に失敗する。機体の事実は機体の要素だけから決まるので、confgen がほかのホストの機体の事実も `roles` と同じように渡せば、自分用サーバの機体に `local_kvm` があるかで決められる。
+- [ ] 任せる側の `remote_build` が送るビルドの種類（`supportedFeatures`）を、引き受ける側の実際の設定から作る仕組み。今は `remote_build.star` の定数で、引き受ける側の `system-features` とは機械的に結ばれていない。`kvm` だけは、`serve_builds` の `needs = ["local_kvm"]` が、KVM のない機体を自分用サーバにしたときに生成を止める。KVM のない機体も `kvm` 抜きで自分用サーバにするには、confgen がほかのホストの機体の事実を `roles` と同じように渡す必要がある。
 - [ ] 会社 PC の WSL に、自宅のマシンへの接続経路（`ssh_server`、`connect_ssh`、`tailscale`、`remote_build`、自分用サーバのクライアント）が入ったら生成を止める検査。今は検査がなく、`docs/architecture/wsl.md` の決まりは、WSL の機体の要素と利用者の `purposes` にこれらを書かないことで守っている。

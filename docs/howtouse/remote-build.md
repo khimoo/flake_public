@@ -165,4 +165,4 @@ spin713 で実行されるアクティベートのコマンドは、NOPASSWD の
 同時に実行するジョブの数は、引き受ける側の `nix.settings.max-jobs`（既定の `"auto"` は CPU のスレッド数）で決まります。任せる側の `maxJobs`（32）は割り振りの目安で、上限は引き受ける側がかけます。
 `machine_base` が `nix.daemonCPUSchedPolicy = "idle"` を設定しているので、引き受けたビルドは、作業中は CPU を作業に譲り、作業していないときだけ全スレッドを使います。
 
-任せる側が送るビルドの種類（`supportedFeatures`）は `remote_build.star` の定数で、`kvm` を含みます。KVM のない機体を自分用サーバにするときは、この定数を直してください。
+任せる側が送るビルドの種類（`supportedFeatures`）は `remote_build.star` の定数で、`kvm` を含みます。そのため `serve_builds` は `needs` に `local_kvm` を挙げていて、KVM のない機体の利用者が `run_home_server` を選ぶと confgen が止まります。
