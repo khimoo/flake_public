@@ -19,14 +19,14 @@ in
   quaderno-contracts =
     (lib.lazyDerivation {
       derivation = (
-        assert !(home.config.systemd.user.timers ? quaderno-transfer);
+        assert !(home.config.systemd.user.timers ? quaderno-archive);
         assert
           system != "x86_64-linux"
           || (
             let
               units = (purposeHome system "test-quaderno").config.systemd.user;
             in
-            units.timers ? quaderno-transfer
+            units.timers ? quaderno-archive
             && units.timers ? quaderno-send
             # Send が空の間は、毎分の実行が Quaderno を探さない。
             && units.services.quaderno-send.Unit.ConditionDirectoryNotEmpty == "/home/test/Quaderno/Send"
@@ -88,6 +88,8 @@ in
             in
             !(env ? QUADERNO_ARCHIVE_DIR)
             && !(env ? QUADERNO_ARCHIVE_SSH)
+            # 取り込みの設定が無ければ、取り込みの timer も持たない。
+            && !((purposeHome system "test-quaderno-exchange").config.systemd.user.timers ? quaderno-archive)
             && env.QUADERNO_SEND_DIR == "/home/test/Quaderno/Send"
           );
         assert rejectsPurpose "test-quaderno-other-home" "x86_64-linux"

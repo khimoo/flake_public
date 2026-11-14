@@ -1,11 +1,13 @@
 """Quaderno と PDF を受け渡す。
 
-  quaderno_transfer.py [--no-wait]
-      アーカイブへの取り込みと、Send フォルダの PDF の送信。
-  quaderno_transfer.py send [FILE...]
-      FILE を Send フォルダへコピーしてから、上と同じことをする。
-  quaderno_transfer.py receive
-      上に加えて、Quaderno の受け渡しフォルダの PDF を手元の Received フォルダへ落とす。
+  quaderno send [FILE...]   FILE を Send フォルダへコピーし、Send フォルダの PDF を Quaderno へ送る。
+  quaderno receive          Quaderno の受け渡しフォルダの PDF を、手元の Received フォルダへ落とす。
+  quaderno archive          Quaderno の文書を、自分用サーバのアーカイブへ取り込む。
+
+頼まれた処理を最初に行い、つながったついでに、溜まっている送信と取り込みも済ませる。
+Quaderno とつながる機会は少ない。受け取りだけは receive のときにしか行わない。
+--background は定期実行のための指定で、Quaderno が見つからなくても失敗にせず、
+ほかの実行が進行中なら何もしない。
 
 取り込みは未取得・改訂された文書だけを、自分用サーバのアーカイブへ ssh で送る。取り込みの
 記録もサーバが持つので、どの機体が Quaderno を見つけても同じ改訂を二度取り込まない。
@@ -14,6 +16,7 @@
 同じ LAN に見つからなければ、ペアリング済みの Digital Paper に Bluetooth の PAN をつないで探し直す。
 双方向のマージはしない。設計判断は docs/architecture/quaderno.md にある。
 """
+import argparse
 import fcntl
 import json
 import os
@@ -327,10 +330,16 @@ def receive(paper, docs, receive_dir, state_file, remote_dir):
 
 
 def main(argv):
-    mode = argv[1] if len(argv) > 1 else ""
-    if mode not in ("", "--no-wait", "send", "receive") or (mode != "send" and len(argv) > 2):
-        print(__doc__, file=sys.stderr)
-        return 2
+    parser = argparse.ArgumentParser(prog="quaderno", description="Quaderno と PDF を受け渡す。")
+    commands = parser.add_subparsers(dest="command", required=True, metavar="{send,receive,archive}")
+    background = argparse.ArgumentParser(add_help=False)
+    background.add_argument("--background", action="store_true", help="定期実行のための指定")
+    sending = commands.add_parser("send", parents=[background], help="Send フォルダの PDF を Quaderno へ送る")
+    sending.add_argument("files", nargs="*", type=Path, metavar="FILE", help="先に Send フォルダへコピーする PDF")
+    commands.add_parser("receive", parents=[background], help="受け渡しフォルダの PDF を手元へ落とす")
+    commands.add_parser("archive", parents=[background], help="文書を自分用サーバのアーカイブへ取り込む")
+    args = parser.parse_args(argv[1:])
+
     # 空文字は「指定なし」を意味する。Nix 側は null をこの形で渡す。
     serial = os.environ.get("QUADERNO_SERIAL") or None
     timeout = int(os.environ.get("QUADERNO_DISCOVERY_TIMEOUT", "15"))
@@ -338,39 +347,85 @@ def main(argv):
     archive = os.environ.get("QUADERNO_ARCHIVE_SSH")
     remote_root = os.environ.get("QUADERNO_REMOTE_ROOT", "Document")
     exchange_remote = os.environ.get("QUADERNO_EXCHANGE_REMOTE")
-    if mode in ("send", "receive") and not exchange_remote:
+    if args.command in ("send", "receive") and not exchange_remote:
         print("受け渡しフォルダの設定がありません（要素 quaderno_exchange が入っていません）。")
         return 1
+    if args.command == "archive" and not archive:
+        print("アーカイブの設定がありません（要素 use_quaderno_archive が入っていません）。")
+        return 1
     # 文書一覧は一度だけ取る。送り先にある名前も、受け取る文書も、その一覧から知る。
-    listed = remote_root if archive else (exchange_remote or remote_root)
+    listed = remote_root if archive else exchange_remote
     root = listed.rstrip("/")
     if exchange_remote and exchange_remote.rstrip("/") != root and not exchange_remote.startswith(root + "/"):
         print("受け渡しフォルダ {} が、取り込み対象 {} の外にあります。".format(exchange_remote, listed))
         return 1
-    send_dir = None
-    ready = []
-    receiving = None
+    job = Job(listed, archive, remote_root, exchange_remote)
     if exchange_remote:
-        send_dir = Path(os.environ["QUADERNO_SEND_DIR"])
+        job.send_dir = Path(os.environ["QUADERNO_SEND_DIR"])
         # 置き場所が無いと、送りたいときに作り方が分からない。見つからない回でも作っておく。
-        send_dir.mkdir(parents=True, exist_ok=True)
-        if mode == "send":
-            ready = queue(send_dir, [Path(a) for a in argv[2:]])
-        if mode == "receive":
-            receiving = (Path(os.environ["QUADERNO_RECEIVE_DIR"]), Path(os.environ["QUADERNO_RECEIVE_STATE"]))
-            receiving[0].mkdir(parents=True, exist_ok=True)
+        job.send_dir.mkdir(parents=True, exist_ok=True)
+    if args.command == "send":
+        job.ready = queue(job.send_dir, args.files)
+    if args.command == "receive":
+        job.receive_dir = Path(os.environ["QUADERNO_RECEIVE_DIR"])
+        job.receive_state = Path(os.environ["QUADERNO_RECEIVE_STATE"])
+        job.receive_dir.mkdir(parents=True, exist_ok=True)
+    # 頼まれた処理が先。未取り込みの文書が多いときに、送信や受け取りを取り込みの後ろで待たせない。
+    job.steps = {
+        "send": ["send", "pull"],
+        "receive": ["receive", "send", "pull"],
+        "archive": ["pull", "send"],
+    }[args.command]
 
     # 定期実行とコマンドが同時に Quaderno へつなぐと、PAN の接続と切断が互いを壊す。
     lock_dir = Path(os.environ.get("XDG_RUNTIME_DIR") or "/tmp")
-    with open(lock_dir / "quaderno-transfer.lock", "a") as lock:
+    with open(lock_dir / "quaderno.lock", "a") as lock:
         try:
-            fcntl.flock(lock, fcntl.LOCK_EX | (fcntl.LOCK_NB if mode == "--no-wait" else 0))
+            fcntl.flock(lock, fcntl.LOCK_EX | (fcntl.LOCK_NB if args.background else 0))
         except BlockingIOError:
             return 0
-        return find_and_transfer(serial, timeout, listed, archive, remote_root, exchange_remote, send_dir, ready, receiving)
+        addr, raised = find(serial, timeout)
+        try:
+            if addr is None:
+                return missing(job, args)
+            return transfer(addr, job)
+        finally:
+            if raised:
+                pan_down()
 
 
-def find_and_transfer(serial, timeout, listed, archive, remote_root, exchange_remote, send_dir, ready, receiving):
+class Job:
+    """一度の接続で行うこと。"""
+
+    def __init__(self, listed, archive, remote_root, exchange_remote):
+        self.listed = listed
+        self.archive = archive
+        self.remote_root = remote_root
+        self.exchange_remote = exchange_remote
+        self.send_dir = None
+        self.ready = []
+        self.receive_dir = None
+        self.receive_state = None
+        self.steps = []
+
+
+def missing(job, args):
+    """Quaderno が見つからなかったときの終了コードを返す。
+
+    スリープ中は Wi-Fi も Bluetooth も切れている。send は PDF が Send に残って後で送られるので、
+    頼まれたことは果たされる。receive と archive は何も起きていないので、人が頼んだときは失敗にする。
+    """
+    print("Quaderno が見つかりません（スリープ中とみられます）。")
+    if job.send_dir and settled_pdfs(job.send_dir, time.time(), job.ready):
+        print("  Send フォルダの PDF は、次に Quaderno が見つかったときに送ります。")
+    if args.background or args.command == "send":
+        return 0
+    print("  → Quaderno のスリープを解除してから、もう一度実行してください。")
+    return 1
+
+
+def find(serial, timeout):
+    """Quaderno の IP と、この実行が PAN をつないだかを返す。見つからなければ IP は None。"""
     # Bluetooth しか使えない場所で待たされないよう、LAN は短く探してから PAN を試す。
     # LAN の応答が遅かった場合に備えて、PAN で見つからなければ残りの時間で LAN を探し直す。
     deadline = time.monotonic() + timeout
@@ -385,33 +440,23 @@ def find_and_transfer(serial, timeout, listed, archive, remote_root, exchange_re
                 break
     if addr is None and not raised and deadline > time.monotonic():
         addr = discover(serial, deadline - time.monotonic())
-    try:
-        if addr is None:
-            # スリープ中は Wi-Fi も Bluetooth も切れている。これは異常ではない。
-            print("Quaderno が見つかりません（スリープ中とみられます）。")
-            if send_dir and settled_pdfs(send_dir, time.time(), ready):
-                print("  Send フォルダの PDF は、次に Quaderno が見つかったときに送ります。")
-            return 0
-        return transfer(addr, listed, archive, remote_root, exchange_remote, send_dir, ready, receiving)
-    finally:
-        if raised:
-            pan_down()
+    return addr, raised
 
 
-def transfer(addr, listed, archive, remote_root, exchange_remote, send_dir, ready, receiving):
+def transfer(addr, job):
     paper = connect(addr)
     try:
-        if exchange_remote and not paper.path_exists(exchange_remote):
+        if job.exchange_remote and not paper.path_exists(job.exchange_remote):
             # new_folder は応答を確かめない。作れたかは、もう一度パスを引いて確かめる。
-            paper.new_folder(exchange_remote)
-            if not paper.path_exists(exchange_remote):
-                print("受け渡しフォルダを作れません: {}".format(exchange_remote))
+            paper.new_folder(job.exchange_remote)
+            if not paper.path_exists(job.exchange_remote):
+                print("受け渡しフォルダを作れません: {}".format(job.exchange_remote))
                 return 1
-            print("受け渡しフォルダを作りました: {}".format(exchange_remote))
-        docs = paper.traverse_folder_recursively(listed)
+            print("受け渡しフォルダを作りました: {}".format(job.exchange_remote))
+        docs = paper.traverse_folder_recursively(job.listed)
     except DigitalPaperException as e:
         # フォルダはホストの値で変えられるので、設定ミスをそれと分かる形で伝える。
-        print("文書フォルダが見つかりません: {} ({})".format(listed, e))
+        print("文書フォルダが見つかりません: {} ({})".format(job.listed, e))
         print("  → ホストの quaderno_remote_root と quaderno_exchange_remote を確かめてください。")
         return 1
     except requests.RequestException as e:
@@ -426,12 +471,13 @@ def transfer(addr, listed, archive, remote_root, exchange_remote, send_dir, read
         return 1
     print("{} に接続しました。".format(addr))
     status = 0
-    if archive:
-        status = pull(paper, docs, SshArchive(archive), remote_root, addr)
-    if receiving:
-        status = max(status, receive(paper, docs, *receiving, exchange_remote))
-    if send_dir:
-        status = max(status, send(paper, send_dir, exchange_remote, docs, ready))
+    for step in job.steps:
+        if step == "pull" and job.archive:
+            status = max(status, pull(paper, docs, SshArchive(job.archive), job.remote_root, addr))
+        if step == "receive":
+            status = max(status, receive(paper, docs, job.receive_dir, job.receive_state, job.exchange_remote))
+        if step == "send" and job.send_dir:
+            status = max(status, send(paper, job.send_dir, job.exchange_remote, docs, job.ready))
     return status
 
 

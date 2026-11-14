@@ -1,5 +1,5 @@
 # 目的: Quaderno の受け渡しフォルダと PDF をやりとりする（docs/howtouse/quaderno.md）。
-# Send フォルダに置いた PDF を送り、quaderno-receive を実行したときに受け渡しフォルダの PDF を手元へ落とす。
+# Send フォルダに置いた PDF を送り、quaderno receive を実行したときに受け渡しフォルダの PDF を手元へ落とす。
 _KEEP = "7d"
 
 def writes(quaderno, user, host):

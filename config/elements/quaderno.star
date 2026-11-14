@@ -26,26 +26,21 @@ def user_config(host, failure_notify, incoming):
         repoPath("modules/home-manager/quaderno_transfer.py"), ' "$out/quaderno_transfer.py"\n',
     ))
     inputs = [pythonWithModules([dptrp1]), pkg("openssh"), pkg("bluez"), pkg("networkmanager")]
-    transfer = shellAppEnv("quaderno-transfer", inputs, env,
+    quaderno = shellAppEnv("quaderno", inputs, env,
         concat('exec python3 ', scripts, '/quaderno_transfer.py "$@"\n'))
-    packages = [transfer, dptrp1]
-    home = {
-        "systemd.user.services.quaderno-transfer": {
-            "Unit": {"Description": "Quaderno の文書を取り込み、Send の PDF を送る", "OnFailure": failure_notify.on_failure},
-            "Service": {"Type": "oneshot", "ExecStart": concat(transfer, "/bin/quaderno-transfer --no-wait")},
-        },
+    home = {"home.packages": [quaderno, dptrp1]}
+    if pull:
+        home["systemd.user.services.quaderno-archive"] = {
+            "Unit": {"Description": "Quaderno の文書をアーカイブへ取り込む", "OnFailure": failure_notify.on_failure},
+            "Service": {"Type": "oneshot", "ExecStart": concat(quaderno, "/bin/quaderno archive --background")},
+        }
         # 取り込みは、コマンドを使わない日のための保険。Quaderno が起きている間と重ならない回は何もしない。
-        "systemd.user.timers.quaderno-transfer": {
+        home["systemd.user.timers.quaderno-archive"] = {
             "Unit": {"Description": "Quaderno の文書を定期的に取り込む"},
             "Timer": {"OnActiveSec": "2min", "OnUnitActiveSec": str(getattr(host, "quaderno_archive_interval", 3600)) + "s"},
             "Install": {"WantedBy": ["timers.target"]},
-        },
-    }
+        }
     if exchange:
-        packages += [
-            shellAppEnv("quaderno-send", inputs, env, concat('exec python3 ', scripts, '/quaderno_transfer.py send "$@"\n')),
-            shellAppEnv("quaderno-receive", inputs, env, concat('exec python3 ', scripts, '/quaderno_transfer.py receive "$@"\n')),
-        ]
         home["systemd.user.services.quaderno-send"] = {
             "Unit": {
                 "Description": "Send フォルダの PDF を Quaderno へ送る",
@@ -53,7 +48,7 @@ def user_config(host, failure_notify, incoming):
                 # Send が空の間は Quaderno を探さない。探索と Bluetooth の接続を毎分繰り返さずに済む。
                 "ConditionDirectoryNotEmpty": exchange["send_dir"],
             },
-            "Service": {"Type": "oneshot", "ExecStart": concat(transfer, "/bin/quaderno-transfer --no-wait")},
+            "Service": {"Type": "oneshot", "ExecStart": concat(quaderno, "/bin/quaderno send --background")},
         }
         # Quaderno は起きている短い間しか通信できない。間隔を長くすると、その間を逃して送れない。
         home["systemd.user.timers.quaderno-send"] = {
@@ -61,5 +56,4 @@ def user_config(host, failure_notify, incoming):
             "Timer": {"OnActiveSec": "1min", "OnUnitActiveSec": str(getattr(host, "quaderno_interval", 60)) + "s"},
             "Install": {"WantedBy": ["timers.target"]},
         }
-    home["home.packages"] = packages
     return {"home": home}
