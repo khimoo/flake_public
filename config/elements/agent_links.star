@@ -1,3 +1,5 @@
+requires = ["github_ssh"]
+
 def public(user, owner):
     root = owner.agent_config_root
     if root.startswith("/") or ".." in root.split("/"):

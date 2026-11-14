@@ -13,7 +13,6 @@ purposes = ["machine_base", "serve_xsaved", "nixos_system", "etc_nixos_link"]
 database = "xsaved_alice"
 data_subvolume = "@xsaved-alice"
 backup_repository = "rclone:test:xsaved-alice"
-proxy_name = "alice.xsaved.localhost"
 
 [[users]]
 name = "bob"
@@ -24,4 +23,3 @@ database = "xsaved_bob"
 web_port = 8775
 data_subvolume = "@xsaved-bob"
 backup_repository = "rclone:test:xsaved-bob"
-proxy_name = "bob.xsaved.localhost"

@@ -8,4 +8,3 @@ purposes = ["serve_xsaved"]
 [users.xsaved]
 data_subvolume = "@xsaved"
 backup_repository = "rclone:test:xsaved"
-proxy_name = "xsaved.localhost"

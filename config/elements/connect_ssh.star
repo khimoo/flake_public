@@ -34,5 +34,4 @@ def config(roles, incoming):
         blocks.append(_block(user, "%s %s %s.local" % (_short(name), name, name), name + ".local"))
         if tailnet:
             blocks.append(_block(user, _short(name) + "-ts", name))
-    blocks.append("Host github.com\n  User git\n  IdentityFile ~/.ssh/id_github\n")
     return {"nixos": {"programs.ssh.extraConfig": "".join(blocks)}}

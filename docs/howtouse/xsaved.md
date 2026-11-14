@@ -82,7 +82,7 @@ git clone ~/sagyo/xsaved ~/.local/share/xsaved-app
 
 ## Web UI
 
-nixos-desktop 上のブラウザで <http://xsaved.localhost/> を開くと、ポストの検索や類似ポスト検索を利用できます。
+nixos-desktop 上のブラウザで <http://pomu.xsaved.localhost/>（`<アカウント名>.xsaved.localhost`） を開くと、ポストの検索や類似ポスト検索を利用できます。
 ほかの機体（spin713 など）では、アプリ一覧の「X の保存（xsaved）」か `xsaved-web` で開きます。`xsaved-web` は、手元の `web_port` + 10000 番（既定 18765）から自分用サーバの `web_port` へ ssh のポート転送を始めてから、<http://127.0.0.1:18765/> を開きます。
 コマンドは `xsaved-remote <引数>` で、自分用サーバの `xsaved` を ssh 越しに実行します。
 「検索対象」で「すべて」「いいね」「ブックマーク」を選択でき、この設定は「似たツイート」や「もっと表示」の検索条件にも引き継がれます。

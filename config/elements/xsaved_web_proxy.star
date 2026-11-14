@@ -1,6 +1,6 @@
-# 手段: xsaved の Web UI を、自分用サーバのブラウザで名前（利用者の表の proxy_name）で開けるようにする。
-def user_config(serve_xsaved):
-    name = serve_xsaved.values["proxy_name"]
+# 手段: xsaved の Web UI を、自分用サーバのブラウザで名前（<アカウント名>.xsaved.localhost）で開けるようにする。
+def user_config(user, serve_xsaved):
+    name = user.name + ".xsaved.localhost"
     return {"nixos": {
         ("networking", "hosts", "127.0.0.1"): [name],
         ("networking", "hosts", "::1"): [name],

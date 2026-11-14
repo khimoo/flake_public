@@ -1,5 +1,5 @@
 # 目的: 持ち主の個人のファイルと秘密を、このアカウントのホームに置く。git のコミットにも持ち主の名前を使う。
-requires = ["git_identity"]
+requires = ["git_identity", "github_ssh"]
 
 def _home_path(user, path):
     if path.startswith("/") or ".." in path.split("/"):

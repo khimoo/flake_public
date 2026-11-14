@@ -61,7 +61,6 @@ hsa_override = "10.3.0"
 web_port = 8765
 check_mount = true
 backup_repository = "rclone:gdrive:xsaved-backup"
-proxy_name = "xsaved.localhost"
 
 [[users]]
 name = "mase"

@@ -27,7 +27,7 @@ ssh のログインを受け付ける利用者がいる NixOS ホストへ、ほ
 
 ## 鍵は用途で名付ける
 
-`~/.ssh/id_lan` は LAN の中のマシン同士に、`~/.ssh/id_github` は GitHub に使う。
+`~/.ssh/id_lan` は LAN の中のマシン同士に、`~/.ssh/id_github` は GitHub に使う。GitHub 用の `Host` ブロックは [github_ssh.star](../../config/elements/github_ssh.star) が書き、GitHub 用の鍵を置く要素（`personal_files`、`agent_links`）が `requires` に挙げる。
 `id_ed25519` のようなアルゴリズムの名前にすると、1 本に複数の役割が載っても気づけない。
 この repo では `~/.ssh/id_ed25519` が LAN と GitHub を兼ねていて、GitHub の鍵を作り直したときに LAN の接続まで壊れた。
 

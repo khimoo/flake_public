@@ -159,9 +159,9 @@ xsaved の `xsaved serve` は、ポートを開いて待ち受けるだけの普
 結果は検索方法ごとの列に並べ、RRF でまとめない。理由は xsaved の `docs/design.md` にある。
 検索サーバーは GPU のロックを待たずに試し、取れたら終了するまで持つ（[GPU を使う計算はロックで順番にする](#gpu-を使う計算はロックで順番にする)）。
 
-nixos-desktop では、ポート番号を覚えずに開けるよう、常駐する Caddy を `http://xsaved.localhost/` の入口にする。
+nixos-desktop では、ポート番号を覚えずに開けるよう、常駐する Caddy が `http://<アカウント名>.xsaved.localhost/` で受ける。名前をアカウント名から作るので、xsaved を動かす利用者が複数いても重ならない。
 名前は `/etc/hosts` でループバックへ解決し、Caddy も IPv4・IPv6 のループバックだけで待ち受ける。
-`xsaved_web_proxy.star` は、`serve_xsaved` が入った利用者ごとに、利用者の表の `proxy_name` の名前で、`serve_xsaved` の公開値の `web_port` へ転送する。サーバー本体へ直接転送するとソケットによる起動を迂回するため、既存の起動用ソケットへ渡す。
+`xsaved_web_proxy.star` は、`serve_xsaved` が入った利用者ごとに、`<アカウント名>.xsaved.localhost` の名前で、`serve_xsaved` の公開値の `web_port` へ転送する。サーバー本体へ直接転送するとソケットによる起動を迂回するため、既存の起動用ソケットへ渡す。
 自マシン内の HTTP 接続とし、証明書の配布は行わない。Tailscale 経由でノート PC から開けるようにするのは、あとで決める。
 
 ## バックアップを Google Drive に restic で写す

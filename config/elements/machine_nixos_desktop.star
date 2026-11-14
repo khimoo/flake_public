@@ -1,16 +1,9 @@
 kind = "machine"
-requires = ["x86_64_linux", "nixos_system", "rocm_compute", "local_kvm", "personal_pc"]
+requires = ["x86_64_linux", "nixos_system", "rocm_compute", "local_kvm", "has_data_disk", "personal_pc"]
 
 def config(host):
-    primary = host.users[0]["name"]
-    home = "/home/" + primary
     data_opts = ["noatime", "compress=zstd"]
-    mounts = []
-    for subvol, directory in [("downloads", "ダウンロード"), ("videos", "ビデオ"), ("music", "音楽"), ("pictures", "画像"), ("documents", "ドキュメント"), ("games", "Games")]:
-        mounts.append(("@" + subvol, home + "/" + directory, data_opts))
-    mounts.extend([
-        ("@backup", host.backup_dir, data_opts),
-    ])
+    mounts = [("@backup", host.backup_dir, data_opts)]
     nixos = {
         "boot.kernelParams": ["btusb.enable_autosuspend=n"],
         "fileSystems": {path: {"device": host.data_device, "fsType": "btrfs", "options": ["subvol=" + subvol] + opts} for subvol, path, opts in mounts},
