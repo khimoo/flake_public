@@ -26,10 +26,11 @@
 接続名は `connect_ssh` が組み立て、`remote_build` は `find_home_server` の公開値から同じ名前を受け取る。
 `tests/default.nix` の module contracts が両者の一致を確かめるので、片方の規則だけを変えると検査で失敗する。
 
-## 鍵は primaryUser の `id_lan` を絶対パスで読む
+## 鍵は利用者の `id_lan` を絶対パスで読む
 
 SSH するのは nix-daemon（root）で、root は `id_lan` を持たない。
-そこで `sshKey` に primaryUser の `~/.ssh/id_lan` の絶対パスを渡す。
+そこで `remote_build` が、利用者ごとに、`lan_ssh_key` が公開する鍵のパス（`~/.ssh/id_lan` の絶対パス）を `sshKey` に渡す。`remote_build` は `find_home_server` を通して `lan_ssh_key` を入れるので、`remote_build` が入る利用者には必ず鍵がある。利用者が複数いると、同じ接続先の項目が鍵ごとに並ぶ。
+root 専用の鍵にする案は退けた。秘密を置く処理は利用者の権限で動くので root の場所には置けず、機体ごとに鍵を手で作ることになる。
 [machine-ssh.md](./machine-ssh.md) の「他ユーザーの絶対パスを共有しない」の例外になる。
 
 - パスは `/etc/nix/machines` に書かれ、読むのは nix-daemon だけ。root はもともと全ファイルを読めるので、鍵の露出は増えない

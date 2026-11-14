@@ -1,6 +1,6 @@
 # `cargo remote-run`: 自分用サーバの作業場所（serve_workspace）で build し、手元で実行する。
 # cargo は devShell のものを、nix はシステムのものを使うので入れない。
-requires = ["find_home_server", "lan_ssh_key"]
+requires = ["find_home_server"]
 def user_config(find_home_server):
     return {"home": {"home.packages": [shellAppEnv(
         "cargo-remote-run",

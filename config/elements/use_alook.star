@@ -1,6 +1,5 @@
 # 手段: 自分用サーバの Alook を使う。ssh でポートを転送して Web UI を開く（クライアントの側。docs/howtouse/cli-tools/alook.md）。
-needs = ["tailscale"]
-requires = ["find_home_server", "lan_ssh_key"]
+requires = ["find_home_server"]
 
 def user_config(find_home_server):
     service = find_home_server.services["serve_alook"]

@@ -1,6 +1,5 @@
 # 手段: 自分用サーバの xsaved を使う。ssh で接続して検索の Web UI を開き、xsaved のコマンドを実行する（クライアントの側。docs/howtouse/xsaved.md）。
-needs = ["tailscale"]
-requires = ["find_home_server", "lan_ssh_key"]
+requires = ["find_home_server"]
 
 def user_config(find_home_server, machines):
     service = find_home_server.services["serve_xsaved"]

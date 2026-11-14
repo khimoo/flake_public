@@ -37,7 +37,7 @@ DB・秘密情報・ログは `~/.alook/self-hosted/` に保存される。
 ## 別の PC から開く
 
 `alook-open` は、手元または別の PC の Alook をブラウザで開く。
-AI エージェントを使う利用者（`use_ai_agents`）には、`requires` の [use_alook.star](../../../config/elements/use_alook.star) から `alook-open` が入る。`use_alook` は `needs` に `tailscale` を挙げるので、tailnet に入らない機体で選ぶと confgen が止まる。接続先は、`find_home_server` が求める、自分用サーバで `serve_alook` を動かす利用者。
+AI エージェントを使う利用者（`use_ai_agents`）には、`requires` の [use_alook.star](../../../config/elements/use_alook.star) から `alook-open` が入る。`use_alook` が `requires` に挙げる `find_home_server` は `needs` に `tailscale` を挙げるので、tailnet に入らない機体で選ぶと confgen が止まる。接続先は、`find_home_server` が求める、自分用サーバで `serve_alook` を動かす利用者。
 
 | コマンド | 開く Alook |
 |----------|-----------|

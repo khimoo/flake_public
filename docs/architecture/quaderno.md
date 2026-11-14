@@ -88,7 +88,7 @@ desktop 自身も、自分に ssh で接続して渡す。desktop でだけア�
 
 ## 取り込みと送信を別の要素にする
 
-desktop の電源を切って spin713 だけで出かけたときにも送れるよう、送信は自分用サーバを使わずに動かす。取り込み（`use_quaderno_archive`）と送信（`quaderno_send`）を別の要素に分け、どちらも行動 `read_materials` の `requires` から入る。`use_quaderno_archive` は `needs` に `tailscale` を挙げるので、tailnet に入らない機体で `read_materials` を選ぶと confgen が止まる。
+desktop の電源を切って spin713 だけで出かけたときにも送れるよう、送信は自分用サーバを使わずに動かす。取り込み（`use_quaderno_archive`）と送信（`quaderno_send`）を別の要素に分け、どちらも行動 `read_materials` の `requires` から入る。`use_quaderno_archive` が `requires` に挙げる `find_home_server` は `needs` に `tailscale` を挙げるので、tailnet に入らない機体で `read_materials` を選ぶと confgen が止まる。
 探索と systemd の timer は `quaderno` の要素が 1 つだけ持ち、二つの要素は `quaderno` へ設定を書き込む。両方が入る機体でも、探すのは 1 分に 1 回で、見つかったら取り込みの後に送信する。
 
 ## 取り込み先は SATA の `@backup` にし、vault には置かない

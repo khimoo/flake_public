@@ -53,9 +53,9 @@ requires = ["mimikopi"]
 「どの機体でするか」を機体ごとに書くと、行動と機体の組み合わせを人が管理することになり、1台に限るものは2台に書いたときに止める仕組みも要るからです。
 
 - サーバの側: サーバを置くホストの利用者が、`purposes` に `run_home_server` を書きます。`run_home_server.star` は `requires` に `serve_quaderno_archive`（Quaderno のアーカイブ）、`serve_xsaved`（xsaved）、`serve_workspace`（ssh でつながる作業場所）、`serve_alook`（Alook）、`serve_remote_desktop`（GNOME の画面の RDP）、`serve_builds`（Nix のビルドの引き受け）、`stay_awake`（自動 suspend の停止）を挙げ、サーバを動かす利用者を linger にします。
-- クライアントの側: `use_quaderno_archive`、`use_xsaved`、`use_alook` が、ssh でサーバに接続します。使う行動か手段が `requires` に挙げ、どれも `needs` に `tailscale` を挙げます。tailnet に入らない機体で選ぶと confgen が止まります。サーバの機体でも、同じ内容で自分に接続します。利用者が自分で選ぶクライアントは行動にします。spin713 の `program_on_home_server`（ファイルを sshfs で開き、build と Alook を自分用サーバで動かす）がその例です。
+- クライアントの側: `use_quaderno_archive`、`use_xsaved`、`use_alook` が、ssh でサーバに接続します。使う行動か手段が `requires` に挙げます。どれも、自分用サーバへ ssh で接続する手段の `find_home_server` だけを `requires` に挙げ、`find_home_server` が鍵（`lan_ssh_key`）を置き、`needs` に `tailscale` を挙げます。tailnet に入らない機体で選ぶと confgen が止まります。サーバの機体でも、同じ内容で自分に接続します。利用者が自分で選ぶクライアントは行動にします。spin713 の `program_on_home_server`（ファイルを sshfs で開き、build と Alook を自分用サーバで動かす）がその例です。
 - 外部のサービスを使う側: サービスが外部（PyPI や uv が配る Python）にあるときは、使う側の手段だけを書きます。`use_uv` が `requires` の `nix_ld` を入れます。
-- 接続先: どこにも書きません。クライアントが `requires` に挙げる `find_home_server` が、仮引数 `roles` から、`run_home_server` が入っている利用者のいるただ 1 つのホストを求め、公開値 `services` で、サービスの要素（`serve_xsaved` など）ごとに、動かしている利用者と接続名（`desktop-ts` など）を渡します。サーバのホストの値（xsaved の `web_port` など）は `machines` から読みます。
+- 接続先: どこにも書きません。`find_home_server` が、仮引数 `roles` から、`run_home_server` が入っている利用者のいるただ 1 つのホストを求め、公開値 `services` で、サービスの要素（`serve_xsaved` など）ごとに、動かしている利用者と接続名（`desktop-ts` など）を渡します。サーバのホストの値（xsaved の `web_port` など）は `machines` から読みます。
 
 `run_home_server` が入っている利用者のいるホストが 0 個か 2 個以上のとき、サービスを動かす利用者が ssh のログインを受け付けないとき（`accept_ssh_server` が入っていない）、同じサービスを 2 人が動かしているときは、`find_home_server` が生成を止めます。
 

@@ -1,5 +1,9 @@
-# 手段: 自分用サーバと、サーバの各サービスを動かすアカウントを求める。クライアントの要素が読む。
+# 手段: 自分用サーバへ ssh で接続する。接続先（サーバと、各サービスを動かすアカウント）を求め、鍵（lan_ssh_key）を置く。
+# クライアントの要素は、この要素だけを requires に挙げる。
 # 自分用サーバは、run_home_server が真のアカウントがいるただ 1 つのホスト（roles）。ホストのファイルや持ち主の値には書かない。
+needs = ["tailscale"]
+requires = ["lan_ssh_key"]
+
 def public(roles, connect_ssh):
     servers = [name for name in sorted(roles.hosts) if any(["run_home_server" in names for names in roles.hosts[name].values()])]
     if len(servers) != 1:
