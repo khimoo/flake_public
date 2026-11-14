@@ -49,7 +49,7 @@ requires = ["mimikopi"]
 
 ## 自分用サーバとクライアント
 
-機体によって変わる処理のうち、機体の事実（物理的な条件）で決まらないものは、自分用サーバ（サービスを公開する側）とクライアント（サービスを使う側）に分けます。
+機体による違いを扱う順番は [構成の境界](../architecture/configuration.md#機体による違いを受け持つ場所) にあります。機体によって変わる処理のうち、機体の事実（物理的な条件）で決まらないものは、自分用サーバ（サービスを公開する側）とクライアント（サービスを使う側）に分けます。
 「どの機体でするか」を機体ごとに書くと、行動と機体の組み合わせを人が管理することになり、1台に限るものは2台に書いたときに止める仕組みも要るからです。
 
 - サーバの側: サーバを置くホストの利用者が、`purposes` に `run_home_server` を書きます。`run_home_server.star` は `requires` に `serve_quaderno_archive`（Quaderno のアーカイブ）、`serve_xsaved`（xsaved）、`serve_workspace`（ssh でつながる作業場所）、`serve_alook`（Alook）、`serve_remote_desktop`（GNOME の画面の RDP）、`serve_builds`（Nix のビルドの引き受け）、`stay_awake`（自動 suspend の停止）を挙げ、サーバを動かす利用者を linger にします。
