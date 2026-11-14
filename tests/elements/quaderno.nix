@@ -22,7 +22,15 @@ in
         assert !(home.config.systemd.user.timers ? quaderno-transfer);
         assert
           system != "x86_64-linux"
-          || ((purposeHome system "test-quaderno").config.systemd.user.timers ? quaderno-transfer);
+          || (
+            let
+              units = (purposeHome system "test-quaderno").config.systemd.user;
+            in
+            units.timers ? quaderno-transfer
+            && units.timers ? quaderno-send
+            # Send が空の間は、毎分の実行が Quaderno を探さない。
+            && units.services.quaderno-send.Unit.ConditionDirectoryNotEmpty == "/home/test/Quaderno/Send"
+          );
         assert
           system != "x86_64-linux"
           || (
@@ -51,8 +59,12 @@ in
             && env.QUADERNO_ARCHIVE_SSH == "desktop-ts"
             && !(env ? QUADERNO_ARCHIVE_DIR)
             && !(env ? QUADERNO_STATE_FILE)
+            && env.QUADERNO_EXCHANGE_REMOTE == "Document/PC-Exchange"
+            # 手元への受け取りは、自分用サーバを使わずに利用者のキャッシュへ落とす。
+            && env.QUADERNO_RECEIVE_DIR == "/home/test/.cache/quaderno/Received"
+            && env.QUADERNO_RECEIVE_STATE == "/home/test/.cache/quaderno/received.json"
           );
-        # 自分用サーバへ接続できないホストは、送信だけをして、取り込みの設定を持たない。
+        # 自分用サーバへ接続できないホストは、受け渡しだけをして、取り込みの設定を持たない。
         assert
           system != "x86_64-linux"
           || (
@@ -62,7 +74,7 @@ in
                   pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux;
                   inherit configDir;
                 }).read
-                  "test-quaderno-send"
+                  "test-quaderno-exchange"
                   system
                   "test";
               packages = lib.findFirst (
@@ -74,7 +86,9 @@ in
               ) null result.elements.quaderno.home;
               env = builtins.elemAt (builtins.head packages.value)."$shellAppEnv" 2;
             in
-            !(env ? QUADERNO_ARCHIVE_DIR) && env.QUADERNO_SEND_DIR == "/home/test/Quaderno/Send"
+            !(env ? QUADERNO_ARCHIVE_DIR)
+            && !(env ? QUADERNO_ARCHIVE_SSH)
+            && env.QUADERNO_SEND_DIR == "/home/test/Quaderno/Send"
           );
         assert rejectsPurpose "test-quaderno-other-home" "x86_64-linux"
           "quaderno: archive points to another user's home";
@@ -94,7 +108,7 @@ in
         "ssh_server"
         "quaderno"
         "use_quaderno_archive"
-        "quaderno_send"
+        "quaderno_exchange"
         "serve_quaderno_archive"
       ];
     };
