@@ -1,5 +1,5 @@
-def public(user):
-    root = user.agent_config_root
+def public(user, owner):
+    root = owner.agent_config_root
     if root.startswith("/") or ".." in root.split("/"):
         fail("agent_links: mutable checkouts must belong to this user's home directory")
     return {"root": user.home + "/" + root}
@@ -23,9 +23,9 @@ def user_config(agent_links):
         home[("home", "file", target, "source")] = outOfStoreLink(root + "/" + source)
     return {"home": home}
 
-def writes(user, agent_links, private_repos, secrets):
+def writes(owner, agent_links, private_repos, secrets):
     # 社用の deploy key で手で clone するときは、agent_config_repo を書かず、自動の clone をさせない（docs/architecture/wsl.md）。
-    url = getattr(user, "agent_config_repo", None)
+    url = getattr(owner, "agent_config_repo", None)
     if url == None:
         return []
     return [

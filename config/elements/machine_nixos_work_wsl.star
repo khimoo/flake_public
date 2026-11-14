@@ -1,9 +1,8 @@
 kind = "machine"
-requires = ["x86_64_linux", "nixos_system", "machine_base", "gui"]
+requires = ["x86_64_linux", "nixos_system", "runs_in_wsl", "machine_base", "gui"]
 
-def config(host):
+def config():
     return {"nixos_imports": [module("nixos-wsl", "nixosModules.default")], "nixos": {
         "wsl.enable": True,
-        "wsl.defaultUser": host.users[0]["name"],
         "wsl.startMenuLaunchers": True,
     }}

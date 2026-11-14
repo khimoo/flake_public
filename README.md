@@ -10,7 +10,7 @@
 |---|---|
 | `flake.nix` | 構成・パッケージ・検証の入口 |
 | [config/hosts/](config/hosts/) | ホストの一覧、機体、利用者ごとの行動、ホスト固有の値 |
-| [config/users/](config/users/) | Git identity、checkout、秘密の配置先などの個人の値 |
+| [config/owner.toml](config/owner.toml) | Git identity、エージェント設定、秘密の配置先など、リポジトリの持ち主の値 |
 | [config/elements/](config/elements/) | 選んだ機体と行動から設定を生成する処理 |
 | [lib/configurations.nix](lib/configurations.nix) | `mkSystem` / `mkHome` の組み立て |
 | `hosts/` | 生成済みハードウェア設定 |
@@ -29,7 +29,7 @@
 
 ## セットアップ・適用
 
-checkoutの既定位置は `<ホーム>/sagyo/flake_public`。別の場所に置く場合は、`config/users/<ユーザー>.toml` の `flake_root` にホームからの相対パスを指定します。Neovim・端末設定はこのcheckoutへのlive symlinkなので、適用後もcheckoutを残してください。
+checkoutの既定位置は `<ホーム>/sagyo/flake_public`。別の場所に置く場合は、ホストの TOML の利用者の `[[users]]` に、`flake_root` をホームからの相対パスで指定します。Neovim・端末設定はこのcheckoutへのlive symlinkなので、適用後もcheckoutを残してください。
 
 初回に個人用の自動cloneを有効にする場合は、[SSH鍵とprivate repo](docs/howtouse/private-repo-clone.md) の前提を満たしてください。鍵配布を選択していないユーザーにはage鍵は不要です。
 
@@ -76,9 +76,9 @@ NixOSで `etc_nixos_link` を選んだ利用者がいる場合、switch を実�
 
 Home Manager だけで管理するホストは `kind = "home"` にし、NixOS の設定を作らないので、機体の要素の `requires` に `nixos_system` を書きません。`home-manager switch --flake .#<構成名>` で適用します。
 
-`state_version` は初回導入時の値を維持します。マシン間 SSH に参加する場合はホストの TOML に `ssh_user` を指定し、機体の要素の `requires` に `machine_ssh` を追加します。tailnet には同じ `requires` に `tailscale` を追加します。
+`state_version` は初回導入時の値を維持します。マシン間 SSH に参加する場合は、機体の要素の `requires` に `ssh_server` と `connect_ssh` を追加し（`personal_pc` は両方を含みます）、ホストを管理する利用者の `purposes` に `etc_nixos_link` を入れます。tailnet には同じ `requires` に `tailscale` を追加します。
 
-個人設定は `config/users/<ユーザー>.toml` に書きます。[ユーザー管理](docs/howtouse/users.md)と [confgen](docs/howtouse/confgen.md)を参照してください。
+持ち主の値は `config/owner.toml` に、利用者ごとの値はホストの TOML の `[[users]]` に書きます。[ユーザー管理](docs/howtouse/users.md)と [confgen](docs/howtouse/confgen.md)を参照してください。
 
 複数ユーザー構成は [tests/default.nix](tests/default.nix) と [ハードウェア代替fixture](examples/new-host.nix) で評価しています。fixture は実機へ適用する設定ではありません。
 

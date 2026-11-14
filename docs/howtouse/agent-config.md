@@ -65,7 +65,7 @@ Claude Code や Codex が新しい種別の設定ディレクトリを読み込�
 ## マシンへの導入とアンインストール
 
 1. 設定リポジトリを clone します（[private-repo-clone.md](./private-repo-clone.md) を使って自動化することも可能です）。
-2. `config/users/<ユーザー>.toml` でホームディレクトリからの相対パスを指定します。pomu は [pomu.toml](../../config/users/pomu.toml) に記述されています。自動 clone を利用する場合は `agent_config_repo` に URL も指定します。
+2. [owner.toml](../../config/owner.toml) の `agent_config_root` にホームディレクトリからの相対パスを指定します。自動 clone を利用する場合は `agent_config_repo` に URL も指定します。
 
    ```python
    agent_config_root = "sagyo/agents-private"
@@ -95,10 +95,9 @@ rm -r ~/.local/state/agent-sync
 ## マシン固有の指示
 
 自分用サーバで作業する機体（spin713）では、重い処理を自分用サーバで実行するよう、Claude Code と Codex のシステム層に指示を書きます。
-指示の本文は [agent_offload_notes.star](../../config/elements/agent_offload_notes.star) にあり、本文に書く自分用サーバの接続名は、ホストの TOML の `build_host` から作ります。
+指示の本文は [agent_offload_notes.star](../../config/elements/agent_offload_notes.star) にあり、本文に書く自分用サーバの接続名は、`find_home_server` が、自分用サーバで `serve_workspace` を動かす利用者から求めます。
 
-1. `config/hosts/<host>.toml` に `build_host = "<自分用サーバのホスト名>"` を書きます。[リモートビルド](remote-build.md)の任せる先と同じ値です。
-2. 利用者の `[[users]]` の `purposes` に、`program_on_home_server` と、`use_ai_agents` を含む行動（`programming` など）を入れます。`program_on_home_server` と `codex_policy` がそろうと、`agent_offload_notes` が入ります。
+1. 利用者の `[[users]]` の `purposes` に、`program_on_home_server` と、`use_ai_agents` を含む行動（`programming` など）を入れます。`program_on_home_server` と `codex_policy` がそろうと、`agent_offload_notes` が入ります。
 3. switch を実行します。本文は Nix store を経由して配置されるため、`agent_offload_notes.star` の本文を編集するたびに switch が必要です。
 
 Claude Code では `/etc/claude-code/CLAUDE.md` として、Codex では `/etc/codex/config.toml` の `developer_instructions` 項目として反映されます。

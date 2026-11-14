@@ -4,4 +4,4 @@ quaderno_archive = "/home/another-user/quaderno"
 
 [[users]]
 name = "test"
-purposes = ["serve_quaderno_archive", "machine_ssh"]
+purposes = ["serve_quaderno_archive", "ssh_server"]

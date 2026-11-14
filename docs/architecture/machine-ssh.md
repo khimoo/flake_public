@@ -1,18 +1,29 @@
 # マシン間 SSH の設計
 
 使い方: [マシン間 SSH](../howtouse/machine-ssh.md)
-実装: [config/hosts/](../../config/hosts/)、[machine_ssh.star](../../config/elements/machine_ssh.star)
+実装: [ssh_server.star](../../config/elements/ssh_server.star)、[accept_ssh_admin.star](../../config/elements/accept_ssh_admin.star)、[accept_ssh_server.star](../../config/elements/accept_ssh_server.star)、[authorize_lan_key.star](../../config/elements/authorize_lan_key.star)、[connect_ssh.star](../../config/elements/connect_ssh.star)、[owner.toml](../../config/owner.toml)
 
-`config/hosts/*.toml` で `ssh_user` を持つ NixOS ホストが、互いに `ssh <短縮名>` で接続できるようにする。
+ssh のログインを受け付ける利用者がいる NixOS ホストへ、ほかのホストから `ssh <短縮名>` で接続できるようにする。
 リモートビルド（[remote-build.md](./remote-build.md)）はこの上に乗る。
 
-## `config/hosts/*.toml` から両方向を生成する
+## 接続を受ける側の判定から、両方向を生成する
 
-`machine_ssh` が `config/hosts/*.toml` から、サーバ側には `_LAN_PUBLIC_KEY` を primaryUser の `authorized_keys` に入れ、クライアント側には `ssh_user` を持つマシンごとの `Host` ブロック（短縮名、`IdentityFile`、`User`、`accept-new`）を作る。
+接続を受ける側と接続する側を、別の要素にしている。
+
+- `ssh_server`: sshd を動かし、mDNS で名前を知らせる。機体の要素が `requires` に挙げる。
+- `accept_ssh_admin` と `accept_ssh_server`: `ssh_server` のある機体で、ホストを管理する利用者（`etc_nixos_link`）と、自分用サーバを動かす利用者（`run_home_server`）に入る派生要素。`requires` の `authorize_lan_key` が、持ち主の値 `lan_public_key` をその利用者の `authorized_keys` に入れる。
+- `connect_ssh`: `accept_ssh_admin` か `accept_ssh_server` が入っている利用者のいるホストごとに、`Host` ブロック（短縮名、`IdentityFile`、`User`、`accept-new`）を作る。どのホストのどの利用者に入っているかは、confgen が全ホストの `purposes` から求めて `roles` で渡す。`User` は、ホストを管理する利用者にする。
+
+接続する側は、接続を受ける側の判定そのものを読む。
+ホストの TOML に `ssh_user` のような目印を書き、接続する側がそれを読む形は退けた。sshd を動かす機体と目印を別々に書くことになり、sshd のない機体への `Host` ブロックや、公開鍵の入っていないアカウントへのログイン名を、confgen が止められない。
+
+ログイン名をホストごとに 1 つにするため、1 台で `accept_ssh_admin` が入る利用者が 2 人いると `connect_ssh` が生成を止める。
+自分用サーバのサービスを別の利用者が動かしている場合は、クライアントの要素が `find_home_server` の公開値から `<利用者>@<接続名>` を受け取る。
+
 各ホストに `authorizedKeys` を直接書くと、双方向にしたときマシンの数の 2 乗だけ書くことになる。
 
 `ssh <短縮名>` で接続するには、認証、名前解決、ホスト鍵の受け入れが要る。
-名前解決は avahi の mDNS（LAN の外では tailnet の MagicDNS を引く `<短縮名>-ts`、[tailscale.md](./tailscale.md)）に任せ、認証とホスト鍵の扱いと短縮名を `config/hosts/*.toml` から作る。
+名前解決は avahi の mDNS（LAN の外では tailnet の MagicDNS を引く `<短縮名>-ts`、[tailscale.md](./tailscale.md)）に任せ、認証とホスト鍵の扱いと短縮名を `connect_ssh` が作る。
 
 ## 鍵は用途で名付ける
 
@@ -40,7 +51,7 @@ root は `id_lan` を持たないので、`sudo nixos-rebuild --build-host` の�
 ## 鍵は ssh で接続する要素が入る利用者にだけ配る
 
 ほかの機体へ ssh で接続する要素（`use_xsaved`、`remote_build` など）が `requires` に `lan_ssh_key` を挙げ、その要素が入る利用者だけが共通鍵を受け取る。OS が NixOS というだけでは配らない。
-共通鍵を持つユーザーは、接続先の `ssh_user` として認証できるため。
+共通鍵を持つユーザーは、接続先でログインを受け付ける利用者として認証できるため。
 
 ホストかユーザーの TOML の `lan_ssh = true` で選ぶ案は退けた。鍵が要る理由（ssh で接続する要素）と鍵を配る指定が別の場所になり、要素を選んだのに鍵がない状態や、要素をやめたのに鍵だけ残る状態を confgen が止められない。
 
@@ -54,7 +65,7 @@ root は `id_lan` を持たないので、`sudo nixos-rebuild --build-host` の�
 
 ## セキュリティ
 
-- repo に入るのは `machine_ssh` の公開鍵と、age で暗号化した `secrets/secrets.yaml` だけ
+- repo に入るのは `config/owner.toml` の公開鍵と、age で暗号化した `secrets/secrets.yaml` だけ
 - 全マシンの秘密鍵は同じ鍵なので、1 台が侵害されたら LAN の認証を全部作り直す
 - `PasswordAuthentication = false` で、鍵の認証しか受け付けない
 - 対象は NixOS ホストだけで、standalone home-manager（macOS）には `id_lan` を配らない

@@ -1,6 +1,6 @@
-def user_config(user):
+def user_config(owner):
     home = {}
-    modes = getattr(user, "agent_compression", {})
+    modes = getattr(owner, "agent_compression", {})
     allowed = {
         "caveman": ["off", "lite", "full", "ultra", "wenyan-lite", "wenyan", "wenyan-full", "wenyan-ultra"],
         "genshijin": ["off", "polite", "normal", "extreme"],
@@ -13,5 +13,5 @@ def user_config(user):
                 fail("invalid agent compression mode for " + name + ": " + mode)
             home[("xdg", "configFile", name + "/config.json", "text")] = concat(toJSON({"defaultMode": mode}), "\n")
     if not home:
-        fail("agent_compression: set agent_compression in config/users/<user>.toml")
+        fail("agent_compression: set agent_compression in config/owner.toml")
     return {"home": home}

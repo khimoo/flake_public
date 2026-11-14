@@ -1,0 +1,10 @@
+# このリポジトリの持ち主の値。どのホストのどの利用者についても同じ値で、要素は owner として読む。
+# 利用者に入るのは、purposes から有効になった要素が書く値だけ（docs/architecture/confgen.md）。
+git_username = "khimoo"
+git_email = "dailysentence1111@gmail.com"
+agent_config_root = "sagyo/agents-private"
+agent_config_repo = "git@github.com:khimoo/agents-private.git"
+agent_compression = { caveman = "off", genshijin = "normal" }
+secrets = [{ secret = "gemini_api_key", path = ".config/gemini/api-key" }]
+# 自宅の機体どうしの ssh に使う鍵（lan_ssh_key が置く id_lan）の公開鍵。
+lan_public_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMsQXfS2j/9NtGDBz7EAP4I3DamWH1I6cromNqWOZ2pb pomu@lan"

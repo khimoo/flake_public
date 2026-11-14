@@ -89,7 +89,9 @@ in
     // {
       elements = [
         "failure_notify"
-        "machine_ssh"
+        "connect_ssh"
+        "find_home_server"
+        "ssh_server"
         "quaderno"
         "use_quaderno_archive"
         "quaderno_send"

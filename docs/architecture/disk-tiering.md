@@ -42,7 +42,7 @@ fileSystems は `{ subvol, path, opts }` のリストから生成し、device �
 
 例外は、アプリを有効にしてから手で作る `@mimikopi` と `@xsaved` で、作る前の switch や再起動で起動を止めないよう `nofail` を付ける。
 代わりに、使う側の環境（`mimikopi-env`、`xsaved-env`）が起動時にマウントを確かめ、マウントされていなければ止まる。
-mimikopi と xsaved のマウント先は、[ホストの TOML](../../config/hosts/nixos-desktop.toml) の `mimikopi_data_dir` と `xsaved_users.<ユーザー>.data_dir` から作る。アプリも同じ値を読むので、保存先の変更を2か所に書く必要はない。
+mimikopi と xsaved のマウント先は、要素が利用者のホームから作る（`~/.local/share/mimikopi` と `~/.local/share/xsaved`）。アプリにも同じ要素が同じパスを渡すので、保存先を2か所に書く必要はない。
 
 `@backup` のマウント先は TOML の `backup_dir` から作る。アプリ側の `minecraft_repo` と `quaderno_archive` は、その配下を指定し、ディレクトリはアプリの要素（`minecraft_backup`、`serve_quaderno_archive`）が tmpfiles で作る。`@vm`、`@mimikopi`、`@xsaved` のマウントも、使う要素（`windows_vm`、`mimikopi`、`xsaved`）が作るので、行動を外すとマウントも消える。
 

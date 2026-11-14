@@ -1,5 +1,5 @@
-# 目的: git と、その周りの道具（lazygit、delta）。名前とメールは config/users/<ユーザー>.toml から。
-def user_config(user):
+# 目的: git と、その周りの道具（lazygit、delta）。名前とメールは git_identity が入れる。
+def user_config():
     home = {
         "programs.lazygit.enable": True,
         "programs.lazygit.settings": {
@@ -31,8 +31,4 @@ def user_config(user):
             },
         },
     }
-    if hasattr(user, "git_username"):
-        home["programs.git.settings.user.name"] = user.git_username
-    if hasattr(user, "git_email"):
-        home["programs.git.settings.user.email"] = user.git_email
     return {"home": home}

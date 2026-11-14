@@ -3,7 +3,6 @@ system = "x86_64-linux"
 kind = "nixos"
 state_version = "25.05"
 timezone = "Asia/Tokyo"
-ssh_user = "pomu"
 machine = "machine_nixos_desktop"
 xkb_layout = "us+altgr-intl"
 backup_dir = "/mnt/backup"
@@ -17,13 +16,10 @@ private_repos = [
 minecraft_repo = "/mnt/backup/minecraft/repo"
 minecraft_remote = "gdrive:minecraft-backups"
 quaderno_archive = "/mnt/backup/quaderno"
-mimikopi_data_dir = "/home/pomu/.local/share/mimikopi"
 mimikopi_data_subvolume = "@mimikopi"
 mimikopi_hsa_override = "10.3.0"
-secrets = [{ secret = "xsaved_restic_password", path = ".config/xsaved/restic-password" }]
 windows_vm_domain = "win11"
 windows_vm_images_subvolume = "@vm"
-xsaved_proxy = { user = "pomu", name = "xsaved.localhost" }
 
 [[users]]
 name = "pomu"
@@ -57,20 +53,19 @@ purposes = [
 ]
 admin = true
 
+# pomu が動かす xsaved（serve_xsaved）の値。
+[users.xsaved]
+data_subvolume = "@xsaved"
+database = "xsaved"
+hsa_override = "10.3.0"
+web_port = 8765
+check_mount = true
+backup_repository = "rclone:gdrive:xsaved-backup"
+proxy_name = "xsaved.localhost"
+
 [[users]]
 name = "mase"
 purposes = []
 admin = false
 home_manager = false
 initial_hashed_password = "$6$jQHubQo9MXPX15.x$LSWMJBiOQT75T/HOeMyKlFmWZjl.wTi7CA.m02uFPPJqssvKCMq1..6fGYdjm7HMJhhBAIl1Vbpkuq92gaVbH/"
-
-[xsaved_users.pomu]
-data_dir = "/home/pomu/.local/share/xsaved"
-data_subvolume = "@xsaved"
-project_dir = "/home/pomu/.local/share/xsaved-app"
-database = "xsaved"
-hsa_override = "10.3.0"
-web_port = 8765
-check_mount = true
-backup_repository = "rclone:gdrive:xsaved-backup"
-backup_password_file = "/home/pomu/.config/xsaved/restic-password"

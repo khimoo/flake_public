@@ -28,7 +28,7 @@ in
         assert builtins.elem "alice" laptop.nix.settings.trusted-users;
         # 自分自身を任せる先にしたホストは、回す先がない。黙って何もしない設定にしない。
         assert rejectsPurpose "test-remote-build-self" "x86_64-linux"
-          "remote_build: build_host is this host";
+          "remote_build: this host is the home server";
         pkgs.runCommand "remote_build-contracts" { } ''
           echo "remote_build contracts passed" > "$out"
         ''
@@ -38,8 +38,9 @@ in
       elements = [
         "checkout"
         "machine_base"
-        "machine_ssh"
-        "machine_ssh_tailnet"
+        "connect_ssh"
+        "connect_ssh_tailnet"
+        "find_home_server"
         "lan_ssh_key"
         "remote_build"
         "tailscale"

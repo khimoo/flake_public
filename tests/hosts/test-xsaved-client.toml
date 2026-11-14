@@ -1,7 +1,7 @@
 system = "x86_64-linux"
 state_version = "25.11"
 
-# クライアントの側。自分用サーバ（nixos-desktop の xsaved_users.pomu）へ ssh で接続する。
+# クライアントの側。自分用サーバ（run_home_server を選んだ nixos-desktop の利用者）へ ssh で接続する。
 [[users]]
-name = "pomu"
-purposes = ["use_xsaved", "machine_ssh", "tailscale"]
+name = "test"
+purposes = ["use_xsaved", "tailscale"]

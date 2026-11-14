@@ -12,18 +12,18 @@
 
 ## 接続先は tailnet の接続名（`desktop-ts`）にする
 
-`hostName` は `machine_ssh` が生成する `<短縮名>-ts` にした。
+`hostName` は `connect_ssh` が生成する `<短縮名>-ts` にした。
 自宅 LAN の内外で同じ経路で接続でき、ビルダー 1 台につきエントリが 1 つで済む。
 
 退けた案と理由:
 
 - `.local` の接続名: LAN の外で名前が引けない
 - `.local` と `-ts` の両方をエントリにする: Nix が二つを別のマシンとして数え、同じデスクトップに `maxJobs` の 2 倍のビルドを送る。出先ではコマンドのたびに `.local` への接続失敗も表示される
-- MagicDNS 名の `nixos-desktop`: `machine_ssh` の `Host desktop nixos-desktop nixos-desktop.local` ブロックに一致し、`HostName nixos-desktop.local`（mDNS）に書き換わる
+- MagicDNS 名の `nixos-desktop`: `connect_ssh` の `Host desktop nixos-desktop nixos-desktop.local` ブロックに一致し、`HostName nixos-desktop.local`（mDNS）に書き換わる
 
 代償として、自宅 LAN の中でも常設ビルダーは tailscaled に依存する。
 
-接続名は `remote_build` と `machine_ssh` がそれぞれ同じ規則で組み立てる。
+接続名は `connect_ssh` が組み立て、`remote_build` は `find_home_server` の公開値から同じ名前を受け取る。
 `tests/default.nix` の module contracts が両者の一致を確かめるので、片方の規則だけを変えると検査で失敗する。
 
 ## 鍵は primaryUser の `id_lan` を絶対パスで読む
@@ -46,7 +46,7 @@ Nix 2.31.5（`cc38c0c5`）のソースと、2026-09-24 の spin713 での観測�
 - `preferLocalBuild` の derivation は、`max-jobs` が 0 でなければ手元でビルドし、0 ならビルダーでビルドされる。`max-jobs` の説明文は「常に手元でビルドする」としているが、ソース（`derivation-building-goal.cc` の `willBuildLocally(...) && maxBuildJobs != 0`）と観測はそうなっていない
 - Nix の `connect-timeout` は binary cache の HTTP 用の設定で、ssh には渡らない
 
-そのため、待ち時間の上限は ssh の `ConnectTimeout 10`（`machine_ssh`）で決めている。
+そのため、待ち時間の上限は ssh の `ConnectTimeout 10`（`connect_ssh`）で決めている。
 指定しないと、SYN が黙って捨てられる経路では TCP の再送が尽きるまで約 2 分待つ。
 この設定は人が打つ `ssh` にも適用される。
 
@@ -66,10 +66,10 @@ Nix 2.31.5（`cc38c0c5`）のソースと、2026-09-24 の spin713 での観測�
 
 `local_builds` の既定は true にした。非力なホストだけが選ぶ設定だからだ。
 
-## 任せる先はホストの `build_host`、ジョブ数と feature は `remote_build.star` に置く
+## 任せる先は `find_home_server` が求め、ジョブ数と feature は `remote_build.star` に置く
 
-任せる先は、任せる側のホストの TOML の `build_host` に書く。
-ビルドを任せるのは nix-daemon で、ホスト全体の設定なので、利用者の値の `home_server` は読めない（[規則 B](./rules.md)）。
+任せる先は、`run_home_server` を選んだ利用者のいるホストで、`find_home_server` が `roles` から求める。ログインするのは、そのホストで `serve_builds` が入っている利用者になる。
+任せる側のホストの TOML に `build_host` を書く案は退けた。ビルドを引き受けるかどうかは引き受ける側の利用者の行動（`run_home_server`）で決まるので、同じ事実を任せる側にも書くと、食い違っても confgen が止められない。
 
 `maxJobs` は `remote_build.star` に 32 と定数で書いた。
 NixOS の `nix.buildMachines` の `maxJobs` の説明（`nixos/modules/config/nix-remote-build.nix`）に「The build machine will enforce its own limits」とあり、同時に実行する数の上限は、引き受ける側の `nix.settings.max-jobs`（既定の `"auto"` はスレッド数）がかける。
@@ -92,7 +92,7 @@ NixOS の `nix.buildMachines` の `maxJobs` の説明（`nixos/modules/config/ni
 
 デスクトップの nix-daemon は、接続してきたユーザーが trusted でないと derivation のビルドを拒否する（`you are not privileged to build input-addressed derivations`）。
 引き受ける側では、`run_home_server` の手段の `serve_builds.star` が、その行動を選んだ利用者を `trusted-users` に入れる。
-任せる側は引き受ける側の `ssh_user` として接続するので、`run_home_server` を選ぶのはその利用者になる。
+任せる側は、`serve_builds` が入っている利用者として接続する（`find_home_server` の公開値）ので、接続する利用者と trusted にする利用者は同じ判定から決まる。
 
 任せる側でも trusted が要る。
 デスクトップでビルドした成果物には署名がなく、`--build-host` で取り戻すときも、デスクトップから `--target-host` で送るときも、`nix-copy-closure` は利用者のまま取り込む（nixos-rebuild-ng 26.05 の `nixos_rebuild/nix.py` の `copy_closure`）。

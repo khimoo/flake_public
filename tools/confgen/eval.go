@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -419,18 +420,34 @@ func (l *levels) readsPerUser(f *funcInfo) bool {
 	return false
 }
 
-func evaluateHost(host, system string, spec *hostSpec, userFiles map[string]starlark.StringDict, machineValues starlark.StringDict, elems map[string]*element) (*hostResult, error) {
+// shared holds the values that are the same for every host and user of one config directory.
+type shared struct {
+	machines starlark.StringDict
+	owner    starlark.StringDict
+	roles    starlark.StringDict
+}
+
+func loadShared(dir string, elems map[string]*element) (*shared, error) {
+	machines, err := loadMachines(filepath.Join(dir, "hosts"))
+	if err != nil {
+		return nil, err
+	}
+	owner, err := loadOwner(filepath.Join(dir, "owner.toml"))
+	if err != nil {
+		return nil, err
+	}
+	roles, err := loadRoles(filepath.Join(dir, "hosts"), elems)
+	if err != nil {
+		return nil, err
+	}
+	return &shared{machines: machines, owner: owner, roles: roles}, nil
+}
+
+func evaluateHost(host, system string, spec *hostSpec, sh *shared, elems map[string]*element) (*hostResult, error) {
 	judgments := map[string]map[string]reason{}
 	all := map[string]bool{}
 	for _, u := range spec.users {
-		axioms := map[string]string{}
-		if spec.machine != "" {
-			axioms[spec.machine] = "machine"
-		}
-		for _, p := range u.purposes {
-			axioms[p] = "purposes"
-		}
-		judgments[u.name] = derive(elems, axioms)
+		judgments[u.name] = derive(elems, axiomsOf(spec, u))
 		for n := range judgments[u.name] {
 			all[n] = true
 		}
@@ -490,11 +507,11 @@ func evaluateHost(host, system string, spec *hostSpec, userFiles map[string]star
 	}
 	facts := starlarkstruct.FromStringDict(starlarkstruct.Default, hostValues)
 	facts.Freeze()
-	machines := starlarkstruct.FromStringDict(starlarkstruct.Default, machineValues)
-	machines.Freeze()
-	hostRefs := map[string]*elementRef{
-		hostElement:     {name: hostElement, public: facts},
-		machinesElement: {name: machinesElement, public: machines},
+	hostRefs := map[string]*elementRef{hostElement: {name: hostElement, public: facts}}
+	for name, values := range map[string]starlark.StringDict{machinesElement: sh.machines, ownerElement: sh.owner, rolesElement: sh.roles} {
+		s := starlarkstruct.FromStringDict(starlarkstruct.Default, values)
+		s.Freeze()
+		hostRefs[name] = &elementRef{name: name, public: s}
 	}
 
 	publicOfIn := func(refs map[string]*elementRef) func(string) (*elementRef, error) {
@@ -693,13 +710,7 @@ func evaluateHost(host, system string, spec *hostSpec, userFiles map[string]star
 			home = "/Users/" + u.name
 		}
 		userValues := starlark.StringDict{"name": starlark.String(u.name), "home": starlark.String(home)}
-		for k, v := range userFiles[u.name] {
-			userValues[k] = v
-		}
 		for k, v := range u.values {
-			if _, dup := userFiles[u.name][k]; dup {
-				return nil, fmt.Errorf("host %s: user %s sets %s both in the host file and in config/users/%s.toml", host, u.name, k, u.name)
-			}
 			if k == "home" {
 				return nil, fmt.Errorf("host %s: user %s: home is set by confgen", host, u.name)
 			}

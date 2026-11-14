@@ -29,7 +29,7 @@ in
         assert builtins.elem "f /run/xsaved-gpu.lock 0644 root root -" xsavedHost.systemd.tmpfiles.rules;
         # データベースは NixOS 側が作るので、NixOS の設定を作らないホストでは confgen が止める。
         assert rejectsPurpose "test-xsaved-standalone" "x86_64-linux" "needs nixos_system";
-        # クライアントは、自分用サーバ（home_server）の xsaved_users の web_port へ ssh で転送する。
+        # クライアントは、自分用サーバで xsaved を動かす利用者の web_port へ ssh で転送する。
         assert
           system != "x86_64-linux"
           || (
@@ -41,7 +41,7 @@ in
                 }).read
                   "test-xsaved-client"
                   system
-                  "pomu";
+                  "test";
               packages = lib.findFirst (
                 s:
                 s.path == [
@@ -68,7 +68,8 @@ in
         "checkout"
         "failure_notify"
         "machine_base"
-        "machine_ssh"
+        "connect_ssh"
+        "find_home_server"
         "serve_xsaved"
         "use_xsaved"
         "xsaved_data"

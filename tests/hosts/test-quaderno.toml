@@ -4,5 +4,4 @@ state_version = "25.11"
 # クライアントの側。Quaderno を使い、自分用サーバへ ssh で接続できる機体。
 [[users]]
 name = "test"
-purposes = ["quaderno_send", "use_quaderno_archive", "machine_ssh", "tailscale"]
-home_server = "nixos-desktop"
+purposes = ["quaderno_send", "use_quaderno_archive", "tailscale"]

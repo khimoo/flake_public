@@ -6,7 +6,7 @@
 ## 設定 repo の clone へ out-of-store symlink する
 
 エージェントの設定は private な内容を含むので、公開している flake_public には置けない。
-設定 repo を持たない人には何も影響しないように、clone の場所を `config/users/<ユーザー>.toml` の `agent_config_root` から渡し、未指定ならリンクも同期も作らない。`agent_config` を選んだ利用者にだけ反映し、`agent_links` の公開値からリンクを作り、同じ場所を `private_repos` に書き込んで clone する。
+設定 repo を持たない人には何も影響しないように、clone の場所を持ち主の値（`config/owner.toml`）の `agent_config_root` から渡す。`agent_config` を選んだ利用者にだけ反映し、`agent_links` の公開値からリンクを作り、同じ場所を `private_repos` に書き込んで clone する。
 flake_public が設定 repo について知るのは、`shared/`、`claude/`、`codex/` の分け方とファイル名だけにした。
 
 退けた案と理由:
@@ -80,7 +80,7 @@ flake_public にプロファイル名を並べると、設定 repo にファイ�
 
 指示を書くのは派生要素の [agent_offload_notes.star](../../config/elements/agent_offload_notes.star) で、利用者が自分用サーバで作業する行動（`program_on_home_server`）を選び、AI エージェントの手段の `codex_policy` も入っているときに入る。
 指示が要るかどうかは、重い処理を任せる自分用サーバがあるかで決まり、ホスト名では決まらない。そこで、ホストごとの本文ファイルにせず、行動から導く要素にした。
-本文に書く接続名は、ホストの `build_host` から作る。利用者の値の `home_server` を読まないのは、書き出し先の `/etc` がホスト全体の設定で、利用者ごとの値を読めない（[規則 B](./rules.md)）からだ。
+本文に書く接続名は、`find_home_server` の公開値から、自分用サーバで `serve_workspace` を動かす利用者への接続名を読む。書き出し先の `/etc` はホスト全体の設定なので、利用者ごとの値は読めない（[規則 B](./rules.md)）。`find_home_server` の公開値は `roles` から作られ、どの利用者についても同じなので読める。
 
 同じ本文を両方のエージェントのシステム層に書き出す。
 

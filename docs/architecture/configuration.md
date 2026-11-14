@@ -1,7 +1,7 @@
 # ホストとユーザープロファイルの境界
 
 使い方: [ユーザー管理](../howtouse/users.md) / [検証](../howtouse/validation.md)
-実装: [factory](../../lib/configurations.nix) / [個人の値](../../config/users/)
+実装: [factory](../../lib/configurations.nix) / [持ち主の値](../../config/owner.toml)
 
 ## 責務
 
@@ -9,7 +9,7 @@
 
 ホストの `machine` が機体を、`[[users]]` の `purposes` が利用者ごとの行動を選び、[要素](../../config/elements/) が依存をたどって設定を生成する。ホストを動かす `machine_*` は共通部品を `requires` で参照し、生成済み `hardware.nix` を import する。値を TOML、処理を要素に分けることで、選択と実装を二重管理しない（[confgen](confgen.md)）。
 
-個人の Git identity、鍵、mutable checkout は `config/users/<ユーザー>.toml` に置く。各 Home Manager は本人のファイルだけを読み、同じホストの別のユーザーにも個人の値を渡さない。NixOS には利用者ごとの confgen の結果を合わせ、`home_manager = false` の人にはホーム構成を作らない。
+リポジトリの持ち主の Git identity、秘密の配置先、エージェント設定の場所は `config/owner.toml` に置く。値を使う要素が `purposes` から入った利用者の Home Manager にだけ反映し、同じホストの別のユーザーには渡さない。NixOS には利用者ごとの confgen の結果を合わせ、`home_manager = false` の人にはホーム構成を作らない。
 
 ## 機能の実装をたどる
 
@@ -31,7 +31,7 @@ checkout の場所はホームからの相対パス `flake_root` とし、`check
 
 ## OS との接点
 
-SSH の IdentityFile は `~/.ssh/` を使い、全ユーザーへ最初のユーザーの絶対パスを配らない。接続先のユーザー名は各ホストの `ssh_user` から作る。LAN 鍵は、ほかの機体へ ssh で接続する要素が `lan_ssh_key` を通して要求した利用者にだけ配る。
+SSH の IdentityFile は `~/.ssh/` を使い、全ユーザーへ最初のユーザーの絶対パスを配らない。接続先のユーザー名は、接続先のホストでログインを受け付ける利用者（`accept_ssh_admin`）から作る。LAN 鍵は、ほかの機体へ ssh で接続する要素が `lan_ssh_key` を通して要求した利用者にだけ配る。
 
 例外は常設のリモートビルドで、nix-daemon（root）が最初のユーザーの `id_lan` を絶対パスで読む（[remote-build.md](remote-build.md)）。`--build-host` は root を使わず、実行ユーザーのまま SSH する。
 

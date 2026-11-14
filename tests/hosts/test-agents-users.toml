@@ -6,7 +6,7 @@ hostname = "test-agents-users"
 
 [[users]]
 name = "alice"
-purposes = ["machine_base", "lan_ssh_key", "codex_policy", "git", "agent_config", "etc_nixos_link", "nixos_system", "linux"]
+purposes = ["machine_base", "lan_ssh_key", "codex_policy", "git_identity", "agent_config", "etc_nixos_link", "nixos_system", "linux"]
 
 [[users]]
 name = "bob"

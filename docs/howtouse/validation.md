@@ -35,7 +35,7 @@ bash scripts/check.sh --full   # toplevel の評価、nix flake check、全シ�
 
 ### check を追加する
 
-共通の補助関数と check の集約は [tests/default.nix](../../tests/default.nix)、要素の検査は `tests/elements/<主な要素>.nix`、実在ホストの検査は [tests/hosts.nix](../../tests/hosts.nix) に置きます。要素のファイルは `{ lib, pkgs, system, helpers, ... }: { <名前> = <derivation>; }` の形でテストの attrset を返します。架空のホストは `tests/hosts/`、ユーザーは `tests/users/` に置きます。テスト用の設定ディレクトリは、実在と架空のホスト・ユーザー、および `config/elements/` を合わせて作られます。
+共通の補助関数と check の集約は [tests/default.nix](../../tests/default.nix)、要素の検査は `tests/elements/<主な要素>.nix`、実在ホストの検査は [tests/hosts.nix](../../tests/hosts.nix) に置きます。要素のファイルは `{ lib, pkgs, system, helpers, ... }: { <名前> = <derivation>; }` の形でテストの attrset を返します。架空のホストは `tests/hosts/`、架空のホストが使う持ち主の値は [tests/owner.toml](../../tests/owner.toml) に置きます。テスト用の設定ディレクトリは、実在と架空のホスト、`config/elements/`、`tests/owner.toml` を合わせて作られます。実在のホストの生成結果を確かめるときは、`config/` をそのまま使います。持ち主の値を差し替えて生成が止まることを確かめるときは、`rejectsPurposeWithOwner` に TOML の本文を渡します。
 
 各 check には次の札を1つ以上付けます。`check.sh` は札のない check の名前を表示して停止します。札の読み取りで未選択の構成まで評価しないよう、既存のテストと同じく `lib.lazyDerivation { derivation = <検査>; } // { <札>; }` で包みます。
 

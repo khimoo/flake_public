@@ -7,3 +7,4 @@ hostname = "test-ssh-duplicate"
 [[users]]
 name = "test-ssh-duplicate"
 purposes = ["personal_files"]
+ssh_keys = [{secret = "a", name = "id_test"}, {secret = "b", name = "id_test"}]

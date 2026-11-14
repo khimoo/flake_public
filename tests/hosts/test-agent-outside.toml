@@ -1,9 +1,0 @@
-system = "x86_64-linux"
-state_version = "25.11"
-timezone = "Asia/Tokyo"
-hostname = "test-agent-outside"
-
-
-[[users]]
-name = "test-agent-outside"
-purposes = ["codex_policy", "agent_config", "nixos_system", "linux"]

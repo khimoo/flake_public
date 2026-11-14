@@ -4,7 +4,7 @@
 
 ## ユーザーの追加
 
-`config/hosts/<ホスト>.toml` の `[[users]]` に追加します。利用者ごとに `purposes` で行動を指定します。個人の値は `config/users/<ユーザー>.toml` に置きます。
+`config/hosts/<ホスト>.toml` の `[[users]]` に追加します。利用者ごとに `purposes` で行動を指定します。利用者ごとの値は同じ `[[users]]` に書きます。リポジトリの持ち主の値（Git identity、エージェント設定、秘密の配置先）は [owner.toml](../../config/owner.toml) にあり、値を使う要素（`git_identity`、`agent_config`、`personal_files` など）が入った利用者にだけ反映されます。
 
 ```toml
 [[users]]

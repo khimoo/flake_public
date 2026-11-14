@@ -5,4 +5,4 @@ quaderno_archive = "/mnt/backup/quaderno"
 # サーバの側。アーカイブを home の外（別のディスク）に置く。
 [[users]]
 name = "test"
-purposes = ["serve_quaderno_archive", "machine_ssh"]
+purposes = ["serve_quaderno_archive", "ssh_server"]

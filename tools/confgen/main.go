@@ -8,8 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	"go.starlark.net/starlark"
 )
 
 func main() {
@@ -84,27 +82,11 @@ func buildHost(dir, host, system string) (*hostResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	userFiles, err := loadUserFiles(dir, spec)
+	sh, err := loadShared(dir, elems)
 	if err != nil {
 		return nil, err
 	}
-	machines, err := loadMachines(filepath.Join(dir, "hosts"))
-	if err != nil {
-		return nil, err
-	}
-	return evaluateHost(host, system, spec, userFiles, machines, elems)
-}
-
-func loadUserFiles(dir string, spec *hostSpec) (map[string]starlark.StringDict, error) {
-	out := map[string]starlark.StringDict{}
-	for _, u := range spec.users {
-		v, err := loadUserFile(filepath.Join(dir, "users", u.name+".toml"))
-		if err != nil {
-			return nil, err
-		}
-		out[u.name] = v
-	}
-	return out, nil
+	return evaluateHost(host, system, spec, sh, elems)
 }
 
 // why prints the chain of rules that makes an element true for a user, down to the axioms.

@@ -17,6 +17,6 @@
 
 ## 個人設定の分離
 
-`home_manager = false` のユーザーには OS アカウントだけを作る。Home Manager の利用者には本人の `[[users]]` の `purposes` で選んだ行動を適用し、個人の値は本人の `config/users/<ユーザー>.toml` から読む。Git identity、鍵、mutable checkout を別ユーザーから継承させない。
+`home_manager = false` のユーザーには OS アカウントだけを作る。Home Manager の利用者には本人の `[[users]]` の `purposes` で選んだ行動を適用し、利用者ごとの値は本人の `[[users]]` から読む。リポジトリの持ち主の値（`config/owner.toml` の Git identity、秘密の配置先など）は、値を使う要素が `purposes` から入った利用者にだけ反映し、ほかの利用者には渡さない。
 
 confgen の NixOS 設定は各ユーザーの評価結果を合わせる。ホーム側も各ユーザーで評価するため、鍵の復号先と checkout は本人のホームから作る。制約と検証は [構成の境界](configuration.md) を参照。

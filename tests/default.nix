@@ -5,12 +5,16 @@ let
     "x86_64-linux"
     "aarch64-darwin"
   ];
-  configDir = inputs.nixpkgs.legacyPackages.x86_64-linux.runCommand "test-config" { } ''
-    mkdir -p "$out/hosts" "$out/users"
-    ln -s ${../config/elements} "$out/elements"
-    cp ${../config/hosts}/*.toml ${./hosts}/*.toml "$out/hosts/"
-    cp ${../config/users}/*.toml ${./users}/*.toml "$out/users/"
-  '';
+  # 実在と架空のホスト、config/elements、持ち主の値 owner（TOML の本文）を合わせた設定ディレクトリ。
+  configDirWith =
+    owner:
+    inputs.nixpkgs.legacyPackages.x86_64-linux.runCommand "test-config" { inherit owner; } ''
+      mkdir -p "$out/hosts"
+      ln -s ${../config/elements} "$out/elements"
+      cp ${../config/hosts}/*.toml ${./hosts}/*.toml "$out/hosts/"
+      printf '%s' "$owner" > "$out/owner.toml"
+    '';
+  configDir = configDirWith (builtins.readFile ./owner.toml);
   configurations = import ../lib/configurations.nix { inherit inputs configDir; };
   fixture = configurations.mkSystem {
     hostname = "test-agents-users";
@@ -89,8 +93,11 @@ let
     configurations.mkHome {
       name = hostForSystem system name;
     };
-  rejectsPurpose =
-    name: system: message:
+  rejectsPurpose = rejectsPurposeIn configDir;
+  # 持ち主の値を差し替えた設定ディレクトリで、生成が message で止まることを確かめる。
+  rejectsPurposeWithOwner = owner: rejectsPurposeIn (configDirWith owner);
+  rejectsPurposeIn =
+    configDir: name: system: message:
     let
       selected = hostForSystem system name;
     in
@@ -234,6 +241,7 @@ lib.genAttrs systems (
         mkTestHome
         purposeHome
         rejectsPurpose
+        rejectsPurposeWithOwner
         allAssertions
         neovimFeatures
         activationDepsExist

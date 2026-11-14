@@ -9,50 +9,57 @@ def _database(value):
 
 needs = ["nixos_system"]
 requires = ["xsaved_data", "xsaved_web_proxy", "xsaved_backup"]
+role = True
 
-def _settings(host):
+_GPU_LOCK = "/run/xsaved-gpu.lock"
+_DEFAULT_PORT = 8765
+
+# 利用者ごとの値は、ホストのファイルの利用者の表（[[users]] の直後の [users.xsaved]）に書く。
+# データと本番用の checkout の場所は、利用者のホームから決める。
+def public(user):
+    values = getattr(user, "xsaved", None)
+    if values == None:
+        fail("xsaved: user " + user.name + " selects xsaved but has no [users.xsaved] table in the host file")
+    port = values.get("web_port", _DEFAULT_PORT)
+    if type(port) != "int" or port < 1 or port > 65535:
+        fail("xsaved: invalid web port")
     return {
-        "users": host.xsaved_users,
-        "gpu_lock": "/run/xsaved-gpu.lock",
+        "data_dir": user.home + "/.local/share/xsaved",
+        "project_dir": user.home + "/.local/share/xsaved-app",
+        "database": _database(values.get("database", "xsaved")),
+        "web_port": port,
+        "check_mount": values.get("check_mount", False),
+        "values": values,
+        "gpu_lock": _GPU_LOCK,
         # メジャー版を上げるとデータディレクトリの移行が要るので、stateVersion に連動させない。
         "postgresql": pkg("postgresql_17"),
         "postgresql_extensions": pkgWithPackages("postgresql_17", ["pgvector", "pgroonga"]),
         "systemd": pkg("systemd"),
     }
 
-def public(host):
-    return _settings(host)
-
 def config(host):
-    xsaved = struct(**_settings(host))
-    if not xsaved.users:
-        fail("xsaved: list the users as [xsaved_users.<user>] in the host file")
-    databases = [_database(v.get("database", "xsaved")) for v in xsaved.users.values()]
-    if len(databases) != len({name: True for name in databases}):
-        fail("xsaved: database names must be unique per user")
+    tables = [account["xsaved"] for account in host.users if "xsaved" in account]
+    # データベースとポートは機体で共有するので、利用者どうしで重ならないことを確かめる。
+    for key, default in [("database", "xsaved"), ("web_port", _DEFAULT_PORT)]:
+        chosen = [table.get(key, default) for table in tables]
+        if len(chosen) != len({str(value): True for value in chosen}):
+            fail("xsaved: " + key + " must be unique per user")
     nixos = {
         "services.postgresql.enable": True,
-        "services.postgresql.package": xsaved.postgresql,
+        "services.postgresql.package": pkg("postgresql_17"),
         "services.postgresql.extensions": pkgSetFn(["pgvector", "pgroonga"]),
-        "systemd.tmpfiles.rules": ["f " + xsaved.gpu_lock + " 0644 root root -"],
+        "systemd.tmpfiles.rules": ["f " + _GPU_LOCK + " 0644 root root -"],
     }
     return {"nixos": nixos}
 
-def user_config(host, user, failure_notify):
-    xsaved = struct(**_settings(host))
-    if user.name not in xsaved.users:
-        fail("xsaved: user " + user.name + " selects xsaved but the host file has no [xsaved_users." + user.name + "]")
-    values = xsaved.users[user.name]
-    data = values["data_dir"]
-    project = values["project_dir"]
-    for path in [data, project]:
-        if not path.startswith(user.home + "/"):
-            fail("xsaved: data and project paths must live below the user's home")
-    database = _database(values.get("database", "xsaved"))
-    port = values.get("web_port", 8765)
-    if type(port) != "int" or port < 1 or port > 65535:
-        fail("xsaved: invalid web port")
-    check_mount = values.get("check_mount", False)
+def user_config(user, serve_xsaved, failure_notify):
+    xsaved = serve_xsaved
+    values = xsaved.values
+    data = xsaved.data_dir
+    project = xsaved.project_dir
+    database = xsaved.database
+    port = xsaved.web_port
+    check_mount = xsaved.check_mount
     env = repoPkgWith("packages/xsaved-env", {
         "dataDir": data,
         "database": database,

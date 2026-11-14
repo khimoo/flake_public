@@ -200,7 +200,7 @@ func TestAffectedCoversReadersWriteTargetsAndDerivedElementsOnly(t *testing.T) {
 	}{
 		{[]string{"config/elements/a.star"}, []string{"a", "derived", "reads_a"}},
 		{[]string{"config/elements/writes.star"}, []string{"sink", "writes"}},
-		{[]string{"config/hosts/h.toml"}, []string{"host", "machines", "unrelated", "user"}},
+		{[]string{"config/hosts/h.toml"}, []string{"host", "machines", "roles", "unrelated", "user"}},
 		{[]string{"packages/foo/default.nix"}, []string{"uses_pkg"}},
 		{[]string{"docs/x.md"}, nil},
 		{[]string{"lib/confgen.nix"}, []string{allElements}},
@@ -480,5 +480,105 @@ func TestHostWithoutMachineListsFactsInPurposes(t *testing.T) {
 	r := buildHosts(t, elements, map[string]string{"t": one(`["vm", "kvm"]`)})
 	if got, want := r["t"].Generated, []string{"kvm", "vm"}; !reflect.DeepEqual(got, want) {
 		t.Errorf("%v, want %v", got, want)
+	}
+}
+
+func TestOwnerValuesReachOnlyTheUsersWhoseElementsReadThem(t *testing.T) {
+	dir := writeConfig(t, map[string]string{
+		"identity": "def user_config(owner):\n    return {\"home\": {\"name\": owner.git_username}}",
+		"other":    "def user_config(user):\n    return {\"home\": {\"user\": user.name}}",
+	}, map[string]string{"h": `
+[[users]]
+name = "alice"
+purposes = ["identity"]
+[[users]]
+name = "bob"
+purposes = ["other"]
+`})
+	if err := os.WriteFile(filepath.Join(dir, "owner.toml"), []byte("git_username = \"Owner\"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	r, err := buildHost(dir, "h", "x86_64-linux")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []setting{{Path: []string{"name"}, Value: "Owner"}}
+	if got := r.Users["alice"].Elements["identity"]["home"]; !reflect.DeepEqual(got, want) {
+		t.Errorf("alice got %#v, want %#v", got, want)
+	}
+	if _, ok := r.Users["bob"].Elements["identity"]; ok {
+		t.Errorf("bob got the element that reads the owner's values")
+	}
+}
+
+func TestRolesTellWhichUsersOfEveryHostARoleElementIsTrueFor(t *testing.T) {
+	elements := map[string]string{
+		"serve":  "role = True\ndef user_config(user):\n    return {\"home\": {\"serve\": user.name}}",
+		"server": `requires = ["serve"]`,
+		"client": `
+def user_config(roles):
+    found = [host + "/" + user for host, users in roles.hosts.items() for user, names in users.items() if "serve" in names]
+    return {"home": {"servers": found, "hosts": sorted(roles.hosts.keys())}}
+`,
+	}
+	hosts := map[string]string{
+		"a": "[[users]]\nname = \"alice\"\npurposes = [\"server\"]\n[[users]]\nname = \"bob\"\npurposes = []\n",
+		"b": one(`["client"]`),
+		// A host file that does not load is left out instead of failing the other hosts.
+		"broken": one(`["unknown"]`),
+	}
+	dir := writeConfig(t, elements, hosts)
+	r, err := buildHost(dir, "b", "x86_64-linux")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []setting{{Path: []string{"hosts"}, Value: []any{"a"}}, {Path: []string{"servers"}, Value: []any{"a/alice"}}}
+	if got := r.Users["test"].Elements["client"]["home"]; !reflect.DeepEqual(got, want) {
+		t.Errorf("got %#v, want %#v", got, want)
+	}
+}
+
+func TestAffectedReachesReadersOfRolesWhenAnElementLeadingToARoleChanges(t *testing.T) {
+	root := t.TempDir()
+	config := writeConfig(t, map[string]string{
+		"serve":     "role = True\ndef user_config(user):\n    return {\"home\": {\"serve\": user.name}}",
+		"server":    `requires = ["serve"]`,
+		"client":    "def user_config(roles):\n    return {\"home\": {\"n\": len(roles.hosts)}}",
+		"unrelated": "def user_config(host):\n    return {\"home\": {\"s\": host.system}}",
+	}, map[string]string{"a": one(`["server"]`), "b": one(`["client"]`)})
+	if err := os.Symlink(config, filepath.Join(root, "config")); err != nil {
+		t.Fatal(err)
+	}
+	got, err := affected(root, []string{"config/elements/server.star"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := []string{"client", "roles", "server"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("affected = %v, want %v", got, want)
+	}
+	hosts, err := affectedHosts(root, got)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := []string{"a", "b"}; !reflect.DeepEqual(hosts, want) {
+		t.Errorf("affectedHosts = %v, want %v", hosts, want)
+	}
+	got, err = affected(root, []string{"config/elements/unrelated.star", "config/owner.toml"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := []string{"owner", "unrelated"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("affected = %v, want %v", got, want)
+	}
+}
+
+func TestRejectedRoleDeclarations(t *testing.T) {
+	for _, c := range []struct{ src, want string }{
+		{"role = False", "role must be True"},
+		{"kind = \"machine_fact\"\nrole = True", "cannot be a role"},
+	} {
+		if got := buildError(t, map[string]string{"p": c.src}); !strings.Contains(got, c.want) {
+			t.Errorf("%q: got %q, want it to contain %q", c.src, got, c.want)
+		}
 	}
 }

@@ -1,15 +1,18 @@
+# 目的: 持ち主の個人のファイルと秘密を、このアカウントのホームに置く。git のコミットにも持ち主の名前を使う。
+requires = ["git_identity"]
+
 def _home_path(user, path):
     if path.startswith("/") or ".." in path.split("/"):
         fail("personal_files: destinations must live below the user's home")
     return user.home + "/" + path
 
-def writes(user, host, private_repos, secrets):
+def writes(user, host, owner, private_repos, secrets):
     result = []
     for repo in getattr(host, "private_repos", []):
         result.append(write(private_repos, {"url": repo["url"], "dest": _home_path(user, repo["dest"])}))
         result.append(write(secrets, private_repos.github_secret))
     destinations = {}
-    for item in getattr(user, "secrets", []) + getattr(host, "secrets", []):
+    for item in getattr(owner, "secrets", []) + getattr(host, "secrets", []):
         path = _home_path(user, item["path"])
         if path in destinations:
             fail("personal_files: duplicate secret destination")

@@ -18,7 +18,7 @@ func alone(dir string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	machines, err := loadMachines(filepath.Join(dir, "hosts"))
+	sh, err := loadShared(dir, elems)
 	if err != nil {
 		return nil, err
 	}
@@ -38,11 +38,7 @@ func alone(dir string) ([]string, error) {
 		if s, ok := spec.values["system"].(starlark.String); ok {
 			system = string(s)
 		}
-		userFiles, err := loadUserFiles(dir, spec)
-		if err != nil {
-			return nil, err
-		}
-		r, err := evaluateHost(host, system, spec, userFiles, machines, elems)
+		r, err := evaluateHost(host, system, spec, sh, elems)
 		if err != nil {
 			// Hosts under tests/ that exist to be rejected land here.
 			continue
@@ -61,7 +57,7 @@ func alone(dir string) ([]string, error) {
 			first := spec.users[0]
 			first.purposes = []string{name}
 			single := &hostSpec{machine: spec.machine, users: []userSpec{first}, values: spec.values}
-			if _, err := evaluateHost(host, system, single, userFiles, machines, elems); err != nil {
+			if _, err := evaluateHost(host, system, single, sh, elems); err != nil {
 				failures = append(failures, fmt.Sprintf("%s alone (values of host %s): %v", name, host, err))
 			}
 		}

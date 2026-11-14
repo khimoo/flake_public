@@ -3,4 +3,4 @@ state_version = "25.11"
 
 [[users]]
 name = "test"
-purposes = ["serve_quaderno_archive", "machine_ssh"]
+purposes = ["serve_quaderno_archive", "ssh_server"]

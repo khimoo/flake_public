@@ -1,3 +1,4 @@
 [[users]]
 name = "test-ssh-collision"
 purposes = ["codex_policy", "personal_files", "agent_config", "nixos_system", "linux"]
+ssh_keys = [{secret = "git_ssh_key", name = "id_github"}]

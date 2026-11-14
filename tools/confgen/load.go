@@ -32,6 +32,9 @@ type element struct {
 	// a fact the machine lacks must stop the build, not be supplied by the element asking.
 	needs []string
 	kind  string // "", kindMachine or kindFact
+	// role puts the element into roles: the hosts and users it is true for become readable
+	// by every element on every host.
+	role  bool
 	funcs map[string]*funcInfo
 }
 
@@ -63,14 +66,19 @@ func (e *element) refs() []string {
 
 const incomingParam = "incoming"
 
-// hostElement and userElement are provided by confgen, not by files: their public values
-// describe the host (system, linux, darwin) and the Home Manager user (name, home) being
-// built, so elements need no per-host or per-user flags.
+// The virtual elements are provided by confgen, not by files. host and user describe the host
+// (system, linux, darwin) and the user (name, home) being built, so elements need no per-host
+// or per-user flags. machines holds every host file, owner holds config/owner.toml, and roles
+// tells which users of which hosts a role element is true for.
 const (
 	hostElement     = "host"
 	userElement     = "user"
 	machinesElement = "machines"
+	ownerElement    = "owner"
+	rolesElement    = "roles"
 )
+
+var virtualElements = []string{hostElement, userElement, machinesElement, ownerElement, rolesElement}
 
 var elementFuncs = map[string]bool{"public": true, "writes": true, "config": true, "user_config": true}
 var elementLists = map[string]bool{"requires": true, "when": true, "needs": true}
@@ -105,7 +113,7 @@ func loadElements(dir string) (map[string]*element, error) {
 		}
 		elems[e.name] = e
 	}
-	for _, n := range []string{hostElement, userElement, machinesElement} {
+	for _, n := range virtualElements {
 		if _, ok := elems[n]; ok {
 			return nil, fmt.Errorf("%s.star: the name %q is reserved for facts confgen provides", n, n)
 		}
@@ -170,9 +178,15 @@ func parseElement(file string) (*element, error) {
 					return nil, fmt.Errorf("%s: kind must be %q or %q", id.NamePos, kindMachine, kindFact)
 				}
 				e.kind = lit.Value.(string)
+			case id.Name == "role":
+				v, ok := s.RHS.(*syntax.Ident)
+				if !ok || v.Name != "True" {
+					return nil, fmt.Errorf("%s: role must be True", id.NamePos)
+				}
+				e.role = true
 			case strings.HasPrefix(id.Name, "_"):
 			default:
-				return nil, fmt.Errorf("%s: top-level name %q is not allowed (use requires, when, needs, kind or a name starting with _)", id.NamePos, id.Name)
+				return nil, fmt.Errorf("%s: top-level name %q is not allowed (use requires, when, needs, kind, role or a name starting with _)", id.NamePos, id.Name)
 			}
 		case *syntax.ExprStmt:
 			if _, ok := s.X.(*syntax.Literal); !ok {
@@ -186,6 +200,9 @@ func parseElement(file string) (*element, error) {
 	}
 	if e.declaresMachine() && (len(e.when) > 0 || len(e.needs) > 0) {
 		return nil, fmt.Errorf("%s: an element with kind = %q describes the machine and takes no when or needs", file, e.kind)
+	}
+	if e.declaresMachine() && e.role {
+		return nil, fmt.Errorf("%s: an element with kind = %q is true for every user of the host and cannot be a role", file, e.kind)
 	}
 	if len(e.when) > 0 {
 		if len(e.when) < 2 || len(uniq(e.when)) != len(e.when) {
@@ -462,7 +479,7 @@ type hostSpec struct {
 }
 
 // userSpec is one [[users]] entry. Its keys other than name and purposes become user
-// facts (user.<key>) next to the keys of config/users/<name>.toml.
+// facts (user.<key>).
 type userSpec struct {
 	name     string
 	purposes []string
@@ -708,20 +725,57 @@ func uniq(xs []string) []string {
 	return sortedKeys(set)
 }
 
-// loadUserFile reads config/users/<user>.toml; its keys become user facts (user.<key>).
-// A missing file is empty.
-func loadUserFile(file string) (starlark.StringDict, error) {
+// loadOwner reads config/owner.toml: the values of the person who owns the repository, the
+// same for every host and every user. A missing file is empty.
+func loadOwner(file string) (starlark.StringDict, error) {
 	if _, err := os.Stat(file); os.IsNotExist(err) {
 		return starlark.StringDict{}, nil
 	}
-	values, err := loadTOML(file)
+	return loadTOML(file)
+}
+
+func axiomsOf(spec *hostSpec, u userSpec) map[string]string {
+	axioms := map[string]string{}
+	if spec.machine != "" {
+		axioms[spec.machine] = "machine"
+	}
+	for _, p := range u.purposes {
+		axioms[p] = "purposes"
+	}
+	return axioms
+}
+
+// loadRoles judges every host file and returns roles.hosts[<host>][<user>]: the role elements
+// true for the user. Judgments depend on no value (rule A), so every host can be judged before
+// any element runs. Hosts and users without a role are left out, and so are host files that do
+// not load: the build of such a host reports the error itself.
+func loadRoles(dir string, elems map[string]*element) (starlark.StringDict, error) {
+	files, err := filepath.Glob(filepath.Join(dir, "*.toml"))
 	if err != nil {
 		return nil, err
 	}
-	for _, k := range []string{"name", "home"} {
-		if _, ok := values[k]; ok {
-			return nil, fmt.Errorf("%s: %s is set by confgen", file, k)
+	hosts := starlark.NewDict(len(files))
+	for _, f := range files {
+		spec, err := loadHost(f, elems)
+		if err != nil {
+			continue
+		}
+		users := starlark.NewDict(len(spec.users))
+		for _, u := range spec.users {
+			var names []starlark.Value
+			g := derive(elems, axiomsOf(spec, u))
+			for _, n := range sortedKeys(g) {
+				if elems[n].role {
+					names = append(names, starlark.String(n))
+				}
+			}
+			if len(names) > 0 {
+				users.SetKey(starlark.String(u.name), starlark.NewList(names))
+			}
+		}
+		if users.Len() > 0 {
+			hosts.SetKey(starlark.String(strings.TrimSuffix(filepath.Base(f), ".toml")), users)
 		}
 	}
-	return values, nil
+	return starlark.StringDict{"hosts": hosts}, nil
 }

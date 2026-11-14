@@ -129,7 +129,7 @@ nixos-rebuild build --flake .#<ホスト> --build-host desktop-ts --use-substitu
 - `Host key verification failed`: デスクトップが `config/hosts/<ホスト>.toml` に登録されているか確認してください。手動で受け入れる場合は `ssh-keyscan -H nixos-desktop.local >> ~/.ssh/known_hosts` を実行します。
 - `error: cannot add path '/nix/store/...' because it lacks a signature`: いずれかのホストで `pomu` ユーザーが trusted ユーザーになっていません。両ホストで `nix store info --store daemon` を実行し、`Trusted: 1` になるか確認してください（`pomu` が `wheel` グループに所属していれば `Trusted: 1` になります）。
 - `ping: nixos-desktop.local: System error`: 初回は Avahi のキャッシュが空なだけの場合があるため、数秒待ってから再試行してください。
-- `nixos-desktop.local` が `192.168.122.*` に解決される: デスクトップ側の libvirt 仮想ブリッジでもホスト名がアドバタイズされています。デスクトップ上で `getent hosts nixos-desktop.local` を実行し、LAN 側（`192.168.11.*`）以外が返される場合は、`config/elements/machine_ssh.star` の `nixos` に `"services.avahi.denyInterfaces": ["virbr0", "vnet*"]` を追加してください。
+- `nixos-desktop.local` が `192.168.122.*` に解決される: デスクトップ側の libvirt 仮想ブリッジでもホスト名がアドバタイズされています。デスクトップ上で `getent hosts nixos-desktop.local` を実行し、LAN 側（`192.168.11.*`）以外が返される場合は、`config/elements/ssh_server.star` の `nixos` に `"services.avahi.denyInterfaces": ["virbr0", "vnet*"]` を追加してください。
 
 ## 別のマシンから switch する（`--target-host`）
 
@@ -151,7 +151,7 @@ spin713 で実行されるアクティベートのコマンドは、NOPASSWD の
 デスクトップでビルドを行うホストを追加するときは、次の手順で進めます。
 
 1. [machine-ssh.md](./machine-ssh.md) の「マシンを追加するとき」に従い、age 鍵を配置して `config/hosts/<ホスト>.toml` を追加します。
-2. そのホストの機体の要素の `requires` に `remote_build` を追加し、`config/hosts/<ホスト>.toml` に `build_host = "nixos-desktop"` を書きます。接続できないときに手元でビルドさせない場合は、`local_builds = false` も指定します。
+2. そのホストの機体の要素の `requires` に `remote_build` を追加します。任せる先は、`run_home_server` を選んだ利用者のいるホストに決まります。接続できないときに手元でビルドさせない場合は、`local_builds = false` も指定します。
 3. switch してから、そのホストを tailnet に参加させます。`remote_build` は `tailscale` を依存として含めます。
 
 機体の要素の `requires` から `remote_build` を外すと、そのホストはデスクトップにビルドを任せなくなります。
@@ -160,7 +160,7 @@ spin713 で実行されるアクティベートのコマンドは、NOPASSWD の
 ## ビルドを引き受ける側
 
 ビルドを引き受けるのは、利用者の `purposes` に `run_home_server` を入れた機体です。`run_home_server` の手段の `serve_builds` が、その利用者を nix-daemon の `trusted-users` に入れます。
-任せる側は引き受ける側の `ssh_user` として接続するので、`run_home_server` はその利用者の `purposes` に入れてください。
+任せる側は、引き受ける側で `serve_builds` が入っている利用者として接続します。
 
 同時に実行するジョブの数は、引き受ける側の `nix.settings.max-jobs`（既定の `"auto"` は CPU のスレッド数）で決まります。任せる側の `maxJobs`（32）は割り振りの目安で、上限は引き受ける側がかけます。
 `machine_base` が `nix.daemonCPUSchedPolicy = "idle"` を設定しているので、引き受けたビルドは、作業中は CPU を作業に譲り、作業していないときだけ全スレッドを使います。

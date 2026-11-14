@@ -1,10 +1,10 @@
-# `cargo remote-run`: 別のホストで build し、手元で実行する。build するホストはホストのファイルの
-# cargo_remote_run_host。cargo は devShell のものを、nix はシステムのものを使うので入れない。
-requires = ["lan_ssh_key"]
-def user_config(host):
+# `cargo remote-run`: 自分用サーバの作業場所（serve_workspace）で build し、手元で実行する。
+# cargo は devShell のものを、nix はシステムのものを使うので入れない。
+requires = ["find_home_server", "lan_ssh_key"]
+def user_config(find_home_server):
     return {"home": {"home.packages": [shellAppEnv(
         "cargo-remote-run",
         [pkg("openssh"), pkg("rsync"), pkg("coreutils"), pkg("gnugrep")],
-        {"CARGO_REMOTE_RUN_HOST": host.cargo_remote_run_host},
+        {"CARGO_REMOTE_RUN_HOST": find_home_server.services["serve_workspace"]["tailnet"]},
         repoText("modules/home-manager/dev/cargo-remote-run.sh"),
     )]}}

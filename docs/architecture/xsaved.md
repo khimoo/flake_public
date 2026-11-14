@@ -23,7 +23,7 @@ mimikopi-env で測ったときは、ROCm 版の torch の環境は展開後に�
 
 ## データを SATA の専用 subvol に置く
 
-SATA SSD に `@xsaved` を作り、`~/.local/share/xsaved` にマウントする（[xsaved_data.star](../../config/elements/xsaved_data.star)。`xsaved_users` の該当ユーザーの `data_subvolume` で subvol を指定する。`xsaved` がデータ置き場として必ず参照する）。
+SATA SSD に `@xsaved` を作り、`~/.local/share/xsaved` にマウントする（[xsaved_data.star](../../config/elements/xsaved_data.star)。利用者の表（`[users.xsaved]`）の `data_subvolume` で subvol を指定する。`xsaved` がデータ置き場として必ず参照する）。
 取得したメディアと、uv の環境とモデルのチェックポイントはどれも大きく、読み書きはシーケンシャルが中心なので、[disk-tiering.md](./disk-tiering.md) の分け方ではコールド層に当たる。
 
 取得したツイート（`tweets/`）と、取得し直せる環境（`venv/`、`uv-cache/`、`python/`、`huggingface/`）を一つの subvol に置く。
@@ -31,14 +31,14 @@ subvol を分ければスナップショットやバックアップの単位を�
 バックアップを作るときは `tweets/` だけを対象にする。
 
 マウントの扱いは `@mimikopi` と同じで、作る前の switch や再起動で起動を止めないよう `nofail` を付け、`xsaved-env` が起動時に `mountpoint -q` で確かめて、マウントされていなければ止まる。
-この確認は、ホストの `xsaved_users` の該当ユーザーで `check_mount = True` にしたときに入る。`data_subvolume` で保存先をマウントする構成で指定する。
+この確認は、利用者の表（`[users.xsaved]`）で `check_mount = true` にしたときに入る。`data_subvolume` で保存先をマウントする構成で指定する。
 確認の目的は、nofail のマウントに失敗したときにルート側を埋めないことで、マウントを定義していないホストやユーザーには守るものがない。そうした構成では、データはホームの下にそのまま置かれる。
 [tests/default.nix](../../tests/default.nix) は `nofail` が付いていることを確かめる。
 
 ## Postgres を OS のサービスで動かす
 
-[serve_xsaved.star](../../config/elements/serve_xsaved.star) が、ホストの `xsaved_users` に指定したユーザーごとに、NixOS の `services.postgresql` でデータベースを作る。
-データベース名はホストの `xsaved_users` の `database` が正本で、同じ要素が OS の作成処理とホームの接続先に渡す。
+[serve_xsaved.star](../../config/elements/serve_xsaved.star) が、`serve_xsaved` が入った利用者ごとに、NixOS の `services.postgresql` でデータベースを作る。
+データベース名は利用者の表（`[users.xsaved]`）の `database` で決まり、同じ要素が OS の作成処理とホームの接続先に渡す。
 名前は、NixOS 側が superuser として実行する SQL と、xsaved の接続文字列に埋め込むので、英小文字、数字、`_` だけの 63 バイトまでに限る（先頭は数字以外）。
 [tests/default.nix](../../tests/default.nix) は、Home Manager 側の名前のデータベースを Postgres が作ることを確かめる。
 
@@ -77,7 +77,7 @@ Postgres のメジャー版は 17 に固定する。既定値は `system.stateVe
 
 ## checkout をそのまま実行する
 
-`xsaved` は `xsaved_users["pomu"]["project_dir"]` の checkout を `uv run --project ... --frozen` で実行する。
+`xsaved` は利用者の `~/.local/share/xsaved-app` の checkout を `uv run --project ... --frozen` で実行する。
 ML の依存（ROCm 版の torch の wheel など）は xsaved の `uv.lock` で決まっていて、Nix のパッケージにすると uv の lock と二重に管理することになる。
 
 `xsaved` は、埋め込みと OCR を使うサブコマンド（`ocr`、`embed`、`tag`、`frames`、`search`、`serve`）のときだけ `--extra ml` を付ける。
@@ -161,7 +161,7 @@ xsaved の `xsaved serve` は、ポートを開いて待ち受けるだけの普
 
 nixos-desktop では、ポート番号を覚えずに開けるよう、常駐する Caddy を `http://xsaved.localhost/` の入口にする。
 名前は `/etc/hosts` でループバックへ解決し、Caddy も IPv4・IPv6 のループバックだけで待ち受ける。
-転送先は、`xsaved_web_proxy.star` が、`xsaved_proxy` の指定するユーザーの `web_port` を `serve_xsaved` の公開値から読む。サーバー本体へ直接転送するとソケットによる起動を迂回するため、既存の起動用ソケットへ渡す。
+`xsaved_web_proxy.star` は、`serve_xsaved` が入った利用者ごとに、利用者の表の `proxy_name` の名前で、`serve_xsaved` の公開値の `web_port` へ転送する。サーバー本体へ直接転送するとソケットによる起動を迂回するため、既存の起動用ソケットへ渡す。
 自マシン内の HTTP 接続とし、証明書の配布は行わない。Tailscale 経由でノート PC から開けるようにするのは、あとで決める。
 
 ## バックアップを Google Drive に restic で写す

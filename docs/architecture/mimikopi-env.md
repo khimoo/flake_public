@@ -38,7 +38,7 @@ GPU（ROCm）が要るので、[shell.star](../../config/elements/shell.star) �
 ## データを SATA の専用 subvol に置く
 
 ルートの空き約 18GB に対して、ROCm 版の torch だけで約 15GB を使う。
-[mimikopi.star](../../config/elements/mimikopi.star) がホストの `mimikopi_data_dir` をパッケージに渡す。OS のマウント先も [mimikopi.star](../../config/elements/mimikopi.star) が同じ値と `mimikopi_data_subvolume` から作る。
+[mimikopi.star](../../config/elements/mimikopi.star) が、利用者のホームの `~/.local/share/mimikopi` をパッケージに渡す。OS のマウント先も [mimikopi.star](../../config/elements/mimikopi.star) が同じパスと、ホストの `mimikopi_data_subvolume` から作る。
 
 SATA SSD に `@mimikopi` を作り、`~/.local/share/mimikopi` にマウントする（[mimikopi.star](../../config/elements/mimikopi.star)）。mimikopi が入らない機体ではマウントも作らない。
 モデルの読み込みはシーケンシャル読みが中心で、[disk-tiering.md](./disk-tiering.md) の分け方ではコールド層に当たる。

@@ -6,7 +6,7 @@
 
 `config/elements/` の Starlark のファイルが、設定の要素を1つずつ定義します。ホストのファイル `config/hosts/<ホスト名>.toml`（standalone の Home Manager では `<構成名>.toml`）は、機体の要素を `machine` で選び、利用者ごとに行動の要素を `[[users]]` の `purposes` で選びます。利用者ごとに、機体と行動から参照をたどれる要素と、条件がそろった派生要素が、その利用者について入る要素になります。switch の評価の途中で confgen が動くので、手で実行する手順はありません。
 
-値は TOML に、処理は要素に書きます。ホストの値は `config/hosts/<ホスト名>.toml`、ユーザーの値は `config/users/<ユーザー名>.toml` に置きます。
+値は TOML に、処理は要素に書きます。ホストと利用者の値は `config/hosts/<ホスト名>.toml`、リポジトリの持ち主の値は `config/owner.toml` に置きます。
 
 ## 行動を選ぶ・外す
 
@@ -43,7 +43,7 @@ requires = ["mimikopi"]
 
 新しい機体を足すときは、機体の要素の `requires` に、その機体の事実を書くだけです。行動と派生要素は変えません。
 
-`needs = [...]` は、判定が済んだ後の検査で、要素を有効にはしません。要素が入る利用者について、挙げた要素（機体の事実、`machine_ssh` など）も入っていなければ止めます。例: `windows_vm.star` の `needs = ["nixos_system", "local_kvm"]` により、WSL で `write_doc_with_windows` を選ぶと、足りない名前を示して止まります。
+`needs = [...]` は、判定が済んだ後の検査で、要素を有効にはしません。要素が入る利用者について、挙げた要素（機体の事実、`tailscale` など）も入っていなければ止めます。例: `windows_vm.star` の `needs = ["nixos_system", "local_kvm"]` により、WSL で `write_doc_with_windows` を選ぶと、足りない名前を示して止まります。
 
 機体の要素を持たないホスト（`tests/hosts/`）は、機体の事実を `purposes` に書きます。
 
@@ -52,12 +52,14 @@ requires = ["mimikopi"]
 機体によって変わる処理のうち、機体の事実（物理的な条件）で決まらないものは、自分用サーバ（サービスを公開する側）とクライアント（サービスを使う側）に分けます。
 「どの機体でするか」を機体ごとに書くと、行動と機体の組み合わせを人が管理することになり、1台に限るものは2台に書いたときに止める仕組みも要るからです。
 
-- サーバの側: サーバを置くホストの利用者が、`purposes` に `run_home_server` を書きます。`run_home_server.star` は `requires` に `serve_quaderno_archive`（Quaderno のアーカイブ）、`serve_xsaved`（xsaved）、`serve_workspace`（ssh でつながる作業場所）、`serve_alook`（Alook）、`serve_remote_desktop`（GNOME の画面の RDP）、`stay_awake`（自動 suspend の停止）を挙げ、サーバを動かす利用者を linger にします。
-- クライアントの側: `use_quaderno_archive`、`use_xsaved`、`use_alook` が、ssh でサーバに接続します。使う行動か手段が `requires` に挙げ、どれも `needs` に `machine_ssh` と `tailscale` を挙げます。自宅へ接続できない機体で選ぶと confgen が止まります。サーバの機体でも、同じ内容で自分に接続します。利用者が自分で選ぶクライアントは行動にします。spin713 の `program_on_home_server`（ファイルを sshfs で開き、build と Alook を自分用サーバで動かす）がその例です。
+- サーバの側: サーバを置くホストの利用者が、`purposes` に `run_home_server` を書きます。`run_home_server.star` は `requires` に `serve_quaderno_archive`（Quaderno のアーカイブ）、`serve_xsaved`（xsaved）、`serve_workspace`（ssh でつながる作業場所）、`serve_alook`（Alook）、`serve_remote_desktop`（GNOME の画面の RDP）、`serve_builds`（Nix のビルドの引き受け）、`stay_awake`（自動 suspend の停止）を挙げ、サーバを動かす利用者を linger にします。
+- クライアントの側: `use_quaderno_archive`、`use_xsaved`、`use_alook` が、ssh でサーバに接続します。使う行動か手段が `requires` に挙げ、どれも `needs` に `tailscale` を挙げます。tailnet に入らない機体で選ぶと confgen が止まります。サーバの機体でも、同じ内容で自分に接続します。利用者が自分で選ぶクライアントは行動にします。spin713 の `program_on_home_server`（ファイルを sshfs で開き、build と Alook を自分用サーバで動かす）がその例です。
 - 外部のサービスを使う側: サービスが外部（PyPI や uv が配る Python）にあるときは、使う側の手段だけを書きます。`use_uv` が `requires` の `nix_ld` を入れます。
-- 接続先: 利用者の値 `home_server`（`config/users/<ユーザー>.toml`）に、サーバのホストの名前を書きます。クライアントは `machine_ssh` の公開値 `tailnet` から接続名（`desktop-ts` など）を、`machines` からサーバのホストの値（xsaved の `web_port` など）を読みます。
+- 接続先: どこにも書きません。クライアントが `requires` に挙げる `find_home_server` が、仮引数 `roles` から、`run_home_server` が入っている利用者のいるただ 1 つのホストを求め、公開値 `services` で、サービスの要素（`serve_xsaved` など）ごとに、動かしている利用者と接続名（`desktop-ts` など）を渡します。サーバのホストの値（xsaved の `web_port` など）は `machines` から読みます。
 
-サーバの `purposes` と、クライアントの `home_server` は別々に書くので、食い違っても confgen は止めません。クライアントが実行時に接続に失敗します。
+`run_home_server` が入っている利用者のいるホストが 0 個か 2 個以上のとき、サービスを動かす利用者が ssh のログインを受け付けないとき（`accept_ssh_server` が入っていない）、同じサービスを 2 人が動かしているときは、`find_home_server` が生成を止めます。
+
+サーバのホストの `purposes` を変えると、クライアントのホストの生成結果も変わります。クライアントのホストでも switch してください。
 
 ## ホストとユーザーの値
 
@@ -71,13 +73,17 @@ requires = ["mimikopi"]
 | `machine` | 機体の要素の名前。省くと、利用者の `purposes` だけから要素が決まる（tests の架空のホスト） |
 | `[[users]]` | `name`、`purposes`、`admin`、`home_manager = false`（Home Manager を使わない人）、`initial_hashed_password` |
 
-`machine` と `purposes` 以外のキーは、要素が仮引数 `host` で読めます（`host.echo_cancel_source`）。全ホストのファイルは仮引数 `machines` で読めます（`machines.all["nixos-desktop"].ssh_user`）。ホストの間の SSH とリモートビルドがこれを使います。`host.users` と `machines` からは `purposes` と `machine` を外してあり、要素はどの要素が入っているかを値として読めません。
+`machine` と `purposes` 以外のキーは、要素が仮引数 `host` で読めます（`host.echo_cancel_source`）。全ホストのファイルは仮引数 `machines` で読めます（`machines.all["nixos-desktop"]["system"]`）。`host.users` と `machines` からは `purposes` と `machine` を外してあり、要素はどの要素が入っているかを値として読めません。
 
-ユーザーのファイルのキーと、ホストのファイルの `[[users]]` の `name` と `purposes` 以外のキーは、仮引数 `user` で読めます（`user.git_username`）。同じキーを両方に書くとエラーになります。
+ホストのファイルの `[[users]]` の `name` と `purposes` 以外のキーは、仮引数 `user` で読めます（`user.xsaved`）。`[[users]]` の直後に `[users.<名前>]` と書くと、その利用者の表になります。
+
+`config/owner.toml` のキーは、仮引数 `owner` で読めます（`owner.git_username`）。どのホストのどの利用者についても同じ値です。利用者に入るのは、`owner` を読む要素がその利用者について入ったときだけです。
+
+仮引数 `roles` では、役目の要素（定義に `role = True` と書いた要素）が、どのホストのどの利用者について入っているかを読めます。`roles.hosts["nixos-desktop"]["pomu"]` は、その利用者について入っている役目の要素の名前のリストです。役目の要素が 1 つも入っていない利用者とホストは載りません。判定は値を使わずに決まるので、confgen は全ホストの判定を先に求めてから、要素の関数を呼びます。`roles` は接続先や名前を選ぶために使い、要素の設定値を全部出すか何も出さないかを決めるためには使いません（[規則](../architecture/rules.md) の性質 1）。
 
 ## 要素を書く
 
-1つのファイルが1つの要素です。ファイル名が要素の名前です。書けるのは次の8個と、`_` で始まる補助の名前だけです。
+1つのファイルが1つの要素です。ファイル名が要素の名前です。書けるのは次の9個と、`_` で始まる補助の名前だけです。
 
 | 名前 | 中身 |
 |---|---|
@@ -89,6 +95,7 @@ requires = ["mimikopi"]
 | `when = [...]` | 派生要素の条件。同じ利用者について、挙げた要素がすべて入るときだけ、この要素が入る |
 | `needs = [...]` | この要素が入る利用者について、入っていなければならない要素（機体の事実など）。足りなければ止める |
 | `kind = "..."` | `"machine"`（機体の要素）か `"machine_fact"`（機体の事実）。行動と道具には書かない |
+| `role = True` | 役目の要素。ほかのホストの要素が、仮引数 `roles` で、この要素が入っている利用者を読める |
 
 `config` は、利用者によって変わる値を読めません。利用者によって変わる値は、`user` と、`public` が利用者によって変わる値を読む要素の公開値です（`checkout.root` など）。`public` と `writes` は、利用者によって変わる値を読むと利用者ごとに呼ばれ、読まなければホストごとに1回呼ばれます。
 

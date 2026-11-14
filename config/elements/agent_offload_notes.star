@@ -1,9 +1,9 @@
 # 自分用サーバで作業する機体で AI エージェントを使うとき、重い処理は自分用サーバで実行するよう、エージェントのシステム層に指示を書く。
-# 自分用サーバは、ビルドを任せる先と同じ build_host。Claude Code は /etc/claude-code/CLAUDE.md、Codex は codex_policy の developer_instructions で読む。
+# 接続先は、自分用サーバの作業場所（serve_workspace）。Claude Code は /etc/claude-code/CLAUDE.md、Codex は codex_policy の developer_instructions で読む。
 when = ["program_on_home_server", "codex_policy"]
 
-def _notes(host, machine_ssh):
-    server = machine_ssh.tailnet[host.build_host]
+def _notes(find_home_server):
+    server = find_home_server.services["serve_workspace"]["tailnet"]
     return """# このマシン
 
 このマシンは、重い処理を自分用サーバ（`ssh %s`）に任せる。
@@ -13,8 +13,8 @@ def _notes(host, machine_ssh):
 - Nix のビルドは自分用サーバに任せる。手元でビルドするときは、上の判断を経てから `--max-jobs` を渡す。
 """ % server
 
-def writes(codex_policy, host, machine_ssh):
-    return [write(codex_policy, _notes(host, machine_ssh))]
+def writes(codex_policy, find_home_server):
+    return [write(codex_policy, _notes(find_home_server))]
 
-def config(host, machine_ssh):
-    return {"nixos": {("environment", "etc", "claude-code/CLAUDE.md", "text"): _notes(host, machine_ssh)}}
+def config(find_home_server):
+    return {"nixos": {("environment", "etc", "claude-code/CLAUDE.md", "text"): _notes(find_home_server)}}

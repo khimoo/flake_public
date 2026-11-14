@@ -4,7 +4,7 @@ X で「いいね」またはブックマークしたポストを、本文・画
 ツール本体には、プライベートリポジトリ [khimoo/xsaved](https://github.com/khimoo/xsaved) の本番用チェックアウト（`~/.local/share/xsaved-app`）を使用します。開発用チェックアウトは `~/sagyo/xsaved` に配置します。利用可能なコマンド一覧はリポジトリ本体の README を参照してください。
 nixos-desktop の pomu 環境では、開発用チェックアウトのみが `clone-repos` の対象です。本番用チェックアウトの作成・更新手順は「[本番用チェックアウトの更新](#本番用チェックアウトの更新)」を、新規環境のセットアップ手順は [SSH 鍵の配布と private repo の clone](private-repo-clone.md) を、保存済みポストとデータベースの復元方法は「[バックアップ](#バックアップ)」をそれぞれ参照してください。
 
-xsaved は、自分用サーバ（nixos-desktop）で動かし、ほかの機体からは ssh で接続して使います。サーバの側は、nixos-desktop の pomu の `purposes` にある `run_home_server` が、`requires` の `serve_xsaved`（PostgreSQL、取得と推論の定期実行、Web UI、バックアップ）を有効にします。`serve_xsaved` は、データ置き場の `xsaved_data`（`[xsaved_users.<利用者>]` の `data_dir` に、データ用ディスクの `data_subvolume` をマウントする）を `requires` に挙げます。設定箇所は [nixos-desktop.toml](../../config/hosts/nixos-desktop.toml) の `xsaved_users` で、値のない利用者について xsaved が有効になるとエラーになります。クライアントの側は、`grow_notes`、`programming`、`follow_communities` が `requires` に挙げる `use_xsaved` です。`use_xsaved` は `needs` に `machine_ssh` と `tailscale` を挙げるので、自宅のマシンへ ssh で接続できない機体で選ぶと confgen が止まります。接続先は利用者の値 `home_server`（[pomu.toml](../../config/users/pomu.toml)）です。サーバを止めるには、nixos-desktop の pomu の `purposes` から `run_home_server` を外します。
+xsaved は、自分用サーバ（nixos-desktop）で動かし、ほかの機体からは ssh で接続して使います。サーバの側は、nixos-desktop の pomu の `purposes` にある `run_home_server` が、`requires` の `serve_xsaved`（PostgreSQL、取得と推論の定期実行、Web UI、バックアップ）を有効にします。`serve_xsaved` は、データ置き場の `xsaved_data`（利用者の `~/.local/share/xsaved` に、データ用ディスクの `data_subvolume` をマウントする）を `requires` に挙げます。設定箇所は [nixos-desktop.toml](../../config/hosts/nixos-desktop.toml) の利用者の `[[users]]` の直後にある `[users.xsaved]` で、この表のない利用者について xsaved が有効になるとエラーになります。クライアントの側は、`grow_notes`、`programming`、`follow_communities` が `requires` に挙げる `use_xsaved` です。`use_xsaved` は `needs` に `tailscale` を挙げるので、tailnet に入らない機体で選ぶと confgen が止まります。接続先は、`find_home_server` が、`run_home_server` を選んだ利用者のいるホストと、`serve_xsaved` が入っている利用者から求めます。サーバを止めるには、nixos-desktop の pomu の `purposes` から `run_home_server` を外します。
 
 設計ドキュメント: [X のいいねとブックマークの保存の設計](../architecture/xsaved.md)
 
@@ -108,11 +108,11 @@ journalctl -u caddy
 
 アクセスはローカルマシンからのみ可能です。URL スキームには `http://` を指定してください。
 Caddy が起動していない場合は、<http://127.0.0.1:8765/> へ直接アクセスすることで問題の切り分けが可能です。
-内部接続先ポートは `xsaved_users["pomu"]["web_port"]` で変更でき、Caddy のリバースプロキシ先も自動追従します。Web サーバー本体はその次のポート番号で待機します。
+内部接続先ポートは `[users.xsaved]` の `web_port` で変更でき、Caddy のリバースプロキシ先も自動追従します。Web サーバー本体はその次のポート番号で待機します。
 
 ## 定期実行
 
-以下の systemd ユーザータイマーを設定しています。`xsaved-backup` の写し先は `xsaved_users["pomu"]["backup_repository"]` で、この値がないと評価で止まります。
+以下の systemd ユーザータイマーを設定しています。`xsaved-backup` の写し先は `[users.xsaved]` の `backup_repository` で、この値がないと評価で止まります。
 
 | タイマー | 実行時刻 | 実行内容 |
 |-------|------|-------------|

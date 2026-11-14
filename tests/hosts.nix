@@ -8,7 +8,6 @@
 let
   inherit (helpers)
     inputs
-    configDir
     configurations
     activationDepsExist
     hasLauncher
@@ -25,10 +24,10 @@ let
   desktopWindowsVm = lib.findFirst (
     p: (p.name or "") == "windows-vm"
   ) (throw "windows-vm is not installed") desktopUser.home.packages;
+  # 実在のホストは、持ち主の値も含めて config/ そのもので生成する。
   desktopGenerated =
     (import ../lib/confgen.nix {
       pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux;
-      inherit configDir;
     }).read
       "nixos-desktop"
       "x86_64-linux"

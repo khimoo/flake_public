@@ -1,16 +1,19 @@
-# 手段: xsaved の取得したツイートとデータベースを、restic で [xsaved_users.<利用者>] の backup_repository に毎日写し、復元を確かめるコマンドを入れる。
+# 手段: xsaved の取得したツイートとデータベースを、restic で利用者の表の backup_repository に毎日写し、復元を確かめるコマンドを入れる。
+# restic のパスワード（秘密 xsaved_restic_password）も、この要素が置く。
+def _password_file(user):
+    return user.home + "/.config/xsaved/restic-password"
+
+def writes(user, secrets):
+    return [write(secrets, {"secret": "xsaved_restic_password", "path": _password_file(user), "mode": "600"})]
+
 def user_config(user, serve_xsaved, failure_notify):
-    values = serve_xsaved.users[user.name]
-    password = values["backup_password_file"]
-    if not password.startswith("/"):
-        fail("xsaved: backup_password_file must be an absolute path")
     env = {
-        "XSAVED_DATA_DIR": values["data_dir"],
-        "XSAVED_PROJECT_DIR": values["project_dir"],
-        "XSAVED_DATABASE": values.get("database", "xsaved"),
-        "XSAVED_CHECK_MOUNT": "true" if values.get("check_mount", False) else "false",
-        "RESTIC_REPOSITORY": values["backup_repository"],
-        "RESTIC_PASSWORD_FILE": password,
+        "XSAVED_DATA_DIR": serve_xsaved.data_dir,
+        "XSAVED_PROJECT_DIR": serve_xsaved.project_dir,
+        "XSAVED_DATABASE": serve_xsaved.database,
+        "XSAVED_CHECK_MOUNT": "true" if serve_xsaved.check_mount else "false",
+        "RESTIC_REPOSITORY": serve_xsaved.values["backup_repository"],
+        "RESTIC_PASSWORD_FILE": _password_file(user),
         "FLAKE_REV": flakeRev(),
     }
     backup = shellAppEnv("xsaved-backup", [pkg(p) for p in ["restic", "rclone", "util-linux", "git"]] + [serve_xsaved.postgresql], env, repoText("modules/home-manager/xsaved/backup.sh"))

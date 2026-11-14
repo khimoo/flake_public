@@ -32,8 +32,9 @@ func affected(root string, paths []string) ([]string, error) {
 			seeds[hostElement] = true
 			seeds[machinesElement] = true
 			seeds[userElement] = true
-		case strings.HasPrefix(p, "config/users/"):
-			seeds[userElement] = true
+			seeds[rolesElement] = true
+		case p == "config/owner.toml":
+			seeds[ownerElement] = true
 		default:
 			users := elementsUsingPath(elems, p)
 			if len(users) == 0 {
@@ -42,6 +43,14 @@ func affected(root string, paths []string) ([]string, error) {
 			for _, u := range users {
 				seeds[u] = true
 			}
+		}
+	}
+	// A changed element can change the judgment of a role element on another host, which the
+	// readers of roles then see.
+	leads := leadsToRole(elems)
+	for s := range seeds {
+		if leads[s] {
+			seeds[rolesElement] = true
 		}
 	}
 	out := map[string]bool{}
@@ -68,6 +77,37 @@ func affected(root string, paths []string) ([]string, error) {
 		}
 	}
 	return sortedKeys(out), nil
+}
+
+// leadsToRole lists the elements whose judgment can make a role element true: the role
+// elements, the elements that reference one of them, and the conditions of derived ones.
+func leadsToRole(elems map[string]*element) map[string]bool {
+	leads := map[string]bool{}
+	for _, e := range elems {
+		if e.role {
+			leads[e.name] = true
+		}
+	}
+	for changed := true; changed; {
+		changed = false
+		for _, e := range elems {
+			if leads[e.name] {
+				for _, w := range e.when {
+					if !leads[w] {
+						leads[w], changed = true, true
+					}
+				}
+				continue
+			}
+			for _, r := range e.refs() {
+				if leads[r] {
+					leads[e.name], changed = true, true
+					break
+				}
+			}
+		}
+	}
+	return leads
 }
 
 // elementsUsingPath finds the elements that name a repo path (repoPkg, repoPath, repoText,
@@ -116,7 +156,7 @@ func affectedHosts(root string, names []string) ([]string, error) {
 			}
 		}
 		for _, n := range names {
-			if n == allElements || n == hostElement || n == machinesElement || n == userElement || selected[n] {
+			if n == allElements || n == hostElement || n == machinesElement || n == userElement || n == rolesElement || selected[n] {
 				hosts = append(hosts, strings.TrimSuffix(filepath.Base(f), ".toml"))
 				break
 			}

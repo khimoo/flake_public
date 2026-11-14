@@ -3,28 +3,25 @@ state_version = "25.11"
 timezone = "Asia/Tokyo"
 hostname = "test-xsaved"
 data_device = "/dev/disk/by-uuid/test-data"
-xsaved_proxy = { user = "alice", name = "xsaved.localhost" }
 
 
 [[users]]
 name = "alice"
 purposes = ["machine_base", "serve_xsaved", "nixos_system", "etc_nixos_link"]
 
-[[users]]
-name = "bob"
-purposes = ["machine_base", "serve_xsaved", "nixos_system"]
-[xsaved_users.alice]
-data_dir = "/home/alice/.local/share/xsaved"
-project_dir = "/home/alice/xsaved"
+[users.xsaved]
 database = "xsaved_alice"
 data_subvolume = "@xsaved-alice"
 backup_repository = "rclone:test:xsaved-alice"
-backup_password_file = "/home/alice/.config/xsaved/restic-password"
+proxy_name = "alice.xsaved.localhost"
 
-[xsaved_users.bob]
-data_dir = "/home/bob/.local/share/xsaved"
-project_dir = "/home/bob/xsaved"
+[[users]]
+name = "bob"
+purposes = ["machine_base", "serve_xsaved", "nixos_system"]
+
+[users.xsaved]
 database = "xsaved_bob"
+web_port = 8775
 data_subvolume = "@xsaved-bob"
 backup_repository = "rclone:test:xsaved-bob"
-backup_password_file = "/home/bob/.config/xsaved/restic-password"
+proxy_name = "bob.xsaved.localhost"

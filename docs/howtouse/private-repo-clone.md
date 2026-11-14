@@ -37,7 +37,7 @@ clone 対象の repo と flake 自身に対して `git pull --ff-only` を実行
 private_repos = [{"url": "git@example.org:me/project.git", "dest": "sagyo/project"}]
 ```
 
-エージェント設定は [pomu.toml](../../config/users/pomu.toml) の `agent_config_root`（ホームからの相対パス）と `agent_config_repo`（URL）で指定します。`agent_config` を選んだ利用者には、`agent_links` が clone と GitHub 鍵の配置を宣言します。vault と memex-nix の URL と配置先は [memex.star](../../config/elements/memex.star) にあります。
+エージェント設定は [owner.toml](../../config/owner.toml) の `agent_config_root`（ホームからの相対パス）と `agent_config_repo`（URL）で指定します。`agent_config` を選んだ利用者には、`agent_links` が clone と GitHub 鍵の配置を宣言します。vault と memex-nix の URL と配置先は [memex.star](../../config/elements/memex.star) にあります。
 
 エージェント設定の `agent_config_repo` を省略した場合、その repo は手動で clone する運用になります。配置先パスだけを残しておけば、symlink や同期、`mirror-vault` などの機能はそのまま利用可能です。
 vault は `services.memex.initializeVault` で作成することも可能ですが、有効にはしません。先に空フォルダが作成されると clone が失敗するためです。
@@ -52,7 +52,7 @@ clone 対象の repo がなく、`lan_ssh_key` が入っておらず、ユーザ
 SOPS_AGE_KEY_FILE=~/.config/sops/age/keys.txt sops secrets/secrets.yaml
 ```
 
-ユーザーの `config/users/<名前>.toml` またはホストのファイルに、ホームからの相対パスで指定します。利用者の `[[users]]` の `purposes` に `personal_files` を含めます。
+持ち主の値（[owner.toml](../../config/owner.toml) の `secrets`）またはホストのファイルに、ホームからの相対パスで指定します。利用者の `[[users]]` の `purposes` に `personal_files` を含めます。
 
 ```python
 secrets = [{"secret": "gemini_api_key", "path": ".config/gemini/api-key"}]
@@ -79,7 +79,7 @@ LAN 用の鍵については、全マシンの `authorized_keys` も書き換わ
 age 鍵を紛失すると `secrets.yaml` を復号できなくなり、pomu の switch もエラーで停止します。
 中身は再生成可能な SSH 鍵なので、新しい age 鍵を使って [secrets.yaml を作り直します](#secretsyaml-を作成する)。
 
-- 紛失した場合: いずれかのマシンの `~/.ssh/` に SSH 秘密鍵が残っていればそれを再利用します。どこにも残っていない場合は SSH 鍵も再作成し、GitHub への再登録と `config/elements/machine_ssh.star` の `_LAN_PUBLIC_KEY` の差し替えを行ってください。
+- 紛失した場合: いずれかのマシンの `~/.ssh/` に SSH 秘密鍵が残っていればそれを再利用します。どこにも残っていない場合は SSH 鍵も再作成し、GitHub への再登録と `config/owner.toml` の `lan_public_key` の差し替えを行ってください。
 - 漏洩した場合: 漏洩した age 鍵を入手した人物は、Git 履歴にある過去の `secrets.yaml` もすべて復号できてしまいます。そのため、中に含まれる SSH 鍵も漏洩したものとみなし、再作成したうえで GitHub 上の古い鍵を失効させてください。
 
 再作成が完了したら、各マシンの `~/.config/sops/age/keys.txt` を新しい鍵に差し替えます。古い鍵のままでは switch が失敗します。
@@ -97,7 +97,7 @@ age 鍵を紛失すると `secrets.yaml` を復号できなくなり、pomu の 
    ```
 
 2. 出力された公開鍵（`Public key: age1...`）を、[.sops.yaml](../../.sops.yaml) の `&deploy` アンカーに設定します。
-3. SSH 鍵がない場合は作成します。GitHub 用の鍵は `gh` コマンドで登録します。LAN 用の鍵は無人実行で使用するためパスフレーズなしで生成し、`~/.ssh/id_lan.pub` の内容を `config/elements/machine_ssh.star` の `_LAN_PUBLIC_KEY` に指定します。
+3. SSH 鍵がない場合は作成します。GitHub 用の鍵は `gh` コマンドで登録します。LAN 用の鍵は無人実行で使用するためパスフレーズなしで生成し、`~/.ssh/id_lan.pub` の内容を `config/owner.toml` の `lan_public_key` に指定します。
 
    ```sh
    ssh-keygen -t ed25519 -C "$(hostname)" -f ~/.ssh/id_github

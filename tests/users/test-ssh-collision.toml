@@ -1,3 +1,0 @@
-agent_config_root = "config"
-agent_config_repo = "git@example.org:test/config.git"
-ssh_keys = [{secret = "git_ssh_key", name = "id_github"}]
