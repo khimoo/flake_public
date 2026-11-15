@@ -93,6 +93,12 @@ let
     assert hasLauncher desktopUser "xsaved-restore-check";
     assert builtins.elem "nofail"
       inputs.self.nixosConfigurations.nixos-desktop.config.fileSystems.${desktopXsavedEnv.dataDir}.options;
+    # 個人フォルダの bind mount の元は、ユーザーごとのサービスがマウントの前に作る。元がないと起動が緊急モードで止まる。
+    assert builtins.all (
+      user:
+      builtins.elem "x-systemd.requires=personal-folders-${user}.service"
+        inputs.self.nixosConfigurations.nixos-desktop.config.fileSystems."/home/${user}/ダウンロード".options
+    ) [ "pomu" "mase" ];
     # xsaved が接続するデータベースを、OS 側の Postgres が作る。
     assert builtins.elem desktopXsavedEnv.database
       inputs.self.nixosConfigurations.nixos-desktop.config.services.postgresql.ensureDatabases;
