@@ -1,4 +1,4 @@
-when = ["windows_vm", "gui"]
+requires = ["gui"]
 
 def user_config(windows_vm):
     if windows_vm.domain == None:

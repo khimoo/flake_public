@@ -1,5 +1,5 @@
-# 手段: xsaved の取得したツイートとデータベースを、restic で利用者の表の backup_repository に毎日写し、復元を確かめるコマンドを入れる。
-# restic のパスワード（秘密 xsaved_restic_password）も、この要素が置く。
+# 手段: xsaved の取得したツイートとデータベースを、restic でユーザーの表の backup_repository に毎日写し、復元を確かめるコマンドを入れる。
+# restic のパスワード（秘密 xsaved_restic_password）も、このコンポーネントが置く。
 def _password_file(user):
     return user.home + "/.config/xsaved/restic-password"
 

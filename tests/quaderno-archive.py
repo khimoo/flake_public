@@ -40,7 +40,7 @@ assert server.store(entry, b"%PDF-1") is True
 assert (archive / "Document" / "ノート 1.pdf").read_bytes() == b"%PDF-1"
 assert server.state() == {"1": "r1"}
 
-# 別の機体が同じ改訂を送っても、置き直さずに記録済みと答える。
+# 別のホストが同じ改訂を送っても、置き直さずに記録済みと答える。
 assert server.store(entry, b"%PDF-1") is False
 
 # 改訂が変われば置き直す。

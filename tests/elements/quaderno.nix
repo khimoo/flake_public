@@ -60,7 +60,7 @@ in
             && !(env ? QUADERNO_ARCHIVE_DIR)
             && !(env ? QUADERNO_STATE_FILE)
             && env.QUADERNO_EXCHANGE_REMOTE == "Document/PC-Exchange"
-            # 手元への受け取りは、自分用サーバを使わずに利用者のキャッシュへ落とす。
+            # 手元への受け取りは、自分用サーバを使わずにユーザーのキャッシュへ落とす。
             && env.QUADERNO_RECEIVE_DIR == "/home/test/.cache/quaderno/Received"
             && env.QUADERNO_RECEIVE_STATE == "/home/test/.cache/quaderno/received.json"
           );

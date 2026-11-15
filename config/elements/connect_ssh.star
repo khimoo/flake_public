@@ -1,5 +1,5 @@
-# 手段: ほかの機体へ ssh で接続するための Host ブロックを書く。接続先は、ssh のログインを受け付けるアカウント
-# （accept_ssh_admin か accept_ssh_server が真のアカウント）がいるホスト。roles から求めるので、ホストのファイルには書かない。
+# 手段: ほかのホストへ ssh で接続するための Host ブロックを書く。接続先は、ssh_server のあるホストの持ち主のアカウント
+# （personal_files を選んだアカウント）。roles から求めるので、ホストのファイルには書かない。
 # 鍵のファイル名。置くのは lan_ssh_key で、この名前を公開値から読む。
 _IDENTITY_FILE = ".ssh/id_lan"
 
@@ -9,16 +9,18 @@ def _short(name):
 def _block(user, patterns, hostname):
     return "Host %s\n  HostName %s\n  User %s\n  IdentityFile ~/%s\n  StrictHostKeyChecking accept-new\n  ConnectTimeout 10\n" % (patterns, hostname, user, _IDENTITY_FILE)
 
-# ホストごとのログイン名。管理するアカウントがいればそのアカウント、いなければ自分用サーバを動かすアカウント。
+# ホストごとのログイン名。sshd を動かすホストの、持ち主のアカウント。
 def _logins(roles):
     logins = {}
     for name in sorted(roles.hosts):
-        for role in ["accept_ssh_admin", "accept_ssh_server"]:
-            accounts = [user for user, names in roles.hosts[name].items() if role in names]
-            if len(accounts) > 1:
-                fail("connect_ssh: host " + name + " has more than one user with " + role + ": " + ", ".join(accounts))
-            if accounts and name not in logins:
-                logins[name] = accounts[0]
+        users = roles.hosts[name]
+        if not any(["ssh_server" in names for names in users.values()]):
+            continue
+        owners = [user for user, names in users.items() if "personal_files" in names]
+        if len(owners) > 1:
+            fail("connect_ssh: host " + name + " has more than one user with personal_files: " + ", ".join(owners))
+        if owners:
+            logins[name] = owners[0]
     return logins
 
 def public(roles):

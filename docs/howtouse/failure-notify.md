@@ -17,7 +17,7 @@ journalctl --user -u xsaved-process.service
 Home Manager で定義したユーザーの timer のサービスすべてが対象になる。
 `tests/default.nix` の nixos-desktop の確認が、timer を持つサービスに通知が付いていることを確かめる。
 
-要素で timer を足すときは、`config` の仮引数で `failure_notify` を受け取り、サービスの `Unit.OnFailure` に公開値 `failure_notify.on_failure` を入れます。
+コンポーネントで timer を足すときは、`config` の仮引数で `failure_notify` を受け取り、サービスの `Unit.OnFailure` に公開値 `failure_notify.on_failure` を入れます。
 
 ```python
 def config(failure_notify):
@@ -26,9 +26,9 @@ def config(failure_notify):
     }}
 ```
 
-通知用のユニットは `failure_notify` 要素が生成します。
+通知用のユニットは `failure_notify` コンポーネントが生成します。
 
-外部の flake が定義するサービス（memex の同期）には、サービスの要素（[memex_sync.star](../../config/elements/memex_sync.star)）で足す。
+外部の flake が定義するサービス（memex の同期）には、サービスのコンポーネント（[memex_sync.star](../../config/elements/memex_sync.star)）で足す。
 
 ## 確かめる
 

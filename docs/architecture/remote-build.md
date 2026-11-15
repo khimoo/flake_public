@@ -8,7 +8,7 @@
 ## 常設の `nix.buildMachines` を主にし、`--build-host` は補助にする
 
 `nix develop` や direnv のビルドを別のホストで行わせる手段は、nix-daemon のビルダー（`builders` 設定）しかない。
-`--build-host` は `nixos-rebuild` にしか使えないので、機体の要素の `requires` に `remote_build` を含まないホスト向けに残している。
+`--build-host` は `nixos-rebuild` にしか使えないので、ハードウェアプロファイルの `requires` に `remote_build` を含まないホスト向けに残している。
 
 ## 接続先は tailnet の接続名（`desktop-ts`）にする
 
@@ -26,11 +26,11 @@
 接続名は `connect_ssh` が組み立て、`remote_build` は `find_home_server` の公開値から同じ名前を受け取る。
 `tests/default.nix` の module contracts が両者の一致を確かめるので、片方の規則だけを変えると検査で失敗する。
 
-## 鍵は利用者の `id_lan` を絶対パスで読む
+## 鍵はユーザーの `id_lan` を絶対パスで読む
 
 SSH するのは nix-daemon（root）で、root は `id_lan` を持たない。
-そこで `remote_build` が、利用者ごとに、`lan_ssh_key` が公開する鍵のパス（`~/.ssh/id_lan` の絶対パス）を `sshKey` に渡す。`remote_build` は `find_home_server` を通して `lan_ssh_key` を入れるので、`remote_build` が入る利用者には必ず鍵がある。利用者が複数いると、同じ接続先の項目が鍵ごとに並ぶ。
-root 専用の鍵にする案は退けた。秘密を置く処理は利用者の権限で動くので root の場所には置けず、機体ごとに鍵を手で作ることになる。
+そこで `remote_build` が、ユーザーごとに、`lan_ssh_key` が公開する鍵のパス（`~/.ssh/id_lan` の絶対パス）を `sshKey` に渡す。`remote_build` は `find_home_server` を通して `lan_ssh_key` を入れるので、`remote_build` が有効なユーザーには必ず鍵がある。ユーザーが複数いると、同じ接続先の項目が鍵ごとに並ぶ。
+root 専用の鍵にする案は退けた。秘密を置く処理はユーザーの権限で動くので root の場所には置けず、ホストごとに鍵を手で作ることになる。
 [machine-ssh.md](./machine-ssh.md) の「他ユーザーの絶対パスを共有しない」の例外になる。
 
 - パスは `/etc/nix/machines` に書かれ、読むのは nix-daemon だけ。root はもともと全ファイルを読めるので、鍵の露出は増えない
@@ -69,8 +69,8 @@ Nix 2.31.5（`cc38c0c5`）のソースと、2026-09-24 の spin713 での観測�
 
 ## 任せる先は `find_home_server` が求め、ジョブ数と feature は `remote_build.star` に置く
 
-任せる先は、`run_home_server` を選んだ利用者のいるホストで、`find_home_server` が `roles` から求める。ログインするのは、そのホストで `serve_builds` が入っている利用者になる。
-任せる側のホストの TOML に `build_host` を書く案は退けた。ビルドを引き受けるかどうかは引き受ける側の利用者の行動（`run_home_server`）で決まるので、同じ事実を任せる側にも書くと、食い違っても confgen が止められない。
+任せる先は、`run_home_server` を選んだユーザーのいるホストで、`find_home_server` が `roles` から求める。ログインするのは、そのホストで `serve_builds` が有効なユーザーになる。
+任せる側のホストの TOML に `build_host` を書く案は退けた。ビルドを引き受けるかどうかは引き受ける側のユーザーの利用目的（`run_home_server`）で決まるので、同じ事実を任せる側にも書くと、食い違っても confgen が止められない。
 
 `maxJobs` は `remote_build.star` に 32 と定数で書いた。
 NixOS の `nix.buildMachines` の `maxJobs` の説明（`nixos/modules/config/nix-remote-build.nix`）に「The build machine will enforce its own limits」とあり、同時に実行する数の上限は、引き受ける側の `nix.settings.max-jobs`（既定の `"auto"` はスレッド数）がかける。
@@ -80,10 +80,10 @@ NixOS の `nix.buildMachines` の `maxJobs` の説明（`nixos/modules/config/ni
 `big-parallel` を載せないと、LLVM のようにそれを要求する derivation はデスクトップでビルドされない。
 
 引き受ける側のホストの TOML に `[builder]` を置き、任せる側が読む案は退けた。
-引き受ける側の要素はその値を読まないので、引き受ける側からは使われていない値に見え、消すと任せる側が壊れる。ビルドを引き受けるかどうかは利用者の行動（`run_home_server`）で決まるのに、値だけがホストに残る。
+引き受ける側のコンポーネントはその値を読まないので、引き受ける側からは使われていない値に見え、消すと任せる側が壊れる。ビルドを引き受けるかどうかはユーザーの利用目的（`run_home_server`）で決まるのに、値だけがホストに残る。
 
-`kvm` を定数に載せられるように、引き受ける側の `serve_builds.star` が `needs` に機体の事実 `local_kvm` を挙げる。KVM のない機体の利用者が `run_home_server` を選ぶと、confgen が生成を止める。
-代償として、KVM のない機体は自分用サーバにできない。残りの 3 つは、引き受ける側の設定と機械的には結ばれていない（[confgen.md](./confgen.md) の「今後の課題」）。
+`kvm` を定数に載せられるように、引き受ける側の `serve_builds.star` が `needs` にプラットフォームの事実 `local_kvm` を挙げる。KVM のないホストのユーザーが `run_home_server` を選ぶと、confgen が生成を止める。
+代償として、KVM のないホストは自分用サーバにできない。残りの 3 つは、引き受ける側の設定と機械的には結ばれていない（[confgen.md](./confgen.md) の「今後の課題」）。
 
 ## `builders-use-substitutes = true`
 
@@ -93,17 +93,17 @@ NixOS の `nix.buildMachines` の `maxJobs` の説明（`nixos/modules/config/ni
 ## `trusted-users` は、引き受ける側を `serve_builds`、任せる側を `remote_build` が設定する
 
 デスクトップの nix-daemon は、接続してきたユーザーが trusted でないと derivation のビルドを拒否する（`you are not privileged to build input-addressed derivations`）。
-引き受ける側では、`run_home_server` の手段の `serve_builds.star` が、その行動を選んだ利用者を `trusted-users` に入れる。
-任せる側は、`serve_builds` が入っている利用者として接続する（`find_home_server` の公開値）ので、接続する利用者と trusted にする利用者は同じ判定から決まる。
+引き受ける側では、`run_home_server` の手段の `serve_builds.star` が、その利用目的を選んだユーザーを `trusted-users` に入れる。
+任せる側は、`serve_builds` が有効なユーザーとして接続する（`find_home_server` の公開値）ので、接続するユーザーと trusted にするユーザーは、同じコンポーネントが入っているかどうかから決まる。
 
 任せる側でも trusted が要る。
-デスクトップでビルドした成果物には署名がなく、`--build-host` で取り戻すときも、デスクトップから `--target-host` で送るときも、`nix-copy-closure` は利用者のまま取り込む（nixos-rebuild-ng 26.05 の `nixos_rebuild/nix.py` の `copy_closure`）。
-そこで `remote_build.star` が、その機体の利用者を `trusted-users` に入れる。
+デスクトップでビルドした成果物には署名がなく、`--build-host` で取り戻すときも、デスクトップから `--target-host` で送るときも、`nix-copy-closure` はユーザーのまま取り込む（nixos-rebuild-ng 26.05 の `nixos_rebuild/nix.py` の `copy_closure`）。
+そこで `remote_build.star` が、そのホストのユーザーを `trusted-users` に入れる。
 
-全機体で `@wheel` を信頼する設定を `machine_base` に置く案は退けた。
-ビルドのために要る設定がビルドと関係のない要素にあり、`trusted-users` を絞ってもデスクトップの側では何も壊れないように見えて、spin713 の `nixos-rebuild` だけが断られる。
+全ホストで `@wheel` を信頼する設定を `machine_base` に置く案は退けた。
+ビルドのために要る設定がビルドと関係のないコンポーネントにあり、`trusted-users` を絞ってもデスクトップの側では何も壊れないように見えて、spin713 の `nixos-rebuild` だけが断られる。
 
-代償として、ビルドを引き受けも任せもしない機体（会社 PC の WSL）の利用者は trusted でない。flake の `nixConfig` の `extra-substituters` のように trusted を要る設定は、その機体では無視される。
+代償として、ビルドを引き受けも任せもしないホスト（会社 PC の WSL）のユーザーは trusted でない。flake の `nixConfig` の `extra-substituters` のように trusted を要る設定は、そのホストでは無視される。
 
 ## `--build-host` は `.local` で接続し、`sudo` を付けずに `--sudo` で実行する
 
@@ -167,7 +167,7 @@ devShell の中でビルドした実行ファイルの ELF interpreter と RUNPA
 - ラップトップにほかのユーザーを追加するなら、そのユーザーのビルドも `pomu` として送られることを見直す。`sshKey` を root 専用の鍵に分ける案がある
 - 出先で DERP 経由になり、手元でビルドするほうが速い場面が続いたら、その場では `--builders '' --max-jobs 4` を付ける。常態化したら、tailnet の経路ごとに有効にする仕組みを考える
 - tailnet をやめるなら、`hostName` を `.local` に戻す。出先では常設ビルダーが使えなくなる
-- 自分用サーバを別の機体に移したら、`remote_build.star` の `supportedFeatures` を、その機体の `nix config show system-features` に合わせ直す
+- 自分用サーバを別のホストに移したら、`remote_build.star` の `supportedFeatures` を、そのホストの `nix config show system-features` に合わせ直す
 - spin713 から任せたビルドでデスクトップの作業が重くなったら、デスクトップの側から公開する nix コマンドのラッパーを整備し、spin713 はそれを使う。今は `idle` で作業に CPU を譲らせているだけで、引き受ける数は絞っていない
 - 出先で tailnet に入れない場面が増え、`--max-jobs 4` を付ける手間が目立ったら、spin713 の `local_builds` を true に戻す。エージェントが黙って手元でビルドすることは、エージェントへの指示の側で防ぐ
 - `cargo remote-run` で実行ファイルの転送が待ち時間の大半を占めるようになったら（出先の回線など）、持ち帰る前に `objcopy --strip-debug` する。ラップトップの空きが実行ファイル 1 つ分を下回ったときも同じ。Bevy の `dynamic_linking` を使いたくなったら、`target/<profile>/deps/` の共有ライブラリも持ち帰って `LD_LIBRARY_PATH` に加える

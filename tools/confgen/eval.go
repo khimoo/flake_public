@@ -15,12 +15,12 @@ import (
 // reason records why an element is true for a user: an axiom, or the rule that derived it.
 type reason struct {
 	Axiom string   `json:"axiom,omitempty"` // "machine" or "purposes"
-	Rule  string   `json:"rule,omitempty"`  // "requires", "parameter" or "when"
+	Rule  string   `json:"rule,omitempty"`  // "requires" or "parameter"
 	From  []string `json:"from,omitempty"`  // the antecedents of the rule
 }
 
-// derive computes the least set of elements closed under the rules (a reference from a true
-// element, or a when whose elements are all true), starting from the axioms. Each element
+// derive computes the elements reachable from the axioms through references (requires and
+// parameters), following the sufficient conditions. Each element
 // keeps the first reason found, in a fixed order, so the reasons are deterministic.
 func derive(elems map[string]*element, axioms map[string]string) map[string]reason {
 	g := map[string]reason{}
@@ -43,11 +43,6 @@ func derive(elems map[string]*element, axioms map[string]string) map[string]reas
 						changed = true
 					}
 				}
-				continue
-			}
-			if e.derived() && allIn(e.when, g) {
-				g[e.name] = reason{Rule: "when", From: e.when}
-				changed = true
 			}
 		}
 	}
@@ -80,15 +75,6 @@ func checkNeeds(host string, spec *hostSpec, judgments map[string]map[string]rea
 		}
 	}
 	return nil
-}
-
-func allIn[V any](xs []string, set map[string]V) bool {
-	for _, x := range xs {
-		if _, ok := set[x]; !ok {
-			return false
-		}
-	}
-	return true
 }
 
 // elementRef is what a parameter receives: the referenced element's public values.
@@ -378,7 +364,6 @@ type graphEntry struct {
 	Reads    []string `json:"reads"`
 	Writes   []string `json:"writes"`
 	Requires []string `json:"requires"`
-	When     []string `json:"when"`
 	Options  []string `json:"options"`
 }
 
@@ -696,7 +681,7 @@ func evaluateHost(host, system string, spec *hostSpec, sh *shared, elems map[str
 		}
 		hostWriter := e.funcs["writes"] != nil && !lv.readsPerUser(e.funcs["writes"])
 		if (e.funcs["config"] != nil || hostWriter) && countOut(out)+hostWritesBy[name] == 0 {
-			return nil, fmt.Errorf("%s: produced no settings and no writes on host %s; an element that enters the machine must add something (rule A). Put the condition in requires or when instead of returning nothing", e.file, host)
+			return nil, fmt.Errorf("%s: produced no settings and no writes on host %s; an element that enters the machine must add something (rule A). Put the condition in requires or needs instead of returning nothing", e.file, host)
 		}
 		res.Elements[name] = out
 		addOptions(name, out)
@@ -764,7 +749,7 @@ func evaluateHost(host, system string, spec *hostSpec, sh *shared, elems map[str
 			}
 			userWriter := e.funcs["writes"] != nil && lv.readsPerUser(e.funcs["writes"])
 			if (e.funcs["user_config"] != nil || userWriter) && countOut(out)+userWritesBy[name] == 0 {
-				return nil, fmt.Errorf("%s: produced no settings and no writes for user %s on host %s; an element that is true for a user must add something for the user (rule A). Put the condition in requires or when, or let the user leave the purpose out, instead of returning nothing", e.file, u.name, host)
+				return nil, fmt.Errorf("%s: produced no settings and no writes for user %s on host %s; an element that is true for a user must add something for the user (rule A). Put the condition in requires or needs, or let the user leave the purpose out, instead of returning nothing", e.file, u.name, host)
 			}
 			addOptions(name, out)
 			if nixos, ok := out["nixos"].([]setting); ok {
@@ -783,7 +768,7 @@ func evaluateHost(host, system string, spec *hostSpec, sh *shared, elems map[str
 		if e.virtual {
 			continue
 		}
-		entry := graphEntry{Requires: nonNil(e.requires), When: nonNil(e.when), Options: nonNil(sortedKeys(options[name]))}
+		entry := graphEntry{Requires: nonNil(e.requires), Options: nonNil(sortedKeys(options[name]))}
 		reads, writes := map[string]bool{}, map[string]bool{}
 		for _, f := range e.funcs {
 			for p := range f.reads {

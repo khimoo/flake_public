@@ -12,4 +12,5 @@ requires = [
     "nvim_telescope",
     "nvim_treesitter",
     "nvim_typst_preview",
+    "nvim_rustowl",
 ]

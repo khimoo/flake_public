@@ -109,11 +109,6 @@ func why(dir, host, system, user, name string) error {
 		switch {
 		case rs.Axiom != "":
 			fmt.Printf("%s%s  (axiom: %s)\n", indent, n, rs.Axiom)
-		case rs.Rule == "when":
-			fmt.Printf("%s%s  (when %s)\n", indent, n, strings.Join(rs.From, ", "))
-			for _, f := range rs.From {
-				show(f, indent+"  ")
-			}
 		default:
 			fmt.Printf("%s%s  (%s of %s)\n", indent, n, rs.Rule, rs.From[0])
 			show(rs.From[0], indent+"  ")
@@ -137,7 +132,7 @@ func explain(dir, host, system, name string) error {
 	if !ok {
 		return fmt.Errorf("unknown element %q", name)
 	}
-	var readBy, writtenBy, conditionOf, requiredBy, neededBy []string
+	var readBy, writtenBy, requiredBy, neededBy []string
 	for _, other := range sortedElems(elems) {
 		for _, f := range other.funcs {
 			if f.reads[name] {
@@ -145,11 +140,6 @@ func explain(dir, host, system, name string) error {
 			}
 			if f.writes[name] {
 				writtenBy = append(writtenBy, other.name)
-			}
-		}
-		for _, w := range other.when {
-			if w == name {
-				conditionOf = append(conditionOf, other.name)
 			}
 		}
 		for _, q := range other.requires {
@@ -172,7 +162,6 @@ func explain(dir, host, system, name string) error {
 	fmt.Printf("  read by:        %s\n", strings.Join(uniq(readBy), ", "))
 	fmt.Printf("  written by:     %s\n", strings.Join(uniq(writtenBy), ", "))
 	fmt.Printf("  required by:    %s\n", strings.Join(requiredBy, ", "))
-	fmt.Printf("  condition of:   %s\n", strings.Join(conditionOf, ", "))
 	fmt.Printf("  needed by:      %s\n", strings.Join(neededBy, ", "))
 	fmt.Printf("  needs:          %s\n", strings.Join(e.needs, ", "))
 	if g, ok := r.Graph[name]; ok {

@@ -14,8 +14,8 @@ role = True
 _GPU_LOCK = "/run/xsaved-gpu.lock"
 _DEFAULT_PORT = 8765
 
-# 利用者ごとの値は、ホストのファイルの利用者の表（[[users]] の直後の [users.xsaved]）に書く。
-# データと本番用の checkout の場所は、利用者のホームから決める。
+# ユーザーごとの値は、ホストのファイルのユーザーの表（[[users]] の直後の [users.xsaved]）に書く。
+# データと本番用の checkout の場所は、ユーザーのホームから決める。
 def public(user):
     values = getattr(user, "xsaved", None)
     if values == None:
@@ -39,7 +39,7 @@ def public(user):
 
 def config(host):
     tables = [account["xsaved"] for account in host.users if "xsaved" in account]
-    # データベースとポートは機体で共有するので、利用者どうしで重ならないことを確かめる。
+    # データベースとポートはホストで共有するので、ユーザーどうしで重ならないことを確かめる。
     for key, default in [("database", "xsaved"), ("web_port", _DEFAULT_PORT)]:
         chosen = [table.get(key, default) for table in tables]
         if len(chosen) != len({str(value): True for value in chosen}):

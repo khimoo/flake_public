@@ -1,9 +1,9 @@
-# Neovim 本体。機能の要素（nvim_*）が write で渡す道具とデータを集め、Lua が読む
-# features.lua（lua/config/nix.lua）を作る。機能の一覧は書き込んだ要素から決まる。
+# Neovim 本体。機能のコンポーネント（nvim_*）が write で寄与する道具とデータを集め、Lua が読む
+# features.lua（lua/config/nix.lua）を作る。機能の一覧は寄与したコンポーネントから決まる。
 _CONFIG_DIR = "modules/home-manager/dev/neovim/config"
 
 def _merge(data, more):
-    # data は {機能: {名前: 値}}。同じ機能の同じ名前を2つの要素が書いたら止める。
+    # data は {機能: {名前: 値}}。同じ機能の同じ名前を2つのコンポーネントが寄与したら止める。
     out = {k: dict(v) for k, v in data.items()}
     for feature, values in more.items():
         merged = out.get(feature, {})

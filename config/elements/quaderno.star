@@ -1,6 +1,6 @@
 # Quaderno を LAN で探し、見つかったら受け渡すコマンドと、systemd のユーザー timer。
 # LAN に見つからないときは、ペアリング済みの Quaderno に Bluetooth の PAN をつないで探す。
-# 何を受け渡すかは、書き込んだ要素で決まる（use_quaderno_archive は取り込み、quaderno_exchange は受け渡しフォルダ）。
+# 何を受け渡すかは、寄与したコンポーネントで決まる（use_quaderno_archive は取り込み、quaderno_exchange は受け渡しフォルダ）。
 def user_config(host, failure_notify, incoming):
     pull = None
     exchange = None

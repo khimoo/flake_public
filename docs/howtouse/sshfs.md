@@ -3,7 +3,7 @@
 外出先のラップトップ（`nixos-spin713`）から、デスクトップ（`nixos-desktop`）のファイルを sshfs でマウントして編集します。
 デスクトップで動いているエージェントと同じファイルを、手元のエディタとツールで扱えます。
 
-設定: [sshfs_editing.star](../../config/elements/sshfs_editing.star)、[tinymist_on_sshfs.star](../../config/elements/tinymist_on_sshfs.star)、[direnv_on_sshfs.star](../../config/elements/direnv_on_sshfs.star)。[nixos-spin713.toml](../../config/hosts/nixos-spin713.toml) の利用者の `[[users]]` の `purposes` で行動 `program_on_home_server`（自分用サーバで作業する）を選ぶと、`requires` から `sshfs_editing` が入る（[confgen.md](./confgen.md)）。無効にするには利用者の `purposes` から `program_on_home_server` を外す。別のノート PC でも同じ使い方をするなら、その PC の利用者の `purposes` に `program_on_home_server` を足す。
+設定: [sshfs_editing.star](../../config/elements/sshfs_editing.star)、[tinymist_on_sshfs.star](../../config/elements/tinymist_on_sshfs.star)、[direnv_on_sshfs.star](../../config/elements/direnv_on_sshfs.star)。[nixos-spin713.toml](../../config/hosts/nixos-spin713.toml) のユーザーの `[[users]]` の `purposes` で利用目的 `program_on_home_server`（自分用サーバで作業する）を選ぶと、`requires` から `sshfs_editing` が入る（[confgen.md](./confgen.md)）。無効にするにはユーザーの `purposes` から `program_on_home_server` を外す。別のノート PC でも同じ使い方をするなら、その PC のユーザーの `purposes` に `program_on_home_server` を足す。
 
 ## マウントする
 
@@ -30,7 +30,7 @@ direnv のキャッシュを作り直したいときは、該当するディレ�
 
 ## 設計
 
-findmnt のパスは `util_linux` の要素が公開し、tinymist の PDF 対策（派生要素 `tinymist_on_sshfs`）と direnv の対策（派生要素 `direnv_on_sshfs`）がそれを読みます。PDF 対策は `sshfs_editing` と `nvim_lsp` の両方、direnv の対策は `sshfs_editing` と `direnv` の両方が入るホストでだけ入ります。
+findmnt のパスは `util_linux` のコンポーネントが公開し、tinymist の PDF 対策（`tinymist_on_sshfs`）と direnv の対策（`direnv_on_sshfs`）がそれを読みます。どちらも、自分用サーバ上でプログラミングする利用目的 `program_on_home_server` の `requires` にあり、この利用目的は `programming` も含みます。
 判定を FUSE 全体に広げないのは、FUSE であること自体は遅さや下記の問題と関係しないためです。
 
 direnv のキャッシュを手元に置くのは、sshfs ではキャッシュが毎回作り直されるためです。

@@ -12,7 +12,7 @@ in
   use_uv-contracts =
     (lib.lazyDerivation {
       derivation = (
-        # uv は use_uv を選んだ利用者にだけ入る。
+        # uv は use_uv を選んだユーザーにだけ入る。
         assert !home.config.programs.uv.enable;
         pkgs.runCommand "use_uv-contracts" { } ''
           echo "use_uv contracts passed" > "$out"

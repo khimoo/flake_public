@@ -4,7 +4,7 @@ X で「いいね」またはブックマークしたポストを、本文・画
 ツール本体には、プライベートリポジトリ [khimoo/xsaved](https://github.com/khimoo/xsaved) の本番用チェックアウト（`~/.local/share/xsaved-app`）を使用します。開発用チェックアウトは `~/sagyo/xsaved` に配置します。利用可能なコマンド一覧はリポジトリ本体の README を参照してください。
 nixos-desktop の pomu 環境では、開発用チェックアウトのみが `clone-repos` の対象です。本番用チェックアウトの作成・更新手順は「[本番用チェックアウトの更新](#本番用チェックアウトの更新)」を、新規環境のセットアップ手順は [SSH 鍵の配布と private repo の clone](private-repo-clone.md) を、保存済みポストとデータベースの復元方法は「[バックアップ](#バックアップ)」をそれぞれ参照してください。
 
-xsaved は、自分用サーバ（nixos-desktop）で動かし、ほかの機体からは ssh で接続して使います。サーバの側は、nixos-desktop の pomu の `purposes` にある `run_home_server` が、`requires` の `serve_xsaved`（PostgreSQL、取得と推論の定期実行、Web UI、バックアップ）を有効にします。`serve_xsaved` は、データ置き場の `xsaved_data`（利用者の `~/.local/share/xsaved` に、データ用ディスクの `data_subvolume` をマウントする）を `requires` に挙げます。設定箇所は [nixos-desktop.toml](../../config/hosts/nixos-desktop.toml) の利用者の `[[users]]` の直後にある `[users.xsaved]` で、この表のない利用者について xsaved が有効になるとエラーになります。クライアントの側は、`grow_notes`、`programming`、`follow_communities` が `requires` に挙げる `use_xsaved` です。`use_xsaved` は、自分用サーバへ ssh で接続する手段の `find_home_server` を `requires` に挙げます。`find_home_server` は `needs` に `tailscale` を挙げるので、tailnet に入らない機体で選ぶと confgen が止まります。接続先は、`find_home_server` が、`run_home_server` を選んだ利用者のいるホストと、`serve_xsaved` が入っている利用者から求めます。サーバを止めるには、nixos-desktop の pomu の `purposes` から `run_home_server` を外します。
+xsaved は、自分用サーバ（nixos-desktop）で動かし、ほかのホストからは ssh で接続して使います。サーバの側は、nixos-desktop の pomu の `purposes` にある `run_home_server` が、`requires` の `serve_xsaved`（PostgreSQL、取得と推論の定期実行、Web UI、バックアップ）を有効にします。`serve_xsaved` は、データ置き場の `xsaved_data`（ユーザーの `~/.local/share/xsaved` に、データ用ディスクの `data_subvolume` をマウントする）を `requires` に挙げます。設定箇所は [nixos-desktop.toml](../../config/hosts/nixos-desktop.toml) のユーザーの `[[users]]` の直後にある `[users.xsaved]` で、この表のないユーザーについて xsaved が有効になるとエラーになります。クライアントの側は、`grow_notes`、`programming`、`follow_communities` が `requires` に挙げる `use_xsaved` です。`use_xsaved` は、自分用サーバへ ssh で接続する手段の `find_home_server` を `requires` に挙げます。`find_home_server` はホストを tailnet に参加させ、会社 PC の WSL で選ぶと評価が止まります（[wsl.md](../architecture/wsl.md)）。接続先は、`find_home_server` が、`run_home_server` を選んだユーザーのいるホストと、`serve_xsaved` が有効なユーザーから求めます。サーバを止めるには、nixos-desktop の pomu の `purposes` から `run_home_server` を外します。
 
 設計ドキュメント: [X のいいねとブックマークの保存の設計](../architecture/xsaved.md)
 
@@ -83,7 +83,7 @@ git clone ~/sagyo/xsaved ~/.local/share/xsaved-app
 ## Web UI
 
 nixos-desktop 上のブラウザで <http://pomu.xsaved.localhost/>（`<アカウント名>.xsaved.localhost`） を開くと、ポストの検索や類似ポスト検索を利用できます。
-ほかの機体（spin713 など）では、アプリ一覧の「X の保存（xsaved）」か `xsaved-web` で開きます。`xsaved-web` は、手元の `web_port` + 10000 番（既定 18765）から自分用サーバの `web_port` へ ssh のポート転送を始めてから、<http://127.0.0.1:18765/> を開きます。
+ほかのホスト（spin713 など）では、アプリ一覧の「X の保存（xsaved）」か `xsaved-web` で開きます。`xsaved-web` は、手元の `web_port` + 10000 番（既定 18765）から自分用サーバの `web_port` へ ssh のポート転送を始めてから、<http://127.0.0.1:18765/> を開きます。
 コマンドは `xsaved-remote <引数>` で、自分用サーバの `xsaved` を ssh 越しに実行します。
 「検索対象」で「すべて」「いいね」「ブックマーク」を選択でき、この設定は「似たツイート」や「もっと表示」の検索条件にも引き継がれます。
 検索を実行すると、ruri（本文＋OCR テキスト）、Qwen（本文＋OCR テキスト）、Qwen（画像・動画）、全文検索、PixAI タグの結果が、それぞれ独立した列に並んで表示されます。全文検索では、スペース区切りで AND 検索、`OR` 区切りで OR 検索が可能です。全文検索の対象には投稿者のユーザー ID（`@` 付き）や表示名も含まれます。

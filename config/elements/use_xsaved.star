@@ -6,7 +6,7 @@ def user_config(find_home_server, machines):
     # ポートは、サーバで xsaved を動かすアカウントの表（[users.xsaved]）にある。
     tables = [account.get("xsaved", {}) for account in machines.all[find_home_server.host]["users"] if account["name"] == service["account"]]
     port = tables[0].get("web_port", 8765)
-    # サーバの機体でも同じポートで待ち受けているので、手元の側は別のポートに転送する。
+    # サーバのホストでも同じポートで待ち受けているので、手元の側は別のポートに転送する。
     local_port = port + 10000
     env = {"XSAVED_SERVER": service["tailnet"], "XSAVED_SERVER_PORT": str(port), "XSAVED_LOCAL_PORT": str(local_port)}
     remote = shellAppEnv("xsaved-remote", [pkg("openssh")], env, repoText("modules/home-manager/xsaved/remote.sh"))

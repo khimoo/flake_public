@@ -13,7 +13,7 @@ const allElements = "ALL"
 var repoPathRe = regexp.MustCompile(`"([A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)+)"`)
 
 // affected maps changed repo paths to the elements whose tests must run: each changed element,
-// the elements that read it, the elements it writes into, and the derived elements it conditions.
+// the elements that read it and the elements it writes into.
 // The tests of other elements cannot change, because an element's output depends only on what it
 // reads and what is written into it (rule B in docs/architecture/rules.md).
 func affected(root string, paths []string) ([]string, error) {
@@ -69,18 +69,13 @@ func affected(root string, paths []string) ([]string, error) {
 					out[other.name] = true
 				}
 			}
-			for _, w := range other.when {
-				if w == s {
-					out[other.name] = true
-				}
-			}
 		}
 	}
 	return sortedKeys(out), nil
 }
 
 // leadsToRole lists the elements whose judgment can make a role element true: the role
-// elements, the elements that reference one of them, and the conditions of derived ones.
+// elements and the elements that reference one of them.
 func leadsToRole(elems map[string]*element) map[string]bool {
 	leads := map[string]bool{}
 	for _, e := range elems {
@@ -92,11 +87,6 @@ func leadsToRole(elems map[string]*element) map[string]bool {
 		changed = false
 		for _, e := range elems {
 			if leads[e.name] {
-				for _, w := range e.when {
-					if !leads[w] {
-						leads[w], changed = true, true
-					}
-				}
 				continue
 			}
 			for _, r := range e.refs() {

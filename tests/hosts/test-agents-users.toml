@@ -10,7 +10,7 @@ purposes = ["machine_base", "lan_ssh_key", "codex_policy", "git_identity", "agen
 
 [[users]]
 name = "bob"
-# clone する repo を持たない利用者でも、pull-repos が flake の checkout を更新できることを確かめる。
+# clone する repo を持たないユーザーでも、pull-repos が flake の checkout を更新できることを確かめる。
 purposes = ["machine_base", "codex_policy", "git", "private_repos", "nixos_system"]
 
 [[users]]

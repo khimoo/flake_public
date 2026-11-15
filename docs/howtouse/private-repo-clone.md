@@ -31,18 +31,18 @@ clone 対象の repo と flake 自身に対して `git pull --ff-only` を実行
 
 ## clone する repo を変更する
 
-ホストの `[[users]]` の `purposes` で利用者が `personal_files` を選び、同じファイルの `private_repos` に URL とホームからの相対パスを指定します。例は [nixos-desktop.toml](../../config/hosts/nixos-desktop.toml) を参照してください。
+ホストの `[[users]]` の `purposes` でユーザーが `personal_files` を選び、同じファイルの `private_repos` に URL とホームからの相対パスを指定します。例は [nixos-desktop.toml](../../config/hosts/nixos-desktop.toml) を参照してください。
 
 ```python
 private_repos = [{"url": "git@example.org:me/project.git", "dest": "sagyo/project"}]
 ```
 
-エージェント設定は [owner.toml](../../config/owner.toml) の `agent_config_root`（ホームからの相対パス）と `agent_config_repo`（URL）で指定します。`agent_config` を選んだ利用者には、`agent_links` が clone と GitHub 鍵の配置を宣言します。vault と memex-nix の URL と配置先は [memex.star](../../config/elements/memex.star) にあります。
+エージェント設定は [owner.toml](../../config/owner.toml) の `agent_config_root`（ホームからの相対パス）と `agent_config_repo`（URL）で指定します。`agent_config` を選んだユーザーには、`agent_links` が clone と GitHub 鍵の配置を宣言します。vault と memex-nix の URL と配置先は [memex.star](../../config/elements/memex.star) にあります。
 
 エージェント設定の `agent_config_repo` を省略した場合、その repo は手動で clone する運用になります。配置先パスだけを残しておけば、symlink や同期、`mirror-vault` などの機能はそのまま利用可能です。
 vault は `services.memex.initializeVault` で作成することも可能ですが、有効にはしません。先に空フォルダが作成されると clone が失敗するためです。
 
-clone 対象の repo がなく、`lan_ssh_key` が入っておらず、ユーザーとホストの `secrets` も空なら、age 鍵は不要です。pomu にはほかの機体へ ssh で接続する要素が入っていて、`lan_ssh_key` が鍵を置くため、repo の clone を行わない場合でも age 鍵が必要です。
+clone 対象の repo がなく、`lan_ssh_key` が入っておらず、ユーザーとホストの `secrets` も空なら、age 鍵は不要です。pomu にはほかのホストへ ssh で接続するコンポーネントが入っていて、`lan_ssh_key` が鍵を置くため、repo の clone を行わない場合でも age 鍵が必要です。
 
 ## SSH 鍵以外のシークレットを配布する
 
@@ -52,7 +52,7 @@ clone 対象の repo がなく、`lan_ssh_key` が入っておらず、ユーザ
 SOPS_AGE_KEY_FILE=~/.config/sops/age/keys.txt sops secrets/secrets.yaml
 ```
 
-持ち主の値（[owner.toml](../../config/owner.toml) の `secrets`）またはホストのファイルに、ホームからの相対パスで指定します。利用者の `[[users]]` の `purposes` に `personal_files` を含めます。
+持ち主の値（[owner.toml](../../config/owner.toml) の `secrets`）またはホストのファイルに、ホームからの相対パスで指定します。ユーザーの `[[users]]` の `purposes` に `personal_files` を含めます。
 
 ```python
 secrets = [{"secret": "gemini_api_key", "path": ".config/gemini/api-key"}]
@@ -61,7 +61,7 @@ secrets = [{"secret": "gemini_api_key", "path": ".config/gemini/api-key"}]
 `mode` のデフォルトは `600` であり、home ディレクトリ外のパスを指定すると評価時に拒否されます。
 switch を実行するたびに、宣言されたファイルは暗号化データの内容および指定された mode へ同期されます。シークレットを変更したい場合は `secrets/secrets.yaml` を編集してください。
 宣言から削除されたファイルは次回の switch 時に削除されます（symlink やディレクトリの場合は警告を出してそのまま残します）。
-LAN の SSH 鍵は、ほかの機体へ ssh で接続する要素が `lan_ssh_key` を通して要求します。GitHub の SSH 鍵は clone を宣言する要素が要求します。
+LAN の SSH 鍵は、ほかのホストへ ssh で接続するコンポーネントが `lan_ssh_key` を通して要求します。GitHub の SSH 鍵は clone を宣言するコンポーネントが要求します。
 
 ## SSH 鍵を差し替える手順
 

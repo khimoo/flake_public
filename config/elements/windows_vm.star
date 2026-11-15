@@ -1,5 +1,5 @@
 needs = ["nixos_system", "local_kvm"]
-requires = ["windows_vm_images"]
+requires = ["windows_vm_images", "windows_vm_gui"]
 
 def public(host):
     return {

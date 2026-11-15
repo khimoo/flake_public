@@ -67,7 +67,7 @@ skill 機構を必要としない。運用は該当ドメインのディレク�
 
 ## flake がやるのは clone だけ
 
-ホストの `private_repos` に clone 元とホームからの相対パスを書き、`personal_files` を選ぶと、要素が clone のリストを作る（[private-repo-clone.md](./private-repo-clone.md)）。Wiki は配置したディレクトリから利用する。
+ホストの `private_repos` に clone 元とホームからの相対パスを書き、`personal_files` を選ぶと、コンポーネントが clone のリストを作る（[private-repo-clone.md](./private-repo-clone.md)）。Wiki は配置したディレクトリから利用する。
 
 ## スキーマ側に持たせる要件
 

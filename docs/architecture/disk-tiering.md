@@ -28,8 +28,8 @@ zstd の圧縮も付けているが、対象の多く（jpg、mp4、mp3、PDF）
 ## subvol は最終パスへ直接マウントする
 
 `~/ダウンロード` などを bind mount や symlink で間接にせず、subvol をそのパスへ直接マウントする。アプリから見たパスは変わらず、中身だけが SATA に載る。
-個人フォルダの subvol はアカウントごとに分け、名前をアカウント名から作る（`@<アカウント名>-downloads`）。個人フォルダを持つのは `personal_files` を選んだ利用者で、派生要素の `personal_folders` が利用者ごとにマウントする。
-機体の要素が `[[users]]` の先頭の利用者のホームにマウントする形は退けた。どの利用者のフォルダかが並び順で決まり、並べ替えると黙って別の利用者に変わる。subvol を 1 組だけにして利用者を 1 人に限る形も退けた。2 人が選ぶと同じ subvol が 2 つのホームにマウントされ、NixOS はこれをエラーにしない。
+個人フォルダの subvol はアカウントごとに分け、名前をアカウント名から作る（`@<アカウント名>-downloads`）。個人フォルダはデータ用ディスクのあるホストの設定として扱い、desktop のハードウェアプロファイルの十分条件にある `personal_folders` が、全ユーザーについてユーザーごとにマウントする。
+ハードウェアプロファイルが `[[users]]` の先頭のユーザーのホームにマウントする形は退けた。どのユーザーのフォルダかが並び順で決まり、並べ替えると黙って別のユーザーに変わる。subvol を 1 組だけにしてユーザーを 1 人に限る形も退けた。2 人が選ぶと同じ subvol が 2 つのホームにマウントされ、NixOS はこれをエラーにしない。
 
 ## マウントの起動順序の循環は check で見つける
 
@@ -43,9 +43,9 @@ zstd の圧縮も付けているが、対象の多く（jpg、mp4、mp3、PDF）
 
 例外は、アプリを有効にしてから手で作る `@mimikopi` と `@xsaved` で、作る前の switch や再起動で起動を止めないよう `nofail` を付ける。
 代わりに、使う側の環境（`mimikopi-env`、`xsaved-env`）が起動時にマウントを確かめ、マウントされていなければ止まる。
-mimikopi と xsaved のマウント先は、要素が利用者のホームから作る（`~/.local/share/mimikopi` と `~/.local/share/xsaved`）。アプリにも同じ要素が同じパスを渡すので、保存先を2か所に書く必要はない。
+mimikopi と xsaved のマウント先は、コンポーネントがユーザーのホームから作る（`~/.local/share/mimikopi` と `~/.local/share/xsaved`）。アプリにも同じコンポーネントが同じパスを渡すので、保存先を2か所に書く必要はない。
 
-`@backup` のマウント先は TOML の `backup_dir` から作る。アプリ側の `minecraft_repo` と `quaderno_archive` は、その配下を指定し、ディレクトリはアプリの要素（`minecraft_backup`、`serve_quaderno_archive`）が tmpfiles で作る。`@vm`、`@mimikopi`、`@xsaved` のマウントも、使う要素（`windows_vm`、`mimikopi`、`xsaved`）が作るので、行動を外すとマウントも消える。
+`@backup` のマウント先は TOML の `backup_dir` から作る。アプリ側の `minecraft_repo` と `quaderno_archive` は、その配下を指定し、ディレクトリはアプリのコンポーネント（`minecraft_backup`、`serve_quaderno_archive`）が tmpfiles で作る。`@vm`、`@mimikopi`、`@xsaved` のマウントも、使うコンポーネント（`windows_vm`、`mimikopi`、`xsaved`）が作るので、利用目的を外すとマウントも消える。
 
 ## Steam のライブラリは Steam に登録させる
 

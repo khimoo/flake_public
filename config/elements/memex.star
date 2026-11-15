@@ -1,5 +1,5 @@
 # memex（Obsidian の vault）。同期と Obsidian の仕組みは flake input の memex-nix が持ち、
-# ここは場所と、目的（memex_sync、obsidian）が書き込んだ選択を渡す。
+# ここは場所と、目的（memex_sync、obsidian）が寄与した選択を渡す。
 _VAULT_URL = "git@github.com:khimoo/memex.git"
 _SKELETON_URL = "git@github.com:khimoo/memex-nix.git"
 

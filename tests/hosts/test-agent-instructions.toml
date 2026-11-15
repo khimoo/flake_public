@@ -4,9 +4,9 @@ timezone = "Asia/Tokyo"
 hostname = "test-agent-instructions"
 
 
-# 自分用サーバで作業し、AI エージェントを使う機体。重い処理を自分用サーバに任せる指示がシステム層に入る。
+# 自分用サーバで作業し、AI エージェントを使うホスト。重い処理を自分用サーバに任せる指示がシステム層に入る。
 
 [[users]]
 name = "alice"
-purposes = ["machine_base", "codex_policy", "agent_config", "program_on_home_server", "tailscale", "nixos_system", "linux"]
+purposes = ["machine_base", "codex_policy", "agent_config", "program_on_home_server", "tailscale", "nixos_system", "linux", "x86_64_linux"]
 home_manager = false

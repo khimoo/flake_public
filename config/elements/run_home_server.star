@@ -1,4 +1,4 @@
-# 行動: 自分用サーバを動かす。ほかの機体とこの機体のクライアント（use_quaderno_archive、use_xsaved、use_alook、program_on_home_server）が ssh で接続して使う。
+# 利用目的: 自分用サーバを動かす。ほかのホストとこのホストのクライアント（use_quaderno_archive、use_xsaved、use_alook、program_on_home_server）が ssh で接続して使う。
 requires = ["serve_quaderno_archive", "serve_xsaved", "serve_workspace", "serve_alook", "serve_remote_desktop", "serve_builds", "stay_awake"]
 role = True
 

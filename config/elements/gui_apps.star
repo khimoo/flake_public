@@ -2,7 +2,7 @@ requires = ["gui"]
 
 _wayland_flags = "--enable-features=UseOzonePlatform --ozone-platform=wayland --enable-wayland-ime --wayland-text-input-version=3"
 
-# 行動の要素が write(gui_apps, アプリ) でアプリを書き込み、gui_apps がまとめて入れる。
+# 利用目的のコンポーネントが write(gui_apps, アプリ) でアプリを寄与し、gui_apps がまとめて入れる。
 # アプリは {"pkg": パッケージ} に、必要なら次を足す。
 #   "desktop": desktop ファイル名、"mime": 既定にする MIME の一覧、
 #   "wayland": True（Wayland で起動する desktop ファイルを作る。"bin" も要る）、

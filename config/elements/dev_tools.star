@@ -1,5 +1,5 @@
 # 目的: プログラムを書くときに使う CLI の道具。
-requires = ["rust"]
+requires = ["rust", "dev_tools_gui"]
 def user_config():
     return {"home": {"home.packages": [
         pkg("tree"),

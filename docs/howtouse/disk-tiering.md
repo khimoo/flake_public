@@ -1,7 +1,7 @@
 # ディスク階層構成
 
 nixos-desktop では NVMe（`/`、`/nix/store`、`~/sagyo`）と SATA SSD を使い分け、高速アクセスを必要としないデータを SATA ドライブ上の btrfs サブボリューム（subvol）に配置しています。
-個人フォルダ（`~/ダウンロード`、`~/Games` など）は [personal_folders.star](../../config/elements/personal_folders.star) が、`personal_files` を選んだ利用者ごとに、`@<アカウント名>-downloads` のような subvol をホームへ直接マウントします。`@backup` のマウント先（`/mnt/backup`）は [machine_nixos_desktop.star](../../config/elements/machine_nixos_desktop.star) 内の `mounts` で定義されています。`@vm`、`@mimikopi`、`@xsaved` は、使う要素（[windows_vm_images.star](../../config/elements/windows_vm_images.star)、[mimikopi.star](../../config/elements/mimikopi.star)、[xsaved_data.star](../../config/elements/xsaved_data.star)）が、ホストのファイルの `windows_vm_images_subvolume`、`mimikopi_data_subvolume`、利用者の表（`[users.xsaved]`）の `data_subvolume` からマウントします。
+個人フォルダ（`~/ダウンロード`、`~/Games` など）は [personal_folders.star](../../config/elements/personal_folders.star) が、nixos-desktop の全ユーザーについて、`@<アカウント名>-downloads` のような subvol をホームへ直接マウントします。ハードウェアプロファイル（[machine_nixos_desktop.star](../../config/elements/machine_nixos_desktop.star)）の `requires` にあるので、ユーザーを足すときは、先にそのユーザーの subvol を作ります。`@backup` のマウント先（`/mnt/backup`）は [machine_nixos_desktop.star](../../config/elements/machine_nixos_desktop.star) 内の `mounts` で定義されています。`@vm`、`@mimikopi`、`@xsaved` は、使うコンポーネント（[windows_vm_images.star](../../config/elements/windows_vm_images.star)、[mimikopi.star](../../config/elements/mimikopi.star)、[xsaved_data.star](../../config/elements/xsaved_data.star)）が、ホストのファイルの `windows_vm_images_subvolume`、`mimikopi_data_subvolume`、ユーザーの表（`[users.xsaved]`）の `data_subvolume` からマウントします。
 
 設計ドキュメント: [ディスク階層構成の設計](../architecture/disk-tiering.md)
 
@@ -34,9 +34,9 @@ lsattr -d /var/lib/libvirt/images           # @vm が NOCOW に設定されて�
 
 ※ VM イメージ用など CoW（Copy on Write）を回避したい subvol の場合は、作成直後の空の状態で `sudo chattr +C /mnt/sda/@newname` を実行し、マウントオプション `opts` から `compress=zstd` を外してください。
 
-## 個人フォルダを持つ利用者を追加する
+## nixos-desktop にユーザーを追加する
 
-個人フォルダの subvol は、起動時に必ずマウントされます（`nofail` なし）。subvol がないと起動が緊急モードで止まるので、利用者の `purposes` に `personal_files` を足す前に、その利用者の subvol を 6 つ作ります。
+個人フォルダの subvol は、起動時に必ずマウントされます（`nofail` なし）。subvol がないと起動が緊急モードで止まるので、ホストの TOML にユーザーを足す前に、そのユーザーの subvol を 6 つ作ります。
 
 ```sh
 sudo mkdir -p /mnt/sda && sudo mount /dev/sda1 /mnt/sda

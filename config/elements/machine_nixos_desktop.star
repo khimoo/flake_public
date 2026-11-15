@@ -1,5 +1,5 @@
 kind = "machine"
-requires = ["x86_64_linux", "nixos_system", "rocm_compute", "local_kvm", "has_data_disk", "personal_pc"]
+requires = ["x86_64_linux", "nixos_system", "rocm_compute", "local_kvm", "has_data_disk", "personal_pc", "personal_folders"]
 
 def config(host):
     data_opts = ["noatime", "compress=zstd"]

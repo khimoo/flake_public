@@ -261,8 +261,8 @@ JSON プロセッサ。JSON データをフィルタ・変換・整形する。
 ```bash
 cat data.json | jq '.'                     # 整形表示
 cat data.json | jq '.name'                 # フィールドを取得
-cat data.json | jq '.users[0]'             # 配列の要素
-cat data.json | jq '.users[] | .name'      # 配列の各要素からフィールド抽出
+cat data.json | jq '.users[0]'             # 配列のコンポーネント
+cat data.json | jq '.users[] | .name'      # 配列の各コンポーネントからフィールド抽出
 cat data.json | jq '.users | length'       # 配列の長さ
 cat data.json | jq 'select(.age > 20)'     # 条件フィルタ
 cat data.json | jq '{name, email}'         # 必要なフィールドだけ抽出

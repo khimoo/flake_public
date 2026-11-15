@@ -2,7 +2,7 @@
 
 vault の画像や PDF などのバイナリは、中身を git-annex で Google Drive に置き、Git には所在だけを入れます。ノートは今までどおり Git で同期します。
 
-利用者の `[[users]]` の `purposes` で行動 `grow_notes` を選ぶと、`requires` の `memex_sync` が有効になります（`config/hosts/<ホスト>.toml`、[confgen.md](./confgen.md)）。`nixos-desktop` と `nixos-spin713` で選んでいます。vault の場所は [memex.star](../../config/elements/memex.star) が決めます。Linux 環境にのみ対応しています。無効にするには、利用者の `purposes` から `grow_notes` を外します。
+ユーザーの `[[users]]` の `purposes` で利用目的 `grow_notes` を選ぶと、`requires` の `memex_sync` が有効になります（`config/hosts/<ホスト>.toml`、[confgen.md](./confgen.md)）。`nixos-desktop` と `nixos-spin713` で選んでいます。vault の場所は [memex.star](../../config/elements/memex.star) が決めます。Linux 環境にのみ対応しています。無効にするには、ユーザーの `purposes` から `grow_notes` を外します。
 
 設計ドキュメント: [memex の Google Drive 同期の設計](../architecture/memex-drive-sync.md)
 

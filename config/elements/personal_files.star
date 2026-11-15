@@ -1,5 +1,7 @@
-# 目的: 持ち主の個人のファイルと秘密を、このアカウントのホームに置く。git のコミットにも持ち主の名前を使う。
-requires = ["git_identity", "github_ssh"]
+# 利用目的: 持ち主の個人のファイルと秘密を、このアカウントのホームに置く。git のコミットにも持ち主の名前を使う。
+# 持ち主のアカウントは、LAN の鍵でほかのホストから ssh でログインできる。connect_ssh は、このアカウントを Host ブロックのログイン名にする。
+requires = ["git_identity", "github_ssh", "authorize_lan_key"]
+role = True
 
 def _home_path(user, path):
     if path.startswith("/") or ".." in path.split("/"):

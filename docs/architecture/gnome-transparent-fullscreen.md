@@ -30,7 +30,7 @@ X11 クライアント用の `meta-window-actor-x11.c` にはこの処理がな�
 ## 判断
 
 mutter にパッチを当て、`system.replaceDependencies` で差し替える。
-desktop と spin713 が選ぶ `gnome` 要素で置換を設定する。
+desktop と spin713 が選ぶ `gnome` コンポーネントで置換を設定する。
 
 パッチは `meta-window-actor-wayland.c` の 2 か所を変える。
 

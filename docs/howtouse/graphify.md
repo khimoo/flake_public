@@ -1,7 +1,7 @@
 # Graphify によるコード・文書探索
 
 Graphify は dev 環境の home.packages に入る任意の探索ツール。
-通常の環境適用は利用者が行う。導入後は `graphify --version` で版を確認する。
+通常の環境適用はユーザーが行う。導入後は `graphify --version` で版を確認する。
 
 プロジェクト側の対象・除外・更新方針を確認して実行する。
 
@@ -30,7 +30,7 @@ nix build .#checks.x86_64-linux.graphify-smoke
 
 除去するときは [graphify.star](../../config/elements/graphify.star) と、`claude_code.star` と `codex.star` の `requires` の `graphify` と、
 [overlay](../../overlays/unstable-packages.nix)、
-[smoke check](../../tests/default.nix) の対応を戻し、利用者が通常の環境適用を行う。
+[smoke check](../../tests/default.nix) の対応を戻し、ユーザーが通常の環境適用を行う。
 個人認証や既存のエージェント設定は削除しない。
 
 ## 設計

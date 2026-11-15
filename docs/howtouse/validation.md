@@ -24,24 +24,24 @@
 実行には Nix（Flakes 有効）、Python 3、Git、Bash が必要です。なお、世代の切り替え（switch）は行いません。
 
 ```sh
-bash scripts/check.sh          # 変更が影響する要素・ホスト・check を検証
+bash scripts/check.sh          # 変更が影響するコンポーネント・ホスト・check を検証
 bash scripts/check.sh --all    # 全ホストと全 home の軽量評価、全 check のビルド
 bash scripts/check.sh --full   # toplevel の評価、nix flake check、全システムの check 評価も実施
 ```
 
 引数なしでは、`git merge-base HEAD @{upstream}` を基準にした差分と、未コミット・ステージ済み・未追跡ファイルの和を対象にします。上流がない場合は未コミットの変更だけを対象にします。confgen は flake と同じ nixpkgs から `nix build` で用意し、`confgen affected <repo-root> <変更ファイル>...` の JSON 出力にある `elements` と `hosts` から検証範囲を選びます。`elements = ["ALL"]` の場合は `--all` と同じ範囲を検証します。
 
-選んだ要素、ホスト、check の名前をそれぞれ1行で表示してから、ドキュメント検証、`tools/confgen` の `go test ./...`、選択したホストの軽量評価と check のビルド、`git diff --check` を実行します。Go は confgen と同じ nixpkgs のものを使います。ホストの軽量評価は `hosts` に入った名前に限定します。変更ファイルがなければ、ドキュメント検証、Go テスト、差分の空白検査だけを実行します。
+選んだコンポーネント、ホスト、check の名前をそれぞれ1行で表示してから、ドキュメント検証、`tools/confgen` の `go test ./...`、選択したホストの軽量評価と check のビルド、`git diff --check` を実行します。Go は confgen と同じ nixpkgs のものを使います。ホストの軽量評価は `hosts` に入った名前に限定します。変更ファイルがなければ、ドキュメント検証、Go テスト、差分の空白検査だけを実行します。
 
 ### check を追加する
 
-共通の補助関数と check の集約は [tests/default.nix](../../tests/default.nix)、要素の検査は `tests/elements/<主な要素>.nix`、実在ホストの検査は [tests/hosts.nix](../../tests/hosts.nix) に置きます。要素のファイルは `{ lib, pkgs, system, helpers, ... }: { <名前> = <derivation>; }` の形でテストの attrset を返します。架空のホストは `tests/hosts/`、架空のホストが使う持ち主の値は [tests/owner.toml](../../tests/owner.toml) に置きます。テスト用の設定ディレクトリは、実在と架空のホスト、`config/elements/`、`tests/owner.toml` を合わせて作られます。実在のホストの生成結果を確かめるときは、`config/` をそのまま使います。持ち主の値を差し替えて生成が止まることを確かめるときは、`rejectsPurposeWithOwner` に TOML の本文を渡します。
+共通の補助関数と check の集約は [tests/default.nix](../../tests/default.nix)、コンポーネントの検査は `tests/elements/<主なコンポーネント>.nix`、実在ホストの検査は [tests/hosts.nix](../../tests/hosts.nix) に置きます。コンポーネントのファイルは `{ lib, pkgs, system, helpers, ... }: { <名前> = <derivation>; }` の形でテストの attrset を返します。架空のホストは `tests/hosts/`、架空のホストが使う持ち主の値は [tests/owner.toml](../../tests/owner.toml) に置きます。テスト用の設定ディレクトリは、実在と架空のホスト、`config/elements/`、`tests/owner.toml` を合わせて作られます。実在のホストの生成結果を確かめるときは、`config/` をそのまま使います。持ち主の値を差し替えて生成が止まることを確かめるときは、`rejectsPurposeWithOwner` に TOML の本文を渡します。
 
 各 check には次の札を1つ以上付けます。`check.sh` は札のない check の名前を表示して停止します。札の読み取りで未選択の構成まで評価しないよう、既存のテストと同じく `lib.lazyDerivation { derivation = <検査>; } // { <札>; }` で包みます。
 
-- `elements = [ "要素名" ... ];`：生成結果を確かめる要素をすべて挙げます。影響する要素と重なればビルドします。例えば activation は `private_repos` と `secrets` です。シェルや Python を直接検査する場合も、そのファイルを読む要素を指定します。例えば windows-vm は `windows_vm` です。
+- `elements = [ "コンポーネント名" ... ];`：生成結果を確かめるコンポーネントをすべて挙げます。影響するコンポーネントと重なればビルドします。例えば activation は `private_repos` と `secrets` です。シェルや Python を直接検査する場合も、そのファイルを読むコンポーネントを指定します。例えば windows-vm は `windows_vm` です。
 - `hosts = [ "ホスト名" ... ];`：評価する実在ホストを挙げます。影響するホストと重なればビルドします。
-- `always = true;`：読む要素のない graphify-smoke や proofread-howtouse などに使います。変更がある場合と `--all` / `--full` で、常にビルドします。
+- `always = true;`：読むコンポーネントのない graphify-smoke や proofread-howtouse などに使います。変更がある場合と `--all` / `--full` で、常にビルドします。
 
 ### 評価の範囲
 
@@ -84,7 +84,7 @@ nvim --headless -n -u NONE -i NONE -l scripts/check-neovim-parser-merge.lua
 
 [回帰チェック](../../scripts/check-neovim-parser-merge.lua) では、実際の lazy.nvim のマージ処理を利用し、共通 spec と Markdown spec の読み込み順を入れ替えても必要なパーサーが保持されることを確認します。背景の詳細は [spec マージの設計](../architecture/neovim/spec-merge.md) を参照してください。
 
-構成の適用は、利用者自身が README に記載されたコマンドに従って実行し、実行結果や必要に応じた復旧手順を確認してください。
+構成の適用は、ユーザー自身が README に記載されたコマンドに従って実行し、実行結果や必要に応じた復旧手順を確認してください。
 
 ## 原因切り分け時の評価手順
 

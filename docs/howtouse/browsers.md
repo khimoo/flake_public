@@ -3,7 +3,7 @@
 既定ブラウザとリンクの振り分け: [デフォルトアプリ](../architecture/default-apps.md)
 実装: [browser_common.star](../../config/elements/browser_common.star) / [firefox.star](../../config/elements/firefox.star) / [zen_browser.star](../../config/elements/zen_browser.star) / [brave.star](../../config/elements/brave.star) / [google_chrome.star](../../config/elements/google_chrome.star)
 
-`requires` に `web_browsing` を挙げる行動（`programming`、`grow_notes`、`web_procedures`、`write_documents`、`work_ss`、`work_fr`）を選んだ利用者には、`web_browsing` を通じて、Firefox、Zen、Brave、Google Chrome が入ります。Firefox と Zen は拡張機能の一覧と pref を Nix で宣言し、履歴などの使いながら増えるデータは同期サービスに任せます（分担は「設計」の節）。Brave には Bitwarden と floccus だけを宣言で入れ（「Brave」の節）、Chrome はパッケージを入れるだけです（「Google Chrome」の節）。無効にするには、`web_browsing` を `requires` に挙げる行動をすべて、利用者の `purposes` から外します。
+`requires` に `web_browsing` を挙げる利用目的（`programming`、`grow_notes`、`web_procedures`、`write_documents`、`work_ss`、`work_fr`）を選んだユーザーには、`web_browsing` を通じて、Firefox、Zen、Brave、Google Chrome が入ります。Firefox と Zen は拡張機能の一覧と pref を Nix で宣言し、履歴などの使いながら増えるデータは同期サービスに任せます（分担は「設計」の節）。Brave には Bitwarden と floccus だけを宣言で入れ（「Brave」の節）、Chrome はパッケージを入れるだけです（「Google Chrome」の節）。無効にするには、`web_browsing` を `requires` に挙げる利用目的をすべて、ユーザーの `purposes` から外します。
 
 ## 拡張機能を足す・外す
 
@@ -13,7 +13,7 @@ switch してからブラウザを再起動すると、足した拡張機能が�
 
 ## pref を変える
 
-両方に適用する pref は `browser_common.star` の `settings` に、片方だけのものは各ブラウザの要素で共通の pref に足す辞書に書きます。宣言した pref はプロファイルの `user.js` に書き出され、ブラウザは起動のたびにその値を読み直します。`about:config` や設定画面で変えても、再起動すると宣言した値に戻ります。試すときは `about:config` で変え、残すと決めたら宣言に移します。
+両方に適用する pref は `browser_common.star` の `settings` に、片方だけのものは各ブラウザのコンポーネントで共通の pref に足す辞書に書きます。宣言した pref はプロファイルの `user.js` に書き出され、ブラウザは起動のたびにその値を読み直します。`about:config` や設定画面で変えても、再起動すると宣言した値に戻ります。試すときは `about:config` で変え、残すと決めたら宣言に移します。
 
 ## 新しいマシンやプロファイルで元に戻す
 
@@ -70,7 +70,7 @@ Sync の「アドオン」と「設定」の同期は切っています。Nix �
 
 Zen のワークスペースとピン留めタブは、zen-browser-flake の Home Manager モジュール（a7cac935）でも宣言できます。ただしモジュールは switch のときに `zen-sessions.jsonlz4` へ書き込むので、Zen の起動中は書き込みを飛ばし、宣言した項目を UI で変えた分は次の switch で戻します。構成が定まっていない間は Sync（Zen 1.24.1b の Workspaces の同期は、ワークスペース、フォルダ、ピン留めタブ、Essentials を運ぶ）で管理します。構成が固まったら、Sync の Workspaces を切り、今の UUID のまま Nix に移せます。
 
-ブックマークを Firefox Sync ではなく floccus で同期するのは、Chrome 系のブラウザに移る可能性を残すためです（利用者の選択）。Chrome 系を使わないと決まったら、Firefox Sync に移すと拡張機能が一つ減ります。floccus の公式ガイドも、ブラウザ自身のブックマーク同期と併用しないよう求めています。
+ブックマークを Firefox Sync ではなく floccus で同期するのは、Chrome 系のブラウザに移る可能性を残すためです（ユーザーの選択）。Chrome 系を使わないと決まったら、Firefox Sync に移すと拡張機能が一つ減ります。floccus の公式ガイドも、ブラウザ自身のブックマーク同期と併用しないよう求めています。
 
 ### floccus をルートで同期する理由
 
@@ -88,7 +88,7 @@ Chrome 系と Firefox をルートで同期したら Firefox 側でフォルダ�
 
 Zen は多言語でビルドされているので、画面の言語は `intl.locale.requested` だけで変わります。Firefox は日本語の言語パックを拡張機能として入れ、日本語で表示します。
 
-Zen は英語で表示します（利用者の選択）。Zen 1.24.1b の Zen 独自の文言は、日本語版で変数を含まない 423 件のうち 213 件が英語のままで、「Add Route for Domain」を「ルートのドメインを足す」とするような誤訳もあります。英語なら、機能名が公式の文書やネットの情報と一致します。Firefox から来たメニューの日本語訳は Mozilla の公式のもので問題がないので、翻訳が改善されたら日本語に戻す余地があります。
+Zen は英語で表示します（ユーザーの選択）。Zen 1.24.1b の Zen 独自の文言は、日本語版で変数を含まない 423 件のうち 213 件が英語のままで、「Add Route for Domain」を「ルートのドメインを足す」とするような誤訳もあります。英語なら、機能名が公式の文書やネットの情報と一致します。Firefox から来たメニューの日本語訳は Mozilla の公式のもので問題がないので、翻訳が改善されたら日本語に戻す余地があります。
 
 ### Tree Style Tab を Firefox だけに入れる理由
 

@@ -1,5 +1,5 @@
-# confgen（tools/confgen）を build し、config/ の Starlark の要素から1つのホストの JSON を作る。
-# JSON は、ホスト全体の NixOS の設定（elements）と、利用者ごとの設定（users.<利用者>.elements）を持つ。
+# confgen（tools/confgen）を build し、config/ の Starlark のコンポーネントから1つのホストの JSON を作る。
+# JSON は、システム設定（elements）と、ユーザーごとの設定（users.<ユーザー>.elements）を持つ。
 # 評価の途中でこの JSON を読む（IFD）。設計: docs/architecture/confgen.md
 # configDir は既定で config/。テストは架空のホスト（tests/hosts）を足したディレクトリを渡す。
 { pkgs, configDir ? ../config }:

@@ -12,7 +12,7 @@ in
   codex_policy-contracts =
     (lib.lazyDerivation {
       derivation = (
-        # 自分用サーバで作業する機体では、重い処理を自分用サーバに任せる指示が、Claude Code と Codex の両方に同じ本文で入る。
+        # 自分用サーバで作業するホストでは、重い処理を自分用サーバに任せる指示が、Claude Code と Codex の両方に同じ本文で入る。
         # developer_instructions が [agents] のテーブルに入らず、改行やバッククォートも崩れないこと。
         assert
           let

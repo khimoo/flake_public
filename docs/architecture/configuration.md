@@ -7,54 +7,54 @@
 
 [config/hosts/](../../config/hosts/) の TOML をマシンの正本とし、`kind` が `nixos` なら `nixosHosts`、`home` なら `homeHosts` に構成を作る。factory は system とユーザーを読み、confgen の結果を NixOS と Home Manager に渡す。specialArgs には `inputs` を渡す。
 
-ホストの `machine` が機体を、`[[users]]` の `purposes` が利用者ごとの行動を選び、[要素](../../config/elements/) が依存をたどって設定を生成する。ホストを動かす `machine_*` は共通部品を `requires` で参照し、生成済み `hardware.nix` を import する。値を TOML、処理を要素に分けることで、選択と実装を二重管理しない（[confgen](confgen.md)）。
+ホストの `machine` がハードウェアプロファイルを、`[[users]]` の `purposes` がユーザーごとの利用目的を選び、[コンポーネント定義](../../config/elements/) が依存をたどって設定を生成する。ホストを動かす `machine_*` は共通のコンポーネントを `requires` で参照し、生成済み `hardware.nix` を import する。値を TOML、処理をコンポーネントに分けることで、選択と実装を二重管理しない（[confgen](confgen.md)）。
 
-リポジトリの持ち主の Git identity、秘密の配置先、エージェント設定の場所は `config/owner.toml` に置く。値を使う要素が `purposes` から入った利用者の Home Manager にだけ反映し、同じホストの別のユーザーには渡さない。NixOS には利用者ごとの confgen の結果を合わせ、`home_manager = false` の人にはホーム構成を作らない。
+リポジトリの持ち主の Git identity、秘密の配置先、エージェント設定の場所は `config/owner.toml` に置く。値を使うコンポーネントが `purposes` から入ったユーザーの Home Manager にだけ反映し、同じホストの別のユーザーには渡さない。NixOS にはユーザーごとの confgen の結果を合わせ、`home_manager = false` の人にはホーム構成を作らない。
 
 ## 機能の実装をたどる
 
-機体と行動から要素の `requires` と仮引数をたどる。GUI の基本は `gui`、GNOME は `gnome`、日本語入力は `japanese_input` にある。GNOME と日本語入力は GUI を依存に含めるので、WSLg のように GUI だけを選ぶ構成も維持できる。
+ハードウェアプロファイルと利用目的からコンポーネントの `requires` と仮引数をたどる。GUI の基本は `gui`、GNOME は `gnome`、日本語入力は `japanese_input` にある。GNOME と日本語入力は GUI を依存に含めるので、WSLg のように GUI だけを選ぶ構成も維持できる。
 
-Neovim の道具と生成する Lua は `nvim_<名前>` の要素が機能ごとに持つ（[設計](neovim/features.md)）。Neovim の設定ディレクトリは checkout への live symlink なので、生成するファイルは XDG data 配下に置く。kitty のフォントは `gui` の公開値を読む。
+Neovim の道具と生成する Lua は `nvim_<名前>` のコンポーネントが機能ごとに持つ（[設計](neovim/features.md)）。Neovim の設定ディレクトリは checkout への live symlink なので、生成するファイルは XDG data 配下に置く。kitty のフォントは `gui` の公開値を読む。
 
-## 機体による違いを受け持つ場所
+## ホストによる違いを受け持つ場所
 
-機体によって動きが変わるものは、次の順で扱う。
+ホストによって動きが変わるものは、次の順で扱う。
 
-1. 機体を見分けなくても、全機体で同じ設定のまま動く手段を探す。クリップボードは OS ごとの道具をやめて OSC 52 にした。`alook-open` は LAN と tailnet の両方の接続名を受け取り、つながるほうを使う。
-2. 物理的な差で動かないものは、機体の事実と、派生要素の `when` か検査の `needs` で表す（[confgen.md](confgen.md)）。KVM、GPU、データ用ディスクの有無がこれにあたる。
-3. どの機体が引き受けるかの違いは、自分用サーバとクライアントに分ける（[confgen.md](confgen.md)）。
-4. パッケージ、スクリプト、要素の中で、機体を判定して分岐しない。ホスト名や利用者の名前を調べることも、機体の事実にあたる条件を実行時に調べて黙って処理を変えることも含む。
+1. ホストを見分けなくても、全ホストで同じ設定のまま動く手段を探す。クリップボードは OS ごとの道具をやめて OSC 52 にした。`alook-open` は LAN と tailnet の両方の接続名を受け取り、つながるほうを使う。
+2. 物理的な差で動かないものは、プラットフォームの事実を、そのコンポーネントの十分条件（`needs`）に挙げて表す。そのコンポーネントを使うかどうかは、ユーザーがホストごとに選ぶ利用目的で決める（[confgen.md](confgen.md)）。KVM、GPU、データ用ディスクの有無がこれにあたる。
+3. どのホストが引き受けるかの違いは、自分用サーバとクライアントに分ける（[confgen.md](confgen.md)）。
+4. パッケージ、スクリプト、コンポーネント定義の中で、ホストを判定して分岐しない。ホスト名やユーザーの名前を調べることも、プラットフォームの事実にあたる条件を実行時に調べて黙って処理を変えることも含む。
 
-1 を先に置くのは、機体の差が要素にもホストのファイルにも現れなくなり、行動と機体の組み合わせを人が管理せずに済むからだ。
+1 を先に置くのは、ホストの差がコンポーネントにもホストのファイルにも現れなくなり、利用目的とホストの組み合わせを人が管理せずに済むからだ。
 
-4 を禁じるのは、判定をパッケージやスクリプトに移すと、[規則 A と規則 B](rules.md) の対象から外れるからだ。規則は実行時の依存を保証しないので、confgen は食い違いを生成時に止められず、実機で動かして初めて分かる。要素の中で値を見て分岐する形をやめても、同じ分岐をスクリプトに書けば、検査できない場所へ移っただけになる。
+4 を禁じるのは、判定をパッケージやスクリプトに移すと、[規則 A と規則 B](rules.md) の対象から外れるからだ。規則は実行時の依存を保証しないので、confgen は食い違いを生成時に止められず、実機で動かして初めて分かる。コンポーネント定義の中で値を見て分岐する形をやめても、同じ分岐をスクリプトに書けば、検査できない場所へ移っただけになる。
 
-1 の手段が、接続できないときに処理を飛ばすこと（Quaderno の取り込みなど）は 4 にあたらない。機体を見分けているのではなく、どの機体でも同じ条件で同じ動きをする。
+1 の手段が、接続できないときに処理を飛ばすこと（Quaderno の取り込みなど）は 4 にあたらない。ホストを見分けているのではなく、どのホストでも同じ条件で同じ動きをする。
 
-代償として、1 の手段が見つからないものは、2 か 3 のために機体の事実や要素が増える。物理的な差と、どの機体が引き受けるかの決定は、パッケージを工夫しても消えないので、1 に押し込まない。
+代償として、1 の手段が見つからないものは、2 か 3 のためにプラットフォームの事実やコンポーネントが増える。物理的な差と、どのホストが引き受けるかの決定は、パッケージを工夫しても消えないので、1 に押し込まない。
 
 ## 制約
 
-clone の宛先と秘密の復号先はホーム配下に限定し、重複する宛先を要素の `fail` で拒否する。エージェント設定の URL には checkout の場所も必要になる。
+clone の宛先と秘密の復号先はホーム配下に限定し、重複する宛先をコンポーネントの `fail` で拒否する。エージェント設定の URL には checkout の場所も必要になる。
 
 checkout の場所はホームからの相対パス `flake_root` とし、`checkout.root` が絶対パスを公開する。mutable checkout と秘密のパスの検査は設定ミスを防ぐもので、symlink や OS 権限を検証するセキュリティ境界ではない。
 
-## 行動ごとの OS とホームの選択
+## 利用目的ごとの OS とホームの選択
 
-[music_production.star](../../config/elements/music_production.star) は musnix・JACK・低レイテンシー設定と音楽アプリを選び、行動 `make_music` を選んだ利用者を audio グループに入れる。`call_audio` とともに `pipewire` を依存に含める。musnix の import も音楽制作を選んだホストだけに入る。
+[music_production.star](../../config/elements/music_production.star) は musnix・JACK・低レイテンシー設定と音楽アプリを選び、利用目的 `make_music` を選んだユーザーを audio グループに入れる。`call_audio` とともに `pipewire` を依存に含める。musnix の import も音楽制作を選んだホストだけに入る。
 
-[windows_vm.star](../../config/elements/windows_vm.star) は libvirt・OVMF とネットワークの自動起動を設定し、`windows_vm` が入る利用者（`write_doc_with_windows` か `work_ss` を選んだ利用者）を libvirtd グループに入れる。VM のディスクの置き場所として、`requires` の `windows_vm_images` が、`windows_vm_images_subvolume` の subvol を `/var/lib/libvirt/images` にマウントする。GUI もあるホストでは、派生要素 `windows_vm_gui` が `windows_vm_domain` の VM を開くランチャーを作る。GUI が無ければ `windows_vm_domain` は使われない。
+[windows_vm.star](../../config/elements/windows_vm.star) は libvirt・OVMF とネットワークの自動起動を設定し、`windows_vm` が有効なユーザー（`write_doc_with_windows` か `work_ss` を選んだユーザー）を libvirtd グループに入れる。VM のディスクの置き場所として、`requires` の `windows_vm_images` が、`windows_vm_images_subvolume` の subvol を `/var/lib/libvirt/images` にマウントする。GUI もあるホストでは、派生コンポーネント `windows_vm_gui` が `windows_vm_domain` の VM を開くランチャーを作る。GUI が無ければ `windows_vm_domain` は使われない。
 
 ## OS との接点
 
-SSH の IdentityFile は `~/.ssh/` を使い、全ユーザーへ最初のユーザーの絶対パスを配らない。接続先のユーザー名は、接続先のホストでログインを受け付ける利用者（`accept_ssh_admin`）から作る。LAN 鍵は、ほかの機体へ ssh で接続する要素が `lan_ssh_key` を通して要求した利用者にだけ配る。
+SSH の IdentityFile は `~/.ssh/` を使い、全ユーザーへ最初のユーザーの絶対パスを配らない。接続先のユーザー名は、接続先のホストでログインを受け付ける持ち主のアカウント（`personal_files`）から作る。LAN 鍵は、ほかのホストへ ssh で接続するコンポーネントが `lan_ssh_key` を通して要求したユーザーにだけ配る。
 
-例外は常設のリモートビルドで、nix-daemon（root）が、`remote_build` が入る利用者の `id_lan` を絶対パスで読む（[remote-build.md](remote-build.md)）。`--build-host` は root を使わず、実行ユーザーのまま SSH する。
+例外は常設のリモートビルドで、nix-daemon（root）が、`remote_build` が有効なユーザーの `id_lan` を絶対パスで読む（[remote-build.md](remote-build.md)）。`--build-host` は root を使わず、実行ユーザーのまま SSH する。
 
 ## /etc/nixos のリンク
 
-NixOS ホストでは、`/etc/nixos` を `etc_nixos_link` を選んだ利用者の `checkout.root` へのシンボリックリンクとして設定する（[etc_nixos_link.star](../../config/elements/etc_nixos_link.star) 参照）。`--flake` を指定しない `nixos-rebuild` は `/etc/nixos/flake.nix` を探し、シンボリックリンクであれば解決先のディレクトリを Flake とみなして、現在のホスト名と同名の `nixosConfigurations` を適用する（nixpkgs 26.05 の nixos-rebuild-ng、`nixos_rebuild/models.py` の `Flake.from_arg` および `Flake.parse` による挙動）。そのため、初回のみ `--flake <参照>#<構成名>` で適用しておけば、以降は `sudo nixos-rebuild switch` だけで済むようになる。
+NixOS ホストでは、`/etc/nixos` を `etc_nixos_link` を選んだユーザーの `checkout.root` へのシンボリックリンクとして設定する（[etc_nixos_link.star](../../config/elements/etc_nixos_link.star) 参照）。`--flake` を指定しない `nixos-rebuild` は `/etc/nixos/flake.nix` を探し、シンボリックリンクであれば解決先のディレクトリを Flake とみなして、現在のホスト名と同名の `nixosConfigurations` を適用する（nixpkgs 26.05 の nixos-rebuild-ng、`nixos_rebuild/models.py` の `Flake.from_arg` および `Flake.parse` による挙動）。そのため、初回のみ `--flake <参照>#<構成名>` で適用しておけば、以降は `sudo nixos-rebuild switch` だけで済むようになる。
 
 `flake.nix` のみリンクする形でも `nixos-rebuild` は動作する（`nixos-rebuild` が `flake.nix` のリンク先から親ディレクトリを特定するため）。しかし、ディレクトリごとリンクしているのは、`/etc/nixos` を Flake 参照として `nix` コマンドに直接渡せるようにするためである。`flake.nix` のみリンクした場合、Nix は `/etc/nixos` を Flake のルートとして store にコピーしようとするが、リンク先の絶対パスは store 内に存在しないため評価に失敗してしまう。また、インストール時に生成される `configuration.nix` や `hardware-configuration.nix` は残さない。本構成ではこれらを使用せず、ハードウェア固有の設定は `hosts/<ホスト>/hardware.nix` に配置する。
 
@@ -62,7 +62,7 @@ NixOS ホストでは、`/etc/nixos` を `etc_nixos_link` を選んだ利用者�
 
 チェックアウトが存在しない間はリンク切れの状態となる。このとき `--flake` なしで `nixos-rebuild` を実行すると、`/etc/nixos/flake.nix` が見つからないため従来の構成ファイルを探索しようとする。しかし、本構成の Nix 検索パスには `nixos-config` が含まれていないため、`file 'nixos-config' was not found in the Nix search path` というエラーで停止し、何も適用されないようになっている。
 
-`etc_nixos_link` を選ぶ利用者がいないホストには、`/etc/nixos` のリンクのルールを配置しない。また、ホスト名と構成名を一致させない運用にする場合は、この仕組みを見直す必要がある。
+`etc_nixos_link` を選ぶユーザーがいないホストには、`/etc/nixos` のリンクのルールを配置しない。また、ホスト名と構成名を一致させない運用にする場合は、この仕組みを見直す必要がある。
 
 ## 外部状態と検証
 

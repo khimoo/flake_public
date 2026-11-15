@@ -33,7 +33,7 @@ purposes = [
   "web_procedures",
   # このマシンが引き受けること
   "etc_nixos_link",
-  # 利用者の個人のファイルと秘密
+  # ユーザーの個人のファイルと秘密
   "personal_files",
 ]
 admin = true

@@ -48,7 +48,7 @@ purposes = [
   # このマシンが引き受けること
   "run_home_server",
   "etc_nixos_link",
-  # 利用者の個人のファイルと秘密
+  # ユーザーの個人のファイルと秘密
   "personal_files",
 ]
 admin = true

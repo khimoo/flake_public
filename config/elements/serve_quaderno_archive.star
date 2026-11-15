@@ -1,6 +1,6 @@
 # 目的: Quaderno の文書を受け取るアーカイブと、取り込みの記録を持つ（サーバの側。docs/architecture/quaderno.md）。
-# 記録をサーバの1か所に置くので、どの機体のクライアントが Quaderno を見つけても、同じ改訂を二度取り込まない。
-needs = ["ssh_server"]
+# 記録をサーバの1か所に置くので、どのホストのクライアントが Quaderno を見つけても、同じ改訂を二度取り込まない。
+requires = ["ssh_server"]
 role = True
 
 def user_config(user, host):

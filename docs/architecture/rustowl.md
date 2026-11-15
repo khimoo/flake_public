@@ -14,7 +14,7 @@ flake input `rustowl` は [nix-community/rustowl-flake](https://github.com/nix-c
 
 このflakeは `rust-toolchain.toml` に固定された nightly を rust-overlay で用意し、RustOwl をソースからビルドする。`$out/bin/sysroot/<toolchain>` に toolchain を配置するため、RustOwl の sysroot 探索がstore内で完結し、実行時ダウンロードへフォールバックしない。
 
-[flake.nix](../../flake.nix) は x86_64 Linux の `packages.${system}` に `rustowl` と `rustowl-nvim` を、同じ locked input の `inputs.rustowl.packages.${system}` から組で公開する。`overlays/neovim-tools.nix` は同じ input から `rustowl-locked` と `rustowl-nvim-locked` を pkgs に入れる。要素 `nvim_rustowl` は、サーバーを rustowl 機能の `data.command` に、対応するプラグインを同機能の `data.plugin` に書き込む（`nvim/nix/features.lua` の `data.rustowl` に生成）。activation は無い。
+[flake.nix](../../flake.nix) は x86_64 Linux の `packages.${system}` に `rustowl` と `rustowl-nvim` を、同じ locked input の `inputs.rustowl.packages.${system}` から組で公開する。`overlays/neovim-tools.nix` は同じ input から `rustowl-locked` と `rustowl-nvim-locked` を pkgs に入れる。コンポーネント `nvim_rustowl` は、サーバーを rustowl 機能の `data.command` に、対応するプラグインを同機能の `data.plugin` に書き込む（`nvim/nix/features.lua` の `data.rustowl` に生成）。activation は無い。
 
 LSP サーバーと同じく、`rustowl` はシェルの PATH に入れない。シェルから使うときは `nix run .#rustowl -- <引数>` で、同じ版を実行する。
 
@@ -45,6 +45,6 @@ rustowl-flake は上流の `main` を追うため、パッケージの `version`
 
 ## 対応OS
 
-要素 `nvim_rustowl` は、confgen が渡すホストの情報（`host.system`）が x86_64-linux のときだけ機能を書き込む。他の OS では overlay のパッケージを参照しないので、rustowl-flake の配布の無い macOS でも評価できる。
+コンポーネント `nvim_rustowl` は `daily_editing` の `requires` にあり、`needs` で `x86_64_linux` を確かめる。rustowl-flake の配布の無い macOS などで `daily_editing` をたどる利用目的を選ぶと、confgen が止める。そうしたホストで編集するには、`nvim_rustowl` を含まない利用目的が要る。
 
 検証の範囲: [検証ガイド](../howtouse/validation.md)。

@@ -32,6 +32,8 @@ Tailscale を使う代償は、アカウントと端末のメタデータ（ホ�
 - `desktop` / `nixos-desktop` / `nixos-desktop.local` → `HostName nixos-desktop.local`（mDNS）
 - `desktop-ts` → `HostName nixos-desktop`（MagicDNS の短縮名）
 
+`-ts` のブロックは、`connect_ssh_tailnet` が有効なときだけ書かれる。`personal_pc` と、自分用サーバのクライアントが使う `find_home_server` が、`connect_ssh_tailnet` を `requires` に挙げる。
+
 `.local` の接続名を tailnet の名前に置き換えなかったのは、LAN 内の接続を Tailscale に依存させないためだ。
 置き換えると、tailscaled が止まっているときや tailnet から抜けているときに、同じ部屋のデスクトップにも繋がらなくなる。
 常設のリモートビルダーだけは LAN 内でも `-ts` を使う。自宅と出先で同じエントリを使え、同じデスクトップを二重に数えずに済むからだ（[remote-build.md](./remote-build.md#接続先は-tailnet-の接続名desktop-tsにする)）。

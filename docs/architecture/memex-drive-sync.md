@@ -41,8 +41,8 @@ bisync は、フィルタを通したファイル一覧を前回と比べて削�
 
 `annex.largefiles` は新しく追加したファイルにだけ効き、`git add --renormalize` でも既存のファイルは移らない（2026-11-06 に確かめた）。
 規則を変えた後や、git-annex の無い環境で commit されたファイルは、規則と違う側に残る。
-`memex-sync` は前回確かめた commit からの差分と前回保留したファイル（`.gitattributes` が変わったときは全ファイル）を見て、規則と違うファイルを git-annex の公式の変換手順（[largefiles](https://git-annex.branchable.com/tips/largefiles/)）で移し、そのファイルだけを commit する（4、5）。push は利用者に任せる。
-利用者が編集中のファイルは移さない。移すと、その編集まで自動の commit に入る。中身がまだ届いていないファイルも、種類を判定できないので保留する。どちらも次の実行で見直す。
+`memex-sync` は前回確かめた commit からの差分と前回保留したファイル（`.gitattributes` が変わったときは全ファイル）を見て、規則と違うファイルを git-annex の公式の変換手順（[largefiles](https://git-annex.branchable.com/tips/largefiles/)）で移し、そのファイルだけを commit する（4、5）。push はユーザーに任せる。
+ユーザーが編集中のファイルは移さない。移すと、その編集まで自動の commit に入る。中身がまだ届いていないファイルも、種類を判定できないので保留する。どちらも次の実行で見直す。
 
 ## 中身の同期
 

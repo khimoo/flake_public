@@ -1,6 +1,6 @@
 # sshfs 上では .direnv を手元の ~/.cache に置く。共有の .direnv には別の PC の
 # /nix/store へのリンクが入り、nix-direnv が入るたびに作り直すため。
-when = ["sshfs_editing", "direnv"]
+requires = ["sshfs_editing"]
 
 _BEFORE_FINDMNT = """direnv_layout_dir() {
   if [[ -n ${direnv_layout_dir:-} ]]; then

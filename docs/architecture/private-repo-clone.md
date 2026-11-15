@@ -22,12 +22,12 @@
 `git_ssh_key` は `~/.ssh/id_github` に、`lan_ssh_key` は `~/.ssh/id_lan` に書き出す。
 `id_ed25519` のようなアルゴリズム名にすると、1 本に複数の用途が載っても気づけず、片方を作り直すともう片方も巻き込む（[machine-ssh.md](./machine-ssh.md)）。
 
-## 復号と clone を別の要素に分ける
+## 復号と clone を別のコンポーネントに分ける
 
 `secrets.yaml` が配るのは GitHub の鍵だけではなく、LAN の鍵や API キーもある。
-clone の要素は sops も age 鍵も知らず、`~/.ssh/id_github` があるかを実行時に確かめるだけにした。
+clone のコンポーネントは sops も age 鍵も知らず、`~/.ssh/id_github` があるかを実行時に確かめるだけにした。
 
-復号は `secrets.star` に置く。必要な要素が `writes` から `secrets` に秘密名・絶対パス・mode を渡す。GitHub の鍵は `private_repos` の公開値を使い、LAN の鍵とユーザー・ホストの `secrets` は `personal_files` が渡す。同じ宛先への同じ宣言は一つにまとめ、内容が異なる宣言は拒否する。
+復号は `secrets.star` に置く。必要なコンポーネントが `writes` から `secrets` に秘密名・絶対パス・mode を渡す。GitHub の鍵は `private_repos` の公開値を使い、LAN の鍵とユーザー・ホストの `secrets` は `personal_files` が渡す。同じ宛先への同じ宣言は一つにまとめ、内容が異なる宣言は拒否する。
 
 ## switch は秘密を宣言どおりに揃える
 
@@ -46,7 +46,7 @@ clone の要素は sops も age 鍵も知らず、`~/.ssh/id_github` がある�
 警告は `home-manager-<user>.service` の journal に出るだけで、端末には出ない。
 
 そのため、秘密の宣言があるのに復号できなければ activation を `exit 1` で止める。
-`lan_ssh_key` が入る利用者（desktop と spin713 の pomu）は常に `id_lan` を宣言しているので、age 鍵を失うと switch が通らなくなる。
+`lan_ssh_key` が有効なユーザー（desktop と spin713 の pomu）は常に `id_lan` を宣言しているので、age 鍵を失うと switch が通らなくなる。
 age 鍵を置く作業に switch は要らないので、回復できなくなることはない。
 
 ## clone は switch の後のコマンドにする
@@ -77,7 +77,7 @@ switch が pull もすると、システムの世代を切り替えるつもり�
 ## 制約
 
 - 新しい環境の評価に SSH 鍵は要らない。`inputs.memex-nix` を `github:`（https）で取得しているため。`git+ssh://` に戻すと、age 鍵だけでは用意できなくなる
-- `lan_ssh_key` が入る利用者がいると `secrets/secrets.yaml` を評価で参照する。この repo を fork したら、自分の暗号文をコミットするまで評価が通らない
+- `lan_ssh_key` が有効なユーザーがいると `secrets/secrets.yaml` を評価で参照する。この repo を fork したら、自分の暗号文をコミットするまで評価が通らない
 - 暗号文は `repoPath("secrets/secrets.yaml")` で単独で store にコピーし、世代の closure に入れる。flake のソースは closure に入らない（2026-10-03、desktop の 26.05 の toplevel で確認）。ソースの中のパスを参照すると、GC でソースが消えた後の起動時の activation で復号に失敗する
 - `secrets.yaml` に同居させている Gemini の API キーは、課金を紐づけていない無料枠のキーで、漏れたときの被害は無料枠の消費に留まる。SSH 秘密鍵と同じ扱いでよいのはそのため
 

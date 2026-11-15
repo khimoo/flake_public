@@ -1,9 +1,9 @@
-# 手段: この機体の Nix のビルドを、自分用サーバ（serve_builds）に任せる（クライアントの側）。
+# 手段: このホストの Nix のビルドを、自分用サーバ（serve_builds）に任せる（クライアントの側）。
 requires = ["find_home_server", "tailscale"]
 
-# 同時に何ジョブ送るか。上限は任せる先の機体が自分の max-jobs でかけるので、ここでは多めに送る。
+# 同時に何ジョブ送るか。上限は任せる先のホストが自分の max-jobs でかけるので、ここでは多めに送る。
 _MAX_JOBS = 32
-# 自分用サーバが引き受けられるビルドの種類。kvm を載せられるのは、serve_builds が needs で KVM のない機体を止めるから。
+# 自分用サーバが引き受けられるビルドの種類。kvm を載せられるのは、serve_builds が needs で KVM のないホストを止めるから。
 _FEATURES = ["benchmark", "big-parallel", "kvm", "nixos-test"]
 
 def config(host, find_home_server):
@@ -25,10 +25,10 @@ def user_config(user, machines, find_home_server, lan_ssh_key):
             "system": machines.all[find_home_server.host]["system"],
             "maxJobs": _MAX_JOBS,
             "supportedFeatures": _FEATURES,
-            # nix-daemon は root で動き、root の ~/.ssh には共有鍵がないので、この利用者の鍵を絶対パスで渡す。
+            # nix-daemon は root で動き、root の ~/.ssh には共有鍵がないので、このユーザーの鍵を絶対パスで渡す。
             "sshKey": lan_ssh_key.path,
         }],
         # --build-host で取り戻す成果物も、自分用サーバから --target-host で送られてくるシステムも、署名がない。
-        # nix-copy-closure は利用者として取り込むので、利用者を信頼しないと取り込みを拒否される。
+        # nix-copy-closure はユーザーとして取り込むので、ユーザーを信頼しないと取り込みを拒否される。
         "nix.settings.trusted-users": [user.name],
     }}

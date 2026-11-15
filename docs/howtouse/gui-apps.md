@@ -5,9 +5,9 @@
 
 ## 追加・削除の手順と場所
 
-アプリは利用者の行動ごとに選びます。ホストのファイル（`config/hosts/<ホスト>.toml`）の利用者の `[[users]]` の `purposes` に、`web_procedures`（`requires` の `web_browsing` が Zen を既定ブラウザにし、Firefox、Brave、Google Chrome も入れる）、`draw`（`requires` の `inkscape`）、`work_ss`（`requires` の `teams_dispatcher`）などを挙げます（[confgen.md](./confgen.md)）。無効にするには利用者の `purposes` から対応する行動を外します。kitty とフォントは [gui.star](../../config/elements/gui.star) が担当します。`gui`、`gnome`、`japanese_input` は機体の要素の `requires` で選び、無効にする場合も機体の要素の `requires` から外します。
+アプリはユーザーの利用目的ごとに選びます。ホストのファイル（`config/hosts/<ホスト>.toml`）のユーザーの `[[users]]` の `purposes` に、`web_procedures`（`requires` の `web_browsing` が Zen を既定ブラウザにし、Firefox、Brave、Google Chrome も入れる）、`draw`（`requires` の `inkscape`）、`work_ss`（`requires` の `teams_dispatcher`）などを挙げます（[confgen.md](./confgen.md)）。無効にするにはユーザーの `purposes` から対応する利用目的を外します。kitty とフォントは [gui.star](../../config/elements/gui.star) が担当します。`gui`、`gnome`、`japanese_input` はハードウェアプロファイルの `requires` で選び、無効にする場合もハードウェアプロファイルの `requires` から外します。
 
-`gui_apps` は `purposes` で選びません。行動の要素の `writes(gui_apps)` が `write(gui_apps, アプリ)` を返し、[gui_apps.star](../../config/elements/gui_apps.star) が受け取ったアプリのパッケージ、Wayland 起動設定、自動起動、MIME タイプの関連付けをまとめて生成します。アプリを追加・削除するときは、アプリを使う行動の要素の `writes` を変更します。例えば、PDF の既定アプリは [read_materials.star](../../config/elements/read_materials.star) で次のように定義します。
+`gui_apps` は `purposes` で選びません。利用目的のコンポーネントの `writes(gui_apps)` が `write(gui_apps, アプリ)` を返し、[gui_apps.star](../../config/elements/gui_apps.star) が受け取ったアプリのパッケージ、Wayland 起動設定、自動起動、MIME タイプの関連付けをまとめて生成します。アプリを追加・削除するときは、アプリを使う利用目的のコンポーネントの `writes` を変更します。例えば、PDF の既定アプリは [read_materials.star](../../config/elements/read_materials.star) で次のように定義します。
 
 ```python
 def writes(gui_apps):
@@ -16,7 +16,7 @@ def writes(gui_apps):
     ]]
 ```
 
-エントリを削除すると、エントリから自動生成される設定もすべて削除されます。ただし、独立して定義されている外部設定への参照関係は別途確認してください。IntelliJ などの開発用アプリは [dev_tools_gui.star](../../config/elements/dev_tools_gui.star) で管理し、Firefox やターミナルエミュレータは専用のモジュールが担当します。また、Slack、Discord、Spotify、Zoom などの URL スキームも各エントリの `mime` で指定します。.desktop の名前や実行ファイルの名前は Starlark から調べられないので、`desktop`、`bin`、`name` に書きます。Wayland 起動と自動起動は、それぞれ `"wayland": True` と `"autostart": True` で指定します。Obsidian の導入とスキーム登録については要素 [memex.star](../../config/elements/memex.star) と [obsidian.star](../../config/elements/obsidian.star) で管理します。GUI アプリの要素を足すときは、要素の `requires` に `gui` を挙げ、アプリを使う行動の要素の `requires` から参照します。
+エントリを削除すると、エントリから自動生成される設定もすべて削除されます。ただし、独立して定義されている外部設定への参照関係は別途確認してください。IntelliJ などの開発用アプリは [dev_tools_gui.star](../../config/elements/dev_tools_gui.star) で管理し、Firefox やターミナルエミュレータは専用のモジュールが担当します。また、Slack、Discord、Spotify、Zoom などの URL スキームも各エントリの `mime` で指定します。.desktop の名前や実行ファイルの名前は Starlark から調べられないので、`desktop`、`bin`、`name` に書きます。Wayland 起動と自動起動は、それぞれ `"wayland": True` と `"autostart": True` で指定します。Obsidian の導入とスキーム登録についてはコンポーネント [memex.star](../../config/elements/memex.star) と [obsidian.star](../../config/elements/obsidian.star) で管理します。GUI アプリのコンポーネントを足すときは、コンポーネントの `requires` に `gui` を挙げ、アプリを使う利用目的のコンポーネントの `requires` から参照します。
 
 ## 既定ブラウザの変更と更新
 

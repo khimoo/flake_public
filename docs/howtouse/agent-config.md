@@ -72,7 +72,7 @@ Claude Code や Codex が新しい種別の設定ディレクトリを読み込�
    agent_config_repo = "git@example.org:user/agents-private.git"
    ```
 
-3. 対象の `config/hosts/<ホスト>.toml` の利用者の `[[users]]` の `purposes` に、AI エージェントを使う行動（`programming` など、`requires` に `use_ai_agents` を挙げる行動）があれば、switch を実行します。`use_ai_agents` が `agent_config` と `agent_compression` を入れます。同じユーザーの値を、AI エージェントを使うホストで共有します。
+3. 対象の `config/hosts/<ホスト>.toml` のユーザーの `[[users]]` の `purposes` に、AI エージェントを使う利用目的（`programming` など、`requires` に `use_ai_agents` を挙げる利用目的）があれば、switch を実行します。`use_ai_agents` が `agent_config` と `agent_compression` を入れます。同じユーザーの値を、AI エージェントを使うホストで共有します。
 
 圧縮プラグインの既定モードは、同じユーザーファイルの `agent_compression = {"caveman": "off", "genshijin": "normal"}` で指定します。キーを省略するか値を `None` にすると、そのプラグインの設定ファイルを生成しません。
 
@@ -94,10 +94,10 @@ rm -r ~/.local/state/agent-sync
 
 ## マシン固有の指示
 
-自分用サーバで作業する機体（spin713）では、重い処理を自分用サーバで実行するよう、Claude Code と Codex のシステム層に指示を書きます。
-指示の本文は [agent_offload_notes.star](../../config/elements/agent_offload_notes.star) にあり、本文に書く自分用サーバの接続名は、`find_home_server` が、自分用サーバで `serve_workspace` を動かす利用者から求めます。
+自分用サーバで作業するホスト（spin713）では、重い処理を自分用サーバで実行するよう、Claude Code と Codex のシステム層に指示を書きます。
+指示の本文は [agent_offload_notes.star](../../config/elements/agent_offload_notes.star) にあり、本文に書く自分用サーバの接続名は、`find_home_server` が、自分用サーバで `serve_workspace` を動かすユーザーから求めます。
 
-1. 利用者の `[[users]]` の `purposes` に、`program_on_home_server` と、`use_ai_agents` を含む行動（`programming` など）を入れます。`program_on_home_server` と `codex_policy` がそろうと、`agent_offload_notes` が入ります。
+1. ユーザーの `[[users]]` の `purposes` に、`program_on_home_server` を入れます。`program_on_home_server` は `programming`（AI エージェントの `use_ai_agents` を含む）と `agent_offload_notes` を `requires` に挙げます。
 3. switch を実行します。本文は Nix store を経由して配置されるため、`agent_offload_notes.star` の本文を編集するたびに switch が必要です。
 
 Claude Code では `/etc/claude-code/CLAUDE.md` として、Codex では `/etc/codex/config.toml` の `developer_instructions` 項目として反映されます。

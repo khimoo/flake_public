@@ -1,5 +1,5 @@
-# config/hosts/<host>.toml で利用者ごとに選んだ purposes から confgen が生成した NixOS の設定を入れる。
-# どれかの利用者で判定が真の要素のホスト全体の設定と、利用者ごとの NixOS の設定が入る。
+# config/hosts/<host>.toml でユーザーごとに選んだ purposes から confgen が生成した NixOS の設定を入れる。
+# どれかのユーザーで有効なコンポーネントのシステム設定と、ユーザーごとの NixOS の設定が入る。
 # 設計: docs/architecture/confgen.md
 { host, system, configDir ? ../../config }:
 { inputs, pkgs, lib, ... }:

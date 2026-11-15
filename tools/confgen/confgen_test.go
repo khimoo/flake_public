@@ -73,28 +73,6 @@ func TestRemovingPurposeRemovesItsElementsAndKeepsSharedOnes(t *testing.T) {
 	}
 }
 
-func TestDerivedElementIsGeneratedOnlyWhenAllConditionsAre(t *testing.T) {
-	elements := map[string]string{
-		"x":  ``,
-		"y":  ``,
-		"z":  ``,
-		"d":  `when = ["x", "y"]` + "\nrequires = [\"z\"]",
-		"e":  `when = ["d", "z"]`, // chains on d and on z, which only d brings in
-		"m1": `when = ["m2", "x"]`,
-		"m2": `when = ["m1", "x"]`, // each needs the other: never generated
-	}
-	r := buildHosts(t, elements, map[string]string{
-		"xy": one(`["x", "y"]`),
-		"x":  one(`["x"]`),
-	})
-	if got, want := r["xy"].Generated, []string{"d", "e", "x", "y", "z"}; !reflect.DeepEqual(got, want) {
-		t.Errorf("xy: %v, want %v", got, want)
-	}
-	if got, want := r["x"].Generated, []string{"x"}; !reflect.DeepEqual(got, want) {
-		t.Errorf("x: %v, want %v", got, want)
-	}
-}
-
 func TestReadingAndWritingTheSameElementRecordsBoth(t *testing.T) {
 	elements := map[string]string{
 		"sink": `
@@ -144,12 +122,8 @@ func TestRejected(t *testing.T) {
 			"p": "def config(q):\n    q = 1\n    return {}", "q": ``}, "never read"},
 		{"undeclared element", map[string]string{
 			"p": "def config():\n    return {\"home\": {\"a\": q.x}}", "q": ``}, "undefined"},
-		{"derived element as parameter", map[string]string{
-			"p": "def config(d):\n    return {\"home\": {\"a\": d.x}}", "d": `when = ["a", "b"]`, "a": ``, "b": ``}, "derived"},
-		{"derived element in requires", map[string]string{
-			"p": `requires = ["d"]`, "d": `when = ["a", "b"]`, "a": ``, "b": ``}, "derived"},
-		{"when with one element", map[string]string{
-			"p": ``, "d": `when = ["p"]`}, "at least two"},
+		{"when", map[string]string{
+			"p": ``, "d": `when = ["p", "q"]`, "q": ``}, `top-level name "when" is not allowed`},
 		{"load", map[string]string{
 			"p": `load("q.star", "x")`}, "load"},
 		{"write target that is not a parameter", map[string]string{
@@ -180,14 +154,13 @@ func TestRejected(t *testing.T) {
 	}
 }
 
-func TestAffectedCoversReadersWriteTargetsAndDerivedElementsOnly(t *testing.T) {
+func TestAffectedCoversReadersAndWriteTargetsOnly(t *testing.T) {
 	root := t.TempDir()
 	config := writeConfig(t, map[string]string{
 		"a":         `def public(): return {"x": 1}`,
 		"reads_a":   "def user_config(a):\n    return {\"home\": {\"x\": a.x}}",
 		"sink":      "def user_config(incoming):\n    return {\"home\": {\"n\": len(incoming)}}",
 		"writes":    "def writes(sink):\n    return [write(sink, 1)]",
-		"derived":   `when = ["a", "sink"]`,
 		"unrelated": "def user_config(host):\n    return {\"home\": {\"s\": host.system}}",
 		"uses_pkg":  "def user_config():\n    return {\"home\": {\"p\": repoPkg(\"packages/foo\")}}",
 	}, map[string]string{"h": one(`["a"]`)})
@@ -198,7 +171,7 @@ func TestAffectedCoversReadersWriteTargetsAndDerivedElementsOnly(t *testing.T) {
 		paths []string
 		want  []string
 	}{
-		{[]string{"config/elements/a.star"}, []string{"a", "derived", "reads_a"}},
+		{[]string{"config/elements/a.star"}, []string{"a", "reads_a"}},
 		{[]string{"config/elements/writes.star"}, []string{"sink", "writes"}},
 		{[]string{"config/hosts/h.toml"}, []string{"host", "machines", "roles", "unrelated", "user"}},
 		{[]string{"packages/foo/default.nix"}, []string{"uses_pkg"}},
@@ -246,7 +219,6 @@ def config(incoming):
 		"needs_partner": "def writes(sink):\n    return [write(sink, 1)]",
 		"partner":       "def writes(sink):\n    return [write(sink, 2)]",
 		"never_chosen":  ``,
-		"derived":       `when = ["needs_partner", "partner"]`,
 	}, map[string]string{
 		"h":        one(`["needs_partner", "partner"]`),
 		"rejected": one(`["needs_partner"]`),
@@ -270,7 +242,6 @@ func TestEachUserGetsTheElementsItsOwnPurposesDerive(t *testing.T) {
 		"a":      `requires = ["only_a"]`,
 		"only_a": "def user_config():\n    return {\"home\": {\"a\": True}}",
 		"b":      ``,
-		"d":      `when = ["a", "b"]` + "\ndef config():\n    return {\"nixos\": {\"d\": True}}",
 	}
 	r := buildHosts(t, elements, map[string]string{"h": `machine = "m"
 [[users]]
@@ -286,7 +257,6 @@ purposes = ["b"]
 	if got, want := r.Users["bob"].Generated, []string{"b", "base", "m", "user"}; !reflect.DeepEqual(got, want) {
 		t.Errorf("bob: %v, want %v", got, want)
 	}
-	// d needs a and b for the same user; alice has a and bob has b.
 	if got, want := r.Generated, []string{"a", "b", "base", "m", "only_a", "user"}; !reflect.DeepEqual(got, want) {
 		t.Errorf("host: %v, want %v", got, want)
 	}
@@ -371,8 +341,6 @@ func TestRejectedForRulesAAndB(t *testing.T) {
 			"p":    "def writes(sink, user):\n    return [write(sink, user.name)]",
 			"sink": "def config(incoming):\n    return {\"nixos\": {\"n\": len(incoming)}}"}, one(`["p"]`), "no user_config"},
 		{"purposes at the top of the host file", map[string]string{"p": ``}, `purposes = ["p"]`, "belongs to each [[users]]"},
-		{"derived element as machine", map[string]string{
-			"d": `when = ["a", "b"]`, "a": ``, "b": ``}, "machine = \"d\"\n" + one(`[]`), "derived"},
 		{"user without purposes", map[string]string{"p": ``}, "[[users]]\nname = \"test\"\n", "has no purposes"},
 	}
 	for _, c := range cases {
@@ -391,27 +359,6 @@ func TestRejectedForRulesAAndB(t *testing.T) {
 // machineHost is a host file whose machine element is m and whose only user, test, selects purposes.
 func machineHost(m, purposes string) string {
 	return "machine = \"" + m + "\"\n" + one(purposes)
-}
-
-func TestMachineFactsGateDerivedElementsWithoutNamingTheMachine(t *testing.T) {
-	elements := map[string]string{
-		"desk":          "kind = \"machine\"\nrequires = [\"keep_archive\"]",
-		"laptop":        `kind = "machine"`,
-		"keep_archive":  `kind = "machine_fact"`,
-		"read":          ``,
-		"pull":          ``,
-		"pull_for_read": "when = [\"read\", \"keep_archive\"]\nrequires = [\"pull\"]",
-	}
-	r := buildHosts(t, elements, map[string]string{
-		"d": machineHost("desk", `["read"]`),
-		"l": machineHost("laptop", `["read"]`),
-	})
-	if got, want := r["d"].Generated, []string{"desk", "keep_archive", "pull", "pull_for_read", "read"}; !reflect.DeepEqual(got, want) {
-		t.Errorf("desk: %v, want %v", got, want)
-	}
-	if got, want := r["l"].Generated, []string{"laptop", "read"}; !reflect.DeepEqual(got, want) {
-		t.Errorf("laptop: %v, want %v", got, want)
-	}
 }
 
 func TestNeedsStopsTheBuildWithoutMakingTheFactTrue(t *testing.T) {
@@ -449,8 +396,8 @@ func TestRejectedForMachineDescriptions(t *testing.T) {
 	}{
 		{"action requires a fact", map[string]string{
 			"p": `requires = ["kvm"]`, "kvm": `kind = "machine_fact"`}, one(`["p"]`), "describes the machine"},
-		{"when names the machine element", map[string]string{
-			"p": ``, "m": `kind = "machine"`, "d": `when = ["p", "m"]`}, one(`["p"]`), "names the machine element"},
+		{"needs names an element that is not a fact", map[string]string{
+			"p": `needs = ["q"]`, "q": ``}, one(`["p"]`), "is not a machine fact"},
 		{"machine key names an ordinary element", map[string]string{
 			"p": ``, "m": ``}, machineHost("m", `["p"]`), "kind = \"machine\""},
 		{"fact listed in purposes on a host with a machine", map[string]string{

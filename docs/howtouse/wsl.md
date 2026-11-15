@@ -51,7 +51,7 @@ git config --file ~/.gitconfig user.email "<会社のメールアドレス>"
 
 ## uv による開発
 
-会社の Python プロジェクトは、uv が取得する Python と PyPI の manylinux wheel で動かします。利用者の行動 `programming_without_ai` が `requires` に挙げる `use_uv` が、uv と nix-ld をまとめて入れるため、任意のシェルから `uv sync` や `uv run` を実行でき、`.venv` 内の Python もそのまま起動します（[設計](../architecture/wsl.md#uv-が取得する-python-を-nix-ld-で動かす)）。
+会社の Python プロジェクトは、uv が取得する Python と PyPI の manylinux wheel で動かします。ユーザーの利用目的 `programming_without_ai` が `requires` に挙げる `use_uv` が、uv と nix-ld をまとめて入れるため、任意のシェルから `uv sync` や `uv run` を実行でき、`.venv` 内の Python もそのまま起動します（[設計](../architecture/wsl.md#uv-が取得する-python-を-nix-ld-で動かす)）。
 uv は Home Manager が生成する `~/.config/uv/uv.toml` の設定に従い、uv が取得・管理する Python のみを使用します。
 
 wheel のインポート時に `cannot open shared object file` が発生した場合は、該当ライブラリを含むパッケージを [config/elements/nix_ld.star](../../config/elements/nix_ld.star) の `config` に `programs.nix-ld.libraries` として追記して switch してください。指定したパッケージは、zlib や libstdc++ などの既定ライブラリ群に追加されます。
@@ -71,5 +71,5 @@ kitty の設定やキーバインドは自宅マシンと共通です（[cli-too
 - 個人アカウントでの Claude や Codex へのログイン: 会社のソースコードや業務情報が、会社契約のない外部サービスへ個人として送信されてしまうリスクがあるほか、認証情報（`~/.claude/.credentials.json`、`~/.codex/auth.json`）が社内から参照可能なディスク上に残ってしまうため。パッケージ（`claude` や `codex`）自体は導入されていますが、社用アカウントが支給されるまでは使用しないでください。
 - `khimoo` の push 権限を持つ認証情報: WSL の仮想ディスクは、会社の端末管理ツールや管理者から閲覧可能な状態にあるため。
 
-このホストに secret、SSH 鍵、Git identity、tailnet、リモートビルドなどの設定を追加しても、評価は止まりません（[README の TODO](../../README.md#todo)）。利用者の行動や機体の要素の `requires` を変えるときは、上の一覧に当たるものを選んでいないか確かめてください。
+このホストに secret、SSH 鍵、Git identity、tailnet、リモートビルドなどの設定を追加しても、評価は止まりません（[README の TODO](../../README.md#todo)）。ユーザーの利用目的やハードウェアプロファイルの `requires` を変えるときは、上の一覧に当たるものを選んでいないか確かめてください。
 正当な理由があって制限を解除する場合（私用 PC として利用することになった場合など）は、あらかじめ[設計の見直す条件](../architecture/wsl.md#見直す条件)を確認してください。

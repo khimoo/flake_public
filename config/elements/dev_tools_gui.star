@@ -1,4 +1,4 @@
-when = ["dev_tools", "gui"]
+requires = ["gui"]
 
 def user_config():
     return {"home": {"home.packages": [

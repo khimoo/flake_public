@@ -24,7 +24,7 @@ in
           m: lib.hasInfix "Host ${m.hostName}\n" laptop.programs.ssh.extraConfig
         ) laptop.nix.buildMachines;
         assert builtins.all (m: m.sshKey == "/home/alice/.ssh/id_lan") laptop.nix.buildMachines;
-        # 自分用サーバで作った成果物には署名がないので、取り込む利用者を信頼する。
+        # 自分用サーバで作った成果物には署名がないので、取り込むユーザーを信頼する。
         assert builtins.elem "alice" laptop.nix.settings.trusted-users;
         # 自分自身を任せる先にしたホストは、回す先がない。黙って何もしない設定にしない。
         assert rejectsPurpose "test-remote-build-self" "x86_64-linux"

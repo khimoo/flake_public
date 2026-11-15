@@ -1,4 +1,4 @@
-# 機体の要素を持たないテスト用のホストなので、機体の事実 x86_64_linux を purposes に書く。RustOwl は x86_64 の Linux の機体でだけ入る。
+# ハードウェアプロファイルを持たないテスト用のホストなので、プラットフォームの事実 x86_64_linux を purposes に書く。RustOwl は x86_64 の Linux のホストでだけ入る。
 [[users]]
 name = "pomu"
 purposes = ["daily_editing", "x86_64_linux"]

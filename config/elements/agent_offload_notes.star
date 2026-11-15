@@ -1,6 +1,5 @@
-# 自分用サーバで作業する機体で AI エージェントを使うとき、重い処理は自分用サーバで実行するよう、エージェントのシステム層に指示を書く。
+# 自分用サーバで作業するホストで AI エージェントを使うとき、重い処理は自分用サーバで実行するよう、エージェントのシステム層に指示を書く。
 # 接続先は、自分用サーバの作業場所（serve_workspace）。Claude Code は /etc/claude-code/CLAUDE.md、Codex は codex_policy の developer_instructions で読む。
-when = ["program_on_home_server", "codex_policy"]
 
 def _notes(find_home_server):
     server = find_home_server.services["serve_workspace"]["tailnet"]

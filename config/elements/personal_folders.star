@@ -1,6 +1,6 @@
-# 個人のファイルを置くアカウントのホームの個人フォルダを、データ用ディスクに載せる。
-# subvol はアカウントごとに分け、名前をアカウント名から作る（@<アカウント名>-downloads など）。
-when = ["personal_files", "has_data_disk"]
+# ユーザーのホームの個人フォルダを、データ用ディスクに載せる。
+# subvol はユーザーごとに分け、名前をユーザー名から作る（@<ユーザー名>-downloads など）。
+needs = ["has_data_disk"]
 
 def user_config(user, host):
     mounts = {}

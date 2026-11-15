@@ -63,7 +63,7 @@ nix develop --max-jobs 4
 
 cargo は nix-daemon を経由しないため、通常の `cargo run` では上述のリモートビルドが機能しません。
 `cargo remote-run` は `cargo run` と同等の引数を受け取り、デスクトップ上でビルドを行った上で、生成された実行ファイルを手元で実行します。GUI アプリケーションの画面も手元に表示されます。
-direnv で devShell に入ったプロジェクト内で利用します（spin713 の `pomu` は、[ホストの TOML](../../config/hosts/nixos-spin713.toml) の `[[users]]` の `purposes` で行動 `program_on_home_server`（自分用サーバで作業する）を選び、`requires` から `cargo_remote_run` が入ります）。無効にするには利用者の `purposes` から `program_on_home_server` を外します。
+direnv で devShell に入ったプロジェクト内で利用します（spin713 の `pomu` は、[ホストの TOML](../../config/hosts/nixos-spin713.toml) の `[[users]]` の `purposes` で利用目的 `program_on_home_server`（自分用サーバで作業する）を選び、`requires` から `cargo_remote_run` が入ります）。無効にするにはユーザーの `purposes` から `program_on_home_server` を外します。
 
 ```sh
 cargo remote-run
@@ -94,7 +94,7 @@ ssh desktop-ts rm -rf .cache/cargo-remote-run/nixos-spin713/home/pomu/sagyo/aqua
 
 ## `--build-host` でビルドする
 
-機体の要素の `requires` に `remote_build` を含まないホストでは、`nixos-rebuild` に `--build-host` を指定してビルドします。
+ハードウェアプロファイルの `requires` に `remote_build` を含まないホストでは、`nixos-rebuild` に `--build-host` を指定してビルドします。
 コマンド全体に `sudo` を付けるのではなく、オプションとして `--sudo` を渡してください。
 全体を `sudo` で実行すると SSH 接続が root ユーザーとして試行され、`Permission denied (publickey)` で失敗します。
 
@@ -151,18 +151,18 @@ spin713 で実行されるアクティベートのコマンドは、NOPASSWD の
 デスクトップでビルドを行うホストを追加するときは、次の手順で進めます。
 
 1. [machine-ssh.md](./machine-ssh.md) の「マシンを追加するとき」に従い、age 鍵を配置して `config/hosts/<ホスト>.toml` を追加します。
-2. そのホストの機体の要素の `requires` に `remote_build` を追加します。任せる先は、`run_home_server` を選んだ利用者のいるホストに決まります。接続できないときに手元でビルドさせない場合は、`local_builds = false` も指定します。
+2. そのホストのハードウェアプロファイルの `requires` に `remote_build` を追加します。任せる先は、`run_home_server` を選んだユーザーのいるホストに決まります。接続できないときに手元でビルドさせない場合は、`local_builds = false` も指定します。
 3. switch してから、そのホストを tailnet に参加させます。`remote_build` は `tailscale` を依存として含めます。
 
-機体の要素の `requires` から `remote_build` を外すと、そのホストはデスクトップにビルドを任せなくなります。
-`--build-host` で任せることもできなくなります。デスクトップから取り戻す成果物には署名がなく、取り込む利用者を `trusted-users` に入れているのが `remote_build` だからです。
+ハードウェアプロファイルの `requires` から `remote_build` を外すと、そのホストはデスクトップにビルドを任せなくなります。
+`--build-host` で任せることもできなくなります。デスクトップから取り戻す成果物には署名がなく、取り込むユーザーを `trusted-users` に入れているのが `remote_build` だからです。
 
 ## ビルドを引き受ける側
 
-ビルドを引き受けるのは、利用者の `purposes` に `run_home_server` を入れた機体です。`run_home_server` の手段の `serve_builds` が、その利用者を nix-daemon の `trusted-users` に入れます。
-任せる側は、引き受ける側で `serve_builds` が入っている利用者として接続します。
+ビルドを引き受けるのは、ユーザーの `purposes` に `run_home_server` を入れたホストです。`run_home_server` の手段の `serve_builds` が、そのユーザーを nix-daemon の `trusted-users` に入れます。
+任せる側は、引き受ける側で `serve_builds` が有効なユーザーとして接続します。
 
 同時に実行するジョブの数は、引き受ける側の `nix.settings.max-jobs`（既定の `"auto"` は CPU のスレッド数）で決まります。任せる側の `maxJobs`（32）は割り振りの目安で、上限は引き受ける側がかけます。
 `machine_base` が `nix.daemonCPUSchedPolicy = "idle"` を設定しているので、引き受けたビルドは、作業中は CPU を作業に譲り、作業していないときだけ全スレッドを使います。
 
-任せる側が送るビルドの種類（`supportedFeatures`）は `remote_build.star` の定数で、`kvm` を含みます。そのため `serve_builds` は `needs` に `local_kvm` を挙げていて、KVM のない機体の利用者が `run_home_server` を選ぶと confgen が止まります。
+任せる側が送るビルドの種類（`supportedFeatures`）は `remote_build.star` の定数で、`kvm` を含みます。そのため `serve_builds` は `needs` に `local_kvm` を挙げていて、KVM のないホストのユーザーが `run_home_server` を選ぶと confgen が止まります。

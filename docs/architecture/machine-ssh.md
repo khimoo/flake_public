@@ -1,24 +1,25 @@
 # マシン間 SSH の設計
 
 使い方: [マシン間 SSH](../howtouse/machine-ssh.md)
-実装: [ssh_server.star](../../config/elements/ssh_server.star)、[accept_ssh_admin.star](../../config/elements/accept_ssh_admin.star)、[accept_ssh_server.star](../../config/elements/accept_ssh_server.star)、[authorize_lan_key.star](../../config/elements/authorize_lan_key.star)、[connect_ssh.star](../../config/elements/connect_ssh.star)、[owner.toml](../../config/owner.toml)
+実装: [ssh_server.star](../../config/elements/ssh_server.star)、[personal_files.star](../../config/elements/personal_files.star)、[authorize_lan_key.star](../../config/elements/authorize_lan_key.star)、[connect_ssh.star](../../config/elements/connect_ssh.star)、[owner.toml](../../config/owner.toml)
 
-ssh のログインを受け付ける利用者がいる NixOS ホストへ、ほかのホストから `ssh <短縮名>` で接続できるようにする。
+ssh のログインを受け付けるユーザーがいる NixOS ホストへ、ほかのホストから `ssh <短縮名>` で接続できるようにする。
 リモートビルド（[remote-build.md](./remote-build.md)）はこの上に乗る。
 
-## 接続を受ける側の判定から、両方向を生成する
+## 接続を受ける側のコンポーネントが入るかどうかから、両方向を生成する
 
-接続を受ける側と接続する側を、別の要素にしている。
+接続を受ける側と接続する側を、別のコンポーネントにしている。
 
-- `ssh_server`: sshd を動かし、mDNS で名前を知らせる。機体の要素が `requires` に挙げる。
-- `accept_ssh_admin` と `accept_ssh_server`: `ssh_server` のある機体で、ホストを管理する利用者（`etc_nixos_link`）と、自分用サーバを動かす利用者（`run_home_server`）に入る派生要素。`requires` の `authorize_lan_key` が、持ち主の値 `lan_public_key` をその利用者の `authorized_keys` に入れる。
-- `connect_ssh`: `accept_ssh_admin` か `accept_ssh_server` が入っている利用者のいるホストごとに、`Host` ブロック（短縮名、`IdentityFile`、`User`、`accept-new`）を作る。どのホストのどの利用者に入っているかは、confgen が全ホストの `purposes` から求めて `roles` で渡す。`User` は、ホストを管理する利用者にする。
+- `ssh_server`: sshd を動かし、mDNS で名前を知らせる。ハードウェアプロファイルが `requires` に挙げる。
+- `personal_files`: 持ち主のアカウントが選ぶ利用目的。`requires` の `authorize_lan_key` が、持ち主の値 `lan_public_key` をそのアカウントの `authorized_keys` に入れる。sshd のないホストでは鍵が入るだけで、ログインは受け付けない。
+- `connect_ssh`: `ssh_server` があり、`personal_files` を選んだユーザーのいるホストごとに、`Host` ブロック（短縮名、`IdentityFile`、`User`、`accept-new`）を作る。どのホストのどのユーザーに入っているかは、confgen が全ホストの `purposes` から求めて `roles` で渡す。`User` は、その持ち主のアカウントにする。
 
-接続する側は、接続を受ける側の判定そのものを読む。
-ホストの TOML に `ssh_user` のような目印を書き、接続する側がそれを読む形は退けた。sshd を動かす機体と目印を別々に書くことになり、sshd のない機体への `Host` ブロックや、公開鍵の入っていないアカウントへのログイン名を、confgen が止められない。
+接続する側は、接続を受ける側のコンポーネントがどのユーザーに入っているかを、そのまま読む。
+ホストの TOML に `ssh_user` のような目印を書き、接続する側がそれを読む形は退けた。sshd を動かすホストと目印を別々に書くことになり、sshd のないホストへの `Host` ブロックや、公開鍵の入っていないアカウントへのログイン名を、confgen が止められない。
 
-ログイン名をホストごとに 1 つにするため、1 台で `accept_ssh_admin` が入る利用者が 2 人いると `connect_ssh` が生成を止める。
-自分用サーバのサービスを別の利用者が動かしている場合は、クライアントの要素が `find_home_server` の公開値から `<利用者>@<接続名>` を受け取る。
+ログイン名をホストごとに 1 つにするため、1 台で `personal_files` を選んだユーザーが 2 人いると `connect_ssh` が生成を止める。
+自分用サーバのサービスも、持ち主のアカウントで動かす。ほかのアカウントで動かすと、`find_home_server` が生成を止める。
+ホストを管理するユーザー（`etc_nixos_link`）と、自分用サーバを動かすユーザー（`run_home_server`）に分けてログインを受け付ける形は退けた。今のホストではどちらも持ち主のアカウントで、分けると、組み合わせ（sshd があるホストの管理者）を表すために、条件で入る仕組みが要る。
 
 各ホストに `authorizedKeys` を直接書くと、双方向にしたときマシンの数の 2 乗だけ書くことになる。
 
@@ -27,7 +28,7 @@ ssh のログインを受け付ける利用者がいる NixOS ホストへ、ほ
 
 ## 鍵は用途で名付ける
 
-`~/.ssh/id_lan` は LAN の中のマシン同士に、`~/.ssh/id_github` は GitHub に使う。GitHub 用の `Host` ブロックは [github_ssh.star](../../config/elements/github_ssh.star) が書き、GitHub 用の鍵を置く要素（`personal_files`、`agent_links`）が `requires` に挙げる。
+`~/.ssh/id_lan` は LAN の中のマシン同士に、`~/.ssh/id_github` は GitHub に使う。GitHub 用の `Host` ブロックは [github_ssh.star](../../config/elements/github_ssh.star) が書き、GitHub 用の鍵を置くコンポーネント（`personal_files`、`agent_links`）が `requires` に挙げる。
 `id_ed25519` のようなアルゴリズムの名前にすると、1 本に複数の役割が載っても気づけない。
 この repo では `~/.ssh/id_ed25519` が LAN と GitHub を兼ねていて、GitHub の鍵を作り直したときに LAN の接続まで壊れた。
 
@@ -46,16 +47,16 @@ ssh のログインを受け付ける利用者がいる NixOS ホストへ、ほ
 root は `id_lan` を持たないので、`sudo nixos-rebuild --build-host` のように root として SSH すると失敗する。`--build-host` は `sudo` を付けずに `--sudo` で実行する（[remote-build.md](./remote-build.md)）。
 この手順は ssh-agent に頼らないので、`IdentitiesOnly yes` でも通る（2026-09-16 に spin713 から確認）。
 
-例外は常設のリモートビルダーで、nix-daemon（root）が `/etc/nix/machines` の `sshKey` で利用者の `id_lan` を絶対パスで読む（[remote-build.md](./remote-build.md#鍵は利用者の-id_lan-を絶対パスで読む)）。
+例外は常設のリモートビルダーで、nix-daemon（root）が `/etc/nix/machines` の `sshKey` でユーザーの `id_lan` を絶対パスで読む（[remote-build.md](./remote-build.md#鍵はユーザーの-id_lan-を絶対パスで読む)）。
 
-## 鍵は ssh で接続する要素が入る利用者にだけ配る
+## 鍵は ssh で接続するコンポーネントが有効なユーザーにだけ配る
 
-ほかの機体へ ssh で接続する要素（`use_xsaved`、`remote_build` など）が、`requires` の `find_home_server` を通して `lan_ssh_key` を入れ、その要素が入る利用者だけが共通鍵を受け取る。OS が NixOS というだけでは配らない。
-共通鍵を持つユーザーは、接続先でログインを受け付ける利用者として認証できるため。
+ほかのホストへ ssh で接続するコンポーネント（`use_xsaved`、`remote_build` など）が、`requires` の `find_home_server` を通して `lan_ssh_key` を入れ、そのコンポーネントが有効なユーザーだけが共通鍵を受け取る。OS が NixOS というだけでは配らない。
+共通鍵を持つユーザーは、接続先でログインを受け付けるユーザーとして認証できるため。
 
-ホストかユーザーの TOML の `lan_ssh = true` で選ぶ案は退けた。鍵が要る理由（ssh で接続する要素）と鍵を配る指定が別の場所になり、要素を選んだのに鍵がない状態や、要素をやめたのに鍵だけ残る状態を confgen が止められない。
+ホストかユーザーの TOML の `lan_ssh = true` で選ぶ案は退けた。鍵が要る理由（ssh で接続するコンポーネント）と鍵を配る指定が別の場所になり、コンポーネントを選んだのに鍵がない状態や、コンポーネントをやめたのに鍵だけ残る状態を confgen が止められない。
 
-代償として、これらの要素が入らない利用者は、`ssh desktop` のように人が打つ ssh にも使える鍵を持たない。
+代償として、これらのコンポーネントが入らないユーザーは、`ssh desktop` のように人が打つ ssh にも使える鍵を持たない。
 
 ## ホスト鍵は accept-new で受け入れる
 

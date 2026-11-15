@@ -29,7 +29,7 @@ in
         assert builtins.elem "f /run/xsaved-gpu.lock 0644 root root -" xsavedHost.systemd.tmpfiles.rules;
         # データベースは NixOS 側が作るので、NixOS の設定を作らないホストでは confgen が止める。
         assert rejectsPurpose "test-xsaved-standalone" "x86_64-linux" "needs nixos_system";
-        # クライアントは、自分用サーバで xsaved を動かす利用者の web_port へ ssh で転送する。
+        # クライアントは、自分用サーバで xsaved を動かすユーザーの web_port へ ssh で転送する。
         assert
           system != "x86_64-linux"
           || (

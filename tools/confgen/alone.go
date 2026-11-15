@@ -45,7 +45,7 @@ func alone(dir string) ([]string, error) {
 		}
 		for _, name := range r.Generated {
 			e := elems[name]
-			if checked[name] || e.virtual || e.derived() {
+			if checked[name] || e.virtual {
 				continue
 			}
 			if e.declaresMachine() {
@@ -63,7 +63,7 @@ func alone(dir string) ([]string, error) {
 		}
 	}
 	for _, e := range sortedElems(elems) {
-		if !checked[e.name] && !e.virtual && !e.derived() {
+		if !checked[e.name] && !e.virtual {
 			failures = append(failures, fmt.Sprintf("%s: no host generates it, so it was not checked alone", e.name))
 		}
 	}

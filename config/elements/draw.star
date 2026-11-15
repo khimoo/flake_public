@@ -1,4 +1,4 @@
-# 行動（趣味）: 絵や図を描く。
+# 利用目的（趣味）: 絵や図を描く。
 requires = ["inkscape", "temp_storage", "use_ai_agents"]
 
 def writes(gui_apps):

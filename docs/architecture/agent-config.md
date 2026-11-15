@@ -6,7 +6,7 @@
 ## 設定 repo の clone へ out-of-store symlink する
 
 エージェントの設定は private な内容を含むので、公開している flake_public には置けない。
-設定 repo を持たない人には何も影響しないように、clone の場所を持ち主の値（`config/owner.toml`）の `agent_config_root` から渡す。`agent_config` を選んだ利用者にだけ反映し、`agent_links` の公開値からリンクを作り、同じ場所を `private_repos` に書き込んで clone する。
+設定 repo を持たない人には何も影響しないように、clone の場所を持ち主の値（`config/owner.toml`）の `agent_config_root` から渡す。`agent_config` を選んだユーザーにだけ反映し、`agent_links` の公開値からリンクを作り、同じ場所を `private_repos` に書き込んで clone する。
 flake_public が設定 repo について知るのは、`shared/`、`claude/`、`codex/` の分け方とファイル名だけにした。
 
 退けた案と理由:
@@ -45,7 +45,7 @@ Claude Code は `--settings <file>` をコマンドラインの層としてユ�
 
 ## モデル ID を書かず、起動時に系列から版を選ぶ
 
-どの系列（Claude の Opus と Fable、Codex の Astra と sol）を使うかは起動コマンドで選び、系列の中の新しい版は、利用者もエージェントも設定を書き換えずに使う。
+どの系列（Claude の Opus と Fable、Codex の Astra と sol）を使うかは起動コマンドで選び、系列の中の新しい版は、ユーザーもエージェントも設定を書き換えずに使う。
 
 Claude Code は `opus`、`fable` のような別名を、インストールされている Claude Code が知る最新のモデルに解決する（2.1.287 の `claude --help`）。プロファイルには別名を書く。
 
@@ -78,9 +78,9 @@ flake_public にプロファイル名を並べると、設定 repo にファイ�
 設定 repo の指示は全マシンで同じファイルなので、マシンによって変わる指示を書く場所がない。
 例として spin713 には「メモリや GPU を多く使う処理はまずデスクトップで実行できるか確かめ、できなければフリーズしないか概算してから手元で実行する」という指示が要る（[remote-build.md](./remote-build.md#spin713-では手元でビルドしないmax-jobs--0)）。
 
-指示を書くのは派生要素の [agent_offload_notes.star](../../config/elements/agent_offload_notes.star) で、利用者が自分用サーバで作業する行動（`program_on_home_server`）を選び、AI エージェントの手段の `codex_policy` も入っているときに入る。
-指示が要るかどうかは、重い処理を任せる自分用サーバがあるかで決まり、ホスト名では決まらない。そこで、ホストごとの本文ファイルにせず、行動から導く要素にした。
-本文に書く接続名は、`find_home_server` の公開値から、自分用サーバで `serve_workspace` を動かす利用者への接続名を読む。書き出し先の `/etc` はホスト全体の設定なので、利用者ごとの値は読めない（[規則 B](./rules.md)）。`find_home_server` の公開値は `roles` から作られ、どの利用者についても同じなので読める。
+指示を書くのは [agent_offload_notes.star](../../config/elements/agent_offload_notes.star) で、ユーザーが自分用サーバで作業する利用目的（`program_on_home_server`）の `requires` にある。`program_on_home_server` は `programming` を含むので、AI エージェントの手段の `codex_policy` も入る。
+指示が要るかどうかは、重い処理を任せる自分用サーバがあるかで決まり、ホスト名では決まらない。そこで、ホストごとの本文ファイルにせず、利用目的から導くコンポーネントにした。
+本文に書く接続名は、`find_home_server` の公開値から、自分用サーバで `serve_workspace` を動かすユーザーへの接続名を読む。書き出し先の `/etc` はホスト全体の設定なので、ユーザーごとの値は読めない（[規則 B](./rules.md)）。`find_home_server` の公開値は `roles` から作られ、どのユーザーについても同じなので読める。
 
 同じ本文を両方のエージェントのシステム層に書き出す。
 
@@ -95,10 +95,10 @@ TOML では、テーブルの見出しの後に書いたキーはそのテーブ
 
 - 共通の `shared/AGENTS.md` に「ホスト名が nixos-spin713 なら」と書く: マシンの事実が flake の外に散らばり、全マシンのエージェントが毎回その条件を読む
 - home-manager が書き出したファイルを `claude/CLAUDE.md` から `@import` する: Codex には import がないので `~/.codex/AGENTS.md` を連結して生成することになり、設定 repo の指示を編集しても switch するまで反映されなくなる
-- ホストの TOML の `agent_instructions` で本文ファイルを指定する: 指示が要るかどうかが行動ではなくホストの値の有無で決まり、`program_on_home_server` を外しても指示が残る
+- ホストの TOML の `agent_instructions` で本文ファイルを指定する: 指示が要るかどうかが利用目的ではなくホストの値の有無で決まり、`program_on_home_server` を外しても指示が残る
 
 代償として、本文は Nix store を経由するので編集のたびに switch が要り、standalone home-manager の環境には入らない。
-本文はどの機体でも同じで、機体ごとに変わるのは接続名だけになる。
+本文はどのホストでも同じで、ホストごとに変わるのは接続名だけになる。
 
 ## Claude の方針は設定 repo からユーザー設定へ反映する
 
@@ -106,7 +106,7 @@ TOML では、テーブルの見出しの後に書いたキーはそのテーブ
 残したい方針は設定 repo の `claude/settings.json` に置き、`agent-sync` が `~/.claude/settings.json` の同じキーへ反映する。
 
 - 設定 repo にあるキーは設定 repo の値を優先する（ユーザーの判断）。前回の反映の後にアプリの中で変わっていたキーは、警告してから上書きする
-- 値がオブジェクトのキーは一段下のキーごとに管理し、利用者が `/plugin` で足したキーを残す。配列は値ごと置き換える
+- 値がオブジェクトのキーは一段下のキーごとに管理し、ユーザーが `/plugin` で足したキーを残す。配列は値ごと置き換える
 - 前回反映したキーを `~/.local/state/agent-sync/` に記録し、設定 repo から消えたものだけを消す
 - どちらかの JSON が壊れていれば反映を止める。switch は止めない
 - ユーザー設定は project の設定や `--settings` より優先度が低いので、プロジェクト側の設定で上書きされうる

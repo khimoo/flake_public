@@ -106,7 +106,7 @@ let
     else
       ../. + "/${m."$repoModule"}";
 
-  # 要素ごとに別のモジュールにし、型の誤りなどのエラーに要素のファイル名が出るようにする。
+  # コンポーネントごとに別のモジュールにし、型の誤りなどのエラーにコンポーネント定義のファイル名が出るようにする。
   moduleOf = name: element: {
     _file = "config/elements/${name}.star";
     imports = map importOf (element."${class}_imports" or [ ]);
