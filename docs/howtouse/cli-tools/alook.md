@@ -79,3 +79,6 @@ Alook のログインは `http://localhost:15210` から開いたときだけ受
 
 Nix の rollback だけでは DB migration は元に戻らない。
 旧版へ戻すときはサーバーを停止し、対応する更新前のバックアップを復元してから、旧 Nix 世代で起動する。
+
+
+今つあってるアカウント: pomu@local.alook
