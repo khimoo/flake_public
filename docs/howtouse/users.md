@@ -1,10 +1,12 @@
 # ユーザー管理
 
-設計: [ユーザー管理](../architecture/users.md)
+設計方針については [ユーザー管理](../architecture/users.md) を参照してください。
 
 ## ユーザーの追加
 
-`config/hosts/<ホスト>.toml` の `[[users]]` に追加します。ユーザーごとに `purposes` で利用目的を指定します。ユーザーごとの値は同じ `[[users]]` に書きます。リポジトリの持ち主の値（Git identity、エージェント設定、秘密の配置先）は [owner.toml](../../config/owner.toml) にあり、値を使うコンポーネント（`git_identity`、`agent_config`、`personal_files` など）が有効になったユーザーにだけ反映されます。
+ユーザーを追加するには、`config/hosts/<ホスト>.toml` の `[[users]]` に設定を記述します。各ユーザーの利用目的は `purposes` で指定します。
+
+リポジトリ所有者の設定（Git identity、エージェント設定、秘密情報の配置先など）は [owner.toml](../../config/owner.toml) で管理されており、対応するコンポーネント（`git_identity`、`agent_config`、`personal_files` など）が有効化されたユーザーにのみ反映されます。
 
 ```toml
 [[users]]
@@ -13,7 +15,7 @@ purposes = ["web_procedures"]
 admin = true
 ```
 
-OS アカウントだけを作る場合は `home_manager = false` にします。
+OSアカウントのみを作成し、Home Managerの管理対象外とする場合は `home_manager = false` を指定します。
 
 ```toml
 [[users]]
@@ -23,23 +25,25 @@ home_manager = false
 initial_hashed_password = "$6$..."
 ```
 
-| キー | 既定値 | 用途 |
+### パラメータ一覧
+
+| キー | 必須/既定値 | 説明 |
 |---|---|---|
 | `name` | 必須 | ユーザー名 |
-| `purposes` | 必須 | ユーザーの利用目的の一覧。ハードウェアプロファイルだけを使う場合は `[]` |
-| `admin` | `false` | wheel と nixos-rebuild の NOPASSWD |
-| `home_manager` | `true` | Home Manager の管理対象にする |
+| `purposes` | 必須 | 利用目的のリスト。ハードウェアプロファイルのみ使用する場合は `[]` |
+| `admin` | `false` | `wheel` グループへの追加および `nixos-rebuild` の NOPASSWD 許可 |
+| `home_manager` | `true` | Home Manager の管理対象とするか |
 | `description` | ユーザー名 | 表示名 |
-| `shell` | `"bash"` | nixpkgs 内のシェルのパッケージ名 |
-| `extra_groups` | `[]` | 追加グループ |
-| `initial_hashed_password` | 未指定 | 初回ログイン用のハッシュ |
-| `hashed_password` | 未指定 | rebuild ごとに設定するハッシュ |
+| `shell` | `"bash"` | nixpkgs 内のシェルパッケージ名 |
+| `extra_groups` | `[]` | 追加するグループのリスト |
+| `initial_hashed_password` | 未指定 | 初回ログイン用パスワードハッシュ |
+| `hashed_password` | 未指定 | rebuild ごとに強制適用されるパスワードハッシュ |
 
-ハッシュは `mkpasswd -m sha-512` で作ります。初回用のパスワードはログイン後に `passwd` で変更できます。
+パスワードハッシュは `mkpasswd -m sha-512` コマンドで生成できます。`initial_hashed_password` を使用した場合、初回ログイン後に `passwd` コマンドで変更可能です。
 
-## 個人の値と機能の選択
+## 個人の設定と機能の選択
 
-Git identity と checkout の場所は、そのユーザーの TOML に書きます。別のユーザーのファイルは引き継ぎません。
+Git identity やチェックアウト先などの個人設定は、ホストの TOML の該当ユーザーの `[[users]]` に記述します（他ユーザーの設定は引き継がれません）。
 
 ```toml
 git_username = "Alice"
@@ -47,18 +51,21 @@ git_email = "alice@example.org"
 flake_root = "sagyo/flake_public"
 ```
 
-パスはホームからの相対パスです。
+※ パスはホームディレクトリからの相対パスで指定します。
 
-自宅のホストどうしの ssh に使う共有鍵（`~/.ssh/id_lan`）は、ほかのホストへ ssh で接続するコンポーネント（`use_xsaved`、`remote_build` など）が、`lan_ssh_key` を通してユーザーのホームに置きます。どのコンポーネントが置くかは、`lan_ssh_key` を `confgen explain` に渡したときの `required by` で分かります（[confgen](confgen.md#変更の範囲を見る)）。
-共有鍵を持つ人はほかのマシンにもログインできるので、ユーザーに選ばせる利用目的に注意してください。`remote_build` はハードウェアプロファイルから入るので、そのホストの全ユーザーが鍵を受け取ります。
+### LAN内 SSH共有鍵の配置
+宅内ホスト間の SSH 接続に使用する共有鍵（`~/.ssh/id_lan`）は、他ホストへ SSH 接続を行うコンポーネント（`use_xsaved`、`remote_build` など）が有効な場合、`lan_ssh_key` を通じてホームディレクトリに配置されます。どのコンポーネントが鍵を要求しているかは、`confgen explain` で `lan_ssh_key` の `required by` を確認してください（詳細は [confgen](confgen.md#変更の影響範囲を確認する) を参照）。
 
-GUI の `gui`、`gnome`、`japanese_input` はハードウェアプロファイルの `requires` で選び、音楽アプリはユーザーの `purposes` に `make_music` を指定します。`gnome` と `japanese_input` は `gui` を自動で含めます。詳細は [confgen](confgen.md) と [GUI アプリ](gui-apps.md) を参照してください。
+※ 共有鍵を持つユーザーは他のマシンへもログイン可能になるため、割り当てる `purposes` には注意してください。なお、`remote_build` はハードウェアプロファイル単位で適用されるため、該当ホストの全ユーザーに鍵が配置されます。
 
-音楽制作は `make_music` を選んだユーザーに audio グループを付与します。VM のユーザーは、`requires` に `windows_vm` を挙げる利用目的（`write_doc_with_windows`、`work_ss`）を自身の `purposes` で選びます（[Windows VM](windows-vm.md)）。
+### 機能と利用目的（purposes）の指定
+- **GUI関連**: `gui`、`gnome`、`japanese_input` はハードウェアプロファイルの `requires` で指定します（`gnome` と `japanese_input` は自動的に `gui` を含みます）。詳細は [confgen](confgen.md) および [GUI アプリ](gui-apps.md) を参照してください。
+- **音楽制作**: `purposes` に `make_music` を指定すると、該当ユーザーが `audio` グループに追加されます。
+- **Windows VM**: VM を使うユーザーは、`requires` に `windows_vm` を挙げる利用目的（`write_doc_with_windows`、`work_ss`）を自身の `purposes` に指定します（詳細は [Windows VM](windows-vm.md) を参照）。
 
-## 管理者の権限と反映
+## 管理者権限（admin）
 
-`admin = true` は wheel グループと、`/run/current-system/sw/bin/nixos-rebuild` だけを対象とした NOPASSWD ルールを設定します。管理者として信頼するユーザーだけに付与してください。
+`admin = true` を設定すると、該当ユーザーに `wheel` グループ権限が付与され、`/run/current-system/sw/bin/nixos-rebuild` の実行時にパスワード入力が不要（NOPASSWD）になります。セキュリティ上の理由から、管理者として信頼できるユーザーにのみ付与してください。
 
 ```sh
 sudo nixos-rebuild switch --flake .#hostname

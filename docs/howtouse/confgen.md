@@ -4,13 +4,16 @@
 設計: [confgen.md](../architecture/confgen.md)
 実装: [config/](../../config/)（コンポーネント、ホスト、ユーザー）/ [tools/confgen](../../tools/confgen/)（評価と検査）/ [NixOS への反映](../../modules/nixos/confgen.nix) / [Home Manager への反映](../../modules/home-manager/confgen.nix)
 
-`config/elements/` の Starlark のファイルが、設定のコンポーネントを1つずつ定義します。ホストのファイル `config/hosts/<ホスト名>.toml`（standalone の Home Manager では `<構成名>.toml`）は、ハードウェアプロファイルを `machine` で選び、ユーザーごとに利用目的のコンポーネントを `[[users]]` の `purposes` で選びます。ユーザーごとに、ハードウェアプロファイルと利用目的から十分条件のつながりをたどれるコンポーネントが、そのユーザーについて有効なコンポーネントになります。switch の評価の途中で confgen が動くので、手で実行する手順はありません。
+`config/elements/` 配下の各 Starlark ファイルが、設定のコンポーネントを1つずつ定義します。
+各ホストの設定ファイル `config/hosts/<ホスト名>.toml`（standalone Home Manager では `<構成名>.toml`）では、`machine` でハードウェアプロファイルを指定し、`[[users]]` の `purposes` でユーザーごとの利用目的（コンポーネント群）を選択します。
 
-値は TOML に、処理はコンポーネント定義に書きます。ホストとユーザーの値は `config/hosts/<ホスト名>.toml`、リポジトリの持ち主の値は `config/owner.toml` に置きます。
+各ユーザーについて有効になるコンポーネントは、ハードウェアプロファイルおよび利用目的から十分条件のつながりをたどることで決定されます。NixOS / Home Manager の switch 評価時に confgen が自動実行されるため、手動でコマンドを実行する必要はありません。
+
+「値は TOML に、処理はコンポーネント定義に書く」が原則です。ホストやユーザー固有の値は `config/hosts/<ホスト名>.toml` に、リポジトリ所有者の共通値は `config/owner.toml` に記述します。
 
 ## 利用目的を選ぶ・外す
 
-ホストのファイルの `[[users]]` の `purposes` に、利用目的のコンポーネントの名前を足すか消します。
+ホストファイルの `[[users]]` にある `purposes` 配列に対し、利用目的となるコンポーネント名を追加または削除します。
 
 ```toml
 machine = "machine_nixos_spin713"
@@ -20,153 +23,154 @@ name = "pomu"
 purposes = ["programming", "read_materials"]
 ```
 
-利用目的を外すと、そのユーザーについて、その利用目的からしか導けないコンポーネントが外れます。外れたコンポーネントの Home Manager の設定はそのユーザーから消えます。ほかのユーザーについて有効なコンポーネントのシステム設定は残ります。
-
-`purposes = []` のユーザーには、ハードウェアプロファイルから導けるコンポーネントだけが入ります。`purposes` はユーザーごとに必ず書きます。
+- **利用目的を外した場合**: そのユーザーにおいて、該当の利用目的からのみ導出されていたコンポーネントが除外されます。外れたコンポーネントの Home Manager 設定はユーザー環境から削除されますが、他ユーザーで有効なコンポーネントのシステム設定（NixOS 設定）はそのまま残ります。
+- **`purposes = []` とした場合**: ハードウェアプロファイルから導出されるコンポーネントのみが適用されます。なお、`purposes` キーは全ユーザーで必須です。
 
 ## プラットフォームの事実
 
-ホストによって入るかどうかが変わるコンポーネントは、ホストの名前ではなく、プラットフォームの事実を条件にします。
+ホスト環境によって導入可否が変わるコンポーネントは、ホスト名ではなく「プラットフォームの事実」を条件として扱います。
 
-- ハードウェアプロファイル（`kind = "machine"`）は、ホストのファイルの `machine` にだけ書けます。ほかのコンポーネントの `requires` には書けません。
-- プラットフォームの事実（`kind = "machine_fact"`）は、設定では用意できないホストの性質です。例: `x86_64_linux`、`nixos_system`（confgen が NixOS の設定を作る）、`rocm_compute`（ROCm で GPU の計算ができる）、`local_kvm`（KVM の仮想マシンを動かせる）。
+- **ハードウェアプロファイル（`kind = "machine"`）**: ホストファイルの `machine` キーでのみ指定可能です。他コンポーネントの `requires` に含めることはできません。
+- **プラットフォームの事実（`kind = "machine_fact"`）**: 設定では用意できないホスト固有の物理的・環境的性質です（例: `x86_64_linux`、`nixos_system`（NixOS 設定を生成可能）、`rocm_compute`（ROCm による GPU 計算が可能）、`local_kvm`（KVM 仮想マシンを実行可能））。
 
-プラットフォームの事実は、ハードウェアプロファイルの `requires` にだけ書けます。利用目的や道具の `requires` に書くと止まります。利用目的を選んだだけで「KVM を動かせる」が真になってしまうからです。
+プラットフォームの事実は、ハードウェアプロファイルの `requires` にのみ記述できます。利用目的やツールの `requires` に書くことは禁止されています（利用目的を選択しただけで「KVM を動かせる」という事実が真になってしまうのを防ぐためです）。
 
-プラットフォームの事実が要るコンポーネントは、その事実を `needs` に書きます。`needs` は十分条件のうち、インストールでは用意できない項目で、confgen は入れずに確かめます。
+プラットフォームの事実を前提とするコンポーネントは、`needs` にその事実を列挙します。`needs` は十分条件のうち「インストールによって自前で用意できない前提条件」を表し、confgen はそのコンポーネントを追加するのではなく、条件が満たされているかの検査を行います。
 
 ```python
 # mimikopi.star
 needs = ["x86_64_linux", "rocm_compute"]
 ```
 
-`make_music` の `requires` に `mimikopi` があるので、ROCm のないホストで `make_music` を選ぶと止まります。どのホストでどのコンポーネントを使うかは、ユーザーがホストごとに選ぶ利用目的で決めます。ホストや組み合わせで入れたり入れなかったりする書き方（`when`）はありません。二つのコンポーネントがそろって初めて要るものは、両方をたどる利用目的の `requires` に並べます（例: `program_on_home_server` の `direnv_on_sshfs`）。
+例えば `make_music` の `requires` に `mimikopi` が含まれている場合、ROCm を持たないホストで `make_music` を選択すると評価時に停止します。
 
-新しいホストを足すときは、ハードウェアプロファイルの `requires` に、そのプラットフォームの事実を書くだけです。
+どのホストでどのコンポーネントを有効にするかは、ユーザーがホストごとに選ぶ利用目的によって決定されます。特定のホストや組み合わせに応じてオン/オフを切り替える条件分岐（`when` 構文など）は存在しません。2つのコンポーネントが揃って初めて必要になる機能は、双方を前提とする利用目的の `requires` に並べて定義します（例: `program_on_home_server` における `direnv_on_sshfs`）。
 
-`needs = [...]` は、有効なコンポーネントが決まった後の検査で、コンポーネントを入れはしません。コンポーネントが有効なユーザーについて、挙げたプラットフォームの事実がそのホストで成り立っていなければ止めます。例: `windows_vm.star` の `needs = ["nixos_system", "local_kvm"]` により、WSL で `write_doc_with_windows` を選ぶと、足りない名前を示して止まります。
-
-ハードウェアプロファイルを持たないホスト（`tests/hosts/`）は、プラットフォームの事実を `purposes` に書きます。
+- 新しいホストを追加する際は、該当ハードウェアプロファイルの `requires` にそのプラットフォームの事実を列挙するだけで対応できます。
+- `needs = [...]` は有効コンポーネント決定後の検証フェーズでチェックされます。有効化対象のユーザーがいるホスト上で指定の事実が成り立っていない場合、不足している項目名を明示して停止します（例: `windows_vm.star` の `needs = ["nixos_system", "local_kvm"]` により、WSL 上で `write_doc_with_windows` を選ぶとエラーになります）。
+- ハードウェアプロファイルを持たないテスト用ホスト（`tests/hosts/`）に限り、例外的にプラットフォームの事実を `purposes` に直接指定します。
 
 ## 自分用サーバとクライアント
 
-ホストによる違いを扱う順番は [構成の境界](../architecture/configuration.md#ホストによる違いを受け持つ場所) にあります。ホストによって変わる処理のうち、プラットフォームの事実（物理的な条件）で決まらないものは、自分用サーバ（サービスを公開する側）とクライアント（サービスを使う側）に分けます。
-「どのホストでするか」をホストごとに書くと、利用目的とホストの組み合わせを人が管理することになり、1台に限るものは2台に書いたときに止める仕組みも要るからです。
+ホストごとの責務の分離方針については [構成の境界](../architecture/configuration.md#ホストによる違いを受け持つ場所) を参照してください。物理的な条件（プラットフォームの事実）で決まらない差分は、「自分用サーバ（サービス提供側）」と「クライアント（サービス利用側）」に役割を分離します。
+「どのホストで動かすか」をホスト側にべた書きすると、組み合わせの管理が煩雑になるだけでなく、「1台限定のサービスを誤って2台に記述した際に弾く仕組み」が別途必要になるためです。
 
-- サーバの側: サーバを置くホストのユーザーが、`purposes` に `run_home_server` を書きます。`run_home_server.star` は `requires` に `serve_quaderno_archive`（Quaderno のアーカイブ）、`serve_xsaved`（xsaved）、`serve_workspace`（ssh でつながる作業場所）、`serve_alook`（Alook）、`serve_remote_desktop`（GNOME の画面の RDP）、`serve_builds`（Nix のビルドの引き受け）、`stay_awake`（自動 suspend の停止）を挙げ、サーバを動かすユーザーを linger にします。
-- クライアントの側: `use_quaderno_archive`、`use_xsaved`、`use_alook` が、ssh でサーバに接続します。使う利用目的か手段が `requires` に挙げます。どれも、自分用サーバへ ssh で接続する手段の `find_home_server` だけを `requires` に挙げ、`find_home_server` が鍵（`lan_ssh_key`）を置き、`requires` の `connect_ssh_tailnet` で tailnet に入って tailnet の接続名（`desktop-ts` など）の Host ブロックを書きます。会社 PC の WSL で選ぶと、WSL のハードウェアプロファイルが読み込む assertion（[isolation.nix](../../hosts/nixos-work-wsl/isolation.nix)）が評価を止めます。サーバのホストでも、同じ内容で自分に接続します。ユーザーが自分で選ぶクライアントは利用目的にします。spin713 の `program_on_home_server`（ファイルを sshfs で開き、build と Alook を自分用サーバで動かす）がその例です。
-- 外部のサービスを使う側: サービスが外部（PyPI や uv が配る Python）にあるときは、使う側の手段だけを書きます。`use_uv` が `requires` の `nix_ld` を入れます。
-- 接続先: どこにも書きません。`find_home_server` が、仮引数 `roles` から、`run_home_server` が有効なユーザーのいるただ 1 つのホストを求め、公開値 `services` で、サービスのコンポーネント（`serve_xsaved` など）ごとに、動かしているユーザーと接続名（`desktop-ts` など）を渡します。サーバのホストの値（xsaved の `web_port` など）は `machines` から読みます。
+- **サーバ側**: サーバ役となるホストのユーザーが、`purposes` に `run_home_server` を指定します。`run_home_server.star` は `requires` に各サービス用コンポーネント（`serve_quaderno_archive`、`serve_xsaved`、`serve_workspace`、`serve_alook`、`serve_remote_desktop`、`serve_builds`、`stay_awake`）を列挙し、実行ユーザーの linger を有効化します。
+- **クライアント側**: `use_quaderno_archive`、`use_xsaved`、`use_alook` などのクライアント用コンポーネントが SSH でサーバに接続します。これらは直接接続先を抱えず、接続手段である `find_home_server` のみを `requires` に指定します。`find_home_server` は鍵（`lan_ssh_key`）を配置し、`connect_ssh_tailnet` 経由で Tailnet に参加して接続名（`desktop-ts` など）の Host ブロックを設定します。
+  - サーバ自身の上でクライアント機能を使う場合も、同一の手順で自身に接続します。
+  - 会社の WSL で誤って選択された場合、WSL のハードウェアプロファイル内の assertion（[isolation.nix](../../hosts/nixos-work-wsl/isolation.nix)）が評価を停止させます。
+  - クライアントの利用目的化の例として、spin713 の `program_on_home_server`（ファイルを SSHFS でマウントし、ビルドや Alook を自分用サーバで実行する構成）があります。
+- **外部サービス利用側**: PyPI や uv の Python 配布など外部サービスを利用する場合は、利用側の手段のみを記述します（例: `use_uv` は `requires` に `nix_ld` を指定）。
+- **接続先の自動解決**: 接続先ホストを静的に記述する必要はありません。`find_home_server` は引数 `roles` を参照し、`run_home_server` が有効なユーザーが存在する唯一のホストを特定します。そして公開値 `services` を通じて、各サービスコンポーネント（`serve_xsaved` など）に実行ユーザー名と接続名（`desktop-ts` など）を伝達します。サーバホスト固有の値（xsaved の `web_port` など）は `machines` から取得されます。
 
-`run_home_server` が有効なユーザーのいるホストが 0 個か 2 個以上のとき、サービスを動かすユーザーが ssh のログインを受け付けないとき（そのホストに `ssh_server` がない、またはそのユーザーが `personal_files` を選んでいない）、同じサービスを 2 人が動かしているときは、`find_home_server` が生成を止めます。
+`run_home_server` を持つホストが 0 台または 2 台以上存在する場合や、サービス実行ユーザーが SSH ログインを受け付けない場合（`ssh_server` がない、または `personal_files` が未選択）、同一サービスを複数ユーザーが動かしている場合は、`find_home_server` が生成をエラーで中断します。
 
-サーバのホストの `purposes` を変えると、クライアントのホストの生成結果も変わります。クライアントのホストでも switch してください。
+※サーバ側ホストの `purposes` を変更すると、クライアント側ホストの設定生成結果にも影響します。サーバ側の変更後はクライアント側でも switch を実行してください。
 
 ## ホストとユーザーの値
 
-ホストのファイルの次のキーは、flake が構成を作るときに読みます。
+ホストファイル内の以下のキーは、Flake が構成を組み立てる際に読み込まれます。
 
-| キー | 中身 |
+| キー | 説明 |
 |---|---|
-| `system` | `x86_64-linux` など |
-| `kind` | `nixos`（NixOS の構成）か `home`（standalone の Home Manager）。無いファイルは構成を作らず、tests の架空のホストにだけ使う |
-| `state_version`、`timezone` | NixOS と Home Manager の stateVersion、タイムゾーン |
-| `machine` | ハードウェアプロファイルの名前。省くと、ユーザーの `purposes` だけからコンポーネントが決まる（tests の架空のホスト） |
-| `[[users]]` | `name`、`purposes`、`admin`、`home_manager = false`（Home Manager を使わない人）、`initial_hashed_password` |
+| `system` | `x86_64-linux` などのシステムアーキテクチャ |
+| `kind` | `nixos`（NixOS 構成）または `home`（standalone Home Manager）。指定のないファイルは構成生成を行わず、テスト用の架空ホストとして扱われます |
+| `state_version`、`timezone` | NixOS / Home Manager の stateVersion およびタイムゾーン |
+| `machine` | ハードウェアプロファイル名。省略した場合はユーザーの `purposes` のみからコンポーネントを決定します（テスト用） |
+| `[[users]]` | `name`、`purposes`、`admin`、`home_manager = false`（Home Manager 非使用）、`initial_hashed_password` |
 
-`machine` と `purposes` 以外のキーは、コンポーネントが仮引数 `host` で読めます（`host.echo_cancel_source`）。全ホストのファイルは仮引数 `machines` で読めます（`machines.all["nixos-desktop"]["system"]`）。`host.users` と `machines` からは `purposes` と `machine` を外してあり、コンポーネントはどのコンポーネントが入っているかを値として読めません。
+- **`host` 引数**: `machine` と `purposes` 以外のキーをコンポーネント側から参照できます（例: `host.echo_cancel_source`）。
+- **`machines` 引数**: 全ホストの設定値を辞書形式で参照できます（例: `machines.all["nixos-desktop"]["system"]`）。
+  - ※`host.users` および `machines` からは `purposes` と `machine` が事前に除外されています。コンポーネントが「どのコンポーネントが有効化されているか」を値として直接読み取ることはできません。
+- **`user` 引数**: 各 `[[users]]` エントリの `name` と `purposes` 以外のキーを参照できます（例: `user.xsaved`）。`[[users]]` の直後に `[users.<名前>]` テーブルを設けてユーザーごとのパラメータを定義できます。
+- **`owner` 引数**: `config/owner.toml` に定義された値を参照できます（例: `owner.git_username`）。全ホスト・全ユーザーで共通の値となります。ただし、設定が生成されるのは `owner` を参照するコンポーネントがそのユーザーで有効な場合に限られます。
+- **`roles` 引数**: 役目を持つコンポーネント（定義に `role = True` を指定したもの）が「どのホストの誰に対して有効化されているか」を取得できます。`roles.hosts["nixos-desktop"]["pomu"]` は、そのユーザーで有効な役目コンポーネント名のリストを返します（役目を持たないユーザーやホストは含まれません）。
+  - 有効コンポーネントの決定は値の評価前に完了しているため、confgen は全ホストの構成を事前に解決してから各関数を呼び出します。
+  - `roles` は接続先やホスト名の解決のためにのみ使用し、「設定値を出力するかどうか（空にするかどうか）」の条件分岐に使用してはなりません（[規則](../architecture/rules.md) 規則 A-4）。
 
-ホストのファイルの `[[users]]` の `name` と `purposes` 以外のキーは、仮引数 `user` で読めます（`user.xsaved`）。`[[users]]` の直後に `[users.<名前>]` と書くと、そのユーザーの表になります。
+## コンポーネント定義の記述
 
-`config/owner.toml` のキーは、仮引数 `owner` で読めます（`owner.git_username`）。どのホストのどのユーザーについても同じ値です。ユーザーに入るのは、`owner` を読むコンポーネントがそのユーザーについて有効なときだけです。
+各 Starlark ファイルが 1 つのコンポーネントに対応し、ファイル名がそのままコンポーネント名となります。ファイル内に定義できるのは、以下の 8 種類のトップレベル識別子と、アンダースコア `_` で始まるプライベートな補助変数・関数のみです。
 
-仮引数 `roles` では、役目のコンポーネント（定義に `role = True` と書いたコンポーネント）が、どのホストのどのユーザーについて入っているかを読めます。`roles.hosts["nixos-desktop"]["pomu"]` は、そのユーザーについて入っている役目のコンポーネントの名前のリストです。役目のコンポーネントが 1 つも入っていないユーザーとホストは載りません。有効なコンポーネントは値を使わずに決まるので、confgen は全ホストについて先に求めてから、コンポーネントの関数を呼びます。`roles` は接続先や名前を選ぶために使い、コンポーネントの設定値を全部出すか何も出さないかを決めるためには使いません（[規則](../architecture/rules.md) の規則 A の4つめ）。
-
-## コンポーネント定義を書く
-
-1つのファイルが1つのコンポーネントです。ファイル名がコンポーネントの名前です。書けるのは次の8個と、`_` で始まる補助の名前だけです。
-
-| 名前 | 中身 |
+| 名前 | 説明 |
 |---|---|
-| `requires = [...]` | 値を読まずに使うコンポーネント（利用目的が使う道具など） |
-| `def public(...)` | 公開値の辞書を返す |
-| `def writes(...)` | 寄与する値を `write(相手, 値)` のリストで返す |
-| `def config(..., incoming)` | システム設定。`{"nixos": {"option.path": 値}, "nixos_imports": [...]}` を返す。`incoming` は自分への寄与値の一覧（`w.source`、`w.value`） |
-| `def user_config(..., incoming)` | ユーザー設定。コンポーネントが有効なユーザーごとに呼ばれ、`{"home": {...}, "home_imports": [...], "nixos": {...}}` を返す。`nixos` には、そのユーザーだけの NixOS の設定（`("users", "users", user.name, "extraGroups")` など）を書く |
-| `needs = [...]` | 十分条件のうち、プラットフォームの事実。このコンポーネントが有効なユーザーのいるホストで成り立っていなければ止める |
-| `kind = "..."` | `"machine"`（ハードウェアプロファイル）か `"machine_fact"`（プラットフォームの事実）。利用目的と道具には書かない |
-| `role = True` | 役目のコンポーネント。ほかのホストのコンポーネントが、仮引数 `roles` で、このコンポーネントが有効なユーザーを読める |
+| `requires = [...]` | 十分条件のうち、値を読まずに使うコンポーネントのリスト（利用目的が使う道具など） |
+| `def public(...)` | 公開値の辞書を返す関数 |
+| `def writes(...)` | 他コンポーネントへ寄与する値を `write(対象, 値)` のリストで返す関数 |
+| `def config(..., incoming)` | システム全体の設定（NixOS 設定）。`{"nixos": {"option.path": 値}, "nixos_imports": [...]}` を返す。`incoming` には自身宛ての寄与値一覧（`w.source`, `w.value`）が渡る |
+| `def user_config(..., incoming)` | ユーザーごとの設定。有効なユーザーごとに呼び出され、`{"home": {...}, "home_imports": [...], "nixos": {...}}` を返す。`nixos` にはそのユーザー固有の NixOS 設定（`("users", "users", user.name, "extraGroups")` など）を指定 |
+| `needs = [...]` | 十分条件のうち、プラットフォームの事実。対象ユーザーが存在するホスト上で満たされていない場合エラー |
+| `kind = "..."` | `"machine"`（ハードウェアプロファイル）または `"machine_fact"`（プラットフォームの事実）。通常の利用目的やツールには指定しない |
+| `role = True` | 役目コンポーネントフラグ。他ホストのコンポーネントが `roles` 引数経由で有効ユーザーを検出可能になる |
 
-`config` は、ユーザー依存の値を読めません。ユーザー依存の値は、`user` と、`public` がユーザー依存の値を読むコンポーネントの公開値です（`checkout.root` など）。`public` と `writes` は、ユーザー依存の値を読むとユーザーごとに呼ばれ、読まなければホストごとに1回呼ばれます。
+- **ユーザー依存値の制約**: `config` 内でユーザー依存の値（`user` や、ユーザー依存の値を参照している `public` の値など）を直接読み取ることはできません。
+- **呼び出し頻度**: `public` および `writes` は、ユーザー依存の値を参照している場合はユーザーごとに、参照していない場合はホストごとに 1 回呼び出されます。
+- **引数の解決**: 各関数の仮引数名が、参照先コンポーネント名に対応します。引数には対象コンポーネントの公開値が属性として渡されます（例: `util_linux.findmnt`）。`write()` の第 1 引数には、`writes` の仮引数名をそのまま渡します。
+- **特殊な引数**: `host`、`user`、`machines` は confgen が暗黙的に提供する引数です（定義ファイルは存在しません）。これらは TOML に定義された値のほか、`host.system`, `host.linux`, `host.darwin` や `user.name`, `user.home` などの組み込みプロパティを持ちます。
+- **オプションのパス表記**: パス内にドット `.` を含むオプション名は、タプル形式で記述します（例: `("xdg", "dataFile", "nvim/nix/features.lua", "text")`）。
+- **モジュールのインポート**: 外部 Flake の Home Manager モジュールが必要な場合は `user_config` 内で `"home_imports": [module("memex-nix", "homeModules.memex")]` を、NixOS モジュールが必要な場合は `config` 内で `"nixos_imports"` を返します。
+- **暗黙の依存の明示**: 生成された値を Lua やシェルスクリプトなど confgen の管理外で参照し、その実行系が別コンポーネントで有効化される場合は、依存関係を自動検出できません。そのため、実行環境を提供するコンポーネントを明示的に `requires` に含める必要があります（例: [tinymist_on_sshfs.star](../../config/elements/tinymist_on_sshfs.star) は `nvim_lsp` が読み込む Lua 設定値を出力するため、`requires` に `nvim_lsp` を指定しています）。
 
-関数の仮引数の名前が、参照するコンポーネントの名前です。仮引数には相手の公開値が属性として渡ります（`util_linux.findmnt`）。`write` の第1引数には、`writes` の仮引数の名前をそのまま書きます。
+### Nix 特有値の記述（印）
 
-仮引数 `host`、`user`、`machines` は confgen が渡すコンポーネントで、コンポーネント定義のファイルはありません。ファイルの値のほかに、`host.system`、`host.linux`、`host.darwin` と、`user.name`、`user.home` を読めます。
+Nix の式として評価される値は、以下のヘルパー（印）を用いて表現します。
 
-option のパスに `.` を含む名前があるときは、タプルで書きます（`("xdg", "dataFile", "nvim/nix/features.lua", "text")`）。外部の flake の Home Manager モジュールが要るときは、`user_config` が `"home_imports": [module("memex-nix", "homeModules.memex")]` を返します。NixOS のモジュールは `config` が `"nixos_imports"` で返します。
-
-ホストの性質が要るコンポーネントは、性質を表すプラットフォームの事実を `needs` に挙げます。例: [antigravity_cli.star](../../config/elements/antigravity_cli.star) は `needs = ["x86_64_linux"]` で、`claude_code` の `requires` に入っています。`x86_64_linux` は x86_64 の Linux のハードウェアプロファイルが `requires` に挙げます。値を見て設定を空にする書き方は、次の節のとおり止められます。
-
-書いた値を confgen の外（Lua やシェルスクリプト）が読み、その読み手が別のコンポーネントで有効になるときは、confgen はその依存を見つけられません。読み手を有効にするコンポーネントを `requires` に書きます。例: [tinymist_on_sshfs.star](../../config/elements/tinymist_on_sshfs.star) は `nvim_lsp` が有効にする Lua が読む値を書くので、`requires` に `nvim_lsp` を挙げています。
-
-Nix にしか作れない値は印で書きます。
-
-| 印 | 値 |
+| ヘルパー | 生成される Nix 表現 |
 |---|---|
-| `pkg("sshfs")`、`pkg("vimPlugins.lazy-nvim")`、`inputPkg("input", "attr")` | パッケージ |
-| `repoPkg("packages/x")`、`repoPkgWith("packages/x", {...})` | repo の中のパッケージ（`callPackage`） |
-| `exe("util-linux", "findmnt")` | パッケージの中のコマンドのパス |
-| `concat("前", exe(...), "後")` | 印を含む文字列 |
-| `file(name, text)`、`script(name, text)`、`scriptBin(name, text)`、`command(name, script)` | `writeText`、`writeShellScript`、`writeShellScriptBin`、`runCommand` |
-| `shellApp(name, runtimeInputs, text)`、`shellAppEnv(...)` | `writeShellApplication` |
-| `symlinkJoin(name, paths)`、`pythonWithModules([...])`、`pkgWithPackages(...)`、`pkgSetFn(...)` | パッケージを組み合わせたもの |
-| `repoPath("x")`、`repoText("x")`、`flakeRev()` | repo の中のファイルの store のパス、中身、flake のリビジョン |
-| `outOfStoreLink(path)` | store の外への symlink（checkout は `checkout.root` から作る） |
-| `activation(after, text)`、`mkAfter(v)`、`mkBefore(v)`、`gvariantTuple([...])`、`toJSON(v)` | Home Manager の activation、リストの順序、dconf のタプル、JSON の文字列 |
-| `luaPackages(["lpeg"])`、`lua(値)` | Neovim の Lua のパッケージを選ぶ関数、値を Lua の式にした文字列 |
-| `module("input", "homeModules.x")`、`repoModule("hosts/x/hardware.nix")` | Nix のモジュール（`home_imports` / `nixos_imports` に入れる） |
+| `pkg("sshfs")`, `pkg("vimPlugins.lazy-nvim")`, `inputPkg("input", "attr")` | nixpkgs / flake input のパッケージ |
+| `repoPkg("packages/x")`, `repoPkgWith("packages/x", {...})` | リポジトリ内パッケージ（`callPackage`） |
+| `exe("util-linux", "findmnt")` | パッケージ内の実行可能ファイルパス |
+| `concat("前", exe(...), "後")` | 印を含む文字列の連結 |
+| `file(name, text)`, `script(name, text)`, `scriptBin(name, text)`, `command(name, script)` | `writeText`, `writeShellScript`, `writeShellScriptBin`, `runCommand` |
+| `shellApp(name, runtimeInputs, text)`, `shellAppEnv(...)` | `writeShellApplication` |
+| `symlinkJoin(name, paths)`, `pythonWithModules([...])`, `pkgWithPackages(...)`, `pkgSetFn(...)` | 複合パッケージ構成 |
+| `repoPath("x")`, `repoText("x")`, `flakeRev()` | リポジトリ内ファイルの store パス、内容文字列、Flake のリビジョン |
+| `outOfStoreLink(path)` | Nix store 外へのシンボリックリンク（checkout からは `checkout.root` 経由で作成） |
+| `activation(after, text)`, `mkAfter(v)`, `mkBefore(v)`, `gvariantTuple([...])`, `toJSON(v)` | Home Manager activation、リスト順序制御、dconf タプル、JSON 文字列化 |
+| `luaPackages(["lpeg"])`, `lua(値)` | Neovim 用 Lua パッケージ選択関数、値を Lua リテラル式に変換した文字列 |
+| `module("input", "homeModules.x")`, `repoModule("hosts/x/hardware.nix")` | Nix モジュール参照（`home_imports` / `nixos_imports` 用） |
 
-`str()` や `%` で印を文字列にすると、confgen がエラーにします。
+※印のついたオブジェクトを `str()` や `%` 演算子で通常の文字列に変換しようとすると、confgen はエラーを出力します。
 
-## 止められる書き方
+## 禁止事項（エラーとなる書き方）
 
-次の書き方は、評価の途中で confgen がファイル名と行を示して止めます。
+以下の記述を行った場合、confgen の評価時にファイル名と該当行が表示されて処理が停止します。
 
-- 仮引数に挙げていないコンポーネントを使う、使わない仮引数を書く
-- `when` を書く
-- `needs` に、プラットフォームの事実でないコンポーネントを書く
-- 仮引数で受けたコンポーネントを公開値や寄与値に入れて渡す
-- 公開値を書き換える（`append` など）
-- `load` を書く
-- `config` がユーザー依存の値を読む、`config` が `home` を返す
-- コンポーネントが有効なのに、`config` と `writes` が何も返さない（ホストごと）、`user_config` と `writes` が何も返さない（ユーザーごと）。`return {}` や `return []` で設定を出さない書き方がこれにあたる
-- ユーザーごとに呼ばれる `writes` が、`user_config` を持たないコンポーネントに寄与する
-- ホストのファイルの先頭に `purposes` を書く、`[[users]]` に `purposes` を書かない
-- `machine` に `kind = "machine"` でないコンポーネントを書く、ハードウェアプロファイルを `requires` か `purposes` に書く
-- プラットフォームの事実を、ハードウェアプロファイル以外の `requires` に書く、ハードウェアプロファイルを持つホストの `purposes` に書く
-- コンポーネントが有効なユーザーについて、`needs` に挙げたコンポーネントが入っていない
+- 関数の仮引数に宣言していないコンポーネントを使用する、または宣言した仮引数を関数内で使用しない
+- `when` 条件句を記述する
+- `needs` にプラットフォームの事実（`kind = "machine_fact"`）以外のコンポーネントを指定する
+- 引数として受け取ったコンポーネントを、そのまま公開値や寄与値に含めて転送する
+- 公開値をインプレースで書き換える（`append` など）
+- `load` を使用する
+- `config` 内でユーザー依存の値を読み取る、または `config` から `home` 設定を返す
+- 有効化されているにもかかわらず、`config` と `writes` の双方が何も返さない（ホスト単位）、あるいは `user_config` と `writes` の双方が何も返さない（ユーザー単位）（`return {}` や `return []` で設定出力を実質スキップする行為もこれに該当）
+- ユーザー単位で呼び出される `writes` が、`user_config` を持たないコンポーネントに対して寄与値を送信する
+- ホスト設定ファイルのルートに `purposes` を書く、または `[[users]]` 内で `purposes` の指定を省略する
+- `machine` に `kind = "machine"` 以外のコンポーネントを指定する、またはハードウェアプロファイルを `requires` や `purposes` に指定する
+- プラットフォームの事実をハードウェアプロファイル以外の `requires` に記述する、あるいはハードウェアプロファイルを持つホストの `purposes` に記述する
+- コンポーネントが有効なユーザーが存在するホストにおいて、そのコンポーネントの `needs` に列挙されたプラットフォームの事実が満たされていない
 
-## 変更の範囲を見る
+## 変更の影響範囲を確認する
 
-あるコンポーネントを変えたときに影響するコンポーネントを表示します。
+特定コンポーネントの変更による影響範囲を確認するには、`explain` サブコマンドを実行します。
 
 ```sh
 cd tools/confgen
 nix shell nixpkgs#go -c go run . explain ../../config nixos-spin713 x86_64-linux util_linux
 ```
 
-そのコンポーネントを参照するコンポーネント、寄与するコンポーネントと、そのコンポーネントが値を出す option を表示します。
+対象コンポーネントを参照しているコンポーネント、値を寄与しているコンポーネント、および対象コンポーネントが値を出力している設定オプションの一覧が表示されます。
 
-あるコンポーネントがなぜユーザーについて入っているかを、起点（ハードウェアプロファイルか `purposes`）までたどって表示します。利用目的を外しても残るコンポーネントは、ほかの利用目的からの経路が表示されます。
+また、あるコンポーネントが特定のユーザーでなぜ有効化されているのか（ハードウェアプロファイルまたは `purposes` からの到達経路）を調べるには、`why` サブコマンドを使用します。利用目的を外しても残留するコンポーネントがある場合、他のどの利用目的に依存しているかが可視化されます。
 
 ```sh
 nix shell nixpkgs#go -c go run . why ../../config nixos-spin713 x86_64-linux pomu util_linux
 ```
 
-## 検査
+## テストと検証
 
-confgen の build がテスト（[confgen_test.go](../../tools/confgen/confgen_test.go)）を実行します。規則に反する書き方を止めること、ユーザーごとに自分の利用目的から導けるコンポーネントだけが入ることを確かめます。switch の評価はこの build を通るので、テストが失敗すると switch できません。
+confgen のビルドプロセス内で自動テスト（[confgen_test.go](../../tools/confgen/confgen_test.go)）が実行されます。設計規則に反する記述が正しく阻止されること、各ユーザーに自身の利用目的から導出されるコンポーネントのみが適用されることが検証されます。switch の評価はこのビルドを通過する必要があるため、テストが失敗した状態では環境の反映を行えません。
 
-check `elements-alone`（[tests/elements/confgen.nix](../../tests/elements/confgen.nix)）は `confgen alone` を実行し、どのコンポーネントも、ホストの最初のユーザーがそれ1つだけを選んだときに生成できることを確かめます。ホストの値とホストは、そのコンポーネントを生成している既存のホストのものを使います。上の依存を書き忘れたコンポーネントはここで止まります。2つのコンポーネントが同じ値に書いて衝突する場合は見つけられません。
+Flake check の `elements-alone`（[tests/elements/confgen.nix](../../tests/elements/confgen.nix)）は `confgen alone` を実行し、全コンポーネントについて「ホストの先頭ユーザーがそのコンポーネント 1 つのみを選択した状態でも正しく設定生成できるか」を単体検証します（ホストおよびホスト固有値には、既存の対象ホストの設定が流用されます）。必要な依存の記述漏れがあるコンポーネントは、この検証で検出されます（※複数コンポーネントが同一オプション値に書き込んで衝突するケースは検出対象外です）。
 
-`nixos-spin713` は手元で build しないので、デスクトップが止まっているときは `--max-jobs 1` を付けて switch します（[remote-build.md](./remote-build.md)）。
+なお、`nixos-spin713` はローカルビルドを行わないため、リモートのデスクトップマシンが停止している際は `--max-jobs 1` を付与して switch を実行してください（詳細は [remote-build.md](./remote-build.md) を参照）。

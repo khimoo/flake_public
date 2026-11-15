@@ -76,7 +76,7 @@ NixOSで `etc_nixos_link` を選んだユーザーがいる場合、switch を�
 
 Home Manager だけで管理するホストは `kind = "home"` にし、NixOS の設定を作らないので、ハードウェアプロファイルの `requires` に `nixos_system` を書きません。`home-manager switch --flake .#<構成名>` で適用します。
 
-`state_version` は初回導入時の値を維持します。マシン間 SSH に参加する場合は、ハードウェアプロファイルの `requires` に `ssh_server` と `connect_ssh` を追加し（`personal_pc` は両方を含みます）、ログインを受け付ける持ち主のアカウントの `purposes` に `personal_files` を入れます。tailnet には同じ `requires` に `tailscale` を追加します。
+`state_version` は初回導入時の値を維持します。マシン間 SSH に参加する場合は、ハードウェアプロファイルの `requires` に `ssh_server` と `connect_ssh` を追加し（`personal_pc` は両方を含みます）、ログインを受け付ける持ち主のアカウントの `purposes` に `personal_files` を入れます。tailnet 越しの接続名（`-ts`）も使うなら、同じ `requires` に `connect_ssh_tailnet` を追加します（`tailscale` も入ります）。
 
 持ち主の値は `config/owner.toml` に、ユーザーごとの値はホストの TOML の `[[users]]` に書きます。[ユーザー管理](docs/howtouse/users.md)と [confgen](docs/howtouse/confgen.md)を参照してください。
 
