@@ -3,7 +3,7 @@
 #
 #   check.sh          documents, Go tests, and the hosts and checks affected by the changed files
 #   check.sh --all    every host and every check
-#   check.sh --full   also toplevel evaluation, nix flake check and every system's checks (CI)
+#   check.sh --full   also toplevel evaluation, nix flake check and every system's checks
 #
 # How changed files map to checks: docs/howtouse/validation.md.
 set -euo pipefail

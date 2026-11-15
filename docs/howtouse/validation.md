@@ -47,8 +47,6 @@ bash scripts/check.sh --full   # toplevel の評価、nix flake check、全シ�
 
 軽量評価では、選択した NixOS ホストの assertions と `system.path` の drvPath、および選択した `homeConfigurations` の activation の drvPath を評価します。`--all` と `--full` は全ホストを選びます。このとき `system.build.toplevel` は評価されません。desktop や spin713 で全画面透過を行う mutter のパッチには `system.replaceDependencies` が使われており、toplevel の評価中にシステムクロージャの参照を生成する IFD（Import-From-Derivation）が発生してパッチ適用済み mutter のビルド待ちが生じるためです。`--full` を指定した場合は、先に全ホストの toplevel を評価してから `nix flake check --no-build --no-update-lock-file` を実行します（未生成の `references.nix.drv` に対して `nix flake check` を実行すると失敗するため）。なお、`--no-build` を指定してもこの評価依存は解消されません。全画面透過の見た目については、switch 後に実機上で目視確認してください。
 
-[CI](../../.github/workflows/check.yml) は Linux runner 上で `--full` を実行します。キャッシュのない新規の CI 環境では、GUI や音楽制作関連を含む膨大なストア依存のダウンロードやビルドが発生するため、十分なディスク容量と実行時間が必要です。リモートでの CI 実行結果は、push 後にご確認ください。
-
 Git flake は未追跡（untracked）ファイルを認識しません。新規ファイルは必ず `git add <path>`（差分をステージングしたくない場合は `git add -N <path>`）を実行してから検証してください。また、lock ファイルの更新作業は検証作業と切り離して扱います。
 
 ## 確認できないこと

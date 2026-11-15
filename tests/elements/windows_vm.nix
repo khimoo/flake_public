@@ -55,7 +55,7 @@ in
     // {
       elements = [ "windows_vm" ];
     };
-  # windows-vm のビルド（writeShellApplication の shellcheck）を CI で通す。
+  # windows-vm のビルド（writeShellApplication の shellcheck）を check で通す。
   # デスクトップの構成は評価しかしないので、ここでビルドしないと見つからない。
   windows-vm-package =
     (lib.lazyDerivation {

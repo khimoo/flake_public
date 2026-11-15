@@ -59,7 +59,7 @@ desktop と spin713 は全画面の半透明ウィンドウを使うため、
 - xdg-shell の規定（must）から外れる。kitty 以外でも、opaque region を宣言せずにアルファ付きのバッファで全画面にする Wayland アプリは、下の画面が透ける。該当するアプリは調べていない。候補は EGL や Vulkan で描くゲーム、動画プレイヤー、Wine で、`weston-simple-egl` の現行版は全画面のとき自分で不透明にするので当たらない。
 - そうした表示の崩れを、アプリや mutter に不具合として報告できない。
 - nixpkgs は `replaceDependencies` を短期の手段として作っている（「This should be a short term solution」）。置換は `nix-store --dump` の出力を `sed` で書き換える処理なので、圧縮されたファイルの中のパスは置換されない。置換が漏れていないかは、closure に元の mutter が残っていないかで確かめる。
-- mutter は nixpkgs を更新するたびにビルドされ、desktop と spin713 の評価（`scripts/check.sh` と CI を含む）はそのビルドを待つ。
+- mutter は nixpkgs を更新するたびにビルドされ、desktop と spin713 の評価（`scripts/check.sh` を含む）はそのビルドを待つ。
 - パッチが当たらなくなるとビルドが止まる。黙って無効になることはない。
 - パッチで mutter の ABI を変えてはいけない。gnome-shell は元の mutter のヘッダでビルドされたまま使われる。
 
