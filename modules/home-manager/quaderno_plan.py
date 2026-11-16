@@ -27,6 +27,21 @@ def plan_downloads(docs, state, remote_root):
     return planned
 
 
+def latest(docs, remote_root, count):
+    """remote_root の文書のうち、更新が新しいものから count 件を返す。
+
+    取得済みかどうかは見ない。いちばん新しい文書が取得済みなら、代わりに古い文書を
+    選ぶことはしない。modified_date は "2026-11-14T12:00:00Z" の形なので、文字列の順が
+    時刻の順になる。
+    """
+    prefix = remote_root.rstrip("/") + "/"
+    documents = [
+        entry for entry in docs
+        if entry.get("entry_type") == "document" and entry["entry_path"].startswith(prefix)
+    ]
+    documents.sort(key=lambda entry: entry.get("modified_date", ""), reverse=True)
+    return documents[:count]
+
 
 def plan_uploads(names, taken):
     """Send フォルダの各ファイルに、送り先で重ならない名前を割り当てる。

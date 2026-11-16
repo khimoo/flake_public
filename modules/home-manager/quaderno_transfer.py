@@ -2,6 +2,7 @@
 
   quaderno send [FILE...]   FILE を Send フォルダへコピーし、Send フォルダの PDF を Quaderno へ送る。
   quaderno receive          Quaderno の受け渡しフォルダの PDF を、手元の Received フォルダへ落とす。
+                            --latest N で、更新が新しい N 件だけに絞る。
   quaderno archive          Quaderno の文書を、自分用サーバのアーカイブへ取り込む。
 
 頼まれた処理を最初に行い、つながったついでに、溜まっている送信と取り込みも済ませる。
@@ -35,7 +36,7 @@ from zeroconf import ServiceBrowser, Zeroconf
 from quaderno_archive import (
     ArchiveRefused, ServerUnreachable, SshArchive, destination, load_state, save_state,
 )
-from quaderno_plan import plan_downloads, plan_uploads
+from quaderno_plan import latest, plan_downloads, plan_uploads
 
 SERVICE_TYPES = ["_digitalpaper._tcp.local.", "_dp_fujitsu._tcp.local."]
 
@@ -299,14 +300,18 @@ def send(paper, send_dir, remote_dir, docs, ready):
     return status
 
 
-def receive(paper, docs, receive_dir, state_file, remote_dir):
+def receive(paper, docs, receive_dir, state_file, remote_dir, count):
     """デバイスの remote_dir の文書のうち、未取得か改訂されたものを receive_dir へ落とす。
 
+    count があれば、更新が新しい count 件だけを対象にする。対象から外れた文書は記録しないので、
+    count なしの実行で落ちてくる。
     記録は手元に持ち、自分用サーバを使わない。失敗が一つでもあれば 1。
     """
     state = load_state(state_file)
     prefix = remote_dir.rstrip("/") + "/"
     status = 0
+    if count is not None:
+        docs = latest(docs, remote_dir, count)
     for entry in plan_downloads(docs, state, remote_dir):
         try:
             target = destination(receive_dir, entry["entry_path"][len(prefix):])
@@ -329,6 +334,13 @@ def receive(paper, docs, receive_dir, state_file, remote_dir):
     return status
 
 
+def positive(text):
+    value = int(text)
+    if value < 1:
+        raise argparse.ArgumentTypeError("1 以上の整数を指定してください")
+    return value
+
+
 def main(argv):
     parser = argparse.ArgumentParser(prog="quaderno", description="Quaderno と PDF を受け渡す。")
     commands = parser.add_subparsers(dest="command", required=True, metavar="{send,receive,archive}")
@@ -336,7 +348,8 @@ def main(argv):
     background.add_argument("--background", action="store_true", help="定期実行のための指定")
     sending = commands.add_parser("send", parents=[background], help="Send フォルダの PDF を Quaderno へ送る")
     sending.add_argument("files", nargs="*", type=Path, metavar="FILE", help="先に Send フォルダへコピーする PDF")
-    commands.add_parser("receive", parents=[background], help="受け渡しフォルダの PDF を手元へ落とす")
+    receiving = commands.add_parser("receive", parents=[background], help="受け渡しフォルダの PDF を手元へ落とす")
+    receiving.add_argument("--latest", type=positive, metavar="N", help="更新が新しい N 件だけを対象にする")
     commands.add_parser("archive", parents=[background], help="文書を自分用サーバのアーカイブへ取り込む")
     args = parser.parse_args(argv[1:])
 
@@ -370,6 +383,7 @@ def main(argv):
         job.receive_dir = Path(os.environ["QUADERNO_RECEIVE_DIR"])
         job.receive_state = Path(os.environ["QUADERNO_RECEIVE_STATE"])
         job.receive_dir.mkdir(parents=True, exist_ok=True)
+        job.receive_latest = args.latest
     # 頼まれた処理が先。未取り込みの文書が多いときに、送信や受け取りを取り込みの後ろで待たせない。
     job.steps = {
         "send": ["send", "pull"],
@@ -406,6 +420,7 @@ class Job:
         self.ready = []
         self.receive_dir = None
         self.receive_state = None
+        self.receive_latest = None
         self.steps = []
 
 
@@ -475,7 +490,7 @@ def transfer(addr, job):
         if step == "pull" and job.archive:
             status = max(status, pull(paper, docs, SshArchive(job.archive), job.remote_root, addr))
         if step == "receive":
-            status = max(status, receive(paper, docs, job.receive_dir, job.receive_state, job.exchange_remote))
+            status = max(status, receive(paper, docs, job.receive_dir, job.receive_state, job.exchange_remote, job.receive_latest))
         if step == "send" and job.send_dir:
             status = max(status, send(paper, job.send_dir, job.exchange_remote, docs, job.ready))
     return status

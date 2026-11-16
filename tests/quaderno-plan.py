@@ -1,5 +1,5 @@
 """取り込み対象の選別と、送り先で重ならない名前の割り当てが期待どおりか。"""
-from quaderno_plan import plan_downloads, plan_uploads
+from quaderno_plan import latest, plan_downloads, plan_uploads
 
 
 def doc(entry_id, path, revision):
@@ -37,6 +37,19 @@ assert [d["entry_id"] for d in plan_downloads(docs, {}, "Templates")] == ["3"]
 # 名前が前方一致するだけの別フォルダを巻き込まない。
 siblings = [doc("4", "Document2/d.pdf", "r1")]
 assert plan_downloads(siblings, {}, "Document") == []
+
+# 更新が新しい順に指定した件数だけを選ぶ。フォルダと、対象フォルダの外の文書は数えない。
+dated = [
+    {"entry_type": "folder", "entry_id": "f", "entry_path": "Document/X", "modified_date": "2026-11-16T00:00:00Z"},
+    dict(doc("old", "Document/X/old.pdf", "r1"), modified_date="2026-11-01T00:00:00Z"),
+    dict(doc("new", "Document/X/new.pdf", "r1"), modified_date="2026-11-15T00:00:00Z"),
+    dict(doc("mid", "Document/X/mid.pdf", "r1"), modified_date="2026-11-10T00:00:00Z"),
+    dict(doc("out", "Document/Y/out.pdf", "r1"), modified_date="2026-11-16T00:00:00Z"),
+]
+assert [d["entry_id"] for d in latest(dated, "Document/X", 2)] == ["new", "mid"]
+assert [d["entry_id"] for d in latest(dated, "Document/X", 9)] == ["new", "mid", "old"]
+# いちばん新しい文書が取得済みなら何も落とさない。代わりに古い文書を落とすことはしない。
+assert plan_downloads(latest(dated, "Document/X", 1), {"new": "r1"}, "Document/X") == []
 
 # 送り先に無い名前はそのまま、重なれば英字を付け、同じ回に送る別のファイルとも重ねない。
 assert plan_uploads(["new.pdf", "a.pdf"], {"a.pdf"}) == [("new.pdf", "new.pdf"), ("a.pdf", "a (a).pdf")]
