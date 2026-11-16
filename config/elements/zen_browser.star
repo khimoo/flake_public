@@ -19,6 +19,10 @@ def user_config(browser_common):
             "programs.zen-browser.profiles.default": {
                 "isDefault": True,
                 "settings": settings,
+                "sine": {
+                    "enable": True,
+                    "mods": ["Zenslop"],
+                },
             },
             "programs.zen-browser.policies.ExtensionSettings": {
                 ident: {
