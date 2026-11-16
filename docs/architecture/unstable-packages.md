@@ -23,11 +23,17 @@
 - tinymist: 0.14.2 はプレビューの表示範囲の計算を誤り、partial rendering を有効にすると範囲外のページを SVG ではなく canvas で描く。canvas には span の情報がないので、プレビューをクリックしてもエディタへ飛べない（既定の倍率では、おおむね 3 ページ目から）。上流の [issue #2267](https://github.com/Myriad-Dreamin/tinymist/issues/2267) で報告され、PR #2269（2025-11-23）で直った。修正を含む 0.15 以降が安定チャンネルに入ったら外す（nixos-26.05 は 0.14.18）
 - graphify: 安定チャンネルにない（[graphify.md](../howtouse/graphify.md#設計)）
 
-## codex と claude-code は専用の flake から取る
+## AI エージェントは llm-agents.nix から取る
 
-どちらも認証とモデルの選択をサーバーとやりとりするクライアントで、遅れると機能が欠けるだけでなく、動かなくなりうる。
-クライアントは自分のカタログにないモデル ID を拒むので（claude-code 2.1.268 に `--model claude-opus-5-5` を渡すと `[claude-code:unrecognized_model]` で起動しない）、新しいモデルを使うには常に最新の版が要る。
-nixos-unstable でも上流のリリースから数日（claude-code）から数週間（codex）遅れるので、この overlay ではなく専用の flake（`codex-cli-nix`、`claude-code-nix`）から取る。nixpkgs が上流のリリース当日に追いつくようになったら、overlay に戻して input を消す。
+Claude Code、Codex、Antigravity CLI（agy）は、サーバーの更新に追従するため [llm-agents.nix](https://github.com/numtide/llm-agents.nix) から取る。取得元をまとめ、個別の版・URL・ハッシュの保守を上流に任せる。[専用 overlay](../../overlays/llm-agents.nix) でこの3つだけを差し替えるので、利用側は `pkgs.codex` などを使える。
+
+Codex のビルド済みバイナリを使うため、llm-agents の nixpkgs を `follows` で差し替えず、上流の `packages.${system}` を直接使う。依存関係まで上流と同じ固定に保つことで、各 OS・CPU 向けのキャッシュとストアパスが一致する。代わりに、上流用の nixpkgs の評価と依存が増える。Claude Code にプラグイン用の Node.js を追加する [ラッパー](../../overlays/claude-code-node.nix) は、このパッケージの外側に重ねる。
+
+[llm_agents コンポーネント](../../config/elements/llm_agents.star) は、AI ツールを選んだホストとユーザーに Numtide のキャッシュを設定する。[共通モジュール](../../modules/shared/llm-agents-cache.nix) が、固定した上流ソースの `nixConfig` から URL と署名鍵を読む。AI ツールを選ばない環境には追加しない。NixOS では daemon に、Home Manager 単独ではユーザーの Nix 設定に反映する。管理者が別に運用する daemon を使う場合は、そちらにもキャッシュの利用許可が必要になる。
+
+Codex は上流でソースからビルドされる。対応するキャッシュがあれば完成品を取得し、なければビルドが必要になる。非力な端末からのビルドは、既存の [リモートビルド](remote-build.md) の設定に従う。
+
+確認した上流は [`733d5b0`](https://github.com/numtide/llm-agents.nix/tree/733d5b0fa81d5aad7c623dca8d8170ce411fba1d)。自動更新は GitHub Actions が UTC 0・4・18・21 時に新版を調べ、定義を更新する PR を取り込む処理である。手元で使う版は `flake.lock` のコミットに固定される。`nix flake update llm-agents` で固定を更新し、検証後に rebuild して反映する。更新前の設定と lock を Git で復元すれば、元の版を再び指定できる。
 
 ## 以前の対象から分かっていること
 

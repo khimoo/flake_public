@@ -6,8 +6,7 @@ let
     import ../overlays
     ++ [ (import ../overlays/unstable-packages.nix inputs) ]
     ++ [ (import ../overlays/neovim-tools.nix inputs) ]
-    ++ [ inputs.codex-cli-nix.overlays.default ]
-    ++ [ inputs.claude-code-nix.overlays.default ]
+    ++ [ (import ../overlays/llm-agents.nix inputs) ]
     ++ [ (import ../overlays/claude-code-node.nix) ];
   hosts = lib.mapAttrs' (
     file: _: lib.nameValuePair (lib.removeSuffix ".toml" file) (builtins.fromTOML (builtins.readFile "${configDir}/hosts/${file}"))

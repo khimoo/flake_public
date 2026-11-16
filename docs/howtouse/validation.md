@@ -62,12 +62,14 @@ Happy の実行例:
 nix build --impure --expr '(builtins.getFlake (toString ./.)).nixosConfigurations.nixos-desktop.pkgs.callPackage ./packages/happy { }'
 ```
 
-上記の `happy` を `dpt-rp1-py` や `antigravity-cli` に置き換えることで、それぞれのパッケージ定義を確認できます。
-overlay 適用済みの Graphify を確認する場合は以下を実行します。
+上記の `happy` を `dpt-rp1-py` に置き換えることで、そのパッケージ定義を確認できます。
+overlay 適用済みのパッケージは、Graphify を例にすると以下で確認します。
 
 ```sh
 nix build --impure --expr '(builtins.getFlake (toString ./.)).nixosConfigurations.nixos-desktop.pkgs.graphify'
 ```
+
+末尾の `pkgs.graphify` を `pkgs.claude-code`、`pkgs.codex`、`pkgs.antigravity-cli` に置き換えると、llm-agents.nix から導入する各ツールを確認できます。
 
 各コマンドの動作確認は、ビルド結果として生成された `result/bin/<コマンド>` を使って行います。
 

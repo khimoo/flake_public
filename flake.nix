@@ -25,22 +25,7 @@
       url = "github:raine/claude-history";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # Codex CLI。nixpkgs は unstable でも追従が数週間遅れ、その間 OpenAI 側が
-    # 新しいデフォルトモデルに切り替えると CLI が model 名を解決できず 400 になる。
-    # この flake は上流リリースの musl バイナリを hash 固定で取り、時間単位で追従する。
-    # nixpkgs が追いついたら overlays/unstable-packages.nix 経由に戻してここを消す。
-    codex-cli-nix = {
-      url = "github:sadjow/codex-cli-nix";
-      inputs.nixpkgs.follows = "nixpkgs-unstable";
-    };
-    # Claude Code。新しいモデルはクライアントのリリースと同時に選べるようになるので、
-    # nixos-unstable チャンネルが進むまでの数日はそのモデルを指定できない。この flake は
-    # 上流リリースのネイティブバイナリを hash 固定で取り、時間単位で追従する。
-    # 経緯と除外条件は docs/architecture/unstable-packages.md に置いた。
-    claude-code-nix = {
-      url = "github:sadjow/claude-code-nix";
-      inputs.nixpkgs.follows = "nixpkgs-unstable";
-    };
+    llm-agents.url = "github:numtide/llm-agents.nix";
     # memex(Obsidian vault)同期の mechanism(vault のバイナリを git-annex で Drive に置く同期 + secret 暗号文の
     # 実行時復号)。flake_public は modules/home-manager/memex.nix で clone 位置だけ注入する。
     # mechanism は public repo に切り出したので github:(https 取得)で引く。ノート本文は別の
