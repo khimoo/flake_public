@@ -14,14 +14,22 @@ import (
 	"go.starlark.net/syntax"
 )
 
+type writeCall struct {
+	target  string
+	keyword bool
+	pos     syntax.Position
+}
+
 // funcInfo describes one of public/writes/config of an element.
 type funcInfo struct {
+	calls  []writeCall
 	params []string        // parameter names in declaration order
 	reads  map[string]bool // parameters whose value is read
 	writes map[string]bool // parameters named as the first argument of write()
 }
 
 type element struct {
+	accept   bool
 	virtual  bool // the host facts element that confgen provides
 	name     string
 	file     string
@@ -145,8 +153,22 @@ func parseElement(file string) (*element, error) {
 			return nil, fmt.Errorf("%s: load is not allowed", s.Load)
 		case *syntax.DefStmt:
 			n := s.Name.Name
-			if !elementFuncs[n] && !strings.HasPrefix(n, "_") {
-				return nil, fmt.Errorf("%s: top-level def %q is not allowed (use public, writes, config, user_config or a name starting with _)", s.Def, n)
+			if n != "accept" && !elementFuncs[n] && !strings.HasPrefix(n, "_") {
+				return nil, fmt.Errorf("%s: top-level def %q is not allowed (use public, writes, config, user_config, accept or a name starting with _)", s.Def, n)
+			}
+			if n == "accept" {
+				e.accept = true
+				for _, p := range s.Params {
+					switch x := p.(type) {
+					case *syntax.Ident:
+					case *syntax.BinaryExpr:
+						if _, ok := x.X.(*syntax.Ident); x.Op != syntax.EQ || !ok {
+							return nil, fmt.Errorf("%s: accept parameters must be names or names with defaults; *args and **kwargs are not allowed", s.Def)
+						}
+					default:
+						return nil, fmt.Errorf("%s: accept parameters must be names or names with defaults; *args and **kwargs are not allowed", s.Def)
+					}
+				}
 			}
 			if elementFuncs[n] {
 				defs = append(defs, s)
@@ -214,6 +236,17 @@ func parseElement(file string) (*element, error) {
 			return nil, err
 		}
 		e.funcs[d.Name.Name] = info
+	}
+	if e.accept {
+		receives := false
+		for _, fn := range []string{"config", "user_config"} {
+			if f := e.funcs[fn]; f != nil && f.reads[incomingParam] {
+				receives = true
+			}
+		}
+		if !receives {
+			return nil, fmt.Errorf("%s: accept requires config or user_config with incoming", file)
+		}
 	}
 	return e, nil
 }
@@ -328,9 +361,25 @@ func analyzeDef(d *syntax.DefStmt) (*funcInfo, error) {
 				}
 			case *syntax.CallExpr:
 				if id, ok := x.Fn.(*syntax.Ident); ok && isPredeclared(id, "write") {
-					if len(x.Args) != 2 {
-						walkErr = fmt.Errorf("%s: write takes (element, value)", id.NamePos)
+					if len(x.Args) < 2 {
+						walkErr = fmt.Errorf("%s: write takes (element, value) or (element, name = value, ...)", id.NamePos)
 						return false
+					}
+					keyword := false
+					for i, arg := range x.Args[1:] {
+						kw, ok := arg.(*syntax.BinaryExpr)
+						isKeyword := ok && kw.Op == syntax.EQ
+						if i == 0 {
+							keyword = isKeyword
+						}
+						if isKeyword != keyword || (!keyword && len(x.Args) != 2) {
+							walkErr = fmt.Errorf("%s: write takes (element, value) or (element, name = value, ...)", id.NamePos)
+							return false
+						}
+						if unary, ok := arg.(*syntax.UnaryExpr); ok && (unary.Op == syntax.STAR || unary.Op == syntax.STARSTAR) {
+							walkErr = fmt.Errorf("%s: write takes (element, value) or (element, name = value, ...)", id.NamePos)
+							return false
+						}
 					}
 					t, ok := x.Args[0].(*syntax.Ident)
 					var b *resolve.Binding
@@ -342,6 +391,7 @@ func analyzeDef(d *syntax.DefStmt) (*funcInfo, error) {
 						return false
 					}
 					targets[t] = true
+					info.calls = append(info.calls, writeCall{target: bindings[b], keyword: keyword, pos: id.NamePos})
 				}
 			}
 			return true
@@ -414,6 +464,17 @@ func checkGraph(elems map[string]*element) error {
 			// An action that requires a fact would make the fact true wherever the action is chosen.
 			if t.declaresMachine() && !e.declaresMachine() {
 				return fmt.Errorf("%s: %q describes the machine; only machine elements and other machine facts may require it. Name it in needs instead", e.file, r)
+			}
+		}
+		for _, f := range e.funcs {
+			for _, c := range f.calls {
+				target := elems[c.target]
+				if target.accept && !c.keyword {
+					return fmt.Errorf("%s: %s has accept; use write(%s, name = value, ...)", c.pos, c.target, c.target)
+				}
+				if !target.accept && c.keyword {
+					return fmt.Errorf("%s: %s has no accept; use write(%s, value)", c.pos, c.target, c.target)
+				}
 			}
 		}
 		for _, n := range e.needs {

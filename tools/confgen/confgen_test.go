@@ -529,3 +529,92 @@ func TestRejectedRoleDeclarations(t *testing.T) {
 		}
 	}
 }
+
+func TestAcceptTransformsKeywordContributions(t *testing.T) {
+	for _, perUser := range []bool{false, true} {
+		t.Run(map[bool]string{false: "host", true: "user"}[perUser], func(t *testing.T) {
+			writer := "def writes(sink):\n    return [write(sink, text = \"hello\")]"
+			if perUser {
+				writer = "def writes(sink, user):\n    return [write(sink, text = user.name)]"
+			}
+			r := buildHosts(t, map[string]string{
+				"p": writer,
+				"sink": `
+def accept(text, enabled = True):
+    return struct(text = text, enabled = enabled)
+def config(incoming):
+    return {"nixos": {"values": [[w.value.text, w.value.enabled] for w in incoming]}}
+def user_config(incoming):
+    return {"home": {"values": [[w.value.text, w.value.enabled] for w in incoming]}}
+`,
+			}, map[string]string{"h": one(`["p"]`)})["h"]
+			text := "hello"
+			if perUser {
+				text = "test"
+			}
+			want := []setting{{Path: []string{"values"}, Value: []any{[]any{text, true}}}}
+			if got := r.Users["test"].Elements["sink"]["home"]; !reflect.DeepEqual(got, want) {
+				t.Errorf("home: %v, want %v", got, want)
+			}
+			if !perUser {
+				if got := r.Elements["sink"]["nixos"]; !reflect.DeepEqual(got, want) {
+					t.Errorf("nixos: %v, want %v", got, want)
+				}
+			}
+		})
+	}
+}
+
+func TestAcceptRejectsInvalidContributions(t *testing.T) {
+	sink := "def accept(value, enabled = True):\n    return struct(value = value, enabled = enabled)\ndef user_config(incoming):\n    return {\"home\": {\"count\": len(incoming)}}"
+	for _, c := range []struct{ name, writer, sink, want string }{
+		{"unknown keyword", "def writes(sink): return [write(sink, typo = 1)]", sink, "typo"},
+		{"accept failure", "def writes(sink): return [write(sink, value = 1)]", "def accept(value): fail(\"invalid contribution\")\ndef user_config(incoming): return {\"home\": {\"n\": len(incoming)}}", "invalid contribution"},
+		{"positional to accept", "def writes(sink): return [write(sink, 1)]", sink, "use write(sink, name = value"},
+		{"keyword without accept", "def writes(sink): return [write(sink, value = 1)]", "", "use write(sink, value)"},
+		{"keyword to virtual", "def writes(user): return [write(user, value = 1)]", "", "use write(user, value)"},
+		{"no incoming", "requires = [\"sink\"]", "def accept(value): return value", "incoming"},
+		{"kwargs", "requires = [\"sink\"]", "def accept(**kwargs): return kwargs", "**kwargs"},
+		{"args", "requires = [\"sink\"]", "def accept(*args): return args", "*args"},
+		{"mixed arguments", "def writes(sink): return [write(sink, 1, value = 2)]", sink, "write takes"},
+		{"unpacked arguments", "def writes(sink): return [write(sink, **{\"value\": 1})]", sink, "write takes"},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			if got := buildError(t, map[string]string{"p": c.writer, "sink": c.sink}); !strings.Contains(got, c.want) {
+				t.Errorf("error %q does not mention %q", got, c.want)
+			}
+		})
+	}
+}
+
+func TestAcceptReturnValuesAreCheckedAndFrozen(t *testing.T) {
+	for _, c := range []struct{ name, writer, consumer, want string }{
+		{"reference", "def writes(sink): return [write(sink, value = sink)]", "def user_config(incoming): return {\"home\": {\"n\": len(incoming)}}", "element reference"},
+		{"frozen", "def writes(sink): return [write(sink, value = [1])]", "def user_config(incoming):\n    incoming[0].value.items.append(2)\n    return {\"home\": {\"n\": len(incoming)}}", "frozen"},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			sink := "def accept(value): return struct(items = value)\n" + c.consumer
+			if got := buildError(t, map[string]string{"p": c.writer, "sink": sink}); !strings.Contains(got, c.want) {
+				t.Errorf("error %q does not mention %q", got, c.want)
+			}
+		})
+	}
+}
+
+func TestWriteShapeIsCheckedBeforeEvaluation(t *testing.T) {
+	for _, c := range []struct{ writer, sink, want string }{
+		{"def writes(sink): return [write(sink, 1)]", "def accept(value): return value\ndef user_config(incoming): return {\"home\": {\"n\": len(incoming)}}", "use write(sink, name = value"},
+		{"def writes(sink): return [write(sink, value = 1)]", "", "use write(sink, value)"},
+	} {
+		dir := writeConfig(t, map[string]string{"p": "", "unused": c.writer, "sink": c.sink}, nil)
+		_, err := loadElements(filepath.Join(dir, "elements"))
+		if err == nil {
+			t.Fatal("loading succeeded, want an error")
+		}
+		for _, want := range []string{c.want, "unused.star:1:"} {
+			if !strings.Contains(err.Error(), want) {
+				t.Errorf("error %q does not mention %q", err, want)
+			}
+		}
+	}
+}

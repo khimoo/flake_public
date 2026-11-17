@@ -2,4 +2,4 @@
 requires = ["minecraft_backup"]
 
 def writes(gui_apps):
-    return [write(gui_apps, {"pkg": pkg("prismlauncher")})]
+    return [write(gui_apps, pkg = pkg("prismlauncher"))]

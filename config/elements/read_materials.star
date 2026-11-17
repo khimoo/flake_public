@@ -3,10 +3,10 @@ requires = ["quaderno_exchange", "use_quaderno_archive", "sns_block", "task_mana
 
 def writes(gui_apps):
     # Obsidian は memex が git / claude を含むラッパーを入れるため、素のパッケージを重ねない。
-    return [write(gui_apps, app) for app in [
-        {"pkg": pkg("xournalpp")},
-        {"pkg": pkg("pdfarranger"), "desktop": "pdfarranger.desktop", "mime": ["application/pdf"]},
-    ]]
+    return [
+        write(gui_apps, pkg = pkg("xournalpp")),
+        write(gui_apps, pkg = pkg("pdfarranger"), desktop = "pdfarranger.desktop", mime = ["application/pdf"]),
+    ]
 
 def user_config():
     return {"home": {

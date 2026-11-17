@@ -2,7 +2,7 @@
 requires = ["music_production", "temp_storage", "use_ai_agents", "mimikopi"]
 
 def writes(gui_apps):
-    return [write(gui_apps, app) for app in [
-        {"pkg": pkg("transcribe")},
-        {"pkg": pkg("vmpk")},
-    ]]
+    return [
+        write(gui_apps, pkg = pkg("transcribe")),
+        write(gui_apps, pkg = pkg("vmpk")),
+    ]

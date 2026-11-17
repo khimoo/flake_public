@@ -80,6 +80,7 @@ func checkNeeds(host string, spec *hostSpec, judgments map[string]map[string]rea
 // elementRef is what a parameter receives: the referenced element's public values.
 // Starlark code cannot construct one, so write() can only target a declared parameter.
 type elementRef struct {
+	accept starlark.Callable
 	name   string
 	public *starlarkstruct.Struct
 }
@@ -171,13 +172,26 @@ func builtins() starlark.StringDict {
 		}
 		return &marker{json: map[string]any{"$concat": parts}, text: "concat"}, nil
 	})
-	write := starlark.NewBuiltin("write", func(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kw []starlark.Tuple) (starlark.Value, error) {
-		if len(args) != 2 || len(kw) > 0 {
-			return nil, fmt.Errorf("write takes (element, value)")
+	write := starlark.NewBuiltin("write", func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kw []starlark.Tuple) (starlark.Value, error) {
+		if len(args) == 0 {
+			return nil, fmt.Errorf("write needs an element")
 		}
 		ref, ok := args[0].(*elementRef)
 		if !ok {
 			return nil, fmt.Errorf("write: got %s, want an element parameter", args[0].Type())
+		}
+		if ref.accept != nil {
+			if len(args) != 1 || len(kw) == 0 {
+				return nil, fmt.Errorf("write to %s: use keyword arguments", ref.name)
+			}
+			value, err := starlark.Call(thread, ref.accept, nil, kw)
+			if err != nil {
+				return nil, fmt.Errorf("write to %s: %w", ref.name, err)
+			}
+			return &writeRecord{target: ref.name, value: value}, nil
+		}
+		if len(args) != 2 || len(kw) != 0 {
+			return nil, fmt.Errorf("write to %s: use (element, value)", ref.name)
 		}
 		return &writeRecord{target: ref.name, value: args[1]}, nil
 	})
@@ -495,7 +509,8 @@ func evaluateHost(host, system string, spec *hostSpec, sh *shared, elems map[str
 	for name, values := range map[string]starlark.StringDict{machinesElement: sh.machines, ownerElement: sh.owner, rolesElement: sh.roles} {
 		s := starlarkstruct.FromStringDict(starlarkstruct.Default, values)
 		s.Freeze()
-		hostRefs[name] = &elementRef{name: name, public: s}
+		accept, _ := globals[name]["accept"].(starlark.Callable)
+		hostRefs[name] = &elementRef{name: name, public: s, accept: accept}
 	}
 
 	publicOfIn := func(refs map[string]*elementRef) func(string) (*elementRef, error) {
@@ -543,7 +558,8 @@ func evaluateHost(host, system string, spec *hostSpec, sh *shared, elems map[str
 			}
 			s := starlarkstruct.FromStringDict(starlarkstruct.Default, dict)
 			s.Freeze()
-			r := &elementRef{name: name, public: s}
+			accept, _ := globals[name]["accept"].(starlark.Callable)
+			r := &elementRef{name: name, public: s, accept: accept}
 			refs[name] = r
 			return r, nil
 		}
