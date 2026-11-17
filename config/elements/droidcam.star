@@ -1,8 +1,8 @@
+# 手段: スマホを Web カメラにする（DroidCam）。USB 接続には adb を使う。
 needs = ["nixos_system"]
 
 def config():
     return {"nixos": {
-        "boot.initrd.kernelModules": ["v4l2loopback"],
-        "boot.extraModulePackages": [kernelPkg("v4l2loopback")],
-        "environment.systemPackages": [pkg("droidcam")],
+        "programs.droidcam.enable": True,
+        "environment.systemPackages": [pkg("android-tools")],
     }}
