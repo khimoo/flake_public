@@ -17,6 +17,9 @@ def config(host):
             sudo.append({"users": [name], "commands": [{"command": "/run/current-system/sw/bin/nixos-rebuild", "options": ["NOPASSWD"]}]})
     locale = getattr(host, "locale", "ja_JP.UTF-8")
     result = {
+        "home-manager.backupFileExtension": "bak",
+        "home-manager.useGlobalPkgs": True,
+        "home-manager.useUserPackages": True,
         "networking.hostName": host.hostname,
         "system.stateVersion": host.state_version,
         "time.timeZone": host.timezone,

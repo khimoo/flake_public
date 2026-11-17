@@ -3,4 +3,4 @@ state_version = "25.11"
 
 [[users]]
 name = "test"
-purposes = ["teams_dispatcher"]
+purposes = ["home_base", "teams_dispatcher"]

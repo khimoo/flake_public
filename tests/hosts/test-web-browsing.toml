@@ -3,4 +3,4 @@ state_version = "25.11"
 
 [[users]]
 name = "test"
-purposes = ["web_browsing"]
+purposes = ["home_base", "web_browsing"]

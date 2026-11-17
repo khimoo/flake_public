@@ -1,5 +1,3 @@
-// confgen evaluates the Starlark elements under config/ for one host and writes the
-// JSON that modules/nixos/confgen.nix and modules/home-manager/confgen.nix read. Design: docs/architecture/confgen.md.
 package main
 
 import (
@@ -18,7 +16,7 @@ func main() {
 }
 
 const usage = `usage:
-  confgen build <config-dir> <host> <system> <out.json>
+  confgen build <config-dir> <host> <system> <out.nix>
   confgen explain <config-dir> <host> <system> <element>
   confgen why <config-dir> <host> <system> <user> <element>   (prints the axiom and rules that make element true for user)
   confgen affected <repo-root> <changed-path>...   (prints {"elements": [...], "hosts": [...]}; elements is ["ALL"] when every check must run)
@@ -60,11 +58,7 @@ func run(args []string) error {
 		if err != nil {
 			return err
 		}
-		data, err := json.MarshalIndent(r, "", "  ")
-		if err != nil {
-			return err
-		}
-		return os.WriteFile(args[4], append(data, '\n'), 0o644)
+		return writeNix(r, args[4])
 	case len(args) == 5 && args[0] == "explain":
 		return explain(args[1], args[2], args[3], args[4])
 	case len(args) == 6 && args[0] == "why":
@@ -115,6 +109,12 @@ func why(dir, host, system, user, name string) error {
 		}
 	}
 	show(name, "")
+	if options := r.Graph[name].Options; len(options) > 0 {
+		fmt.Println("  host-wide options (all users):")
+		for _, option := range options {
+			fmt.Printf("    %s\n", option)
+		}
+	}
 	return nil
 }
 

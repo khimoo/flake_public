@@ -1,4 +1,7 @@
-{ inputs, configDir ? ../config }:
+{
+  inputs,
+  configDir ? ../config,
+}:
 let
   inherit (inputs) nixpkgs home-manager;
   inherit (nixpkgs) lib;
@@ -8,14 +11,28 @@ let
     ++ [ (import ../overlays/neovim-tools.nix inputs) ]
     ++ [ (import ../overlays/llm-agents.nix inputs) ]
     ++ [ (import ../overlays/claude-code-node.nix) ];
-  hosts = lib.mapAttrs' (
-    file: _: lib.nameValuePair (lib.removeSuffix ".toml" file) (builtins.fromTOML (builtins.readFile "${configDir}/hosts/${file}"))
-  ) (lib.filterAttrs (file: type: type == "regular" && lib.hasSuffix ".toml" file) (builtins.readDir "${configDir}/hosts"));
+  hosts =
+    lib.mapAttrs'
+      (
+        file: _:
+        lib.nameValuePair (lib.removeSuffix ".toml" file) (
+          builtins.fromTOML (builtins.readFile "${configDir}/hosts/${file}")
+        )
+      )
+      (
+        lib.filterAttrs (file: type: type == "regular" && lib.hasSuffix ".toml" file) (
+          builtins.readDir "${configDir}/hosts"
+        )
+      );
 in
 rec {
   inherit overlays hosts;
 
-  mkSystem = { hostname, modules ? [ ] }:
+  mkSystem =
+    {
+      hostname,
+      modules ? [ ],
+    }:
     let
       host = hosts.${hostname};
       inherit (host) system users;
@@ -36,9 +53,6 @@ rec {
         home-manager.nixosModules.home-manager
         {
           home-manager = {
-            backupFileExtension = "bak";
-            useGlobalPkgs = true;
-            useUserPackages = true;
             extraSpecialArgs = { inherit inputs; };
             users = builtins.listToAttrs (
               map (user: {
@@ -61,16 +75,23 @@ rec {
           host = hostname;
           inherit system configDir;
         })
-      ] ++ modules;
+      ]
+      ++ modules;
     };
 
-  nixosHosts = lib.mapAttrs (hostname: _: mkSystem { inherit hostname; })
-    (lib.filterAttrs (_: h: (h.kind or null) == "nixos") hosts);
+  nixosHosts = lib.mapAttrs (hostname: _: mkSystem { inherit hostname; }) (
+    lib.filterAttrs (_: h: (h.kind or null) == "nixos") hosts
+  );
 
-  homeHosts = lib.mapAttrs (name: _: mkHome { inherit name; })
-    (lib.filterAttrs (_: h: (h.kind or null) == "home") hosts);
+  homeHosts = lib.mapAttrs (name: _: mkHome { inherit name; }) (
+    lib.filterAttrs (_: h: (h.kind or null) == "home") hosts
+  );
 
-  mkHome = { name, modules ? [ ] }:
+  mkHome =
+    {
+      name,
+      modules ? [ ],
+    }:
     let
       host = hosts.${name};
       inherit (host) system;
@@ -81,7 +102,6 @@ rec {
       extraSpecialArgs = { inherit inputs; };
       modules = [
         ({ lib, pkgs, ... }: {
-          nixpkgs.config.allowUnfree = true;
           home.username = username;
           home.homeDirectory = if pkgs.stdenv.isDarwin then "/Users/${username}" else "/home/${username}";
           home.stateVersion = lib.mkDefault host.state_version;
@@ -91,6 +111,7 @@ rec {
           inherit system configDir;
           user = username;
         })
-      ] ++ modules;
+      ]
+      ++ modules;
     };
 }

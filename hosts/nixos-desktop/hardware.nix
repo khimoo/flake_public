@@ -11,11 +11,9 @@
   # 既定の LTS を使う。7.1 系は X399 の ACPI S5 バグを踏み、poweroff で電源が切れなかった。
   # linuxPackages_latest に上げる前に、実機で電源が切れることを確かめる。詳細: docs/architecture/kernel-pin.md
   boot.initrd.availableKernelModules = [ "xhci_pci" "ahci" "nvme" "usbhid" "usb_storage" "sd_mod" ];
-  boot.initrd.kernelModules = [ "v4l2loopback" ];
+  boot.initrd.kernelModules = [ ];
   boot.kernelModules = [ "kvm-amd" ];
-  boot.extraModulePackages = with config.boot.kernelPackages; [ v4l2loopback ];
-
-  environment.systemPackages = with pkgs; [ droidcam ];
+  boot.extraModulePackages = [ ];
 
   fileSystems."/" =
     { device = "/dev/disk/by-uuid/ba34f80b-e2bf-4c8e-9c49-39451eef7433";
@@ -43,22 +41,4 @@
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
   hardware.cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
 
-  # blender使いたい！
-  hardware.graphics = {
-    enable = true;
-    enable32Bit = true;
-  };
-  systemd.tmpfiles.rules =
-  let
-    rocmEnv = pkgs.symlinkJoin {
-      name = "rocm-combined";
-      paths = with pkgs.rocmPackages; [
-        rocblas
-        hipblas
-        clr
-      ];
-    };
-  in [
-    "L+    /opt/rocm   -    -    -     -    ${rocmEnv}"
-  ];
 }

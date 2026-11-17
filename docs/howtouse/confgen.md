@@ -111,16 +111,16 @@ needs = ["x86_64_linux", "rocm_compute"]
 - **モジュールのインポート**: 外部 Flake の Home Manager モジュールが必要な場合は `user_config` 内で `"home_imports": [module("memex-nix", "homeModules.memex")]` を、NixOS モジュールが必要な場合は `config` 内で `"nixos_imports"` を返します。
 - **暗黙の依存の明示**: 生成された値を Lua やシェルスクリプトなど confgen の管理外で参照し、その実行系が別コンポーネントで有効化される場合は、依存関係を自動検出できません。そのため、実行環境を提供するコンポーネントを明示的に `requires` に含める必要があります（例: [tinymist_on_sshfs.star](../../config/elements/tinymist_on_sshfs.star) は `nvim_lsp` が読み込む Lua 設定値を出力するため、`requires` に `nvim_lsp` を指定しています）。
 
-### Nix 特有値の記述（印）
+### Nix 特有値の記述
 
-Nix の式として評価される値は、以下のヘルパー（印）を用いて表現します。
+Nix の式として評価される値は、以下のヘルパーで指定します。confgen はこれを Nix 式へ変換し、生成したファイルを実際の構成へ import します。
 
 | ヘルパー | 生成される Nix 表現 |
 |---|---|
 | `pkg("sshfs")`, `pkg("vimPlugins.lazy-nvim")`, `inputPkg("input", "attr")` | nixpkgs / flake input のパッケージ |
 | `repoPkg("packages/x")`, `repoPkgWith("packages/x", {...})` | リポジトリ内パッケージ（`callPackage`） |
 | `exe("util-linux", "findmnt")` | パッケージ内の実行可能ファイルパス |
-| `concat("前", exe(...), "後")` | 印を含む文字列の連結 |
+| `concat("前", exe(...), "後")` | パッケージなどの参照を含む文字列の連結 |
 | `file(name, text)`, `script(name, text)`, `scriptBin(name, text)`, `command(name, script)` | `writeText`, `writeShellScript`, `writeShellScriptBin`, `runCommand` |
 | `shellApp(name, runtimeInputs, text)`, `shellAppEnv(...)` | `writeShellApplication` |
 | `symlinkJoin(name, paths)`, `pythonWithModules([...])`, `pkgWithPackages(...)`, `pkgSetFn(...)` | 複合パッケージ構成 |
@@ -128,9 +128,10 @@ Nix の式として評価される値は、以下のヘルパー（印）を用�
 | `outOfStoreLink(path)` | Nix store 外へのシンボリックリンク（checkout からは `checkout.root` 経由で作成） |
 | `activation(after, text)`, `mkAfter(v)`, `mkBefore(v)`, `gvariantTuple([...])`, `toJSON(v)` | Home Manager activation、リスト順序制御、dconf タプル、JSON 文字列化 |
 | `luaPackages(["lpeg"])`, `lua(値)` | Neovim 用 Lua パッケージ選択関数、値を Lua リテラル式に変換した文字列 |
+| `kernelPkg("v4l2loopback")` | 選択されたカーネルの追加モジュール |
 | `module("input", "homeModules.x")`, `repoModule("hosts/x/hardware.nix")` | Nix モジュール参照（`home_imports` / `nixos_imports` 用） |
 
-※印のついたオブジェクトを `str()` や `%` 演算子で通常の文字列に変換しようとすると、confgen はエラーを出力します。
+※Nix の値を表すオブジェクトを `str()` や `%` 演算子で通常の文字列に変換しようとすると、confgen はエラーを出力します。
 
 ## 禁止事項（エラーとなる書き方）
 
@@ -174,3 +175,18 @@ confgen のビルドプロセス内で自動テスト（[confgen_test.go](../../
 Flake check の `elements-alone`（[tests/elements/confgen.nix](../../tests/elements/confgen.nix)）は `confgen alone` を実行し、全コンポーネントについて「ホストの先頭ユーザーがそのコンポーネント 1 つのみを選択した状態でも正しく設定生成できるか」を単体検証します（ホストおよびホスト固有値には、既存の対象ホストの設定が流用されます）。必要な依存の記述漏れがあるコンポーネントは、この検証で検出されます（※複数コンポーネントが同一オプション値に書き込んで衝突するケースは検出対象外です）。
 
 なお、`nixos-spin713` はローカルビルドを行わないため、リモートのデスクトップマシンが停止している際は `--max-jobs 1` を付与して switch を実行してください（詳細は [remote-build.md](./remote-build.md) を参照）。
+
+## 実際に使う生成 Nix を確認する
+
+生成物は NixOS の設定とユーザー別の Home Manager 設定を含みます。構成はこのファイルを import して作られます。たとえば desktop の生成物のパスは次で取得できます。
+
+```sh
+nix build --no-link --print-out-paths --impure --expr '
+  let f = builtins.getFlake (toString ./.);
+  in (import ./lib/confgen.nix {
+    pkgs = f.inputs.nixpkgs.legacyPackages.x86_64-linux;
+  }).generate "nixos-desktop" "x86_64-linux"
+'
+```
+
+表示されたパスを `cat` すると、適用に使う option・値・import と element の出所を確認できます。変更は生成物へ直接書かず、その出所の element または入力するホストの値へ書き、再生成します。

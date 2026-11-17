@@ -24,34 +24,6 @@ let
   desktopWindowsVm = lib.findFirst (
     p: (p.name or "") == "windows-vm"
   ) (throw "windows-vm is not installed") desktopUser.home.packages;
-  # 実在のホストは、持ち主の値も含めて config/ そのもので生成する。
-  desktopGenerated =
-    (import ../lib/confgen.nix {
-      pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux;
-    }).read
-      "nixos-desktop"
-      "x86_64-linux"
-      "pomu";
-  generatedPackages =
-    element:
-    (lib.findFirst (
-      s:
-      s.path == [
-        "home"
-        "packages"
-      ]
-    ) null element.home).value;
-  desktopXsavedEnv =
-    builtins.elemAt (builtins.head (generatedPackages desktopGenerated.elements.serve_xsaved))."$repoPkgWith"
-      1;
-  desktopXsavedBackupEnv =
-    builtins.elemAt
-      (builtins.head (generatedPackages desktopGenerated.elements.xsaved_backup))."$shellAppEnv"
-      2;
-  desktopVmEnv =
-    builtins.elemAt
-      (builtins.head (generatedPackages desktopGenerated.elements.windows_vm_gui))."$shellAppEnv"
-      2;
   wslContracts =
     # /etc/nixos を checkout へのリンクにして、--flake なしの nixos-rebuild がこの flake を使うようにする。
     assert builtins.elem "L+ /etc/nixos - - - - /home/nixos/sagyo/flake_public"
@@ -84,7 +56,7 @@ let
     assert !desktopUser.programs.uv.enable;
     # Windows VM のランチャーはデスクトップだけで有効にする。
     assert hasLauncher desktopUser "windows-vm";
-    assert desktopVmEnv.WINDOWS_VM_DOMAIN == "win11";
+    assert lib.hasInfix "WINDOWS_VM_DOMAIN=win11" desktopWindowsVm.text;
     assert hasLauncher desktopUser "mimikopi-env";
     # @mimikopi は手で作る subvol なので、作る前の switch や再起動で起動を止めないよう nofail を外さない。
     assert builtins.elem "nofail"
@@ -92,15 +64,20 @@ let
     assert hasLauncher desktopUser "xsaved";
     assert hasLauncher desktopUser "xsaved-restore-check";
     assert builtins.elem "nofail"
-      inputs.self.nixosConfigurations.nixos-desktop.config.fileSystems.${desktopXsavedEnv.dataDir}.options;
+      inputs.self.nixosConfigurations.nixos-desktop.config.fileSystems."${desktopUser.home.homeDirectory}/.local/share/xsaved".options;
     # 個人フォルダの bind mount の元は、ユーザーごとのサービスがマウントの前に作る。元がないと起動が緊急モードで止まる。
-    assert builtins.all (
-      user:
-      builtins.elem "x-systemd.requires=personal-folders-${user}.service"
-        inputs.self.nixosConfigurations.nixos-desktop.config.fileSystems."/home/${user}/ダウンロード".options
-    ) [ "pomu" "mase" ];
+    assert builtins.all
+      (
+        user:
+        builtins.elem "x-systemd.requires=personal-folders-${user}.service"
+          inputs.self.nixosConfigurations.nixos-desktop.config.fileSystems."/home/${user}/ダウンロード".options
+      )
+      [
+        "pomu"
+        "mase"
+      ];
     # xsaved が接続するデータベースを、OS 側の Postgres が作る。
-    assert builtins.elem desktopXsavedEnv.database
+    assert builtins.elem "xsaved"
       inputs.self.nixosConfigurations.nixos-desktop.config.services.postgresql.ensureDatabases;
     # ログイン画面のまま放置されても、ユーザーの timer を起動時から動かす。
     assert inputs.self.nixosConfigurations.nixos-desktop.config.users.users.pomu.linger == true;
@@ -115,7 +92,7 @@ let
     assert !(desktopUser.systemd.user.services.xsaved-web-server ? Install);
     # X で消えたツイートは取り直せないので、保存先と別の場所へ毎日写す。
     assert desktopUser.systemd.user.timers ? xsaved-backup;
-    assert lib.hasInfix desktopXsavedBackupEnv.RESTIC_PASSWORD_FILE
+    assert lib.hasInfix "${desktopUser.home.homeDirectory}/.config/xsaved/restic-password"
       desktopUser.home.activation.secrets.data;
     # 定期実行が失敗したら気づけるよう、どの timer のサービスにも失敗の通知を付ける。
     assert lib.all (

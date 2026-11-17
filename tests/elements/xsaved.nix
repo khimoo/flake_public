@@ -13,6 +13,7 @@ let
     rejectsPurpose
     inputs
     configDir
+    generatedEnvironment
     ;
 in
 {
@@ -34,29 +35,14 @@ in
           system != "x86_64-linux"
           || (
             let
-              result =
-                (import ../../lib/confgen.nix {
-                  pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux;
-                  inherit configDir;
-                }).read
-                  "test-xsaved-client"
-                  system
-                  "test";
-              packages = lib.findFirst (
-                s:
-                s.path == [
-                  "home"
-                  "packages"
-                ]
-              ) null result.elements.use_xsaved.home;
-              env = builtins.elemAt (builtins.head packages.value)."$shellAppEnv" 2;
+              env = generatedEnvironment "test-xsaved-client" system "use_xsaved";
             in
             env == {
               XSAVED_SERVER = "desktop-ts";
               XSAVED_SERVER_PORT = "8765";
               XSAVED_LOCAL_PORT = "18765";
             }
-            && !(result.elements ? serve_xsaved)
+            && !((purposeHome system "test-xsaved-client").config.systemd.user.services ? xsaved-sync)
           );
         pkgs.runCommand "xsaved-contracts" { } ''
           echo "xsaved contracts passed" > "$out"

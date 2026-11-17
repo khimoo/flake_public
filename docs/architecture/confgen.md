@@ -86,7 +86,7 @@ confgen は、[flake_public のあるべき姿](rules.md) の規則 A と規則 
 
 規則 B は言語と confgen の検査で守らせる。Nix では守らせられない。Nix のモジュールは `config` 全体を読め、コンポーネントに `pkgs` を渡すとその中の関数でファイルを読めるため。
 
-- Starlark にはファイル、環境変数、時刻を読む手段が無い。confgen は `load` を止め、コンポーネントに渡す組み込みの名前を `write`、`struct` と印を作る関数（[使い方](../howtouse/confgen.md)の表）に限る（書けなくする）。
+- Starlark にはファイル、環境変数、時刻を読む手段が無い。confgen は `load` を止め、コンポーネントに渡す組み込みの名前を `write`、`struct` とNixの値を指定するヘルパー（[使い方](../howtouse/confgen.md)の表）に限る（書けなくする）。
 - ホストとユーザーの情報（system、ユーザー名、home と、TOML の値）は、confgen が `host` と `user` として値で渡し、全ホストの TOML は `machines` として渡す。コンポーネントは外から読むのではなく、渡された値として読む（ツールが代わりに行う）。
 - 参照する相手と寄与する相手は、関数の仮引数で宣言する。confgen は宣言された相手の値だけを渡す。仮引数の集合は、使われていない仮引数を止める検査で、本体の式が実際に指すコンポーネントと一致させる（ツールが代わりに行う）。
 - 仮引数に挙げた相手は、十分条件に入る。参照する相手と寄与する相手は、必ず有効になる（ツールが代わりに行う）。
@@ -99,13 +99,23 @@ confgen は、[flake_public のあるべき姿](rules.md) の規則 A と規則 
 
 規則 B を守らせられるのは `config/elements/` のコンポーネントの中だけ。Nix のモジュールとして残っている設定は、合わさった後の値を読めるので保証の外にある。
 
+## 基本方針を選ぶ起点
+
+統合 Home Manager のバックアップ拡張子と pkgs・パッケージ配置の方針は、NixOS の基本要素 `machine_base` が出す。単独 Home Manager で unfree パッケージを許可する場合は、その機械の基本要素から `home_base` を参照する。machine を省略した単独 HM のテストでは、必要な fixture の purposes に明示する。構成を接続するファイルから方針値を暗黙に注入しない。
+
 ## Nix との分担
 
-confgen は Nix の評価の途中で build して実行し（import from derivation）、ホストごとの JSON を作る。JSON は、システム設定（ユーザーごとの NixOS の設定を含む）と、ユーザーごとの Home Manager の設定を持つ。手で実行する手順や、生成物の commit をなくすため。[confgen.nix](../../modules/home-manager/confgen.nix) と [NixOS 側](../../modules/nixos/confgen.nix) は JSON をそれぞれの設定にし、印（`$pkg`、`$exe`、`$concat`）をそのホストの `pkgs` の値に置き換える。
+confgen は Nix の評価中に build して実行し（import from derivation）、ホストごとの Nix ファイルを生成する。NixOS と Home Manager は、この同じ生成物の `nixos` と `homes.<ユーザー>` を実際に import する。表示専用の一覧や、同じ設定を管理する別台帳は作らない。
+
+生成物は element 別の module と出所を保持する。パッケージやスクリプトなどのヘルパーは、Go が決まった Nix 式へ変換する。任意の Nix 式を渡す API は持たない。文字列と属性名は引用し、文字列中の `${…}` は Nix の式として実行されないようにする。型・既定値・優先順位・リストの合成は Nix に任せる。
+
+外部 module の参照には提供元と属性の共通 key を付ける。複数の element が同じ module を使っても、その module の設定を二重に追加しない。どの element が要求したかは、各 element の import に残る。
+
+`confgen why` は目的または machine から element への経路と、その element がホスト全体で出す option を表示する。option の一覧は全ユーザー分の合併であり、導出経路を指定したユーザーだけの一覧ではない。`confgen explain` と `affected` も同じ依存解析を使う。生成 Nix の `_file` も element を指すため、評価エラーから出所を追える。
 
 値（ホストの構成、`purposes`、ホストとユーザーの値）は TOML に置き、処理はコンポーネント定義に置く。flake は評価の最初に構成の一覧を決める必要があり、Nix が読めるのは Nix、JSON、TOML だけなので、ホストのファイルは TOML にした。flake（`lib/configurations.nix`）は `config/hosts/*.toml` から構成の名前、system、ユーザーを読み、confgen は同じファイルをコンポーネントに渡す。同じ値を2か所に書かなくて済む。
 
-ホスト名、system、ユーザー名は、`lib/configurations.nix` が import するときに渡す。NixOS のモジュールはホストの JSON の全体を、Home Manager のモジュールはそのユーザーの部分を読む。`config` や module 引数の `pkgs` から決めると、設定の名前の一覧を決めるのに設定そのものが要り、無限再帰になる。confgen の build には specialArgs の `inputs` の nixpkgs を使う。
+ホスト名、system、ユーザー名は、`lib/configurations.nix` が import するときに渡す。NixOS のモジュールは生成 Nix の `nixos` を、Home Manager のモジュールは `homes.<ユーザー>` を使う。`config` や module 引数の `pkgs` から決めると、設定の名前の一覧を決めるのに設定そのものが要り、無限再帰になる。confgen の build には specialArgs の `inputs` の nixpkgs を使う。
 
 この build もほかの build と同じく、`nixos-spin713` ではデスクトップに回る。macOS の Home Manager 構成では aarch64-darwin の confgen を build するので、Linux の `check.sh` からは評価できない。Mac を使い始めるまで、そのホストのファイルを置いていない。
 

@@ -52,34 +52,13 @@ let
             home.username = "test";
             home.homeDirectory = "/Users/test";
             home.stateVersion = configurations.hosts.test-darwin.state_version;
-            nixpkgs.config.allowUnfree = true;
           }
-          (
-            {
-              config,
-              lib,
-              pkgs,
-              ...
-            }:
-            import ../lib/confgen-bridge.nix {
-              inherit lib pkgs inputs;
-              class = "home";
-              # Linux の検査では生成器だけ Linux で動かし、Darwin のパッケージは評価にとどめる。
-              result =
-                (import ../lib/confgen.nix {
-                  pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux;
-                  inherit configDir;
-                }).read
-                  "test-darwin"
-                  system
-                  "test";
-              special = resolve: {
-                "$outOfStoreLink" = v: config.lib.file.mkOutOfStoreSymlink (builtins.head v);
-                "$activation" = v: lib.hm.dag.entryAfter (builtins.elemAt v 0) (resolve (builtins.elemAt v 1));
-                "$gvariantTuple" = v: lib.hm.gvariant.mkTuple (builtins.head v);
-              };
-            }
-          )
+          (import ../modules/home-manager/confgen.nix {
+            host = "test-darwin";
+            user = "test";
+            inherit system configDir;
+            generatorPkgs = inputs.nixpkgs.legacyPackages.x86_64-linux;
+          })
         ]
         ++ modules;
       }
@@ -112,7 +91,7 @@ let
           ];
         }
         ''
-          if confgen build ${configDir} ${lib.escapeShellArg selected} ${lib.escapeShellArg system} result.json > log 2>&1; then
+          if confgen build ${configDir} ${lib.escapeShellArg selected} ${lib.escapeShellArg system} result.nix > log 2>&1; then
             cat log
             exit 1
           fi
@@ -122,29 +101,96 @@ let
         ''
     ) == "passed";
   allAssertions = home: builtins.all (a: a.assertion) home.config.assertions;
-  # confgen が作る Neovim の機能の一覧。confgen 自体は Linux で build する。
-  neovimFeatures =
-    system:
-    let
-      result =
+  generatedHome =
+    host: system:
+    (import
+      (
         (import ../lib/confgen.nix {
           pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux;
           inherit configDir;
-        }).read
-          (hostForSystem system "test-neovim-features")
+        }).generate
+          host
           system
-          "pomu";
-      featuresLua = lib.findFirst (
-        s:
-        s.path == [
-          "xdg"
-          "dataFile"
-          "nvim/nix/features.lua"
-          "text"
-        ]
-      ) null result.elements.neovim.home;
+      )
+      {
+        inherit inputs;
+        repoRoot = ../.;
+      }
+    ).homes.test;
+  generatedEnvironment =
+    host: system: name:
+    let
+      testPkgs =
+        (import inputs.nixpkgs {
+          inherit system;
+          inherit (configurations) overlays;
+          config.allowUnfree = true;
+        })
+        // {
+          writeShellApplication = args: args // { __toString = _: "/shell-app"; };
+        };
+      args = {
+        inherit lib;
+        pkgs = testPkgs;
+        config = { };
+      };
+      element = builtins.head (
+        builtins.filter (m: (m args)._file == "config/elements/${name}.star")
+          (generatedHome host system).imports
+      );
+      settings = (element args).config.contents;
+      packages = (builtins.head (builtins.filter (s: s ? home.packages) settings)).home.packages;
     in
-    (lib.elemAt featuresLua.value."$concat" 1)."$lua".features;
+    (builtins.head packages).runtimeEnv;
+  neovimFeatures =
+    system:
+    let
+      testPkgs = import inputs.nixpkgs {
+        inherit system;
+        inherit (configurations) overlays;
+        config.allowUnfree = true;
+      };
+      generated =
+        (import
+          (
+            (import ../lib/confgen.nix {
+              pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux;
+              inherit configDir;
+            }).generate
+              (hostForSystem system "test-neovim-features")
+              system
+          )
+          {
+            inherit inputs;
+            repoRoot = ../.;
+          }
+        ).homes.pomu;
+      generatedLib = lib // {
+        generators = lib.generators // {
+          toLua = _: value: builtins.toJSON { inherit (value) features; };
+        };
+      };
+      element = builtins.head (
+        builtins.filter (
+          m:
+          (m {
+            config = { };
+            lib = generatedLib;
+            pkgs = testPkgs;
+          })._file == "config/elements/neovim.star"
+        ) generated.imports
+      );
+      settings =
+        (element {
+          config = { };
+          lib = generatedLib;
+          pkgs = testPkgs;
+        }).config.contents;
+      text =
+        (builtins.head (builtins.filter (s: s ? xdg.dataFile."nvim/nix/features.lua".text) settings))
+        .xdg.dataFile."nvim/nix/features.lua".text;
+    in
+    (builtins.fromJSON (lib.removePrefix "return " text)).features;
   # activation の after / before が存在しないノードを指しても、Home Manager はエラーにせず順序も保証しない。
   activationDepsExist =
     activation:
@@ -161,44 +207,10 @@ lib.genAttrs systems (
     activationHome = configurations.mkHome {
       name = "test-agents";
     };
-    agentSyncSpec =
-      let
-        result =
-          (import ../lib/confgen.nix {
-            pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux;
-            inherit configDir;
-          }).read
-            "test-agents"
-            "x86_64-linux"
-            "test";
-        packages = lib.findFirst (
-          s:
-          s.path == [
-            "home"
-            "packages"
-          ]
-        ) null result.elements.agent_sync.home;
-      in
-      (builtins.head packages.value)."$shellAppEnv";
     agentSyncText =
-      let
-        resolveEnv =
-          value:
-          if builtins.isString value then
-            value
-          else
-            let
-              spec = value."$exe";
-              package = lib.getAttrFromPath (lib.splitString "." (builtins.elemAt spec 0)) activationHome.pkgs;
-            in
-            "${package}/bin/${builtins.elemAt spec 1}";
-      in
-      lib.concatStrings (
-        lib.mapAttrsToList (name: value: "export ${name}=${lib.escapeShellArg (resolveEnv value)}\n") (
-          builtins.elemAt agentSyncSpec 2
-        )
-      )
-      + builtins.readFile (../. + "/${builtins.head (builtins.elemAt agentSyncSpec 3)."$repoText"}");
+      (lib.findFirst (
+        p: (p.name or "") == "agent-sync"
+      ) (throw "agent-sync is not installed") activationHome.config.home.packages).text;
     # These are shell-source tests using fake tools, not builds of the target
     # platform packages. Discard context only for these mocked script strings.
     mockPaths =
@@ -244,6 +256,7 @@ lib.genAttrs systems (
         rejectsPurposeWithOwner
         allAssertions
         neovimFeatures
+        generatedEnvironment
         activationDepsExist
         hasLauncher
         commandText

@@ -241,8 +241,6 @@ func builtins() starlark.StringDict {
 		}
 		return &marker{json: map[string]any{"$file": []any{string(name), text}}, text: "file " + string(name)}, nil
 	})
-	// generic wraps a builder whose arguments are already JSON-able values (strings, lists,
-	// markers): the bridge calls the matching Nix function with them.
 	generic := func(kind string, n int) *starlark.Builtin {
 		return starlark.NewBuiltin(kind, func(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kw []starlark.Tuple) (starlark.Value, error) {
 			if len(args) != n || len(kw) > 0 {
@@ -327,6 +325,7 @@ func builtins() starlark.StringDict {
 		"flakeRev": generic("flakeRev", 0), "repoPkgWith": generic("repoPkgWith", 2),
 		"repoPath": generic("repoPath", 1), "pythonWithModules": generic("pythonWithModules", 1), "command": generic("command", 2),
 		"gvariantTuple": generic("gvariantTuple", 1),
+		"kernelPkg":     generic("kernelPkg", 1),
 		"struct":        starlark.NewBuiltin("struct", starlarkstruct.Make),
 	}
 }

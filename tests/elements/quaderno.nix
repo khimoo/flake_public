@@ -9,6 +9,7 @@ let
   inherit (helpers)
     inputs
     configDir
+    generatedEnvironment
     home
     purposeHome
     rejectsPurpose
@@ -35,24 +36,7 @@ in
           system != "x86_64-linux"
           || (
             let
-              result =
-                (import ../../lib/confgen.nix {
-                  pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux;
-                  inherit configDir;
-                }).read
-                  "test-quaderno"
-                  system
-                  "test";
-              packages = lib.findFirst (
-                s:
-                s.path == [
-                  "home"
-                  "packages"
-                ]
-              ) null result.elements.quaderno.home;
-            in
-            let
-              env = builtins.elemAt (builtins.head packages.value)."$shellAppEnv" 2;
+              env = generatedEnvironment "test-quaderno" system "quaderno";
             in
             # 取り込みは自分用サーバへ ssh で送る。手元にアーカイブと記録を持たない。
             env.QUADERNO_SERIAL == ""
@@ -69,22 +53,7 @@ in
           system != "x86_64-linux"
           || (
             let
-              result =
-                (import ../../lib/confgen.nix {
-                  pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux;
-                  inherit configDir;
-                }).read
-                  "test-quaderno-exchange"
-                  system
-                  "test";
-              packages = lib.findFirst (
-                s:
-                s.path == [
-                  "home"
-                  "packages"
-                ]
-              ) null result.elements.quaderno.home;
-              env = builtins.elemAt (builtins.head packages.value)."$shellAppEnv" 2;
+              env = generatedEnvironment "test-quaderno-exchange" system "quaderno";
             in
             !(env ? QUADERNO_ARCHIVE_DIR)
             && !(env ? QUADERNO_ARCHIVE_SSH)

@@ -24,6 +24,7 @@ windows_vm_images_subvolume = "@vm"
 [[users]]
 name = "pomu"
 purposes = [
+  "droidcam",
   # 勉強
   "grow_notes",
   "read_materials",
