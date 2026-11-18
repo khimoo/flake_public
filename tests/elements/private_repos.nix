@@ -41,7 +41,6 @@ in
     })
     // {
       elements = [
-        "agent_compression"
         "agent_links"
         "agent_sync"
         "codex_policy"

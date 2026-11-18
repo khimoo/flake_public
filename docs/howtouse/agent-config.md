@@ -74,9 +74,7 @@ Claude Code や Codex が新しい種別の設定ディレクトリを読み込�
    agent_config_repo = "git@example.org:user/agents-private.git"
    ```
 
-3. 対象ホストの設定（`config/hosts/<ホスト>.toml`）において、該当ユーザーの `[[users]]` 内の `purposes` に AI エージェントを利用する purpose（`requires` に `use_ai_agents` を含む `programming` など）が含まれていることを確認し、switch を実行します。`use_ai_agents` により `agent_config` と `agent_compression` が取り込まれます（同一定義を AI エージェントを利用する各ホストで共有します）。
-
-圧縮プラグインの既定モードは、同一ユーザーファイル内で `agent_compression = {"caveman": "off", "genshijin": "normal"}` のように指定します。キーを省略するか値を `None` に設定した場合は、該当プラグインの設定ファイルを生成しません。
+3. 対象ホストの設定（`config/hosts/<ホスト>.toml`）において、該当ユーザーの `[[users]]` 内の `purposes` に AI エージェントを利用する purpose（`requires` に `use_ai_agents` を含む `programming` など）が含まれていることを確認し、switch を実行します。`use_ai_agents` により `agent_config` が取り込まれます（同一定義を AI エージェントを利用する各ホストで共有します）。
 
 ※ すでに存在する `~/.claude/skills` などのディレクトリは、Home Manager により `.bak` 拡張子が付与されて自動退避されます。
 
@@ -85,7 +83,7 @@ Claude Code や Codex が新しい種別の設定ディレクトリを読み込�
 設定を解除する場合は、以下の手順を実施します。
 
 1. `use_ai_agents.star` の `requires` から `agent_config` を除外します。
-2. ユーザーファイルから `agent_config_root`（および自動 clone を利用している場合は `agent_config_repo`）を削除します。圧縮プラグインの設定も解除する場合は `agent_compression` もあわせて削除してください。
+2. ユーザーファイルから `agent_config_root`（および自動 clone を利用している場合は `agent_config_repo`）を削除します。
 3. switch を実行します。
 
 switch 実行によって削除されるのは、Home Manager が管理するシンボリックリンクと `agent-sync` の path unit のみです。生成済みの起動コマンド、Codex プロファイルのリンク、および `~/.claude/settings.json` に反映された設定値は残存します。

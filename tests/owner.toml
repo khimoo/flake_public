@@ -5,5 +5,4 @@ git_email = "alice@example.org"
 agent_config_root = "config"
 agent_config_repo = "git@example.org:test/config.git"
 lan_public_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFakeKeyForTestsOnly000000000000000000000000 test@lan"
-agent_compression = { caveman = "off", genshijin = "normal" }
 secrets = [{ secret = "gemini_api_key", path = ".config/gemini/api-key" }]

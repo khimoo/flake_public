@@ -1,4 +1,4 @@
-# Claude Code のプラグイン（caveman、genshijin、ponytail、codex）はフックとコマンドを `node` で起動し、
+# Claude Code のプラグイン（ponytail、codex）はフックとコマンドを `node` で起動し、
 # フックと Bash ツールは Claude Code の PATH を引き継ぐ。Node.js はシェルの PATH に入れていないので、
 # Claude Code のラッパーにだけ足す。devShell の node を隠さないよう PATH の末尾に置く。
 final: prev: {
