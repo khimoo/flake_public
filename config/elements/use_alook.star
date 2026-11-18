@@ -2,6 +2,8 @@
 requires = ["find_home_server"]
 
 def user_config(find_home_server):
+    if "serve_alook" not in find_home_server.services:
+        fail("use_alook: no server runs serve_alook")
     service = find_home_server.services["serve_alook"]
     remotes = "home=" + service["lan"] + " home-ts=" + service["tailnet"]
     return {"home": {"home.packages": [shellAppEnv(

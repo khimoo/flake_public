@@ -1,6 +1,6 @@
 # Alook: ローカル Web UI を使う
 
-`alook-app` は [Nix パッケージ](../../../packages/alook/) で管理し、自分用サーバ（nixos-desktop）の `run_home_server` が `requires` に挙げる [serve_alook.star](../../../config/elements/serve_alook.star) から導入する。
+`alook-app` は [Nix パッケージ](../../../packages/alook/) で管理し、自分用サーバ（nixos-desktop）の `purposes` に入れる [serve_alook.star](../../../config/elements/serve_alook.star) から導入する。
 Node.js はパッケージに含まれ、エージェントは導入済みの Claude Code / Codex を使う。
 操作の根拠は [上流の Quick Start（revision 9f236d1）](https://github.com/alookai/alook/blob/9f236d176f1d7981c8a0c0163bbcd4ae938f87ac/src/app/README.md)。
 

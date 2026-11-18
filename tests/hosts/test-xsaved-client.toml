@@ -1,7 +1,7 @@
 system = "x86_64-linux"
 state_version = "25.11"
 
-# クライアントの側。自分用サーバ（run_home_server を選んだ nixos-desktop のユーザー）へ ssh で接続する。
+# クライアントの側。expose_services と serve_xsaved を選んだホストのユーザーへ ssh で接続する。
 [[users]]
 name = "test"
 purposes = ["use_xsaved", "tailscale"]

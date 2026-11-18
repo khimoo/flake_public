@@ -15,12 +15,12 @@ Fujitsu Quaderno A4 Gen2 と PC 間で PDF を送受信・アーカイブする�
 * **スリープと探索**: Quaderno がスリープ中の場合は通信できません。送受信処理はスリープが解除されている間に行われます。同一 LAN 内で見つからない場合は、ペアリング済みの Bluetooth（PAN）経由での接続を試みます（詳細: [Bluetooth で受け渡す](#bluetooth-で受け渡す)）。
 * **利用設定**: [nixos-desktop.toml](../../config/hosts/nixos-desktop.toml) や [nixos-spin713.toml](../../config/hosts/nixos-spin713.toml) の `[[users]]` にある `purposes` に `read_materials` を指定すると、必要な機能（`quaderno_exchange`、`quaderno`、`use_quaderno_archive`）が有効化されます。
   * `use_quaderno_archive` は `find_home_server` を依存関係（`requires`）に持ち、`find_home_server` がホストを Tailscale ネットワーク（tailnet）に参加させます。会社 PC の WSL で `read_materials` を指定すると、評価が停止します（[wsl.md](../architecture/wsl.md)）。
-* **サーバー側の挙動**: 取り込んだ PDF と履歴データは、`run_home_server`（`serve_quaderno_archive`）が有効な自分用サーバー（`nixos-desktop`）で一元管理されます。取り込み先パスは `quaderno_archive` で指定します。
+* **サーバー側の挙動**: 取り込んだ PDF と履歴データは、`expose_services` と `serve_quaderno_archive` が有効な自分用サーバー（`nixos-desktop`）で一元管理されます。取り込み先パスは `quaderno_archive` で指定します。
   * 履歴が一括管理されているため、`desktop` と `spin713` のどちらから Quaderno を検知しても、同一リビジョンが二重に取り込まれることはありません。
   * 外出先などでサーバーに接続できない場合は取り込みをスキップし、PDF は Quaderno 内に保持されます。
 * **無効化方法**:
   * クライアント機能の停止: ユーザーの `purposes` から `read_materials` を削除します。
-  * サーバー機能の停止: `nixos-desktop` の `purposes` から `run_home_server` を削除します。
+  * サーバー機能の停止: `nixos-desktop` の `purposes` から `serve_quaderno_archive` を削除します。
 
 設計ドキュメント: [Quaderno の取り込みと送信の設計](../architecture/quaderno.md)
 

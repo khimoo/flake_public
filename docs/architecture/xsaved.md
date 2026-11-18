@@ -23,7 +23,7 @@ mimikopi-env で測ったときは、ROCm 版の torch の環境は展開後に�
 
 ## データを SATA の専用 subvol に置く
 
-SATA SSD に `@xsaved` を作り、`~/.local/share/xsaved` にマウントする（[xsaved_data.star](../../config/elements/xsaved_data.star)。ユーザーの表（`[users.xsaved]`）の `data_subvolume` で subvol を指定する。`xsaved` がデータ置き場として必ず参照する）。
+SATA SSD に `@xsaved` を作り、`~/.local/share/xsaved` にマウントする（[xsaved_data.star](../../config/elements/xsaved_data.star)。ユーザーの表（`[users.xsaved]`）の `data_subvolume` で subvol を指定し、`xsaved_data` を `purposes` に挙げる）。
 取得したメディアと、uv の環境とモデルのチェックポイントはどれも大きく、読み書きはシーケンシャルが中心なので、[disk-tiering.md](./disk-tiering.md) の分け方ではコールド層に当たる。
 
 取得したツイート（`tweets/`）と、取得し直せる環境（`venv/`、`uv-cache/`、`python/`、`huggingface/`）を一つの subvol に置く。
@@ -31,8 +31,8 @@ subvol を分ければスナップショットやバックアップの単位を�
 バックアップを作るときは `tweets/` だけを対象にする。
 
 マウントの扱いは `@mimikopi` と同じで、作る前の switch や再起動で起動を止めないよう `nofail` を付け、`xsaved-env` が起動時に `mountpoint -q` で確かめて、マウントされていなければ止まる。
-この確認は、ユーザーの表（`[users.xsaved]`）で `check_mount = true` にしたときに入る。`data_subvolume` で保存先をマウントする構成で指定する。
-確認の目的は、nofail のマウントに失敗したときにルート側を埋めないことで、マウントを定義していないホストやユーザーには守るものがない。そうした構成では、データはホームの下にそのまま置かれる。
+この確認は、`data_subvolume` を指定した構成では既定で有効になる（`check_mount` で明示もできる）。
+確認の目的は、nofail のマウントに失敗したときにルート側を埋めないことで、`xsaved_data` を使わない単一ディスクのホスト（`nixos-gce` やテスト用の構成）には守るものがない。そうした構成では、データはホームの下にそのまま置かれる。
 [tests/default.nix](../../tests/default.nix) は `nofail` が付いていることを確かめる。
 
 ## Postgres を OS のサービスで動かす
@@ -143,11 +143,11 @@ Home Manager の sd-switch は、定義が変わって動いているユニッ�
 `@xsaved` がマウントされていない間は、`xsaved-env` は何も実行せずに止まり、定期実行は失敗として記録される。
 ROCm 版の torch を、耳コピの環境と別に持つ。
 
-## Web UI は使うときだけ起動する
+## Web UI はローカル PC では使うときだけ起動し、専用サーバでは常駐させる
 
 検索語をベクトルにするには、ruri と Qwen3-VL-Embedding を読み込む必要があり、GPU で約 5〜6 GiB、CPU だとメモリを同じだけ使い、読み込みに約 40 秒かかる。
-検索はときどき使うだけなので、モデルを読み込んだまま常駐させると、使わない時間の VRAM が無駄になる。
-そこで、ブラウザで開いたときに systemd のソケットから起動し、使われなくなったら止める。
+ローカル PC（`nixos-desktop`）では、検索はときどき使うだけなので、モデルを読み込んだまま常駐させると使わない時間の VRAM が無駄になる。
+そこで `xsaved_web_socket.star` では、ブラウザで開いたときに systemd のソケットから起動し、使われなくなったら止める。専用サーバ（`nixos-gce`）向けの `xsaved_web_resident.star` では、ソケットを介さず `xsaved-web-server.service` を常駐させ、GPU ロックも取らない（[gce-offload.md](./gce-offload.md)）。
 
 xsaved の `xsaved serve` は、ポートを開いて待ち受けるだけの普通のサーバーで、systemd からソケットを受け取る作りにはしていない。
 代わりに、`xsaved-web.socket` が受けた接続を `systemd-socket-proxyd` が次のポートのサーバーへ渡す。

@@ -1,0 +1,21 @@
+system = "x86_64-linux"
+state_version = "25.11"
+timezone = "Asia/Tokyo"
+hostname = "test-xsaved-disk"
+data_device = "/dev/disk/by-uuid/test-data"
+
+machine = "machine_nixos_desktop"
+backup_dir = "/mnt/backup"
+turbo_interval_ms = 40
+echo_cancel_source = "test-source"
+
+# データディスク上の btrfs subvol マウント（xsaved_data）と KVM ビルダー（serve_kvm_builds）を単独検査するための架空ホスト。
+# 実在のサービス提供ホストと重複しないよう expose_services は含めない。
+[[users]]
+name = "alice"
+purposes = ["serve_xsaved", "xsaved_data", "serve_kvm_builds"]
+
+[users.xsaved]
+database = "xsaved_disk"
+data_subvolume = "@xsaved"
+backup_repository = "rclone:test:xsaved-disk"

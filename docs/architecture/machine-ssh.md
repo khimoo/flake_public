@@ -11,15 +11,15 @@ ssh のログインを受け付けるユーザーがいる NixOS ホストへ、
 接続を受ける側と接続する側を、別のコンポーネントにしている。
 
 - `ssh_server`: sshd を動かし、mDNS で名前を知らせる。ハードウェアプロファイルが `requires` に挙げる。
-- `personal_files`: 持ち主のアカウントが選ぶ利用目的。`requires` の `authorize_lan_key` が、持ち主の値 `lan_public_key` をそのアカウントの `authorized_keys` に入れる。sshd のないホストでは鍵が入るだけで、ログインは受け付けない。
-- `connect_ssh`: `ssh_server` があり、`personal_files` を選んだユーザーのいるホストごとに、`Host` ブロック（短縮名、`IdentityFile`、`User`、`accept-new`）を作る。どのホストのどのユーザーに入っているかは、confgen が全ホストの `purposes` から求めて `roles` で渡す。`User` は、その持ち主のアカウントにする。
+- `authorize_lan_key`: 持ち主の値 `lan_public_key` をそのアカウントの `authorized_keys` に入れる。自宅の PC では `personal_files` の `requires` から、クラウドの VM では `expose_services` の `requires` から入る。sshd のないホストでは鍵が入るだけで、ログインは受け付けない。
+- `connect_ssh`: `ssh_server` があり、`authorize_lan_key` が有効なユーザーのいるホストごとに、`Host` ブロック（短縮名、`IdentityFile`、`User`、`accept-new`）を作る。どのホストのどのユーザーに入っているかは、confgen が全ホストの `purposes` から求めて `roles` で渡す。`User` は、そのアカウントにする。
 
 接続する側は、接続を受ける側のコンポーネントがどのユーザーに入っているかを、そのまま読む。
 ホストの TOML に `ssh_user` のような目印を書き、接続する側がそれを読む形は退けた。sshd を動かすホストと目印を別々に書くことになり、sshd のないホストへの `Host` ブロックや、公開鍵の入っていないアカウントへのログイン名を、confgen が止められない。
 
-ログイン名をホストごとに 1 つにするため、1 台で `personal_files` を選んだユーザーが 2 人いると `connect_ssh` が生成を止める。
-自分用サーバのサービスも、持ち主のアカウントで動かす。ほかのアカウントで動かすと、`find_home_server` が生成を止める。
-ホストを管理するユーザー（`etc_nixos_link`）と、自分用サーバを動かすユーザー（`run_home_server`）に分けてログインを受け付ける形は退けた。今のホストではどちらも持ち主のアカウントで、分けると、組み合わせ（sshd があるホストの管理者）を表すために、条件で入る仕組みが要る。
+ログイン名をホストごとに 1 つにするため、1 台で `authorize_lan_key` が有効なユーザーが 2 人いると `connect_ssh` が生成を止める。
+自分用サーバのサービスも、同じアカウント（`expose_services`）で動かす。
+ホストを管理するユーザー（`etc_nixos_link`）と、自分用サーバを動かすユーザーに分けてログインを受け付ける形は退けた。今のホストではどちらも持ち主のアカウントで、分けると、組み合わせ（sshd があるホストの管理者）を表すために、条件で入る仕組みが要る。
 
 各ホストに `authorizedKeys` を直接書くと、双方向にしたときマシンの数の 2 乗だけ書くことになる。
 

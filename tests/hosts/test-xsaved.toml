@@ -2,24 +2,23 @@ system = "x86_64-linux"
 state_version = "25.11"
 timezone = "Asia/Tokyo"
 hostname = "test-xsaved"
-data_device = "/dev/disk/by-uuid/test-data"
+machine = "machine_nixos_gce"
 
 
 [[users]]
 name = "alice"
-purposes = ["machine_base", "serve_xsaved", "nixos_system", "etc_nixos_link"]
+purposes = ["serve_xsaved", "xsaved_web_resident", "etc_nixos_link"]
 
 [users.xsaved]
 database = "xsaved_alice"
-data_subvolume = "@xsaved-alice"
+ml_extra = "ml-cpu"
 backup_repository = "rclone:test:xsaved-alice"
 
 [[users]]
 name = "bob"
-purposes = ["machine_base", "serve_xsaved", "nixos_system"]
+purposes = ["serve_xsaved", "xsaved_web_socket", "xsaved_backup"]
 
 [users.xsaved]
 database = "xsaved_bob"
 web_port = 8775
-data_subvolume = "@xsaved-bob"
 backup_repository = "rclone:test:xsaved-bob"

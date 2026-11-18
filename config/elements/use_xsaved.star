@@ -2,9 +2,11 @@
 requires = ["find_home_server"]
 
 def user_config(find_home_server, machines):
+    if "serve_xsaved" not in find_home_server.services:
+        fail("use_xsaved: no server runs serve_xsaved")
     service = find_home_server.services["serve_xsaved"]
     # ポートは、サーバで xsaved を動かすアカウントの表（[users.xsaved]）にある。
-    tables = [account.get("xsaved", {}) for account in machines.all[find_home_server.host]["users"] if account["name"] == service["account"]]
+    tables = [account.get("xsaved", {}) for account in machines.all[service["host"]]["users"] if account["name"] == service["account"]]
     port = tables[0].get("web_port", 8765)
     # サーバのホストでも同じポートで待ち受けているので、手元の側は別のポートに転送する。
     local_port = port + 10000

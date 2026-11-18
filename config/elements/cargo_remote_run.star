@@ -2,6 +2,8 @@
 # cargo は devShell のものを、nix はシステムのものを使うので入れない。
 requires = ["find_home_server"]
 def user_config(find_home_server):
+    if "serve_workspace" not in find_home_server.services:
+        fail("cargo_remote_run: no server runs serve_workspace")
     return {"home": {"home.packages": [shellAppEnv(
         "cargo-remote-run",
         [pkg("openssh"), pkg("rsync"), pkg("coreutils"), pkg("gnugrep")],

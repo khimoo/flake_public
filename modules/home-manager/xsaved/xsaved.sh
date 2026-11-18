@@ -1,7 +1,7 @@
 # ML の依存を取得できないときも sync を動かせるよう、計算するサブコマンドだけに ml を付ける。
 # uv run は --exact がなければ既存の ml パッケージを消さないので、venv は共有できる。
 case "${1-}" in
-  ocr | embed | tag | frames | search | serve) extra=(--extra ml) ;;
+  ocr | embed | tag | frames | search | serve) extra=(--extra "${XSAVED_ML_EXTRA:-ml}") ;;
   *) extra=() ;;
 esac
 run=(xsaved-env uv run --project "$XSAVED_PROJECT_DIR" "${extra[@]}" --frozen xsaved "$@")

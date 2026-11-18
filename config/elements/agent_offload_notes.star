@@ -2,6 +2,8 @@
 # 接続先は、自分用サーバの作業場所（serve_workspace）。Claude Code は /etc/claude-code/CLAUDE.md、Codex は codex_policy の developer_instructions で読む。
 
 def _notes(find_home_server):
+    if "serve_workspace" not in find_home_server.services:
+        fail("agent_offload_notes: no server runs serve_workspace")
     server = find_home_server.services["serve_workspace"]["tailnet"]
     return """# このマシン
 

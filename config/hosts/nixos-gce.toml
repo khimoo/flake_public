@@ -1,0 +1,25 @@
+hostname = "nixos-gce"
+system = "x86_64-linux"
+kind = "nixos"
+state_version = "26.05"
+timezone = "Asia/Tokyo"
+machine = "machine_nixos_gce"
+
+[[users]]
+name = "pomu"
+purposes = [
+  "expose_services",
+  "serve_builds",
+  "serve_workspace",
+  "serve_xsaved",
+  "xsaved_web_resident",
+  "etc_nixos_link",
+]
+admin = true
+
+# serve_xsaved を GCE に移したときに使う値。専用のデータディスクを持たないため data_subvolume は指定しない。
+[users.xsaved]
+database = "xsaved"
+web_port = 8765
+ml_extra = "ml-cpu"
+backup_repository = "rclone:gdrive:xsaved-backup"

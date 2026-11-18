@@ -151,7 +151,7 @@ spin713 で実行されるアクティベートのコマンドは、NOPASSWD の
 デスクトップでビルドを行うホストを追加するときは、次の手順で進めます。
 
 1. [machine-ssh.md](./machine-ssh.md) の「マシンを追加するとき」に従い、age 鍵を配置して `config/hosts/<ホスト>.toml` を追加します。
-2. そのホストのハードウェアプロファイルの `requires` に `remote_build` を追加します。任せる先は、`run_home_server` を選んだユーザーのいるホストに決まります。接続できないときに手元でビルドさせない場合は、`local_builds = false` も指定します。
+2. そのホストのハードウェアプロファイルの `requires` に `remote_build` を追加します。任せる先は、`expose_services` と `serve_builds` を選んだユーザーのいるホストに決まります。接続できないときに手元でビルドさせない場合は、`local_builds = false` も指定します。
 3. switch してから、そのホストを tailnet に参加させます。`remote_build` は `tailscale` を依存として含めます。
 
 ハードウェアプロファイルの `requires` から `remote_build` を外すと、そのホストはデスクトップにビルドを任せなくなります。
@@ -159,10 +159,10 @@ spin713 で実行されるアクティベートのコマンドは、NOPASSWD の
 
 ## ビルドを引き受ける側
 
-ビルドを引き受けるのは、ユーザーの `purposes` に `run_home_server` を入れたホストです。`run_home_server` の手段の `serve_builds` が、そのユーザーを nix-daemon の `trusted-users` に入れます。
+ビルドを引き受けるのは、ユーザーの `purposes` に `expose_services` と `serve_builds` を入れたホストです。`serve_builds` が、そのユーザーを nix-daemon の `trusted-users` に入れます。
 任せる側は、引き受ける側で `serve_builds` が有効なユーザーとして接続します。
 
 同時に実行するジョブの数は、引き受ける側の `nix.settings.max-jobs`（既定の `"auto"` は CPU のスレッド数）で決まります。任せる側の `maxJobs`（32）は割り振りの目安で、上限は引き受ける側がかけます。
 `machine_base` が `nix.daemonCPUSchedPolicy = "idle"` を設定しているので、引き受けたビルドは、作業中は CPU を作業に譲り、作業していないときだけ全スレッドを使います。
 
-任せる側が送るビルドの種類（`supportedFeatures`）は `remote_build.star` の定数で、`kvm` を含みます。そのため `serve_builds` は `needs` に `local_kvm` を挙げていて、KVM のないホストのユーザーが `run_home_server` を選ぶと confgen が止まります。
+任せる側が送るビルドの種類（`supportedFeatures`）のうち、`kvm` と `nixos-test` は引き受ける側が `serve_kvm_builds`（`needs = ["local_kvm"]`）も持つときだけ含まれます。KVM のないホストで `serve_kvm_builds` を選ぶと confgen が止まります。

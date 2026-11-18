@@ -8,7 +8,6 @@ def _database(value):
     return value
 
 needs = ["nixos_system"]
-requires = ["xsaved_data", "xsaved_web_proxy", "xsaved_backup"]
 role = True
 
 _GPU_LOCK = "/run/xsaved-gpu.lock"
@@ -23,14 +22,32 @@ def public(user):
     port = values.get("web_port", _DEFAULT_PORT)
     if type(port) != "int" or port < 1 or port > 65535:
         fail("xsaved: invalid web port")
+    ml_extra = values.get("ml_extra", "ml")
+    if ml_extra not in ["ml", "ml-cpu"]:
+        fail("xsaved: ml_extra must be ml or ml-cpu")
+    data = user.home + "/.local/share/xsaved"
+    project = user.home + "/.local/share/xsaved-app"
+    database = _database(values.get("database", "xsaved"))
+    check_mount = values.get("check_mount", "data_subvolume" in values)
+    env = repoPkgWith("packages/xsaved-env", {
+        "dataDir": data,
+        "database": database,
+        "hsaOverrideGfxVersion": values.get("hsa_override", None),
+        "checkMount": check_mount,
+        "gpuLock": _GPU_LOCK,
+        "mlExtra": ml_extra,
+    })
+    cli = shellAppEnv("xsaved", [env, pkg("util-linux")], {"XSAVED_PROJECT_DIR": project, "XSAVED_ML_EXTRA": ml_extra}, repoText("modules/home-manager/xsaved/xsaved.sh"))
     return {
-        "data_dir": user.home + "/.local/share/xsaved",
-        "project_dir": user.home + "/.local/share/xsaved-app",
-        "database": _database(values.get("database", "xsaved")),
+        "data_dir": data,
+        "project_dir": project,
+        "database": database,
         "web_port": port,
-        "check_mount": values.get("check_mount", False),
+        "check_mount": check_mount,
         "values": values,
         "gpu_lock": _GPU_LOCK,
+        "env": env,
+        "cli": cli,
         # メジャー版を上げるとデータディレクトリの移行が要るので、stateVersion に連動させない。
         "postgresql": pkg("postgresql_17"),
         "postgresql_extensions": pkgWithPackages("postgresql_17", ["pgvector", "pgroonga"]),
@@ -54,27 +71,11 @@ def config(host):
 
 def user_config(user, serve_xsaved, failure_notify):
     xsaved = serve_xsaved
-    values = xsaved.values
-    data = xsaved.data_dir
-    project = xsaved.project_dir
     database = xsaved.database
-    port = xsaved.web_port
-    check_mount = xsaved.check_mount
-    env = repoPkgWith("packages/xsaved-env", {
-        "dataDir": data,
-        "database": database,
-        "hsaOverrideGfxVersion": values.get("hsa_override", None),
-        "checkMount": check_mount,
-        "gpuLock": xsaved.gpu_lock,
-    })
-    cli = shellAppEnv("xsaved", [env, pkg("util-linux")], {"XSAVED_PROJECT_DIR": project}, repoText("modules/home-manager/xsaved/xsaved.sh"))
+    cli = xsaved.cli
     cli_exe = concat(cli, "/bin/xsaved")
     process = shellApp("xsaved-process", [cli, xsaved.systemd], repoText("modules/home-manager/xsaved/process.sh"))
-    # 更新の前に、xsaved_backup の xsaved-backup.service でバックアップを取る。
-    update = shellAppEnv("xsaved-update", [pkg("git"), pkg("util-linux"), xsaved.systemd, cli], {
-        "XSAVED_PROJECT_DIR": project,
-    }, repoText("modules/home-manager/xsaved/update.sh"))
-    home = {"home.packages": [env, cli, update]}
+    home = {"home.packages": [xsaved.env, cli]}
     # 動いている oneshot を switch で起動し直すと処理をやり直し、switch も完了を待ち続ける。
     for name, description, kind, start, priority in [
         ("sync", "X のいいねとブックマーク、返信先と引用元を取得して登録する", "oneshot", concat(cli_exe, " sync"), {}),
@@ -96,24 +97,6 @@ def user_config(user, serve_xsaved, failure_notify):
         "Unit": {"Description": "OCR と埋め込みを毎晩計算する"},
         "Timer": {"OnCalendar": "*-*-* 04:00:00", "Persistent": True},
         "Install": {"WantedBy": ["timers.target"]},
-    }
-    server_port = str(port + 1)
-    home["systemd.user.sockets.xsaved-web"] = {
-        "Unit": {"Description": "保存したツイートの検索の Web UI を待ち受ける"},
-        "Socket": {"ListenStream": "127.0.0.1:" + str(port)},
-        "Install": {"WantedBy": ["sockets.target"]},
-    }
-    home["systemd.user.services.xsaved-web"] = {
-        "Unit": {"Description": "Web UI への要求を検索のサーバーへ渡す", "BindsTo": ["xsaved-web-server.service"], "After": ["xsaved-web-server.service"]},
-        "Service": {"ExecStart": concat(xsaved.systemd, "/lib/systemd/systemd-socket-proxyd --exit-idle-time=15min 127.0.0.1:" + server_port)},
-    }
-    home["systemd.user.services.xsaved-web-server"] = {
-        "Unit": {"Description": "保存したツイートの検索のサーバー", "StopWhenUnneeded": True},
-        "Service": {
-            "ExecStart": concat(cli_exe, " serve --port " + server_port),
-            "ExecStartPost": script("xsaved-web-wait", "until (exec 3<>/dev/tcp/127.0.0.1/" + server_port + ") 2>/dev/null; do sleep 0.5; done\n"),
-            "TimeoutStartSec": "5min",
-        },
     }
     owner = user.name.replace('"', '""')
     nixos = {

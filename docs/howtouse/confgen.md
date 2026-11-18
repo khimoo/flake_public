@@ -52,8 +52,8 @@ needs = ["x86_64_linux", "rocm_compute"]
 
 ホストごとの責務の分離方針については [構成の境界](../architecture/configuration.md#ホストによる違いを受け持つ場所) を参照してください。物理的な条件（プラットフォームの事実）で決まらない差異は、「自分用サーバ（サービス提供側）」と「クライアント（サービス利用側）」に役割を分離して管理します。「どのホストで動かすか」をホスト側にベタ書きすると、組み合わせの管理が煩雑になるだけでなく、「1台限定のサービスを誤って2台に記述した際に弾く仕組み」が別途必要になるためです。
 
-- **サーバ側**: サーバ役となるホストのユーザーが、`purposes` に `run_home_server` を指定します。`run_home_server.star` は `requires` に各サービス用コンポーネント（`serve_quaderno_archive`、`serve_xsaved`、`serve_workspace`、`serve_alook`、`serve_remote_desktop`、`serve_builds`、`stay_awake`）を列挙し、実行ユーザーの linger を有効化します。
-- **クライアント側**: `use_quaderno_archive`、`use_xsaved`、`use_alook` などのクライアント用コンポーネントが SSH でサーバに接続します。これらは直接接続先を保持せず、接続手段である `find_home_server` のみを `requires` に指定します。`find_home_server` は鍵（`lan_ssh_key`）を配置し、`connect_ssh_tailnet` 経由で Tailnet に参加して接続名（`desktop-ts` など）の Host ブロックを設定します。
+- **サーバ側**: サーバ役となるホストのユーザーが、`purposes` に `expose_services` と各サービス用コンポーネント（`serve_quaderno_archive`、`serve_xsaved`、`xsaved_data`、`xsaved_web_socket`、`xsaved_web_resident`、`xsaved_backup`、`serve_workspace`、`serve_alook`、`serve_remote_desktop`、`serve_builds`、`serve_kvm_builds`、`stay_awake`）を指定します。`expose_services` が実行ユーザーの linger を有効化します。
+- **クライアント側**: `use_quaderno_archive`、`use_xsaved`、`use_alook` などのクライアント用コンポーネントが SSH でサーバに接続します。これらは直接接続先を保持せず、接続手段である `find_home_server` のみを `requires` に指定します。`find_home_server` は鍵（`lan_ssh_key`）を配置し、`connect_ssh_tailnet` 経由で Tailnet に参加して接続名（`desktop-ts` や `gce-ts` など）の Host ブロックを設定します。
   - サーバ自身の上でクライアント機能を使う場合も、同一の手順で自身に接続します。
   - 会社の WSL で誤って選択された場合は、WSL のハードウェアプロファイル内の assertion（[isolation.nix](../../hosts/nixos-work-wsl/isolation.nix)）によって評価が停止します。
   - クライアントを利用目的にまとめた例として、spin713 の `program_on_home_server`（ファイルを SSHFS でマウントし、ビルドや Alook を自分用サーバで実行する構成）があります。
@@ -61,13 +61,12 @@ needs = ["x86_64_linux", "rocm_compute"]
 
 ### 接続先の自動解決
 
-接続先ホストを静的に記述する必要はありません。`find_home_server` は引数 `roles` を参照し、`run_home_server` が有効なユーザーが存在する唯一のホストを特定します。そして公開値 `services` を通じて、各サービスコンポーネント（`serve_xsaved` など）に実行ユーザー名と接続名（`desktop-ts` など）を伝達します。サーバホスト固有の値（xsaved の `web_port` など）は `machines` から取得されます。
+接続先ホストを静的に記述する必要はありません。`find_home_server` は引数 `roles` を参照し、`expose_services` が有効なユーザーが存在するホスト群から、各 `serve_*` を提供する唯一のホストとアカウントを特定します。そして公開値 `services` を通じて、各サービスコンポーネント（`serve_xsaved` など）に実行ホスト名、ユーザー名、接続名（`desktop-ts` など）を伝達します。サーバホスト固有の値（xsaved の `web_port` など）は `machines` から取得されます。
 
 以下のような不正な状態が検出された場合、`find_home_server` は設定生成をエラーで中断します。
 
-- `run_home_server` を持つホストが 0 台、または 2 台以上存在する
-- サービス実行ユーザーが SSH ログインを受け付けない（`ssh_server` がない、または `personal_files` が未選択）
-- 同一サービスを複数ユーザーが動かしている
+- `expose_services` を持つホストが 1 台も存在しない
+- 同一の `serve_*` サービスを複数のサーバまたは複数ユーザーが動かしている
 
 ※サーバ側ホストの `purposes` を変更すると、クライアント側ホストの設定生成結果にも影響します。サーバ側の変更後はクライアント側でも switch を実行してください。
 

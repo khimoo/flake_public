@@ -13,6 +13,7 @@
   # GPU を使う計算を、ほかの実行と順番にするためのロックファイル（ホストで共有する）。
   gpuLock ? null,
   hsaOverrideGfxVersion ? null,
+  mlExtra ? "ml",
 }:
 
 buildFHSEnv {
@@ -51,7 +52,14 @@ buildFHSEnv {
     export XSAVED_DATA_DIR=${lib.escapeShellArg "${dataDir}/tweets"}
     export XSAVED_DATABASE_URL=${lib.escapeShellArg "host=/run/postgresql dbname=${database}"}
     export XSAVED_GALLERY_DL=${lib.escapeShellArg (lib.getExe gallery-dl)}
-    ${lib.optionalString (gpuLock != null) "export XSAVED_GPU_LOCK=${lib.escapeShellArg gpuLock}"}
+    export XSAVED_ML_EXTRA=${lib.escapeShellArg mlExtra}
+    ${lib.optionalString (gpuLock != null) ''
+      if [ -z "''${XSAVED_NO_GPU_LOCK:-}" ]; then
+        export XSAVED_GPU_LOCK=${lib.escapeShellArg gpuLock}
+      else
+        unset XSAVED_GPU_LOCK
+      fi
+    ''}
     # アカウント名は公開リポジトリに書かないので、データディレクトリのファイルから読む。
     if [ -z "''${XSAVED_X_USER:-}" ] && [ -r ${lib.escapeShellArg "${dataDir}/x-user"} ]; then
       XSAVED_X_USER=$(< ${lib.escapeShellArg "${dataDir}/x-user"})

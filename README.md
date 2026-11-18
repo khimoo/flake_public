@@ -21,7 +21,7 @@
 
 ## 対応範囲
 
-- NixOS: `nixos-desktop`, `nixos-spin713`（x86_64 Linux）。GUI はハードウェアプロファイルの `requires`、vault 同期はユーザーの利用目的 `grow_notes` で選択。音楽制作はユーザーの利用目的 `make_music` で選択し、`nixos-desktop` だけで有効。
+- NixOS: `nixos-desktop`, `nixos-spin713`, `nixos-gce`（x86_64 Linux）。GUI はハードウェアプロファイルの `requires`、vault 同期はユーザーの利用目的 `grow_notes` で選択。音楽制作はユーザーの利用目的 `make_music` で選択し、`nixos-desktop` だけで有効。`nixos-gce` は Google Compute Engine 上のオフロード先 VM（[手順](docs/howtouse/gce-offload.md) · [設計判断](docs/architecture/gce-offload.md)）。
 - NixOS-WSL: `nixos-work-wsl`（x86_64 Linux、会社PC。GUI アプリは WSLg で表示）。秘密情報と自宅への接続経路を持たせない。[手順](docs/howtouse/wsl.md) · [設計判断](docs/architecture/wsl.md)
 - Home Manager 単独: `pomu-macos`（aarch64 Darwin CLI）は使い始めるまで `flake.nix` で外している。書き方は「新しいホストを追加する」の例を参照。
 - RustOwlの自動導入はx86_64 Linux限定。macOSのGUI・音楽制作・vaultプロファイルは未対応。

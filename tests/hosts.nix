@@ -17,6 +17,8 @@ let
   wsl = inputs.self.nixosConfigurations.nixos-work-wsl.config;
   wslUser = wsl.home-manager.users.nixos;
   wslSshConfig = wsl.environment.etc."ssh/ssh_config".text;
+  gce = inputs.self.nixosConfigurations.nixos-gce.config;
+  gceUser = gce.home-manager.users.pomu;
   desktopUser = inputs.self.nixosConfigurations.nixos-desktop.config.home-manager.users.pomu;
   desktopKeyd =
     inputs.self.nixosConfigurations.nixos-desktop.config.services.keyd.keyboards.default.settings;
@@ -61,10 +63,13 @@ let
     # @mimikopi は手で作る subvol なので、作る前の switch や再起動で起動を止めないよう nofail を外さない。
     assert builtins.elem "nofail"
       inputs.self.nixosConfigurations.nixos-desktop.config.fileSystems."/home/pomu/.local/share/mimikopi".options;
-    assert hasLauncher desktopUser "xsaved";
-    assert hasLauncher desktopUser "xsaved-restore-check";
-    assert builtins.elem "nofail"
-      inputs.self.nixosConfigurations.nixos-desktop.config.fileSystems."${desktopUser.home.homeDirectory}/.local/share/xsaved".options;
+    assert hasLauncher desktopUser "xsaved-web";
+    assert hasLauncher desktopUser "xsaved-remote";
+    assert hasLauncher desktopUser "cargo-remote-run";
+    assert !(desktopUser.systemd.user.services ? xsaved-sync);
+    # GCE オフロード中は nixos-desktop からも gce-ts へリモートビルドを送る。
+    assert builtins.any (m: m.hostName == "gce-ts")
+      inputs.self.nixosConfigurations.nixos-desktop.config.nix.buildMachines;
     # 個人フォルダの bind mount の元は、ユーザーごとのサービスがマウントの前に作る。元がないと起動が緊急モードで止まる。
     assert builtins.all
       (
@@ -76,24 +81,8 @@ let
         "pomu"
         "mase"
       ];
-    # xsaved が接続するデータベースを、OS 側の Postgres が作る。
-    assert builtins.elem "xsaved"
-      inputs.self.nixosConfigurations.nixos-desktop.config.services.postgresql.ensureDatabases;
     # ログイン画面のまま放置されても、ユーザーの timer を起動時から動かす。
     assert inputs.self.nixosConfigurations.nixos-desktop.config.users.users.pomu.linger == true;
-    # 何時間も続く定期実行を、switch で止めて起動し直さない。
-    assert builtins.all (n: desktopUser.systemd.user.services.${n}.Unit.X-SwitchMethod == "keep-old") [
-      "xsaved-sync"
-      "xsaved-process"
-      "xsaved-backup"
-    ];
-    # Web UI は常駐させず、ブラウザで開いたときにソケットから起動する。
-    assert desktopUser.systemd.user.sockets.xsaved-web.Install.WantedBy == [ "sockets.target" ];
-    assert !(desktopUser.systemd.user.services.xsaved-web-server ? Install);
-    # X で消えたツイートは取り直せないので、保存先と別の場所へ毎日写す。
-    assert desktopUser.systemd.user.timers ? xsaved-backup;
-    assert lib.hasInfix "${desktopUser.home.homeDirectory}/.config/xsaved/restic-password"
-      desktopUser.home.activation.secrets.data;
     # 定期実行が失敗したら気づけるよう、どの timer のサービスにも失敗の通知を付ける。
     assert lib.all (
       name:
@@ -116,6 +105,31 @@ let
     );
     assert !(desktopKeyd.main or { } ? rightalt);
     "nixos-desktop contracts passed";
+  gceContracts =
+    assert systemAssertionsHold gce;
+    assert gce.users.users.pomu.linger == true;
+    assert gce.users.users.pomu.openssh.authorizedKeys.keys != [ ];
+    # クラウド VM には個人の全秘密や private repo の clone（personal_files）を配らない。
+    assert !(hasLauncher gceUser "clone-repos");
+    assert gceUser.home.activation ? secrets;
+    assert !(lib.hasInfix "SOPS_AGE_KEY_FILE" gceUser.home.activation.secrets.data);
+    assert !(lib.hasInfix "age_key=" gceUser.home.activation.secrets.data);
+    assert gce.system.build ? diskoScript;
+    assert gce.networking.firewall.enable;
+    assert !gce.security.googleOsLogin.enable;
+    # serve_xsaved と serve_builds と serve_workspace を引き受けていること。
+    assert hasLauncher gceUser "xsaved";
+    assert builtins.any (p: (p.pname or "") == "rsync") gceUser.home.packages;
+    assert builtins.elem "xsaved" gce.services.postgresql.ensureDatabases;
+    assert builtins.all (n: gceUser.systemd.user.services.${n}.Unit.X-SwitchMethod == "keep-old") [
+      "xsaved-sync"
+      "xsaved-process"
+      "xsaved-frames"
+    ];
+    assert gceUser.systemd.user.services.xsaved-web-server.Install.WantedBy == [ "default.target" ];
+    assert !(gceUser.systemd.user.sockets ? xsaved-web);
+    assert builtins.elem "pomu" gce.nix.settings.trusted-users;
+    "nixos-gce contracts passed";
 in
 {
   cargo-remote-run-contracts =
@@ -325,5 +339,17 @@ in
     })
     // {
       hosts = [ "nixos-desktop" ];
+    };
+
+  gce-contracts =
+    (lib.lazyDerivation {
+      derivation = (
+        pkgs.runCommand "gce-contracts" { } ''
+          echo ${lib.escapeShellArg gceContracts} > "$out"
+        ''
+      );
+    })
+    // {
+      hosts = [ "nixos-gce" ];
     };
 }

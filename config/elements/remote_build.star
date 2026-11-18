@@ -3,11 +3,18 @@ requires = ["find_home_server", "tailscale"]
 
 # 同時に何ジョブ送るか。上限は任せる先のホストが自分の max-jobs でかけるので、ここでは多めに送る。
 _MAX_JOBS = 32
-# 自分用サーバが引き受けられるビルドの種類。kvm を載せられるのは、serve_builds が needs で KVM のないホストを止めるから。
-_FEATURES = ["benchmark", "big-parallel", "kvm", "nixos-test"]
+_BASE_FEATURES = ["benchmark", "big-parallel"]
+# kvm と nixos-test は、任せる先のホストが serve_kvm_builds（needs = ["local_kvm"]）を持つときだけ載せる。
+_KVM_FEATURES = ["kvm", "nixos-test"]
+
+def _builder(find_home_server):
+    if "serve_builds" not in find_home_server.services:
+        fail("remote_build: no server runs serve_builds")
+    return find_home_server.services["serve_builds"]
 
 def config(host, find_home_server):
-    if find_home_server.host == host.hostname:
+    builder = _builder(find_home_server)
+    if builder["host"] == host.hostname:
         fail("remote_build: this host is the home server")
     result = {
         "nix.distributedBuilds": True,
@@ -18,13 +25,17 @@ def config(host, find_home_server):
     return {"nixos": result}
 
 def user_config(user, machines, find_home_server, lan_ssh_key):
+    builder = _builder(find_home_server)
+    target_host = builder["host"]
+    kvm = find_home_server.services.get("serve_kvm_builds")
+    features = _BASE_FEATURES + (_KVM_FEATURES if kvm != None and kvm["host"] == target_host else [])
     return {"nixos": {
         "nix.buildMachines": [{
-            "hostName": find_home_server.services["serve_builds"]["tailnet"],
+            "hostName": builder["tailnet"],
             "protocol": "ssh-ng",
-            "system": machines.all[find_home_server.host]["system"],
+            "system": machines.all[target_host]["system"],
             "maxJobs": _MAX_JOBS,
-            "supportedFeatures": _FEATURES,
+            "supportedFeatures": features,
             # nix-daemon は root で動き、root の ~/.ssh には共有鍵がないので、このユーザーの鍵を絶対パスで渡す。
             "sshKey": lan_ssh_key.path,
         }],

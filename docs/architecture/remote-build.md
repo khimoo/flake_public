@@ -69,21 +69,20 @@ Nix 2.31.5（`cc38c0c5`）のソースと、2026-09-24 の spin713 での観測�
 
 ## 任せる先は `find_home_server` が求め、ジョブ数と feature は `remote_build.star` に置く
 
-任せる先は、`run_home_server` を選んだユーザーのいるホストで、`find_home_server` が `roles` から求める。ログインするのは、そのホストで `serve_builds` が有効なユーザーになる。
-任せる側のホストの TOML に `build_host` を書く案は退けた。ビルドを引き受けるかどうかは引き受ける側のユーザーの利用目的（`run_home_server`）で決まるので、同じ事実を任せる側にも書くと、食い違っても confgen が止められない。
+任せる先は、`expose_services` と `serve_builds` を選んだユーザーのいるホストで、`find_home_server` が `roles` から求める。ログインするのは、そのホストで `serve_builds` が有効なユーザーになる。
+任せる側のホストの TOML に `build_host` を書く案は退けた。ビルドを引き受けるかどうかは引き受ける側のユーザーの利用目的で決まるので、同じ事実を任せる側にも書くと、食い違っても confgen が止められない。
 
 `maxJobs` は `remote_build.star` に 32 と定数で書いた。
 NixOS の `nix.buildMachines` の `maxJobs` の説明（`nixos/modules/config/nix-remote-build.nix`）に「The build machine will enforce its own limits」とあり、同時に実行する数の上限は、引き受ける側の `nix.settings.max-jobs`（既定の `"auto"` はスレッド数）がかける。
 任せる側の値は割り振りの目安なので、多めにした。既定値の 1 のままだと、1 つずつしか送らない。
 
-`supportedFeatures` も定数で、`benchmark`、`big-parallel`、`kvm`、`nixos-test` にした。デスクトップの `system-features` の既定値と同じ 4 つだ。
-`big-parallel` を載せないと、LLVM のようにそれを要求する derivation はデスクトップでビルドされない。
+`supportedFeatures` のうち `benchmark` と `big-parallel` は定数にし、`kvm` と `nixos-test` は引き受ける側のホストが `serve_kvm_builds`（`needs = ["local_kvm"]`）も持つときだけ加える。
+`big-parallel` を載せないと、LLVM のようにそれを要求する derivation はビルダーでビルドされない。
 
 引き受ける側のホストの TOML に `[builder]` を置き、任せる側が読む案は退けた。
-引き受ける側のコンポーネントはその値を読まないので、引き受ける側からは使われていない値に見え、消すと任せる側が壊れる。ビルドを引き受けるかどうかはユーザーの利用目的（`run_home_server`）で決まるのに、値だけがホストに残る。
+引き受ける側のコンポーネントはその値を読まないので、引き受ける側からは使われていない値に見え、消すと任せる側が壊れる。ビルドを引き受けるかどうかはユーザーの利用目的で決まるのに、値だけがホストに残る。
 
-`kvm` を定数に載せられるように、引き受ける側の `serve_builds.star` が `needs` にプラットフォームの事実 `local_kvm` を挙げる。KVM のないホストのユーザーが `run_home_server` を選ぶと、confgen が生成を止める。
-代償として、KVM のないホストは自分用サーバにできない。残りの 3 つは、引き受ける側の設定と機械的には結ばれていない（[confgen.md](./confgen.md) の「今後の課題」）。
+KVM のないホスト（GCE の E2 インスタンスなど）では `serve_builds` だけを選び、KVM を持つホスト（`nixos-desktop` など）では `serve_kvm_builds` も選ぶ。KVM のないホストで `serve_kvm_builds` を選ぶと、confgen が生成を止める。残りの 2 つ（`benchmark`、`big-parallel`）は、引き受ける側の設定と機械的には結ばれていない（[confgen.md](./confgen.md) の「今後の課題」）。
 
 ## `builders-use-substitutes = true`
 
@@ -93,7 +92,7 @@ NixOS の `nix.buildMachines` の `maxJobs` の説明（`nixos/modules/config/ni
 ## `trusted-users` は、引き受ける側を `serve_builds`、任せる側を `remote_build` が設定する
 
 デスクトップの nix-daemon は、接続してきたユーザーが trusted でないと derivation のビルドを拒否する（`you are not privileged to build input-addressed derivations`）。
-引き受ける側では、`run_home_server` の手段の `serve_builds.star` が、その利用目的を選んだユーザーを `trusted-users` に入れる。
+引き受ける側では、`serve_builds.star` が、その利用目的を選んだユーザーを `trusted-users` に入れる。
 任せる側は、`serve_builds` が有効なユーザーとして接続する（`find_home_server` の公開値）ので、接続するユーザーと trusted にするユーザーは、同じコンポーネントが入っているかどうかから決まる。
 
 任せる側でも trusted が要る。

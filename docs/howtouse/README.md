@@ -13,6 +13,7 @@
 | SSH 鍵と private repo | 鍵の配布と更新、private repo の clone と更新 | [private-repo-clone.md](./private-repo-clone.md) |
 | マシン間 SSH | マシン間の接続とマシンの追加・廃棄 | [machine-ssh.md](./machine-ssh.md) |
 | リモートビルド | ビルドをデスクトップに回す方法 | [remote-build.md](./remote-build.md) |
+| GCE オフロード | Google Cloud 上の NixOS VM へビルドや xsaved を移し、ローカルへ戻す手順 | [gce-offload.md](./gce-offload.md) |
 | Tailscale | LAN の外からデスクトップを使う方法 | [tailscale.md](./tailscale.md) |
 | sshfs | 外出先からデスクトップのファイルを sshfs で編集する方法 | [sshfs.md](./sshfs.md) |
 | 会社PCの NixOS-WSL | 会社 PC の WSL の導入と運用 | [wsl.md](./wsl.md) |

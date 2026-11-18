@@ -38,7 +38,7 @@ ssh spin713     # pomu@nixos-spin713.local に接続
    - Tailscale 経由の接続名（`-ts`）も利用する場合は、`requires` に `connect_ssh_tailnet` を追加します（`tailscale` も含まれます）。
    - 詳細は [ホスト追加](../../README.md#新しいホストを追加する) および [ユーザー管理](users.md) を参照してください。
 3. **ログイン対象ユーザーの設定**:
-   SSH ログインを受け付けるのは所有者アカウントです。`purposes` に `personal_files` が設定されているユーザーの `authorized_keys` に LAN 公開鍵が登録され、`ssh <短縮名>` で接続した際のログイン先アカウントになります（ログイン受付は `ssh_server` が有効なホストに限られます）。
+   SSH ログインを受け付けるのは、`purposes` に `personal_files`（または `expose_services` / `authorize_lan_key`）が設定されているユーザーです。そのユーザーの `authorized_keys` に LAN 公開鍵が登録され、`ssh <短縮名>` で接続した際のログイン先アカウントになります（ログイン受付は `ssh_server` が有効なホストに限られます）。
 4. **設定の適用**:
    新しいマシンで `switch` を実行します。`lan_ssh_key` の配布対象ユーザーであれば `secrets/secrets.yaml` から `~/.ssh/id_lan` が復号・配置され、即座に既存マシンへ SSH 接続できるようになります。
 

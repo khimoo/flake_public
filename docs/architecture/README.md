@@ -12,6 +12,7 @@ Flake 設定の設計判断・実装構造のドキュメント。設定変更�
 | [users.md](./users.md) | ユーザー管理と sudo、Home Manager との連携の設計 |
 | [machine-ssh.md](./machine-ssh.md) | マシン間 SSH と LAN 共通鍵の設計 |
 | [remote-build.md](./remote-build.md) | リモートビルドの設計 |
+| [gce-offload.md](./gce-offload.md) | Google Cloud（GCE）へビルドや xsaved をオフロードし、ローカルへ戻す設計 |
 | [tailscale.md](./tailscale.md) | LAN の外からの SSH・リモートビルド・RDP の経路の設計 |
 | [private-repo-clone.md](./private-repo-clone.md) | SSH 鍵の配布、秘密の更新、private repo の clone の設計 |
 | [new-machine.md](./new-machine.md) | 新マシンのプロビジョニングの設計メモ（未実装） |

@@ -20,7 +20,7 @@ in
             instructions = host.environment.etc."claude-code/CLAUDE.md".text;
           in
           (codexConfig host).developer_instructions == instructions
-          && lib.hasInfix "ssh desktop-ts" instructions
+          && lib.hasInfix "ssh gce-ts" instructions
           && (codexConfig host).agents.enabled == false;
         assert !((agentHost "test-agent-empty").environment.etc ? "claude-code/CLAUDE.md");
         assert !(codexConfig (agentHost "test-agent-empty") ? developer_instructions);

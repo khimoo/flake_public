@@ -40,9 +40,12 @@ in
         "machine_base"
         "connect_ssh"
         "connect_ssh_tailnet"
+        "expose_services"
         "find_home_server"
         "lan_ssh_key"
         "remote_build"
+        "serve_builds"
+        "serve_kvm_builds"
         "tailscale"
       ];
     };
