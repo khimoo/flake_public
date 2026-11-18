@@ -41,7 +41,7 @@ bash scripts/check.sh --full   # toplevel の評価、nix flake check、全シ�
 
 - `elements = [ "コンポーネント名" ... ];`：生成結果を確かめるコンポーネントをすべて挙げます。影響するコンポーネントと重なればビルドします。例えば activation は `private_repos` と `secrets` です。シェルや Python を直接検査する場合も、そのファイルを読むコンポーネントを指定します。例えば windows-vm は `windows_vm` です。
 - `hosts = [ "ホスト名" ... ];`：評価する実在ホストを挙げます。影響するホストと重なればビルドします。
-- `always = true;`：読むコンポーネントのない graphify-smoke や proofread-howtouse などに使います。変更がある場合と `--all` / `--full` で、常にビルドします。
+- `always = true;`：読むコンポーネントのない graphify-smoke などに使います。変更がある場合と `--all` / `--full` で、常にビルドします。
 
 ### 評価の範囲
 

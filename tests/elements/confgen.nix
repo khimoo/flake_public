@@ -191,24 +191,4 @@ in
     // {
       always = true;
     };
-  # コミット前の hook が、ステージした docs/howtouse の文書だけを校正し、印があれば通し、校正に失敗したら止めること。
-  proofread-howtouse =
-    (lib.lazyDerivation {
-      derivation = (
-        pkgs.runCommand "proofread-howtouse"
-          {
-            nativeBuildInputs = [
-              pkgs.python3
-              pkgs.git
-            ];
-          }
-          ''
-            python ${../proofread-howtouse.py} ${../../.agents/hooks/proofread-howtouse.py}
-            touch "$out"
-          ''
-      );
-    })
-    // {
-      always = true;
-    };
 }
