@@ -106,13 +106,18 @@ confgen は、[flake_public のあるべき姿](rules.md) の規則 A と規則 
 
 ## Nix との分担
 
-confgen は Nix の評価中に build して実行し（import from derivation）、ホストごとの Nix ファイルを生成する。NixOS と Home Manager は、この同じ生成物の `nixos` と `homes.<ユーザー>` を実際に import する。表示専用の一覧や、同じ設定を管理する別台帳は作らない。
+confgen は Nix の評価中に build して実行し（import from derivation）、ホストごとの Nix ファイルを生成する。NixOS と Home Manager は、この同じ生成物の `nixos` と `homes.<ユーザー>` を実際に import する。適用に使う値とは別に値を持つ一覧や台帳は作らない。人が読むための出力（`why`、`explain`、`graph`）は、生成と同じ計算結果か NixOS の評価結果から書き出し、値を独自に持たない。
+
 
 生成物は element 別の module と出所を保持する。パッケージやスクリプトなどのヘルパーは、Go が決まった Nix 式へ変換する。任意の Nix 式を渡す API は持たない。文字列と属性名は引用し、文字列中の `${…}` は Nix の式として実行されないようにする。型・既定値・優先順位・リストの合成は Nix に任せる。
 
 外部 module の参照には提供元と属性の共通 key を付ける。複数の element が同じ module を使っても、その module の設定を二重に追加しない。どの element が要求したかは、各 element の import に残る。
 
 `confgen why` は目的または machine から element への経路と、その element がホスト全体で出す option を表示する。option の一覧は全ユーザー分の合併であり、導出経路を指定したユーザーだけの一覧ではない。`confgen explain` と `affected` も同じ依存解析を使う。生成 Nix の `_file` も element を指すため、評価エラーから出所を追える。
+
+`confgen graph` は全ホストの構成をグラフの HTML に書き出す（[使い方](../howtouse/confgen.md#element-のつながりと-option-をグラフで見る)）。switch に組み込まず手で実行するのは、構成を理解するための出力で、適用に要らない重い評価を switch に足さないため。option の最終値は、confgen が出す寄与値からは求められない（NixOS のモジュールの仕組みが合わせ、element の外のモジュールや既定値も加わる）ので、[scripts/confgen-graph.sh](../../scripts/confgen-graph.sh) が NixOS を評価して求める。
+
+element のノードは全体で1つにする。element の定義はホストによらず1つで、element どうしの `requires`、参照、寄与も定義だけで決まるため。書いた値はホストやユーザーの値と寄与の集まり方で変わるので、値が同じ範囲ごとにノードを分ける。最終値は、同じ名前の option でも構成ごとに別の実体（NixOS はホストごと、Home Manager はホストとユーザーごと）なので、まとめない。ノードのつながりと値はグラフで読めるので、右の欄にはソースファイルだけを出す。
 
 値（ホストの構成、`purposes`、ホストとユーザーの値）は TOML に置き、処理はコンポーネント定義に置く。flake は評価の最初に構成の一覧を決める必要があり、Nix が読めるのは Nix、JSON、TOML だけなので、ホストのファイルは TOML にした。flake（`lib/configurations.nix`）は `config/hosts/*.toml` から構成の名前、system、ユーザーを読み、confgen は同じファイルをコンポーネントに渡す。同じ値を2か所に書かなくて済む。
 

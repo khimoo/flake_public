@@ -1,0 +1,554 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>confgen graph</title>
+<style>
+:root {
+  --bg: #ffffff; --fg: #1f2328; --muted: #656d76; --line: #d0d7de; --panel: #f6f8fa;
+  --node: #ffffff; --host: #24292f; --user: #0969da; --purpose: #0969da; --machine: #8250df; --fact: #8c959f;
+  --requires: #8c959f; --reads: #1a7f37; --writes: #bc4c00; --mark: #bf8700;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d1117; --fg: #e6edf3; --muted: #8d96a0; --line: #30363d; --panel: #161b22;
+    --node: #161b22; --host: #e6edf3; --user: #4493f8; --purpose: #1f6feb; --machine: #8957e5; --fact: #6e7681;
+    --requires: #6e7681; --reads: #3fb950; --writes: #db6d28; --mark: #d29922;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { display: grid; grid-template-rows: 1fr auto; background: var(--bg); color: var(--fg); font: 14px/1.5 system-ui, sans-serif; }
+main { display: grid; grid-template-columns: 1fr minmax(320px, 36%); min-height: 0; }
+#graph-area { position: relative; min-height: 0; min-width: 0; }
+#graph { position: absolute; inset: 0; }
+#buttons { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+#buttons button {
+  position: absolute; left: 0; top: 0; pointer-events: auto; cursor: pointer;
+  font: 10px/1.4 system-ui, sans-serif; padding: 0 4px; border-radius: 8px;
+  color: var(--muted); background: var(--bg); border: 1px solid var(--line);
+}
+#buttons button.open { color: var(--bg); background: var(--mark); border-color: var(--mark); }
+aside { display: flex; flex-direction: column; gap: 8px; min-height: 0; padding: 12px 16px; border-left: 1px solid var(--line); background: var(--panel); }
+#panel { flex: 1; min-height: 0; overflow: auto; }
+#panel h2.path { position: sticky; top: 0; z-index: 1; margin: 0; padding: 6px 0; font: 12px ui-monospace, monospace; color: var(--muted); background: var(--panel); word-break: break-all; }
+.code { font: 12px/1.5 ui-monospace, monospace; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 4px 0; margin-bottom: 12px; }
+.code .line { display: flex; white-space: pre; }
+.code .line.hit { background: color-mix(in srgb, var(--mark) 25%, transparent); }
+.code .no { flex: none; width: 3.5em; padding-right: 8px; text-align: right; color: var(--muted); user-select: none; }
+.muted { color: var(--muted); }
+footer { display: flex; flex-wrap: wrap; gap: 4px 16px; padding: 6px 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+footer i { display: inline-block; width: 16px; height: 10px; margin-right: 4px; vertical-align: -1px; border: 1px solid var(--line); border-radius: 3px; }
+footer b { display: inline-block; width: 20px; margin-right: 4px; vertical-align: 3px; border-top: 2px solid; }
+@media (max-width: 800px) {
+  main { grid-template-columns: 1fr; grid-template-rows: 1fr 45vh; }
+  aside { border-left: 0; border-top: 1px solid var(--line); }
+}
+</style>
+</head>
+<body>
+<main>
+  <div id="graph-area"><div id="graph"></div><div id="buttons"></div></div>
+  <aside>
+    <div id="panel"></div>
+  </aside>
+</main>
+<footer>
+  <span><i style="background: var(--host); border-color: var(--host)"></i>ホスト</span>
+  <span><i style="border: 2px solid var(--user)"></i>ユーザー</span>
+  <span><i style="background: var(--purpose); border-color: var(--purpose)"></i>利用目的</span>
+  <span><i style="background: var(--machine); border-color: var(--machine)"></i>ハードウェアプロファイル</span>
+  <span><i style="border: 1px dashed var(--fact)"></i>プラットフォームの事実</span>
+  <span><i></i>element</span>
+  <span><i style="border: 1px dashed var(--muted); border-radius: 0"></i>element が書いた値</span>
+  <span><i style="background: var(--panel); border-radius: 0"></i>option の最終値</span>
+  <span><b style="border-color: var(--requires)"></b>requires</span>
+  <span><b style="border-color: var(--reads); border-top-style: dashed"></b>参照</span>
+  <span><b style="border-color: var(--writes); border-top-style: dotted"></b>寄与</span>
+</footer>
+<script type="application/json" id="confgen-data">{{DATA}}</script>
+<script src="https://cdn.jsdelivr.net/npm/cytoscape@3.34.4/dist/cytoscape.min.js"></script>
+<script>
+"use strict";
+const all = JSON.parse(document.getElementById("confgen-data").textContent);
+const data = { hosts: all.hosts };
+const panel = document.getElementById("panel");
+const color = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const measure = document.createElement("canvas").getContext("2d");
+measure.font = "12px system-ui, sans-serif";
+const optionMeasure = document.createElement("canvas").getContext("2d");
+optionMeasure.font = "11px ui-monospace, monospace";
+
+// One graph holds every host. An element has one node, because its definition is the same on
+// every host. What it writes hangs below it as contribution nodes, one per distinct value.
+const hostId = (h) => "h:" + h.name;
+const userId = (h, u) => "u:" + h.name + "/" + u.name;
+const elementId = (name) => "e:" + name;
+const scopeName = (s) => (s.user ? s.host.name + "/" + s.user.name : s.host.name);
+
+const nodes = new Map();    // id -> { label, kind, ... }
+const children = new Map(); // id -> ids its edges point to
+const edges = [];           // { source, target, kind }
+const edgeKeys = new Set();
+const roots = [];
+
+function addNode(id, info) {
+  nodes.set(id, info);
+  children.set(id, []);
+}
+function addEdge(source, target, kind) {
+  const key = source + "\n" + target + "\n" + kind;
+  if (edgeKeys.has(key)) return;
+  edgeKeys.add(key);
+  edges.push({ source, target, kind });
+  if (!children.get(source).includes(target)) children.get(source).push(target);
+}
+
+const rolePriority = ["other", "fact", "purpose", "machine"];
+for (const h of data.hosts) {
+  addNode(hostId(h), { label: h.name, kind: "host", host: h });
+  roots.push(hostId(h));
+  for (const u of h.users) {
+    addNode(userId(h, u), { label: u.name, kind: "user", host: h, user: u });
+    addEdge(hostId(h), userId(h, u), "structure");
+    for (const n of u.nodes) {
+      const id = elementId(n.id);
+      if (!nodes.has(id)) addNode(id, { label: n.id, kind: "element", name: n.id, role: "other" });
+      const role = n.role || "other";
+      if (rolePriority.indexOf(role) > rolePriority.indexOf(nodes.get(id).role)) nodes.get(id).role = role;
+    }
+    for (const role of ["machine", "purpose"]) {
+      for (const n of u.nodes) if (n.role === role) addEdge(userId(h, u), elementId(n.id), "structure");
+    }
+    for (const e of u.edges) addEdge(elementId(e.from), elementId(e.to), e.kind);
+  }
+}
+
+// Option nodes show the final value NixOS gives the option. NixOS options belong to
+// the host, so the elements of every user of the host point to the same node. Home Manager
+// options belong to one user.
+const final = all.final;
+const storeHash = /\/nix\/store\/[0-9a-z]{32}-/g;
+const plainKey = /^[A-Za-z_][A-Za-z0-9_'-]*$/;
+
+function nixText(v, indent) {
+  const inner = indent + "  ";
+  if (v === null) return "null";
+  if (typeof v === "boolean" || typeof v === "number") return String(v);
+  if (typeof v === "string") {
+    if (!v.includes("\n")) return JSON.stringify(v).replace(storeHash, "/nix/store/…-");
+    return "''\n" + v.replace(/\n$/, "").split("\n").map((l) => inner + l).join("\n").replace(storeHash, "/nix/store/…-") + "\n" + indent + "''";
+  }
+  if (Array.isArray(v)) {
+    if (v.length === 0) return "[ ]";
+    const items = v.map((x) => nixText(x, inner));
+    const line = "[ " + items.join(" ") + " ]";
+    if (line.length <= 60 && !line.includes("\n")) return line;
+    return "[\n" + items.map((x) => inner + x).join("\n") + "\n" + indent + "]";
+  }
+  if ("$drv" in v) return v.$drv.replace(storeHash, "/nix/store/…-");
+  if ("$path" in v) return v.$path.replace(storeHash, "/nix/store/…-");
+  if ("$function" in v) return "«関数»";
+  if ("$error" in v) return "«評価エラー»";
+  if ("$missing" in v) return "«値なし»";
+  if ("$deep" in v) return "«…»";
+  if ("$large" in v) return "«属性 " + v.$large + " 個»";
+  const keys = Object.keys(v).sort();
+  if (keys.length === 0) return "{ }";
+  const items = keys.map((k) => (plainKey.test(k) ? k : JSON.stringify(k)) + " = " + nixText(v[k], inner) + ";");
+  const line = "{ " + items.join(" ") + " }";
+  if (line.length <= 60 && !line.includes("\n")) return line;
+  return "{\n" + items.map((x) => inner + x).join("\n") + "\n" + indent + "}";
+}
+
+function optionLabel(path, value) {
+  const text = nixText(value, "");
+  return text.includes("\n") ? path + " =\n" + text : path + " = " + text;
+}
+
+// A contribution node stands for one value an element writes to one option. Hosts and users
+// where the element writes the same value share the node, so a node splits only where the
+// value differs. Each scope's edge leads on to that scope's final option node.
+const contributions = new Map(); // element, class, path and value -> node id
+function addContribution(element, cls, s, scope, optionId) {
+  const key = [element, cls, s.path, s.value].join("\n");
+  if (!contributions.has(key)) {
+    const id = "c" + contributions.size;
+    contributions.set(key, id);
+    addNode(id, { kind: "contribution", element, cls, path: s.path, written: s.value, scopes: [] });
+    addEdge(elementId(element), id, "sets");
+  }
+  const id = contributions.get(key);
+  const info = nodes.get(id);
+  if (!info.scopes.some((x) => scopeName(x) === scopeName(scope))) info.scopes.push(scope);
+  addEdge(id, optionId, "merges");
+}
+
+for (const h of data.hosts) {
+  const hostFinal = final[h.name];
+  // value is undefined only for users without Home Manager, whose options are never applied.
+  const option = (id, path, scope, value, decl) => {
+    if (!nodes.has(id)) {
+      const text = value === undefined ? path + "\n«Home Manager を使わないユーザーなので適用されない»" : optionLabel(path, value);
+      addNode(id, { label: "[" + scopeName(scope) + "]\n" + text, kind: "option", path, scope, decl, value });
+    }
+    return id;
+  };
+  for (const [element, settings] of Object.entries(h.nixos)) {
+    for (const s of settings) {
+      if (s.path === "import") continue;
+      const scope = { host: h, user: null };
+      addContribution(element, "nixos", s, scope, option("o:" + h.name + "/nixos/" + s.path, s.path, scope, hostFinal.nixos[s.path], hostFinal.declarations.nixos[s.path]));
+    }
+  }
+  for (const u of h.users) {
+    const userFinal = hostFinal.users[u.name];
+    const userDeclarations = hostFinal.declarations.users[u.name];
+    for (const n of u.nodes) {
+      for (const s of n.home) {
+        if (s.path === "import") continue;
+        const scope = { host: h, user: u };
+        addContribution(n.id, "home", s, scope, option("o:" + h.name + "/" + u.name + "/home/" + s.path, s.path, scope, userFinal?.[s.path], userDeclarations?.[s.path]));
+      }
+    }
+  }
+}
+for (const info of nodes.values()) {
+  if (info.kind !== "contribution") continue;
+  const where = "[" + info.scopes.map(scopeName).join(", ") + "]";
+  const body = info.written.includes("\n") ? info.path + " =\n" + info.written : info.path + " = " + info.written;
+  info.label = where + "\n" + body;
+}
+
+function el(tag, text, className, parent = panel) {
+  const node = document.createElement(tag);
+  if (text !== undefined) node.textContent = text;
+  if (className) node.className = className;
+  parent.append(node);
+  return node;
+}
+
+// parents lists the nodes whose edges point to each node: the backlinks.
+const parents = new Map([...nodes.keys()].map((id) => [id, []]));
+for (const e of edges) {
+  if (!parents.get(e.target).includes(e.source)) parents.get(e.target).push(e.source);
+}
+// Each node has one flag per direction: "children" opens the nodes its edges point to and
+// places them on the right, "parents" opens its backlinks and places them on the left.
+// Visibility, edges and placement all follow from these flags in the same way for both directions.
+const directions = {
+  children: { links: children, side: "right", mark: "▸" },
+  parents: { links: parents, side: "left", mark: "◂" },
+};
+const opened = { children: new Set(), parents: new Set() };
+
+function ancestors(id) {
+  const seen = new Set([id]);
+  const queue = [id];
+  while (queue.length) {
+    for (const p of parents.get(queue.shift())) {
+      if (!seen.has(p)) { seen.add(p); queue.push(p); }
+    }
+  }
+  return seen;
+}
+
+// toggle opens or closes one direction of id. The backlinks act on id and all its ancestors,
+// so opening reaches the hosts and closing removes the same paths. Clearing only id's flag
+// would leave the paths of ancestors that other open nodes show.
+function toggle(id, direction) {
+  const flags = opened[direction];
+  const targets = direction === "parents" ? ancestors(id) : [id];
+  const open = !flags.has(id);
+  for (const t of targets) if (open) flags.add(t); else flags.delete(t);
+  refresh(cy.getElementById(id));
+}
+
+// walk lists the visible nodes in the order they are reached from the hosts through open flags,
+// each with the node that shows it and the side it goes to. Visibility and placement both use it.
+function walk() {
+  const seen = new Set(roots);
+  const order = roots.map((id) => ({ id, from: null, side: null }));
+  for (let i = 0; i < order.length; i++) {
+    const from = order[i].id;
+    for (const [direction, d] of Object.entries(directions)) {
+      if (!opened[direction].has(from)) continue;
+      for (const id of d.links.get(from)) {
+        if (!seen.has(id)) { seen.add(id); order.push({ id, from, side: d.side }); }
+      }
+    }
+  }
+  return order;
+}
+
+let visible = new Set();  // nodes shown now
+const placed = new Set(); // nodes that have a position; they keep it while hidden
+const gapX = 60;
+const gapY = 6;
+
+// placeGroup puts ids in a column next to anchor, right of it for children and left of it for
+// backlinks, at the free height nearest to the anchor.
+function placeGroup(anchor, ids, side) {
+  const p = cy.getElementById(anchor);
+  const box = p.boundingBox();
+  // Children share their left edge, so they start right of the widest node of the anchor's
+  // column and stay clear of its wider neighbours. Backlinks share their right edge left of the anchor.
+  const others = cy.nodes().filter((n) => visible.has(n.id()) && placed.has(n.id()));
+  const column = others.filter((n) => Math.abs(n.boundingBox().x1 - box.x1) < 1);
+  const edge = side === "right" ? Math.max(box.x2, ...column.map((n) => n.boundingBox().x2)) + gapX : box.x1 - gapX;
+  const sizes = ids.map((id) => { const n = cy.getElementById(id); return { n, w: n.outerWidth(), h: n.outerHeight() }; });
+  const leftOf = (s) => (side === "right" ? edge : edge - s.w);
+  const total = sizes.reduce((sum, s) => sum + s.h, 0) + gapY * (sizes.length - 1);
+  const occupied = others.map((n) => n.boundingBox());
+  const fits = (top) => {
+    let y = top;
+    return sizes.every((s) => {
+      const b = { x1: leftOf(s), x2: leftOf(s) + s.w, y1: y, y2: y + s.h };
+      y += s.h + gapY;
+      return !occupied.some((o) => b.x1 < o.x2 + gapY && o.x1 - gapY < b.x2 && b.y1 < o.y2 + gapY && o.y1 - gapY < b.y2);
+    });
+  };
+  const centered = p.position("y") - total / 2;
+  let top = centered;
+  for (let k = 1; k < 2000 && !fits(top); k++) top = centered + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 14;
+  let y = top;
+  for (const s of sizes) {
+    s.n.position({ x: leftOf(s) + s.w / 2, y: y + s.h / 2 });
+    placed.add(s.n.id());
+    y += s.h + gapY;
+  }
+}
+
+// placeNew gives a position to each visible node that never had one: the hosts in a column,
+// and every other node next to the node that shows it, together with the nodes shown from the
+// same node on the same side. Nodes placed before stay where they are.
+function placeNew(order) {
+  let y = 0;
+  for (const { id } of order) {
+    if (!roots.includes(id) || placed.has(id)) continue;
+    const n = cy.getElementById(id);
+    n.position({ x: n.outerWidth() / 2, y: y + n.outerHeight() / 2 });
+    placed.add(id);
+    y += n.outerHeight() + gapY * 2;
+  }
+  let group = [];
+  const flush = () => {
+    if (group.length > 0) placeGroup(group[0].from, group.map((e) => e.id), group[0].side);
+    group = [];
+  };
+  for (const e of order) {
+    if (e.from === null || placed.has(e.id)) continue;
+    if (group.length > 0 && (group[0].from !== e.from || group[0].side !== e.side)) flush();
+    group.push(e);
+  }
+  flush();
+}
+
+// refresh shows the nodes reachable from the hosts through open flags. Shown nodes never move.
+function refresh(toggled) {
+  const order = walk();
+  const before = visible;
+  visible = new Set(order.map((e) => e.id));
+  cy.batch(() => {
+    cy.nodes().forEach((n) => {
+      n.style("display", visible.has(n.id()) ? "element" : "none");
+    });
+    cy.edges().forEach((e) => {
+      const source = e.data("source");
+      const target = e.data("target");
+      const shown = (opened.children.has(source) || opened.parents.has(target)) && visible.has(source) && visible.has(target);
+      e.style("display", shown ? "element" : "none");
+    });
+  });
+  const first = placed.size === 0;
+  placeNew(order);
+  const added = cy.nodes().filter((n) => visible.has(n.id()) && !before.has(n.id()));
+  if (first) {
+    // A plain fit blows three host nodes up to fill the screen, which pushes everything opened
+    // later off screen, so fit only shrinks.
+    cy.fit(added, 40);
+    if (cy.zoom() > 1) { cy.zoom(1); cy.center(added); }
+  } else if (toggled) {
+    keepInView(toggled.union(added));
+  }
+}
+
+// keepInView pans, without zooming, so that the opened children come on screen.
+function keepInView(eles) {
+  const box = eles.renderedBoundingBox();
+  const margin = 20;
+  const shift = (low, high, size) => {
+    if (high - low > size - 2 * margin) return margin - low;
+    if (high > size - margin) return size - margin - high;
+    if (low < margin) return margin - low;
+    return 0;
+  };
+  const x = shift(box.x1, box.x2, cy.width());
+  const y = shift(box.y1, box.y2, cy.height());
+  if (x || y) cy.animate({ panBy: { x, y }, duration: 200 });
+}
+
+
+function showHelp() {
+  panel.replaceChildren();
+  el("p", "node の右の ▸ ボタンで先の node を、左の ◂ ボタンでホストまでのバックリンクを開閉します。node をクリックすると、ここにその node のソースファイルを表示します。", "muted");
+}
+
+const sources = all.sources;   // repository path -> text
+const declaring = all.declaring; // store path of a declaring module -> text
+
+// showFile shows one file with line numbers, marks the lines in hits and scrolls to the first.
+function showFile(path, text, hits) {
+  el("h2", path.replace(storeHash, "/nix/store/…-"), "path");
+  if (text === undefined) { el("p", "ファイルの中身がありません。", "muted"); return; }
+  const code = el("div", undefined, "code");
+  const marked = new Set(hits);
+  text.replace(/\n$/, "").split("\n").forEach((line, i) => {
+    const row = el("div", undefined, marked.has(i + 1) ? "line hit" : "line", code);
+    el("span", String(i + 1), "no", row);
+    el("span", line, undefined, row);
+  });
+  const first = code.querySelector(".hit");
+  if (first) first.scrollIntoView({ block: "center" });
+}
+
+const pathPart = /"(?:[^"\\]|\\.)*"|[^.]+/g;
+
+// writtenLines guesses where an element file writes an option path: a tuple key with every part,
+// then the longest dotted prefix in quotes, then the last part in quotes.
+function writtenLines(text, path) {
+  const parts = path.match(pathPart).map((p) => (p.startsWith('"') ? JSON.parse(p) : p));
+  const lines = text.split("\n");
+  const find = (test) => lines.flatMap((line, i) => (test(line) ? [i + 1] : []));
+  let hits = find((line) => parts.length > 1 && parts.every((p) => line.includes('"' + p + '"')));
+  for (let n = parts.length; hits.length === 0 && n >= 1; n--) {
+    const dotted = '"' + parts.slice(0, n).join(".") + '"';
+    hits = find((line) => line.includes(dotted));
+  }
+  if (hits.length === 0) hits = find((line) => line.includes('"' + parts[parts.length - 1] + '"'));
+  return hits;
+}
+
+function select(node) {
+  cy.elements().removeClass("selected");
+  node.addClass("selected");
+  node.connectedEdges().addClass("selected");
+  const info = nodes.get(node.id());
+  panel.replaceChildren();
+  if (info.kind === "host") {
+    const path = "config/hosts/" + info.host.name + ".toml";
+    showFile(path, sources[path], []);
+  } else if (info.kind === "user") {
+    const path = "config/hosts/" + info.host.name + ".toml";
+    const userLine = new RegExp('^\\s*name\\s*=\\s*"' + info.user.name + '"');
+    showFile(path, sources[path], sources[path].split("\n").flatMap((line, i) => (userLine.test(line) ? [i + 1] : [])));
+  } else if (info.kind === "element") {
+    const path = "config/elements/" + info.name + ".star";
+    showFile(path, sources[path], []);
+  } else if (info.kind === "contribution") {
+    const path = "config/elements/" + info.element + ".star";
+    showFile(path, sources[path], writtenLines(sources[path], info.path));
+  } else if (info.value === undefined) {
+    el("p", "Home Manager を使わないユーザーなので、この option は適用されません。", "muted");
+  } else if (!info.decl || info.decl.positions.length === 0) {
+    el("p", "option " + info.path + " の宣言は見つかりませんでした。", "muted");
+  } else {
+    for (const p of info.decl.positions) showFile(p.file, declaring[p.file], [p.line]);
+  }
+}
+
+const cy = cytoscape({
+  container: document.getElementById("graph"),
+  layout: { name: "preset" },
+  elements: [
+    ...[...nodes].map(([id, n]) => ({ data: { id, kind: n.kind, role: n.role || "", label: n.label } })),
+    ...edges.map((e, i) => ({ data: { id: "edge" + i, source: e.source, target: e.target, kind: e.kind } })),
+  ],
+  style: [
+    { selector: "node", style: {
+      label: "data(label)", shape: "round-rectangle", height: 22,
+      width: (n) => measure.measureText(n.data("label")).width + 16,
+      "font-size": 12, "font-family": "system-ui, sans-serif", "text-valign": "center", "text-halign": "center",
+      color: color("--fg"), "background-color": color("--node"), "border-width": 1, "border-color": color("--line"),
+    } },
+    { selector: 'node[kind = "option"], node[kind = "contribution"]', style: {
+      shape: "rectangle", "text-wrap": "wrap", "text-max-width": 100000, "text-justification": "left",
+      "font-family": "ui-monospace, monospace", "font-size": 11, "line-height": 1.3,
+      width: (n) => Math.max(...n.data("label").split("\n").map((l) => optionMeasure.measureText(l).width)) + 16,
+      height: (n) => n.data("label").split("\n").length * 11 * 1.3 + 10,
+      "background-color": color("--panel"), "border-color": color("--line"),
+    } },
+    { selector: 'node[kind = "contribution"]', style: { "background-color": color("--node"), "border-style": "dashed", "border-color": color("--muted") } },
+    { selector: 'node[kind = "host"]', style: { color: color("--bg"), "background-color": color("--host"), "border-color": color("--host"), height: 26 } },
+    { selector: 'node[kind = "user"]', style: { "border-width": 2, "border-color": color("--user") } },
+    { selector: 'node[role = "purpose"]', style: { color: "#ffffff", "background-color": color("--purpose"), "border-color": color("--purpose") } },
+    { selector: 'node[role = "machine"]', style: { color: "#ffffff", "background-color": color("--machine"), "border-color": color("--machine") } },
+    { selector: 'node[role = "fact"]', style: { color: color("--muted"), "border-style": "dashed", "border-color": color("--fact") } },
+    { selector: "edge", style: {
+      width: 1, "curve-style": "bezier", "target-arrow-shape": "triangle", "arrow-scale": 0.8,
+      "line-color": color("--requires"), "target-arrow-color": color("--requires"),
+    } },
+    { selector: 'edge[kind = "sets"]', style: { "line-color": color("--muted"), "target-arrow-color": color("--muted") } },
+    { selector: 'edge[kind = "merges"]', style: { width: 2, "line-color": color("--muted"), "target-arrow-color": color("--muted") } },
+    { selector: 'edge[kind = "structure"]', style: { "target-arrow-shape": "none", "line-color": color("--line") } },
+    { selector: 'edge[kind = "reads"]', style: { "line-style": "dashed", "line-color": color("--reads"), "target-arrow-color": color("--reads") } },
+    { selector: 'edge[kind = "writes"]', style: { width: 2, "line-style": "dotted", "line-color": color("--writes"), "target-arrow-color": color("--writes") } },
+    { selector: "node.selected", style: { "border-width": 3, "border-color": color("--mark") } },
+    { selector: "edge.selected", style: { width: 3 } },
+  ],
+});
+
+cy.on("tap", "node", (event) => select(event.target));
+cy.on("tap", (event) => {
+  if (event.target === cy) {
+    cy.elements().removeClass("selected");
+    showHelp();
+  }
+});
+// The open buttons are HTML laid over the canvas, because Cytoscape has no clickable part
+// inside a node. Each node gets one on the left for its parents and one on the right for its
+// children, and they follow the nodes on every render.
+const overlay = document.getElementById("buttons");
+const buttons = new Map(); // node id + direction -> button
+function syncButtons() {
+  for (const [key, button] of buttons) {
+    if (!visible.has(button.dataset.node)) { button.remove(); buttons.delete(key); }
+  }
+  for (const id of visible) {
+    const box = cy.getElementById(id).renderedBoundingBox({ includeLabels: false });
+    const y = (box.y1 + box.y2) / 2;
+    for (const [direction, d] of Object.entries(directions)) {
+      const count = d.links.get(id).length;
+      if (count === 0) continue;
+      const key = id + "\n" + direction;
+      let button = buttons.get(key);
+      if (!button) {
+        button = document.createElement("button");
+        button.dataset.node = id;
+        button.title = direction === "parents" ? "この node へのバックリンクを開閉する（ホストまで開く）" : "この node の先を開閉する";
+        button.textContent = d.mark + count;
+        button.addEventListener("click", () => toggle(id, direction));
+        overlay.append(button);
+        buttons.set(key, button);
+      }
+      button.classList.toggle("open", opened[direction].has(id));
+      button.hidden = box.y2 - box.y1 < 8;
+      button.style.transform = d.side === "left"
+        ? "translate(" + (box.x1 - 3) + "px, " + y + "px) translate(-100%, -50%)"
+        : "translate(" + (box.x2 + 3) + "px, " + y + "px) translate(0, -50%)";
+    }
+  }
+}
+let syncPending = false;
+cy.on("render", () => {
+  if (syncPending) return;
+  syncPending = true;
+  requestAnimationFrame(() => { syncPending = false; syncButtons(); });
+});
+
+refresh(null);
+showHelp();
+</script>
+</body>
+</html>

@@ -16,6 +16,8 @@ func main() {
 }
 
 const usage = `usage:
+  confgen graph-options <config-dir>
+  confgen graph <config-dir> <final.json> <out.html>
   confgen build <config-dir> <host> <system> <out.nix>
   confgen explain <config-dir> <host> <system> <element>
   confgen why <config-dir> <host> <system> <user> <element>   (prints the axiom and rules that make element true for user)
@@ -53,6 +55,14 @@ func run(args []string) error {
 		return nil
 	}
 	switch {
+	case len(args) == 2 && args[0] == "graph-options":
+		options, err := graphOptions(args[1])
+		if err != nil {
+			return err
+		}
+		return json.NewEncoder(os.Stdout).Encode(options)
+	case len(args) == 4 && args[0] == "graph":
+		return writeGraph(args[1], args[2], args[3])
 	case len(args) == 5 && args[0] == "build":
 		r, err := buildHost(args[1], args[2], args[3])
 		if err != nil {
