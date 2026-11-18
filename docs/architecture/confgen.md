@@ -108,6 +108,7 @@ confgen は、[flake_public のあるべき姿](rules.md) の規則 A と規則 
 
 confgen は Nix の評価中に build して実行し（import from derivation）、ホストごとの Nix ファイルを生成する。NixOS と Home Manager は、この同じ生成物の `nixos` と `homes.<ユーザー>` を実際に import する。適用に使う値とは別に値を持つ一覧や台帳は作らない。人が読むための出力（`why`、`explain`、`graph`）は、生成と同じ計算結果か NixOS の評価結果から書き出し、値を独自に持たない。
 
+import from derivation を使っているのは、[modules/nixos/confgen.nix](../../modules/nixos/confgen.nix) と [modules/home-manager/confgen.nix](../../modules/home-manager/confgen.nix) が、[lib/confgen.nix](../../lib/confgen.nix) の `generate` の derivation を import するところである。この derivation は `runCommand` で `confgen build` を実行し、`/nix/store/<hash>-confgen-<ホスト>.nix` に書く。評価器は import の時点で評価を止め、この derivation を build してから評価を続ける。flake の純粋な評価でプログラムの出力を読むには、derivation を build するしかないので、この方式にした。出力の store パスは入力（`config/` の中身、confgen のソース、ホスト名、system）で決まるので、構成を変えなければ build し直さない。NixOS 側と各ユーザー側は同じ引数で `generate` を呼ぶので、build は1ホストにつき1回で済む。
 
 生成物は element 別の module と出所を保持する。パッケージやスクリプトなどのヘルパーは、Go が決まった Nix 式へ変換する。任意の Nix 式を渡す API は持たない。文字列と属性名は引用し、文字列中の `${…}` は Nix の式として実行されないようにする。型・既定値・優先順位・リストの合成は Nix に任せる。
 
