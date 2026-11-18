@@ -12,6 +12,7 @@
 | AI リモート操作 | Happy | スマートフォンから Codex を遠隔操作 | [happy.md](./happy.md) |
 | AI Web UI | Alook | ローカル Web UI とサーバーの起動・停止・更新 | [alook.md](./alook.md) |
 | AI エージェント | Antigravity CLI (agy) | 日本語校正用のフォールバック経路 | [antigravity-cli.md](./antigravity-cli.md) |
+| AI エージェント | Hermes Agent | 経験からスキルを書き足す AI エージェント | [hermes-agent.md](./hermes-agent.md) |
 | Python | mimikopi-env | 耳コピ用 ML モデルの実行環境 | [mimikopi-env.md](./mimikopi-env.md) |
 | シェルツール | fzf, eza, zoxide, fd, rg, bat, btm, direnv, jq, xh | 日常的に使用する各種 CLI ツール | [shell-tools.md](./shell-tools.md) |
 | Nix | comma (`,`), nix-locate | 未インストールコマンドの一時実行とパッケージ検索 | [comma.md](./comma.md) |

@@ -25,7 +25,7 @@
 
 ## AI エージェントは llm-agents.nix から取る
 
-Claude Code、Codex、Antigravity CLI（agy）は、サーバーの更新に追従するため [llm-agents.nix](https://github.com/numtide/llm-agents.nix) から取る。取得元をまとめ、個別の版・URL・ハッシュの保守を上流に任せる。[専用 overlay](../../overlays/llm-agents.nix) でこの3つだけを差し替えるので、利用側は `pkgs.codex` などを使える。
+Claude Code、Codex、Antigravity CLI（agy）は、サーバーの更新に追従するため [llm-agents.nix](https://github.com/numtide/llm-agents.nix) から取る。Hermes Agent は nixpkgs に無いので、同じ llm-agents.nix から取る。取得元をまとめ、個別の版・URL・ハッシュの保守を上流に任せる。[専用 overlay](../../overlays/llm-agents.nix) がこの4つだけを llm-agents.nix のパッケージにするので、利用側は `pkgs.codex` などを使える。
 
 Codex のビルド済みバイナリを使うため、llm-agents の nixpkgs を `follows` で差し替えず、上流の `packages.${system}` を直接使う。依存関係まで上流と同じ固定に保つことで、各 OS・CPU 向けのキャッシュとストアパスが一致する。代わりに、上流用の nixpkgs の評価と依存が増える。Claude Code にプラグイン用の Node.js を追加する [ラッパー](../../overlays/claude-code-node.nix) は、このパッケージの外側に重ねる。
 

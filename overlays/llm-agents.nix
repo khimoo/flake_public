@@ -3,5 +3,6 @@ inputs: final: prev: {
     claude-code
     codex
     antigravity-cli
+    hermes-agent
     ;
 }

@@ -69,7 +69,7 @@ overlay 適用済みのパッケージは、Graphify を例にすると以下で
 nix build --impure --expr '(builtins.getFlake (toString ./.)).nixosConfigurations.nixos-desktop.pkgs.graphify'
 ```
 
-末尾の `pkgs.graphify` を `pkgs.claude-code`、`pkgs.codex`、`pkgs.antigravity-cli` に置き換えると、llm-agents.nix から導入する各ツールを確認できます。
+末尾の `pkgs.graphify` を `pkgs.claude-code`、`pkgs.codex`、`pkgs.antigravity-cli`、`pkgs.hermes-agent` に置き換えると、llm-agents.nix から導入する各ツールを確認できます。
 
 各コマンドの動作確認は、ビルド結果として生成された `result/bin/<コマンド>` を使って行います。
 
