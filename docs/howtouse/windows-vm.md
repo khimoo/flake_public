@@ -1,7 +1,9 @@
 # デスクトップの Windows VM
 
 nixos-desktop 上の libvirt VM は、必要なときだけ起動し、画面はホスト側の FreeRDP で表示します。
-VM 名は [nixos-desktop.toml](../../config/hosts/nixos-desktop.toml) の `windows_vm_domain` で指定します。ユーザーの `[[users]]` の `purposes` で、`requires` に `windows_vm` を挙げる利用目的（`write_doc_with_windows` と、`work_ss` の `connect_to_ss`）を選ぶと、`windows_vm` が有効になり、ユーザーが libvirtd グループに入ります。`gui` もある構成では、派生コンポーネント `windows_vm_gui` がユーザーの Home Manager にランチャーを追加します。無効にするにはユーザーの `purposes` からそれらの利用目的を外します。`windows_vm.star` は `needs` に `nixos_system` と `local_kvm` を挙げるので、ハードウェアプロファイルがこの2つを `requires` に挙げていないホスト（今はデスクトップ以外）でそれらの利用目的を選ぶと、confgen が足りない名前を示して止めます。
+VM 名は [nixos-desktop.toml](../../config/hosts/nixos-desktop.toml) の `windows_vm_domain` で指定します。ユーザーの `[[users]]` の `purposes` で、`requires` に `windows_vm` を挙げる利用目的（`write_doc_with_windows` と、`work_ss` の `connect_to_ss`）を選ぶと、`windows_vm` が有効になり、ユーザーが libvirtd グループに入ります。GUI がある構成では、派生コンポーネント `windows_vm_gui` がユーザーの Home Manager にランチャーを追加します。無効にするにはユーザーの `purposes` からそれらの利用目的を外します。`windows_vm.star` は `needs` に `nixos_system` と `local_kvm` を挙げるので、ハードウェアプロファイルがこの2つを `requires` に挙げていないホスト（今はデスクトップ以外）でそれらの利用目的を選ぶと、confgen が足りない名前を示して止めます。
+
+`win11` の永続定義は [win11.xml](../../hosts/nixos-desktop/win11.xml) が正本です。永続設定は virt-manager だけで変更せず、この XML を変更して NixOS の構成を適用します。`nixvirt.service` は自動起動・再起動を行いません。`qemu:///system` に別の VM がある場合は、未列挙 VM の定義削除を避けるため同期前にエラーにします。適用と並行して別の VM を登録しないでください。ネットワークとストレージプールの設定は従来どおりです。qcow2、UEFI NVRAM、仮想 TPM の状態は NixVirt の管理対象外なので、復旧用には別途保管してください。
 
 設計: [デスクトップの Windows VM の設計](../architecture/windows-vm.md)
 
@@ -88,7 +90,7 @@ Windows 側で以下の 2 点を設定します。
 2. 同画面の有効化スイッチ横を展開し、「ネットワーク レベル認証（NLA）」を必須とするチェックを外す。
 
 NLA を無効化する理由については、[設計判断](../architecture/windows-vm.md#nla-を切る) を参照してください。
-libvirt 上の VM 名（`virsh list` で表示される名前）が変更された場合は、ホスト側の `windows_vm_domain` の設定も合わせて修正してください。
+VM 名の変更は NixVirt が定義の削除と再登録として扱うため、XML の名前だけを書き換えないでください。必要な場合は移行手順を決め、ホスト側の `windows_vm_domain` と NixVirt の事前チェックも合わせて更新してください。
 
 ## トラブルシューティング
 

@@ -14,7 +14,10 @@ def config(host):
             "settings": {"meta": {"rightalt": "toggle(turbo)"}, "turbo": {"rightalt": "macro2(%s, %s, macro(rightmouse))" % (host.turbo_interval_ms, host.turbo_interval_ms)}},
         }}},
     }
-    return {"nixos_imports": [repoModule("hosts/nixos-desktop/hardware.nix")], "nixos": nixos}
+    return {"nixos_imports": [
+        repoModule("hosts/nixos-desktop/hardware.nix"),
+        repoModule("hosts/nixos-desktop/win11.nix"),
+    ], "nixos": nixos}
 
 def user_config():
     return {"home": {

@@ -21,6 +21,10 @@
       flake = false;
     };
     musnix.url = "github:musnix/musnix"; # https://github.com/musnix/musnix
+    nixvirt = {
+      url = "https://flakehub.com/f/AshleyYakeley/NixVirt/0.6.0.tar.gz";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     claude-history = {
       url = "github:raine/claude-history";
       inputs.nixpkgs.follows = "nixpkgs";
