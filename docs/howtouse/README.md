@@ -14,6 +14,7 @@
 | マシン間 SSH | マシン間の接続とマシンの追加・廃棄 | [machine-ssh.md](./machine-ssh.md) |
 | リモートビルド | ビルドをデスクトップに回す方法 | [remote-build.md](./remote-build.md) |
 | GCE オフロード | Google Cloud 上の NixOS VM へビルドや xsaved を移し、ローカルへ戻す手順 | [gce-offload.md](./gce-offload.md) |
+| GCS キャッシュ公開 | ビルド済み NixOS クロージャを署名して GCS に公開する手順 | [gce-cache-publish.md](./gce-cache-publish.md) |
 | Tailscale | LAN の外からデスクトップを使う方法 | [tailscale.md](./tailscale.md) |
 | sshfs | 外出先からデスクトップのファイルを sshfs で編集する方法 | [sshfs.md](./sshfs.md) |
 | 会社PCの NixOS-WSL | 会社 PC の WSL の導入と運用 | [wsl.md](./wsl.md) |
