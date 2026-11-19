@@ -19,6 +19,9 @@ jobs:
           persist-credentials: false
       - name: Test the lock update policy
         run: python3 tests/flake-lock-update.py
+      - name: Test exact-object GCS requests
+        if: matrix.host == 'nixos-spin713'
+        run: PYTHONDONTWRITEBYTECODE=1 python3 tests/gcs-object.py
       - uses: ./.github/actions/install-nix
       - name: Test GCS cache publishing with a temporary signing key
         if: matrix.host == 'nixos-spin713'
