@@ -4,5 +4,6 @@ inputs: final: prev: {
     codex
     antigravity-cli
     hermes-agent
+    hermes-desktop
     ;
 }

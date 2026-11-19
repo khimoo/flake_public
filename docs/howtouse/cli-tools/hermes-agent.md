@@ -1,8 +1,8 @@
 # Hermes Agent
 
-Nous Research の Hermes Agent を `hermes` として入れる。
+Nous Research の Hermes Agent を `hermes` として入れ、ネイティブデスクトップアプリの Hermes Desktop も `hermes-desktop` として入れる。
 作業の経験から手順をスキルとして書き足し、使いながら直す AI エージェントである。
-パッケージは [llm-agents.nix](https://github.com/numtide/llm-agents.nix) の `hermes-agent` を使い、[hermes_agent.star](../../../config/elements/hermes_agent.star) が入れる。[use_ai_agents.star](../../../config/elements/use_ai_agents.star) の `requires` にあるので、AI エージェントを使う利用目的（`programming` など）を選んだユーザーに入る。
+パッケージは [llm-agents.nix](https://github.com/numtide/llm-agents.nix) の `hermes-agent` と `hermes-desktop` を使い、[hermes_agent.star](../../../config/elements/hermes_agent.star) と [hermes_desktop.star](../../../config/elements/hermes_desktop.star) が入れる。[use_ai_agents.star](../../../config/elements/use_ai_agents.star) の `requires` にあるので、AI エージェントを使う利用目的（`programming` など）を選んだユーザーに入る。
 
 ## 初回の設定
 
@@ -21,13 +21,15 @@ hermes setup
 hermes
 ```
 
+デスクトップアプリはアプリ一覧の「Hermes」（[gui_apps.star](../../../config/elements/gui_apps.star) 経由で Wayland 有効化、`x-scheme-handler/hermes` を関連付け）またはコマンド `hermes-desktop` で起動する。設定やセッションは CLI と同じ `~/.hermes/` を共有する。Nix パッケージの `hermes-agent` にはアプリソースを含まないため、`hermes desktop` サブコマンドは使わない。
+
 込み入った作業を終えたときや訂正を受けたときに、Hermes が手順を SKILL.md 形式のスキルとして `~/.hermes/skills/` に書く。何を学んだかは、このディレクトリを読んで確かめる。
 既定では承認なしで書き込む。書き込みを承認制にするには、対話中に `/skills approval on` を実行する（`~/.hermes/config.yaml` の `skills.write_approval` が `true` になる）。
 
 ## やめる
 
 `~/.hermes/` を消すと、設定、記憶、スキルが消えて初回の状態に戻る。
-コマンドを外すときは、[use_ai_agents.star](../../../config/elements/use_ai_agents.star) の `requires` から `hermes_agent` を除いて rebuild する。
+コマンドやデスクトップアプリを外すときは、[use_ai_agents.star](../../../config/elements/use_ai_agents.star) の `requires` から `hermes_agent`・`hermes_desktop` を除いて rebuild する。
 
 ## 版を上げる
 

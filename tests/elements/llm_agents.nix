@@ -22,6 +22,7 @@ let
       cache.extra-trusted-public-keys;
   desktop = inputs.self.nixosConfigurations.nixos-desktop.config;
   wsl = inputs.self.nixosConfigurations.nixos-work-wsl.config;
+  desktopUser = desktop.home-manager.users.pomu;
   standaloneHome = mkTestHome system [ ../../modules/shared/llm-agents-cache.nix ];
 in
 {
@@ -31,8 +32,16 @@ in
         assert configuredPkgs.codex.outPath == upstream.codex.outPath;
         assert configuredPkgs.antigravity-cli.outPath == upstream.antigravity-cli.outPath;
         assert configuredPkgs.claude-code.paths == [ upstream.claude-code.outPath ];
+        assert configuredPkgs.hermes-agent.outPath == upstream.hermes-agent.outPath;
+        assert configuredPkgs.hermes-desktop.outPath == upstream.hermes-desktop.outPath;
+        assert builtins.any (p: p.outPath == upstream.hermes-desktop.outPath) desktopUser.home.packages;
+        assert desktopUser.home.file ? ".local/share/applications/hermes-desktop.desktop";
+        assert
+          desktopUser.xdg.mimeApps.defaultApplications."x-scheme-handler/hermes" == [
+            "hermes-desktop.desktop"
+          ];
         assert cacheEnabled desktop;
-        assert cacheEnabled desktop.home-manager.users.pomu;
+        assert cacheEnabled desktopUser;
         assert !(cacheEnabled wsl);
         assert systemAssertionsHold standaloneHome.config;
         assert cacheEnabled standaloneHome.config;
@@ -47,6 +56,8 @@ in
         "claude_code"
         "codex"
         "antigravity_cli"
+        "hermes_agent"
+        "hermes_desktop"
       ];
     };
 }
