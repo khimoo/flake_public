@@ -4,7 +4,11 @@ git_username = "khimoo"
 git_email = "dailysentence1111@gmail.com"
 agent_config_root = "sagyo/agents-private"
 agent_config_repo = "git@github.com:khimoo/agents-private.git"
-secrets = [{ secret = "gemini_api_key", path = ".config/gemini/api-key" }]
+# vertex_provider は aiboard（serve_aiboard）と共有する。ここでは agents-private の gemini-proofread が読む場所に置く。
+secrets = [
+  { secret = "gemini_api_key", path = ".config/gemini/api-key" },
+  { secret = "vertex_provider", path = ".config/gemini/vertex-provider.yaml" },
+]
 # 自宅のホストどうしの ssh に使う鍵（lan_ssh_key が置く id_lan）の公開鍵。
 lan_public_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMsQXfS2j/9NtGDBz7EAP4I3DamWH1I6cromNqWOZ2pb pomu@lan"
 # CI がビルド済み NixOS クロージャを公開する非公開 GCS バケット・信頼済み署名公開鍵・読取専用 SA。

@@ -84,7 +84,7 @@ def _vertex_secret_path(user):
 
 def writes(user, secrets):
     return [write(secrets, {
-        "secret": "aiboard_vertex_provider",
+        "secret": "vertex_provider",
         "path": _vertex_secret_path(user),
         "mode": "600",
     })]
