@@ -44,10 +44,11 @@ tmpfiles で作る形は退けた。tmpfiles は `local-fs.target` の後に実�
 
 ハードウェアプロファイルが `[[users]]` の先頭のユーザーのホームにマウントする形は退けた。どのユーザーのフォルダかが並び順で決まり、並べ替えると黙って別のユーザーに変わる。
 
-## マウントの起動順序の循環は check で見つける
+## マウントの起動順序の循環は toplevel のビルドで止める
 
 以前は `@papis` を vault の clone の中にマウントし、path unit から起動していた。そのとき `nofail` のないマウントと path unit の間で起動順序が循環し、systemd がジョブを取り消した起動では GDM が起動しなかった。
-起動順序の循環は評価でもビルドでも見つからないので、check の `systemd-ordering`（[tests/default.nix](../../tests/default.nix)）が、各ホストのユニットと fstab から作るマウントで `systemd-analyze verify` を実行し、循環があれば失敗する。
+起動順序の循環は NixOS の評価やビルドでは見つからないので、[systemd-ordering.nix](../../modules/nixos/systemd-ordering.nix) が各ホストの `system.checks` に検査を加える。検査はホストのユニットと fstab から作るマウントで `systemd-analyze verify` を実行し、循環があれば失敗する。toplevel のビルドが失敗するので、循環のある構成は switch でも CI のキャッシュ公開でも先へ進まない。
+`check.sh` の check にしないのは、全ホストのシステム全体をビルドすることになり、毎回の検証が重くなるからだ。
 
 ## データの層のマウントに `nofail` を付けない
 

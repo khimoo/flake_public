@@ -36,4 +36,4 @@ def config(host):
         "nix.settings.auto-optimise-store": True,
         "environment.systemPackages": [inputPkg("home-manager", "home-manager")],
     }
-    return {"nixos": result}
+    return {"nixos": result, "nixos_imports": [repoModule("modules/nixos/systemd-ordering.nix")]}
