@@ -58,23 +58,4 @@ if (( rc == 44 )); then
 elif (( rc != 0 )); then
   exit "$rc"
 fi
-jq -e --arg sha "$commit" --arg bucket "$bucket" '
-  .version == 1 and .commit == $sha and (.cache | startswith($bucket + "/cache/")) and
-  (.hosts["nixos-desktop"] | test("^/nix/store/[a-z0-9]{32}-nixos-system-nixos-desktop-")) and
-  (.hosts["nixos-spin713"] | test("^/nix/store/[a-z0-9]{32}-nixos-system-nixos-spin713-"))
-' "$stage/release.json" >/dev/null
-
-stable="$bucket/channels/stable.json"
-generation=$(generation_or_zero "$stable")
-if [[ $generation != 0 ]]; then
-  object get "$stable" --generation "$generation" > "$stage/old.json"
-  old=$(jq -er '.commit | select(type == "string" and test("^[0-9a-f]{40}$"))' "$stage/old.json")
-  if [[ $old == "$commit" ]]; then exit 0; fi
-  git merge-base --is-ancestor "$old" "$commit" || { echo 'Refusing to roll stable back.' >&2; exit 1; }
-fi
-jq -n --arg commit "$commit" --arg release "releases/$commit.json" \
-  '{version:1,commit:$commit,release:$release}' > "$stage/stable.json"
-object put "$stable" "$stage/stable.json" --if-generation-match "$generation"
-object get "$stable" > "$stage/published.json"
-cmp -- "$stage/published.json" "$stage/stable.json"
-printf 'Promoted and verified stable: %s\n' "$commit"
+bash "$(dirname -- "${BASH_SOURCE[0]}")/promote-cache.sh" "$bucket" "$commit"

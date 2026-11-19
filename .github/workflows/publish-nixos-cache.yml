@@ -8,6 +8,10 @@ name: Build and publish NixOS cache
         description: Check WIF and VM access without building or changing the channel
         type: boolean
         default: false
+      smoke:
+        description: Test publishing in the separate smoke bucket with an ephemeral key
+        type: boolean
+        default: false
 permissions:
   contents: read
   id-token: write
@@ -16,7 +20,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   publish:
-    if: github.ref == 'refs/heads/main' && (vars.FLAKE_CACHE_PUBLISH_ENABLED == 'true' || (github.event_name == 'workflow_dispatch' && inputs.verify))
+    if: github.ref == 'refs/heads/main' && (vars.FLAKE_CACHE_PUBLISH_ENABLED == 'true' || (github.event_name == 'workflow_dispatch' && (inputs.verify || inputs.smoke)))
     runs-on: ubuntu-24.04
     timeout-minutes: 310
     steps:
@@ -35,8 +39,16 @@ jobs:
         env:
           CACHE_VM_ZONE: ${{ vars.FLAKE_CACHE_ZONE }}
         run: gcloud compute instances describe flake-cache-worker --zone="$CACHE_VM_ZONE" --format='value(status)'
+      - uses: ./.github/actions/install-nix
+        if: github.event_name == 'workflow_dispatch' && inputs.smoke
+      - name: Exercise WIF and GCS with an ephemeral signing key
+        if: github.event_name == 'workflow_dispatch' && inputs.smoke
+        timeout-minutes: 10
+        env:
+          CACHE_SMOKE_BUCKET: ${{ vars.FLAKE_CACHE_SMOKE_BUCKET }}
+        run: bash scripts/ci/smoke-cache-release.sh
       - name: Build the exact commit and promote the successful release
-        if: github.event_name != 'workflow_dispatch' || !inputs.verify
+        if: github.event_name != 'workflow_dispatch' || (!inputs.verify && !inputs.smoke)
         env:
           CACHE_BUCKET: ${{ vars.FLAKE_CACHE_BUCKET }}
           CACHE_VM_ZONE: ${{ vars.FLAKE_CACHE_ZONE }}
