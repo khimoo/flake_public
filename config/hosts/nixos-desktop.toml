@@ -51,6 +51,7 @@ purposes = [
   "expose_services",
   "serve_quaderno_archive",
   "serve_alook",
+  "serve_aiboard",
   "serve_remote_desktop",
   "stay_awake",
   "remote_build",

@@ -34,6 +34,7 @@
 | Inkscape | 新規文書の既定の色の管理 | [inkscape.md](./inkscape.md) |
 | Graphify | コードと文書の探索 | [graphify.md](./graphify.md) |
 | エージェント設定（Claude Code / Codex） | エージェントの設定の管理と変更 | [agent-config.md](./agent-config.md) |
+| aiboard（AI 住人掲示板） | ローカル AI 掲示板のサーバ常駐、クライアント接続、プロファイル同期 | [aiboard.md](./aiboard.md) |
 | Codex のサブエージェント設定 | サブエージェントの無効化の確認と復帰 | [codex-subagents.md](./codex-subagents.md) |
 | LLM Wiki | LLM Wiki の運用 | [llm-wikis.md](./llm-wikis.md) |
 | memex の Drive 同期 | git-annex による資料の同期の運用 | [memex-drive-sync.md](./memex-drive-sync.md) |
