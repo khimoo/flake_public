@@ -46,6 +46,7 @@ let
     assert builtins.any (p: (p.pname or "") == "kitty") wslUser.home.packages;
     assert wsl.wsl.startMenuLaunchers;
     assert !(hasLauncher wslUser "agent-sync");
+    assert !(hasLauncher wslUser "flake-deploy");
     # uv が取得した Python だけを使わせる設定は、nix-ld と一緒に use_uv が入れる。
     assert wsl.programs.nix-ld.enable;
     assert wslUser.programs.uv.settings.python-preference == "only-managed";
@@ -66,6 +67,7 @@ let
     assert hasLauncher desktopUser "xsaved-web";
     assert hasLauncher desktopUser "xsaved-remote";
     assert hasLauncher desktopUser "cargo-remote-run";
+    assert hasLauncher desktopUser "flake-deploy";
     assert !(desktopUser.systemd.user.services ? xsaved-sync);
     # GCE オフロード中は nixos-desktop からも gce-ts へリモートビルドを送る。
     assert builtins.any (m: m.hostName == "gce-ts")
@@ -111,6 +113,7 @@ let
     assert gce.users.users.pomu.openssh.authorizedKeys.keys != [ ];
     # クラウド VM には個人の全秘密や private repo の clone（personal_files）を配らない。
     assert !(hasLauncher gceUser "clone-repos");
+    assert !(hasLauncher gceUser "flake-deploy");
     assert gceUser.home.activation ? secrets;
     assert !(lib.hasInfix "SOPS_AGE_KEY_FILE" gceUser.home.activation.secrets.data);
     assert !(lib.hasInfix "age_key=" gceUser.home.activation.secrets.data);

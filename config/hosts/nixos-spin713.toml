@@ -33,6 +33,7 @@ purposes = [
   "web_procedures",
   # このマシンが引き受けること
   "etc_nixos_link",
+  "deploy_from_cache",
   # ユーザーの個人のファイルと秘密
   "personal_files",
 ]

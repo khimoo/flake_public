@@ -1,6 +1,6 @@
 # GCE ビルドから Nix キャッシュを公開する
 
-実装: [`publish-cache.sh`](../../scripts/ci/publish-cache.sh) / [スモークテスト](../../tests/flake-cache-publisher.sh)
+実装: [`publish-cache.sh`](../../scripts/ci/publish-cache.sh) / [スモークテスト](../../tests/flake-cache-publisher.sh) / [`flake-deploy.py`](../../scripts/ci/flake-deploy.py) / [クライアント単体テスト](../../tests/flake-deploy.py) / [`deploy_from_cache.star`](../../config/elements/deploy_from_cache.star)
 
 GitHub の lock 更新・検証は [検証ガイド](./validation.md#github-actions-で依存を更新する) を参照。この手順はビルド済みクロージャの公開までを扱い、既存の [`nixos-gce`](./gce-offload.md) や実機には適用しない。
 
@@ -51,4 +51,35 @@ nix build --impure --no-link --print-out-paths --expr '
 3. WIF は対象リポジトリの `main` と [配布ワークフロー](../../.github/workflows/publish-nixos-cache.yml) だけに許可します。Actions の制御 SA は、この VM の参照・起動・停止、ビルド要求と `stable` の更新、結果の読み取りだけを行います。署名用バケットは読めません。
 4. Actions の変数 `FLAKE_CACHE_PROJECT`、`FLAKE_CACHE_WIF_PROVIDER`、`FLAKE_CACHE_CONTROLLER`、`FLAKE_CACHE_ZONE`、`FLAKE_CACHE_BUCKET` を設定します。最初は `verify=true` で VM を起動せずに認証を確認します。`FLAKE_CACHE_PUBLISH_ENABLED=true` にすると `main` の更新でビルドが起動し、成功した新しいコミットだけを `stable` にします。
 
-実機側での取得・適用は別途設定します。
+## 実機で取得・適用する
+
+実機（`nixos-spin713`・`nixos-desktop`）は利用目的 `deploy_from_cache` を選ぶと、`flake-deploy` コマンドが入ります（バケット URI・信頼済み公開鍵・読取専用 SA は [config/owner.toml](../../config/owner.toml) で管理）。
+
+### 初回認証
+
+プロジェクトの既定制約（`constraints/iam.disableServiceAccountKeyCreation`）に従い、長命な SA 鍵ファイルは作らず、ユーザーの `gcloud` 認証から読取専用 SA（`flake-cache-reader`、`cache/`・`releases/`・`channels/stable.json` のみ `roles/storage.objectViewer`）へ impersonate して短命トークンを取得します。各実機で初回だけ実行します。
+
+```sh
+gcloud auth login
+```
+
+### 確認・取得・適用
+
+普段の適用では `git pull` も flake の再評価もビルドも行いません。取得できない場合はビルドへフォールバックせず失敗します。最初は `nixos-spin713` で `test` してから `switch` し、問題なければ同じコミットを `nixos-desktop` へ適用します。
+
+```sh
+# 稼働中の revision と公開済み stable の差分を確認
+flake-deploy status
+
+# 署名検証のみ（取り込み・適用はしない）
+flake-deploy verify
+
+# 検証済みクロージャを /nix/store へ取り込むのみ（適用はしない）
+flake-deploy fetch
+
+# verify / fetch で確認したコミット SHA を固定して一時適用・恒久適用
+flake-deploy test --commit <40桁SHA>
+flake-deploy switch --commit <40桁SHA>
+```
+
+稼働中の revision より古い版への切り替えはローカルの Git 履歴（既定 `/etc/nixos`）で拒否します。意図的に過去の公開版へ戻す場合は `--commit <過去の40桁SHA> --allow-rollback` を明示します。未コミットの変更を手元で試す場合は、従来どおり `nixos-rebuild test --flake .#<ホスト名>` を使います。

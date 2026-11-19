@@ -1,6 +1,7 @@
 """Read and write small GCS objects without requiring bucket listing."""
 import argparse
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
@@ -10,6 +11,7 @@ from urllib.error import HTTPError, URLError
 
 BASE = 'https://storage.googleapis.com'
 MAX_BYTES = 256 * 1024
+SA_EMAIL_RE = r'[a-z0-9-]+@[a-z0-9-]+\.iam\.gserviceaccount\.com'
 
 
 class NoRedirect(request.HTTPRedirectHandler):
@@ -22,8 +24,15 @@ OPENER = request.build_opener(NoRedirect())
 
 
 def access_token():
-    result = subprocess.run(['gcloud', 'auth', 'print-access-token', '--quiet'],
-                            stdout=subprocess.PIPE, text=True, check=True, timeout=45)
+    cmd = ['gcloud', 'auth', 'print-access-token', '--quiet']
+    sa = os.environ.get('GCS_IMPERSONATE_SERVICE_ACCOUNT', '').strip()
+    if sa:
+        if not re.fullmatch(SA_EMAIL_RE, sa):
+            raise ValueError('invalid GCS_IMPERSONATE_SERVICE_ACCOUNT')
+        cmd.append(f'--impersonate-service-account={sa}')
+    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=45)
+    if result.returncode != 0:
+        raise ValueError(result.stderr.strip() or f'gcloud exited with {result.returncode}')
     token = result.stdout.strip()
     if not token or any(c.isspace() for c in token):
         raise ValueError('gcloud did not return an access token')

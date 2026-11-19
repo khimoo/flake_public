@@ -57,6 +57,7 @@ purposes = [
   "remote_build",
   "cargo_remote_run",
   "etc_nixos_link",
+  "deploy_from_cache",
   # ユーザーの個人のファイルと秘密
   "personal_files",
 ]
