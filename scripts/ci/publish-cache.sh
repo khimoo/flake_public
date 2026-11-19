@@ -3,6 +3,16 @@
 set -euo pipefail
 umask 077
 
+if [[ ${1:-} == --self-check && $# == 1 ]]; then
+  for dep in cmp gcloud jq mktemp nix rm sops stat; do
+    if ! command -v "$dep" >/dev/null; then
+      printf 'Missing publisher dependency: %s\n' "$dep" >&2
+      exit 127
+    fi
+  done
+  exit 0
+fi
+
 if (( $# != 5 )); then
   echo 'Usage: publish-cache.sh gs://CACHE_BUCKET gs://SIGNING_BUCKET/cache-signing.sops.json SHA DESKTOP_TOPLEVEL SPIN713_TOPLEVEL' >&2
   exit 2

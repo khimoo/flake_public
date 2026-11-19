@@ -1,4 +1,19 @@
 { config, lib, modulesPath, pkgs, ... }:
+let
+  publisher = pkgs.writeShellApplication {
+    name = "flake-publish-cache";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.diffutils
+      pkgs.google-cloud-sdk
+      pkgs.jq
+      pkgs.sops
+      config.nix.package
+    ];
+    inheritPath = false;
+    text = builtins.readFile ../../scripts/ci/publish-cache.sh;
+  };
+in
 {
   imports = [ (modulesPath + "/virtualisation/google-compute-image.nix") ];
 
@@ -50,9 +65,9 @@
     wantedBy = [ "multi-user.target" ];
     wants = [ "network-online.target" ];
     after = [ "network-online.target" "nix-daemon.socket" ];
-    path = with pkgs; [ age bash coreutils curl git google-cloud-sdk jq sops util-linux config.nix.package ];
+    path = with pkgs; [ age bash coreutils curl git google-cloud-sdk jq util-linux config.nix.package ];
     environment = {
-      PUBLISH_CACHE = toString ../../scripts/ci/publish-cache.sh;
+      PUBLISH_CACHE = lib.getExe publisher;
       NIX_REMOTE = "daemon";
     };
     serviceConfig = {

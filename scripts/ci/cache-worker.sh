@@ -36,6 +36,15 @@ finish() {
   exit "$rc"
 }
 trap finish EXIT
+if [[ ! ${PUBLISH_CACHE:-} =~ ^/nix/store/[^/]+/bin/flake-publish-cache$ || ! -x $PUBLISH_CACHE ]]; then
+  printf 'FLAKE_CACHE_PREFLIGHT_FAILED: publisher must be an executable Nix store path\n' >&2
+  exit 127
+fi
+if ! "$PUBLISH_CACHE" --self-check; then
+  printf 'FLAKE_CACHE_PREFLIGHT_FAILED: publisher dependency check failed\n' >&2
+  exit 127
+fi
+printf 'FLAKE_CACHE_PREFLIGHT_OK run=%s\n' "$run"
 printf 'FLAKE_CACHE_BUILD run=%s commit=%s\n' "$run" "$sha"
 build_home=/var/lib/flake-build
 as_builder() { runuser -u flake-build -- env HOME="$build_home" "$@"; }
@@ -55,4 +64,4 @@ desktop=$(as_builder nix build --no-update-lock-file --out-link "$root_dir/deskt
 spin=$(as_builder nix build --no-update-lock-file --out-link "$root_dir/spin713" \
   --print-out-paths .#nixosConfigurations.nixos-spin713.config.system.build.toplevel)
 cd "$STATE_DIRECTORY"
-bash "$PUBLISH_CACHE" "$cache" "$signing" "$sha" "$desktop" "$spin"
+"$PUBLISH_CACHE" "$cache" "$signing" "$sha" "$desktop" "$spin"
