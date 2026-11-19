@@ -29,4 +29,22 @@ bash scripts/ci/publish-cache.sh "$CACHE_BUCKET" \
 
 マニフェストの公開鍵は鍵名を識別する情報であり、実機が自動で信頼してよい鍵ではない。実機の信頼済み公開鍵は別途管理する。鍵を差し替えるときは版を上げ、信頼済み公開鍵の入れ替えと古い配布版の扱いを先に決める。
 
-この段階では Actions からの VM 起動、`stable` の切り替え、実機の取得・適用はつないでいない。
+## 専用 VM と Actions を設定する
+
+[専用イメージ](../../hosts/flake-cache-worker/image.nix) を flake と同じ nixpkgs でビルドします。専用 VM `flake-cache-worker` は SSH を開けず、永続ディスク上の `/nix/store` を次の起動にも使います。既存の `nixos-gce` は使いません。
+
+```sh
+nix build --impure --no-link --print-out-paths --expr '
+  let f = builtins.getFlake ("path:" + toString ./.); in
+  (f.inputs.nixpkgs.lib.nixosSystem {
+    system = "x86_64-linux";
+    modules = [ ./hosts/flake-cache-worker/image.nix ];
+  }).config.system.build.googleComputeImage'
+```
+
+1. イメージを GCE に UEFI イメージとして取り込み、VM に公開専用 SA を付けます。初回起動ではビルドせず、シリアル出力に `FLAKE_CACHE_AGE_RECIPIENT` が出ます。秘密の age identity は VM に残ります。
+2. 管理者の環境から [bootstrap-cache-signing.sh](../../scripts/ci/bootstrap-cache-signing.sh) に署名バケット URI、シリアル出力の公開受信者、`flake-public-cache-1` を渡すと、SOPS 暗号文だけを GCS に登録します。出力するのは実機で信頼設定する公開鍵です。
+3. WIF は対象リポジトリの `main` と [配布ワークフロー](../../.github/workflows/publish-nixos-cache.yml) だけに許可します。Actions の制御 SA は、この VM の参照・起動・停止、ビルド要求と `stable` の更新、結果の読み取りだけを行います。署名用バケットは読めません。
+4. Actions の変数 `FLAKE_CACHE_PROJECT`、`FLAKE_CACHE_WIF_PROVIDER`、`FLAKE_CACHE_CONTROLLER`、`FLAKE_CACHE_ZONE`、`FLAKE_CACHE_BUCKET` を設定します。最初は `verify=true` で VM を起動せずに認証を確認します。`FLAKE_CACHE_PUBLISH_ENABLED=true` にすると `main` の更新でビルドが起動し、成功した新しいコミットだけを `stable` にします。
+
+実機側での取得・適用は別途設定します。
