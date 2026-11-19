@@ -19,6 +19,16 @@
 
 負荷の高い評価やビルドはデスクトップ環境で実施し、`nixos-spin713` での全体検証は行いません。ユーザーから検証を省略するよう指示された場合はそれに従い、未検証であることを明記して報告します。ドキュメント整備の進め方については [文書整備](documentation.md) を参照してください。
 
+## GitHub Actions で依存を更新する
+
+[Update flake.lock](../../.github/workflows/update-flake-lock.yml) は週に一度 `nix flake update` を実行し、差分があれば desktop と spin713 のパッケージ集合を評価して `flake.lock` だけの PR を開きます。未マージの自動更新 PR があれば、新しい PR は開かず、既存の PR も上書きしません。PR は手動で確認してマージします。
+
+- 自動で PR を開くには、リポジトリの **Settings → Actions → General → Workflow permissions** で **Allow GitHub Actions to create and approve pull requests** を有効にします。ワークフローは PR を承認・マージしません。
+- `main` の Actions タブから手動実行すると、既定では更新と評価だけ行います。PR も開く場合は `publish` を選びます。`GITHUB_TOKEN` で開いた PR の追加チェックは、GitHub 上で書き込み権限のある人が実行を承認するまで待機します。更新ワークフロー内のパッケージ集合評価は PR を開く前に済みます。
+- [NixOS package-set evaluation](../../.github/workflows/nixos-package-set.yml) は通常の PR でも2台の `system.path.drvPath` を評価します。システム全体のビルド、すべての assertion、実機での適用は検証しません。失敗は Actions のログと標準メールで確認します。
+
+この段階では GCE でのフルビルド、GCS への配布、実機での適用は自動化していません。
+
 ## check.sh
 
 実行には Nix（Flakes 有効）、Python 3、Git、Bash が必要です。なお、世代の切り替え（switch）は行いません。

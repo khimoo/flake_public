@@ -1,0 +1,26 @@
+name: Install Nix for flake CI
+description: Install the pinned Nix release and configure its binary caches.
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: |
+        scratch=$(mktemp -d "$RUNNER_TEMP/nix-install.XXXXXX")
+        trap 'rm -rf -- "$scratch"' EXIT
+        cd "$scratch"
+        archive=nix-2.34.9-x86_64-linux.tar.xz
+        curl -fsSL --retry 3 --max-time 180 "https://releases.nixos.org/nix/nix-2.34.9/$archive" -o "$archive"
+        printf '%s  %s\n' e8912e087582b3799e0e5a6b06f9d63386c54821f77ad4de3b9b748736ad364e "$archive" | sha256sum -c -
+        tar -xJf "$archive"
+        sudo -H env USER=root LOGNAME=root ./nix-2.34.9-x86_64-linux/install --daemon --yes --no-channel-add
+        sudo tee -a /etc/nix/nix.conf >/dev/null <<'EOF'
+        experimental-features = flakes nix-command
+        sandbox = true
+        max-jobs = 2
+        cores = 2
+        extra-substituters = https://cache.numtide.com
+        extra-trusted-public-keys = niks3.numtide.com-1:DTx8wZduET09hRmMtKdQDxNNthLQETkc/yaX7M4qK0g=
+        EOF
+        sudo systemctl restart nix-daemon.service
+        echo /nix/var/nix/profiles/default/bin >> "$GITHUB_PATH"
+        echo NIX_REMOTE=daemon >> "$GITHUB_ENV"
