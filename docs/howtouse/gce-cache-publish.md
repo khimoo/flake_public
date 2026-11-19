@@ -42,6 +42,10 @@ nix build --impure --no-link --print-out-paths --expr '
   }).config.system.build.googleComputeImage'
 ```
 
+ワーカーを更新する前に、同じ式の末尾を `config.system.build.toplevel` に変えてビルドし、出力パスを `bash tests/flake-worker-unit.sh "$toplevel"` に渡します。このテストは生成された systemd ユニットから公開コマンドを取り出し、クロージャに含まれることと、空の環境から `--self-check` が通ることを確認します。VMでも各ビルド要求に対して先に同じ自己診断を行い、失敗した場合はビルド前に終了します。
+
+イメージを更新するときは既存の起動ディスクを消さないでください。`/nix/store` のビルド成果物とワーカー専用 age identity の両方が載っています。同じディスク上で修正版に切り替え、再実行前に前回対象の `releases/<SHA>/` の出力リンクを確認します。VMを削除する方法を取る場合は、起動ディスクの自動削除設定を先に確認してください。
+
 1. イメージを GCE に UEFI イメージとして取り込み、VM に公開専用 SA を付けます。初回起動ではビルドせず、シリアル出力に `FLAKE_CACHE_AGE_RECIPIENT` が出ます。秘密の age identity は VM に残ります。
 2. 管理者の環境から [bootstrap-cache-signing.sh](../../scripts/ci/bootstrap-cache-signing.sh) に署名バケット URI、シリアル出力の公開受信者、`flake-public-cache-1` を渡すと、SOPS 暗号文だけを GCS に登録します。出力するのは実機で信頼設定する公開鍵です。
 3. WIF は対象リポジトリの `main` と [配布ワークフロー](../../.github/workflows/publish-nixos-cache.yml) だけに許可します。Actions の制御 SA は、この VM の参照・起動・停止、ビルド要求と `stable` の更新、結果の読み取りだけを行います。署名用バケットは読めません。
