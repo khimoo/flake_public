@@ -23,6 +23,8 @@
 
 [Update flake.lock](../../.github/workflows/update-flake-lock.yml) は週に一度 `nix flake update` を実行し、差分があれば desktop と spin713 のパッケージ集合を評価して `flake.lock` だけの PR を開きます。未マージの自動更新 PR があれば、新しい PR は開かず、既存の PR も上書きしません。PR は手動で確認してマージします。
 
+PR 本文に更新された lock ノードと変更前後の `rev` / `narHash` が出ます。既存の固定値（`rev`、`narHash`、`lastModified`）の更新だけを自動で扱い、入力の増減・参照関係や取得元の変更は自動 PR にせず失敗にします。その場合は手元で変更内容を確認し、通常の PR を作ります。
+
 - 自動で PR を開くには、リポジトリの **Settings → Actions → General → Workflow permissions** で **Allow GitHub Actions to create and approve pull requests** を有効にします。ワークフローは PR を承認・マージしません。
 - `main` の Actions タブから手動実行すると、既定では更新と評価だけ行います。PR も開く場合は `publish` を選びます。`GITHUB_TOKEN` で開いた PR の追加チェックは、GitHub 上で書き込み権限のある人が実行を承認するまで待機します。更新ワークフロー内のパッケージ集合評価は PR を開く前に済みます。
 - [NixOS package-set evaluation](../../.github/workflows/nixos-package-set.yml) は通常の PR でも2台の `system.path.drvPath` を評価します。システム全体のビルド、すべての assertion、実機での適用は検証しません。失敗は Actions のログと標準メールで確認します。
