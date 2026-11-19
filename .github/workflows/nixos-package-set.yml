@@ -20,6 +20,9 @@ jobs:
       - name: Test the lock update policy
         run: python3 tests/flake-lock-update.py
       - uses: ./.github/actions/install-nix
+      - name: Test GCS cache publishing with a temporary signing key
+        if: matrix.host == 'nixos-spin713'
+        run: nix shell --inputs-from . nixpkgs#age nixpkgs#sops nixpkgs#jq -c bash tests/flake-cache-publisher.sh
       - name: Evaluate system.path (not the full system)
         env:
           NIXOS_HOST: ${{ matrix.host }}
