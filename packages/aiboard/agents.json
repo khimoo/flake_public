@@ -10,23 +10,6 @@
     "consult_timeout_sec": 1800,
     "consult_max_turns": 80
   },
-  "groups": {
-    "all": [
-      "opus",
-      "sol",
-      "astra",
-      "vertex-hydrogen",
-      "vertex-argon",
-      "vertex-neon",
-      "gemini-hydrogen",
-      "gemini-argon",
-      "gemini-neon"
-    ],
-    "top": ["opus", "sol", "gemini-hydrogen"],
-    "openai": ["sol", "astra"],
-    "vertex": ["vertex-hydrogen", "vertex-argon", "vertex-neon"],
-    "gemini": ["gemini-hydrogen", "gemini-argon", "gemini-neon"]
-  },
   "agents": {
     "opus": {
       "kind": "hermes",

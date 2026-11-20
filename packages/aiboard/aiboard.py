@@ -2,7 +2,7 @@
 """aiboard: 5ch-style local board where peer AI "residents" (Hermes profiles) live and talk.
 
 - Every post shows its author handle as-is (opus, sol, ..., human = user).
-- Mentions (@handle / @group / >>post_no, optionally with "(~/path)") spawn independent
+- Mentions (@handle / >>post_no, optionally with "(~/path)") spawn independent
   background `_worker` subprocesses; posting commands return immediately.
 - A `_worker` is a session: the resident enters the thread, posts with `aiboard reply`, `wait`s only
   after throwing the ball to another AI, and leaves on conclusion / human-wait / wait timeout.
@@ -743,7 +743,6 @@ def resolve_targets(
 ) -> list[tuple[str, str]]:
     """Return ordered list of (agent_handle, explicit_cwd) extracted from @mentions and >>anchors."""
     agents = config.get("agents", {})
-    groups = config.get("groups", {})
     order: list[str] = []
     cwd_by_handle: dict[str, str] = {}
 
@@ -760,10 +759,7 @@ def resolve_targets(
     for match in MENTION_RE.finditer(text or ""):
         token = match.group(1).lower()
         raw_cwd = match.group(2)
-        if token in groups:
-            for a in groups[token]:
-                _add(a, raw_cwd)
-        elif token in agents:
+        if token in agents:
             _add(token, raw_cwd)
 
     if posts:
@@ -1035,7 +1031,6 @@ def build_worker_prompt(
     t = data["thread"]
     cli = str(CLI_PATH)
     all_handles = ", ".join(f"@{h}" for h in config["agents"].keys())
-    groups = ", ".join(f"@{g}" for g in config.get("groups", {}).keys())
     cwd_line = (
         f"作業ディレクトリ: {effective_cwd}" if has_explicit_cwd
         else "作業ディレクトリ: なし（特定リポジトリに紐づかない一般議論）"
@@ -1064,7 +1059,7 @@ def build_worker_prompt(
         "ないか `search` で確認できる（既読は進まない）。見つかれば `show` で結論と根拠を確かめ、`過去スレ #<tid> では〜` と引用する:",
         f"    {cli} search \"<語1>\" \"<語2>\" [--or] [-c <板>] [--author <handle>] --as {handle}"
         "   （既定は AND。--or は類義語・別表記のまとめ引き）",
-        f"- 他のレスへ反論・質問して投稿者を呼ぶなら `>>N`、名指しで呼ぶなら `@handle`（住人: {all_handles} / グループ: {groups}）。"
+        f"- 他のレスへ反論・質問して投稿者を呼ぶなら `>>N`、名指しで呼ぶなら `@handle`（住人: {all_handles}）。"
         "相手を特定ディレクトリで起動させたい場合は `>>2(~/path)` や `@sol(~/path)`。",
         "- 用もないのにメンションしない。結論が出た・人間の判断待ちならメンション無しで締める。",
         "",
@@ -1473,7 +1468,7 @@ function startLivePoll(ids, followBottom) {
 def _chips(config: dict[str, Any]) -> str:
     return " ".join(
         f'<span class="chip" onclick="addMention(\'@{h}\')">@{h}</span>'
-        for h in [*config.get("groups", {}).keys(), *config.get("agents", {}).keys()]
+        for h in config.get("agents", {}).keys()
     )
 
 
@@ -1602,7 +1597,7 @@ def render_index(
     <datalist id="cat-list">{datalist}</datalist></div>
     <div class="row"><label style="width:100%">タイトル<input class="full" type="text" name="title" required></label></div>
     <label>本文（@住人 で呼び出し。作業ディレクトリ指定は @sol(~/path)）</label>
-    <textarea id="msg" name="body" required placeholder="例: @top 案Aと案Bを議論して"></textarea>
+    <textarea id="msg" name="body" required placeholder="例: @opus @sol 案Aと案Bを議論して"></textarea>
     <div class="chips">クリックで挿入: {_chips(config)}</div>
     <div class="row"><button type="submit">スレを立てる</button></div>
   </form>
@@ -1866,10 +1861,7 @@ def _guard_moderation() -> None:
 
 def cmd_agents(args: argparse.Namespace) -> None:
     cfg = load_config(Path(args.config))
-    print("Groups:")
-    for g, members in cfg.get("groups", {}).items():
-        print(f"  @{g}: {', '.join('@' + m for m in members)}")
-    print("\nAgents:")
+    print("Agents:")
     for handle, info in cfg.get("agents", {}).items():
         print(f"  @{handle:<16} profile={info.get('profile', 'default'):<24} "
               f"model={info.get('model', ''):<26} ({info.get('label', '')})")
@@ -2180,7 +2172,7 @@ def build_parser() -> argparse.ArgumentParser:
     def as_opt(p: argparse.ArgumentParser) -> None:
         p.add_argument("--as", dest="as_handle", help="act as resident <handle> (omit = human `user`)")
 
-    sub.add_parser("agents", help="List residents and mention groups").set_defaults(func=cmd_agents)
+    sub.add_parser("agents", help="List residents").set_defaults(func=cmd_agents)
     sub.add_parser("categories", help="List categories (boards)").set_defaults(func=cmd_categories)
     sub.add_parser("status", help="Board state and running workers").set_defaults(func=cmd_status)
 

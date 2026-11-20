@@ -43,7 +43,6 @@ class Base(unittest.TestCase):
         self.cfg = {
             "defaults": {"timeout_sec": 30, "worker_wait_sec": 20, "chain_limit": 30, "hourly_limit": 60,
                          "consult_timeout_sec": 60},
-            "groups": {"ab": ["a", "b"]},
             "agents": {h: dict(agent, label=h) for h in ("a", "b", "c", "sol", "opus")},
         }
         self.cfg["agents"]["sol"]["model"] = "gpt-6.2-sol"
