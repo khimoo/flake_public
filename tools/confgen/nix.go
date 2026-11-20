@@ -131,7 +131,7 @@ func nixMarker(kind string, value any, class string) (string, error) {
 		"$shellAppEnv":       {4, "pkgs.writeShellApplication { name = %s; runtimeInputs = %s; runtimeEnv = %s; text = %s; }"},
 		"$repoText":          {1, "builtins.readFile (repoRoot + (\"/\" + %s))"},
 		"$repoPkgWith":       {2, "pkgs.callPackage (repoRoot + (\"/\" + %s)) %s"},
-		"$repoPath":          {1, "repoRoot + (\"/\" + %s)"},
+		"$repoPath":          {1, "\"${repoRoot + (\"/\" + %s)}\""},
 		"$pythonWithModules": {1, "pkgs.python3.withPackages (_: map pkgs.python3Packages.toPythonModule %s)"},
 		"$pkgSetFn":          {1, "(ps: map (name: lib.getAttrFromPath (lib.splitString \".\" name) ps) %s)"},
 		"$pkgWithPackages":   {2, "(lib.getAttrFromPath (lib.splitString \".\" %s) pkgs).withPackages (ps: map (name: lib.getAttrFromPath (lib.splitString \".\" name) ps) %s)"},
