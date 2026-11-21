@@ -1,3 +1,8 @@
+-- ng では SDL の IME を使い、ターミナルでは従来の skkeleton を使う。
+if vim.g.ng then
+    return {}
+end
+
 local data = require("config.nix").data.skkeleton
 
 return {

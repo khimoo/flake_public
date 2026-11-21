@@ -24,6 +24,13 @@ return {
                         base_dirs = {
                             { path = "~/sagyo", max_depth = 3 },
                         },
+                        on_project_selected = function(prompt_bufnr)
+                            local selected = require("telescope.actions.state").get_selected_entry(prompt_bufnr)
+                            require("telescope.actions").close(prompt_bufnr)
+                            if selected then
+                                require("config.project").switch(selected.value)
+                            end
+                        end,
                     },
                 },
             }
