@@ -35,6 +35,7 @@
   "rustaceanvim": { "branch": "main", "commit": "e9c5aaba16fead831379d5f44617547a90b913c7" },
   "skkeleton": { "branch": "main", "commit": "89980892b0c408d3fb3ba0b3fc78268a4d6f062a" },
   "skkeleton_indicator.nvim": { "branch": "v2", "commit": "b3e5379db47ed86a2f0f6fd9ae2c30a0e8119c23" },
+  "telescope-project.nvim": { "branch": "master", "commit": "8e11df94419e444601c09828dadf70890484e443" },
   "telescope.nvim": { "branch": "master", "commit": "40aedd8a68c78a656a10a8d62d80c54af59420fb" },
   "treesj": { "branch": "main", "commit": "9f349ba62c524f065d6f43254d731ddf8319b9bf" },
   "trouble.nvim": { "branch": "main", "commit": "bd67efe408d4816e25e8491cc5ad4088e708a69a" },

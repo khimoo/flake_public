@@ -4,6 +4,7 @@ return {
         "nvim-telescope/telescope.nvim",
         dependencies = {
             "nvim-lua/plenary.nvim",
+            "nvim-telescope/telescope-project.nvim",
         },
         config = function()
             local function open_with_trouble(...)
@@ -17,7 +18,16 @@ return {
                         n = { ["<C-t>"] = open_with_trouble },
                     },
                 },
+                extensions = {
+                    project = {
+                        -- ~/sagyo/<repo>/.git (深さ2) と ~/sagyo/<dir>/<repo>/.git (深さ3) を拾う
+                        base_dirs = {
+                            { path = "~/sagyo", max_depth = 3 },
+                        },
+                    },
+                },
             }
+            require("telescope").load_extension("project")
 
             local builtin = require("telescope.builtin")
             vim.keymap.set("n", "<leader>ff", builtin.find_files, { desc = "Find files" })
@@ -28,6 +38,9 @@ return {
             vim.keymap.set("n", "<leader>fS", builtin.lsp_workspace_symbols, { desc = "Workspace symbols" })
             vim.keymap.set("n", "<leader>fo", builtin.oldfiles, { desc = "Recent files" })
             vim.keymap.set("n", "<leader>ft", ":Telescope<CR>", { desc = "Telescope commands" })
+            vim.keymap.set("n", "<leader>p", function()
+                require("telescope").extensions.project.project({})
+            end, { desc = "Projects (~/sagyo)" })
         end
     },
 }
