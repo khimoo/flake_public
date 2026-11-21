@@ -58,6 +58,10 @@ function M.switch(path)
 end
 
 function M.setup()
+    vim.api.nvim_create_user_command("DirenvReload", function()
+        pending = vim.fn.getcwd()
+        refresh()
+    end, { desc = "Reload project environment with direnv" })
     vim.api.nvim_create_autocmd("DirChanged", {
         callback = function()
             pending = vim.fn.getcwd()
