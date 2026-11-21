@@ -4,9 +4,11 @@ kitty で対象プロジェクトに移動して `ng .` を実行する。GUI �
 
 ## GUI 内でプロジェクトを変える
 
-`<leader>p` で `~/sagyo` 配下の Git リポジトリを選択する。Enter で Neovim の cwd を変更し、direnv の非同期更新完了後に LSP を再起動する。以降の `<leader>ff` と `<leader>fg` は変更後の cwd を使う。
+`<leader>p` で `~/sagyo` 配下の Git リポジトリを選択する。Enter で Neovim の cwd を変更する。direnv の環境は非同期に更新され、完了すると動作中の LSP を再起動する。以降の `<leader>ff` と `<leader>fg` は変更後の cwd を使う。
 
-読み込む `.envrc` が未承認なら、そのプロジェクトのディレクトリで `direnv allow` を実行する。既に開いている別プロジェクトのバッファも同じ Neovim プロセスに残るため、独立した環境が必要な場合は kitty から `ng .` を新たに起動する。
+`.envrc` がないプロジェクトでは、前のプロジェクトの direnv 環境を解除する。未承認の `.envrc` がある場合は、そのディレクトリで `direnv allow` した後、`:cd .` などで cwd を再設定する。
+
+別プロジェクトのバッファは同じ Neovim に残る。異なるプロジェクトの LSP や作業環境を同時に利用する場合は、それぞれのディレクトリから `ng .` を起動する。
 
 ## 入力とコピペ
 
