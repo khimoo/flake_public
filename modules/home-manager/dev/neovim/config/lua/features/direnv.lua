@@ -1,15 +1,3 @@
-return {
-    {
-        "actionshrimp/direnv.nvim",
-        main = "direnv-nvim",
-        lazy = false,
-        opts = {
-            type = "dir",
-            async = true,
-            hook = { msg = nil },
-            on_direnv_finished = function()
-                require("config.project").on_direnv_finished()
-            end,
-        },
-    },
-}
+-- shell の direnv hook と同じ export を、Neovim の cwd に対して行う。
+require("config.project").setup()
+return {}
