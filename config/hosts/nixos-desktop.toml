@@ -30,6 +30,7 @@ purposes = [
   "follow_communities",
   # 趣味
   "programming",
+  "gui_editing",
   "draw",
   "media",
   "make_music",
