@@ -2,7 +2,7 @@
   lib,
   stdenv,
   fetchurl,
-  autoPatchelfHook,
+  patchelf,
   makeWrapper,
   freetype,
   fontconfig,
@@ -32,7 +32,7 @@ stdenv.mkDerivation (finalAttrs: {
     sha256 = "dc4f9ab62266a59ef6e2642be33e1571997b8ec08b5abfdbef793b150499407c";
   };
 
-  nativeBuildInputs = [ autoPatchelfHook makeWrapper ];
+  nativeBuildInputs = [ patchelf makeWrapper ];
   buildInputs = [ freetype fontconfig ];
 
   dontBuild = true;
@@ -46,8 +46,13 @@ stdenv.mkDerivation (finalAttrs: {
     runHook postInstall
   '';
 
-  # SDL3 は静的リンクされていても表示サーバ用ライブラリを実行時に dlopen する。
+  # ELF の直接依存だけをパッチし、SDL3 の .note.dlopen を必須依存として扱わない。
+  # 表示サーバ用ライブラリはラッパーから実行時に渡す。
   postFixup = ''
+    patchelf \
+      --set-interpreter "$(cat "$NIX_CC/nix-support/dynamic-linker")" \
+      --set-rpath "${lib.makeLibraryPath [ freetype fontconfig ]}" \
+      "$out/bin/ng"
     wrapProgram "$out/bin/ng" --prefix LD_LIBRARY_PATH : "${lib.makeLibraryPath [
       libX11 libXext libXrandr libXcursor libXfixes libXi libXScrnSaver libXtst
       libxkbcommon wayland libdecor libGL dbus udev
