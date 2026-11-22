@@ -10,9 +10,12 @@ vim.opt.nuw = 4
 vim.wo.wrap = false
 
 -- 編集
--- クリップボードはターミナル（kitty）が持つ。OSC 52 で読み書きするので、xclip や wl-clipboard は要らない。
--- 'clipboard' を設定すると Neovim は OSC 52 を自分で選ばないので、明示する。
-vim.g.clipboard = "osc52"
+-- kitty では OSC 52、ng では Neovim の OS clipboard provider (wl-copy / xclip) を使う。
+if vim.g.ng then
+    vim.opt.guifont = "PlemolJP Console NF:h15"
+else
+    vim.g.clipboard = "osc52"
+end
 vim.opt.clipboard:append { "unnamedplus" }
 vim.opt.ignorecase = true
 vim.opt.smartindent = true

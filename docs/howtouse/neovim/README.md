@@ -40,6 +40,7 @@ LSP サーバーや ripgrep などの外部ツールは Nix 経由で導入さ�
 | キー操作の確認 | | [cheatsheet.md](./cheatsheet.md) |
 | 作業別のキー操作 | | [workflows.md](./workflows.md) |
 | 検索・ファイラー | telescope, oil.nvim | [telescope.md](./telescope.md) |
+| GUI での編集 | ng, Telescope, direnv | [ng.md](./ng.md) |
 | LSP | nvim-lspconfig | [lsp.md](./lsp.md) |
 | 構文解析 | treesitter, treesj, textobjects, aerial | [treesitter.md](./treesitter.md) |
 | テスト | neotest, neotest-rust | [neotest.md](./neotest.md) |

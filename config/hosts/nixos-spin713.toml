@@ -25,6 +25,7 @@ purposes = [
   "follow_communities",
   # 趣味
   "programming",
+  "gui_editing",
   "program_on_home_server",
   "draw",
   "media",
