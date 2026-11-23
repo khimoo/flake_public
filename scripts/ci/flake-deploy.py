@@ -262,7 +262,10 @@ def main(argv=None):
         elif args.action == 'fetch':
             print('Imported the verified system; nothing activated.')
         else:
-            subprocess.run(['sudo', 'nixos-rebuild', args.action, '--store-path', top], check=True)
+            # nixos-rebuild-ng (26.05) re-execs into a freshly built nixos-rebuild before it
+            # applies --store-path. That re-exec evaluates <nixpkgs/nixos>, which fails when
+            # NIX_PATH has no nixos-config, and it would build and run unverified code.
+            subprocess.run(['sudo', 'nixos-rebuild', args.action, '--no-reexec', '--store-path', top], check=True)
     except (KeyError, TypeError, ValueError, OSError, URLError, subprocess.SubprocessError) as exc:
         print(f'flake-deploy: {exc}', file=sys.stderr)
         return 1
