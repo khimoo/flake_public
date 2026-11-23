@@ -1,7 +1,6 @@
 system = "x86_64-linux"
 state_version = "25.11"
 
-# クライアントの側。expose_services と serve_aiboard を選んだホストのユーザーへ ssh で接続する。
 [[users]]
 name = "test"
-purposes = ["use_aiboard", "tailscale"]
+purposes = ["use_aiboard"]

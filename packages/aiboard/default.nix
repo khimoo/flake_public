@@ -3,53 +3,43 @@
   stdenvNoCC,
   python3,
   makeWrapper,
+  hermes-agent,
 }:
-
+let
+  python = python3.withPackages (ps: [ ps.pyyaml ]);
+in
 stdenvNoCC.mkDerivation {
   pname = "aiboard";
-  version = "0.1.0";
-
-  src = lib.fileset.toSource {
-    root = ./.;
-    fileset = lib.fileset.unions [
-      ./aiboard.py
-      ./agents.json
-      ./tests
-    ];
-  };
-
-  nativeBuildInputs = [ makeWrapper ];
-
+  version = "4.0.0";
+  src = lib.cleanSource ./.;
+  nativeBuildInputs = [ makeWrapper python ];
   dontBuild = true;
-
+  doCheck = true;
+  checkPhase = ''
+    runHook preCheck
+    export HOME="$TMPDIR/aiboard-check-home"
+    mkdir -p "$HOME"
+    unset HERMES_HOME AIBOARD_AGENT AIBOARD_DB AIBOARD_CONFIG AIBOARD_DATA_DIR AIBOARD_LOG_DIR
+    export PYTHONDONTWRITEBYTECODE=1
+    python3 -m unittest discover -s tests -v
+    runHook postCheck
+  '';
   installPhase = ''
     runHook preInstall
-    mkdir -p "$out/libexec/aiboard" "$out/bin"
-    cp aiboard.py agents.json "$out/libexec/aiboard/"
-    chmod +x "$out/libexec/aiboard/aiboard.py"
-    makeWrapper "${python3}/bin/python3" "$out/bin/aiboard" \
-      --add-flags "$out/libexec/aiboard/aiboard.py" \
-      --set-default AIBOARD_CONFIG "$out/libexec/aiboard/agents.json" \
-      --set-default AIBOARD_CLI "aiboard"
+    mkdir -p "$out/lib/aiboard" "$out/bin" "$out/share/aiboard"
+    cp aiboard.py board.py config.py gateway_rpc.py web.py worker.py agents.json "$out/lib/aiboard/"
+    cp -r static "$out/lib/aiboard/"
+    ln -s "$out/lib/aiboard/agents.json" "$out/share/aiboard/agents.json"
+    python3 nix-rpc-wrapper.py ${hermes-agent}/bin/.hermes-wrapped "$out/lib/aiboard/gateway_rpc.py" "$out/bin/aiboard-hermes-rpc"
+    makeWrapper ${python}/bin/python3 "$out/bin/aiboard" \
+      --add-flags "$out/lib/aiboard/aiboard.py" \
+      --prefix PATH : ${lib.makeBinPath [ hermes-agent ]} \
+      --set-default AIBOARD_CLI "$out/bin/aiboard" \
+      --set-default AIBOARD_HERMES_RPC "$out/bin/aiboard-hermes-rpc"
     runHook postInstall
   '';
-
-  doInstallCheck = true;
-  nativeInstallCheckInputs = [ python3 ];
-  installCheckPhase = ''
-    runHook preInstallCheck
-    export HOME="$TMPDIR/aiboard-home"
-    mkdir -p "$HOME"
-    "$out/bin/aiboard" agents > /dev/null
-    cp -r "$src/tests" "$TMPDIR/tests"
-    cp "$out/libexec/aiboard/aiboard.py" "$TMPDIR/aiboard.py"
-    python3 "$TMPDIR/tests/test_aiboard.py" -v
-    runHook postInstallCheck
-  '';
-
   meta = {
-    description = "Local 5ch-style multi-agent discussion board for Hermes residents";
-    license = lib.licenses.mit;
+    description = "Local AI collaboration forum and resident queue";
     mainProgram = "aiboard";
     platforms = lib.platforms.linux;
   };

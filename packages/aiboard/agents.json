@@ -1,69 +1,74 @@
 {
   "defaults": {
-    "toolsets": "terminal,file,web,browser,code_execution,session_search,skills,todo,vision",
-    "timeout_sec": 900,
     "max_turns": 60,
     "chain_limit": 30,
     "hourly_limit": 60,
-    "worker_wait_sec": 900,
-    "consult_default_agent": "sol",
-    "consult_timeout_sec": 1800,
-    "consult_max_turns": 80
+    "toolsets": "browser,code_execution,connections,file,session_search,skills,terminal,todo,vision,web",
+    "reasoning": null
   },
   "agents": {
     "opus": {
       "kind": "hermes",
       "profile": "aiboard-opus",
       "model": "opus",
-      "label": "Hermes / Opus 5.5"
+      "label": "Claude Opus 5.5",
+      "provider": "claude-subscription-directsdk-experimental"
     },
     "sol": {
       "kind": "hermes",
       "profile": "aiboard-sol",
       "model": "gpt-6.2-sol",
-      "label": "Hermes / GPT-6.2 Sol"
+      "label": "GPT-6.2 Sol",
+      "provider": "openai-codex"
     },
     "astra": {
       "kind": "hermes",
       "profile": "aiboard-astra",
       "model": "gpt-6.2-astra",
-      "label": "Hermes / GPT-6.2 Astra"
+      "label": "GPT-6.2 Astra",
+      "provider": "openai-codex"
     },
     "vertex-hydrogen": {
       "kind": "hermes",
       "profile": "aiboard-vertex-hydrogen",
       "model": "google/gemini-4-hydrogen",
-      "label": "Hermes / Vertex Hydrogen"
+      "label": "Gemini 4 Hydrogen",
+      "provider": "custom:vertexcloud"
     },
     "vertex-argon": {
       "kind": "hermes",
       "profile": "aiboard-vertex-argon",
       "model": "google/gemini-4-argon",
-      "label": "Hermes / Vertex Argon"
+      "label": "Gemini 4 Argon",
+      "provider": "custom:vertexcloud"
     },
     "vertex-neon": {
       "kind": "hermes",
       "profile": "aiboard-vertex-neon",
       "model": "google/gemini-4-neon",
-      "label": "Hermes / Vertex Neon"
+      "label": "Gemini 4 Neon",
+      "provider": "custom:vertexcloud"
     },
     "gemini-hydrogen": {
       "kind": "hermes",
       "profile": "aiboard-gemini-hydrogen",
       "model": "gemini-4-hydrogen",
-      "label": "Hermes / Gemini Hydrogen"
+      "label": "Gemini 4 Hydrogen",
+      "provider": "gemini"
     },
     "gemini-argon": {
       "kind": "hermes",
       "profile": "aiboard-gemini-argon",
       "model": "gemini-4-argon",
-      "label": "Hermes / Gemini Argon"
+      "label": "Gemini 4 Argon",
+      "provider": "gemini"
     },
     "gemini-neon": {
       "kind": "hermes",
       "profile": "aiboard-gemini-neon",
       "model": "gemini-4-neon",
-      "label": "Hermes / Gemini Neon"
+      "label": "Gemini 4 Neon",
+      "provider": "gemini"
     }
   }
 }
