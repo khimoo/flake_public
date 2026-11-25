@@ -13,7 +13,7 @@ Flake 設定の設計判断・実装構造のドキュメント。設定変更�
 | [machine-ssh.md](./machine-ssh.md) | マシン間 SSH と LAN 共通鍵の設計 |
 | [remote-build.md](./remote-build.md) | リモートビルドの設計 |
 | [gce-offload.md](./gce-offload.md) | Google Cloud（GCE）へビルドや xsaved をオフロードし、ローカルへ戻す設計 |
-| [tailscale.md](./tailscale.md) | LAN の外からの SSH・リモートビルド・RDP の経路の設計 |
+| [tailscale.md](./tailscale.md) | LAN の外からの SSH・リモートビルド・画面配信 の経路の設計 |
 | [private-repo-clone.md](./private-repo-clone.md) | SSH 鍵の配布、秘密の更新、private repo の clone の設計 |
 | [new-machine.md](./new-machine.md) | 新マシンのプロビジョニングの設計メモ（未実装） |
 | [disk-tiering.md](./disk-tiering.md) | NVMe と SATA の 2 層ディスク構成の設計 |
@@ -22,7 +22,7 @@ Flake 設定の設計判断・実装構造のドキュメント。設定変更�
 | [unstable-packages.md](./unstable-packages.md) | nixos-unstable から一部のパッケージだけを取る判断 |
 | [wsl.md](./wsl.md) | 会社 PC の NixOS-WSL の設計 |
 | [windows-vm.md](./windows-vm.md) | デスクトップの Windows VM の設計 |
-| [gnome-transparent-fullscreen.md](./gnome-transparent-fullscreen.md) | 全画面の半透明ウィンドウを透かす mutter のパッチの判断 |
+| [niri.md](./niri.md) | Niri のセッション、ユーザー設定、自動起動、仮想出力の設計 |
 | [audio-echo-cancel.md](./audio-echo-cancel.md) | 通話用エコーキャンセルの設計 |
 | [default-apps.md](./default-apps.md) | 既定アプリと URL スキームの関連付けの設計 |
 | [xdg-scheme-workaround.md](./xdg-scheme-workaround.md) | URL スキームの既定を明示登録する理由 |

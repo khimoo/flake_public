@@ -13,7 +13,7 @@
 
 ## 機能の実装をたどる
 
-ハードウェアプロファイルと利用目的からコンポーネントの `requires` と仮引数をたどる。GUI の基本は `gui`、GNOME は `gnome`、日本語入力は `japanese_input` にある。GNOME と日本語入力は GUI を依存に含めるので、WSLg のように GUI だけを選ぶ構成も維持できる。
+ハードウェアプロファイルと利用目的からコンポーネントの `requires` と仮引数をたどる。GUI アプリの基本は `gui`、Niri のセッションは `desktop`、日本語入力は `japanese_input` にある。WSLg は `gui` だけを選べるため、ローカルのログイン画面やコンポジタを導入せずにアプリを使える。セッションとユーザー設定の境界は [Niri の設計](niri.md) を参照する。
 
 Neovim の道具と生成する Lua は `nvim_<名前>` のコンポーネントが機能ごとに持つ（[設計](neovim/features.md)）。Neovim の設定ディレクトリは checkout への live symlink なので、生成するファイルは XDG data 配下に置く。kitty のフォントは `gui` の公開値を読む。
 

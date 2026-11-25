@@ -5,7 +5,7 @@
 
 ## 追加・削除の手順と場所
 
-アプリはユーザーの利用目的ごとに選びます。ホストのファイル（`config/hosts/<ホスト>.toml`）のユーザーの `[[users]]` の `purposes` に、`web_procedures`（`requires` の `web_browsing` が Zen を既定ブラウザにし、Firefox、Brave、Google Chrome も入れる）、`draw`（`requires` の `inkscape`）、`work_ss`（`requires` の `teams_dispatcher`）などを挙げます（[confgen.md](./confgen.md)）。無効にするにはユーザーの `purposes` から対応する利用目的を外します。kitty とフォントは [gui.star](../../config/elements/gui.star) が担当します。`gui`、`gnome`、`japanese_input` はハードウェアプロファイルの `requires` で選び、無効にする場合もハードウェアプロファイルの `requires` から外します。
+アプリはユーザーの利用目的ごとに選びます。ホストのファイル（`config/hosts/<ホスト>.toml`）のユーザーの `[[users]]` の `purposes` に、`web_procedures`（`requires` の `web_browsing` が Zen を既定ブラウザにし、Firefox、Brave、Google Chrome も入れる）、`draw`（`requires` の `inkscape`）、`work_ss`（`requires` の `teams_dispatcher`）などを挙げます（[confgen.md](./confgen.md)）。無効にするにはユーザーの `purposes` から対応する利用目的を外します。kitty とフォントは [gui.star](../../config/elements/gui.star) が担当します。`gui`、`desktop`、`japanese_input` はハードウェアプロファイルの `requires` で選び、無効にする場合もハードウェアプロファイルの `requires` から外します。
 
 `gui_apps` は `purposes` で選びません。アプリを使うコンポーネントの `writes(gui_apps)` が `write(gui_apps, pkg = ..., ...)` を返し、[gui_apps.star](../../config/elements/gui_apps.star) が受け取ったアプリのパッケージ、Wayland 起動設定、自動起動、MIME タイプの関連付けをまとめて生成します。アプリを追加・削除するときは、アプリを使うコンポーネントの `writes` を変更します。受け付ける引数と組み合わせの制約は、[gui_apps.star](../../config/elements/gui_apps.star) の `accept` に書かれています。例えば、PDF の既定アプリは [read_materials.star](../../config/elements/read_materials.star) で次のように定義します。
 
@@ -26,10 +26,8 @@ Zen 本体は [zen_browser.star](../../config/elements/zen_browser.star) で、[
 
 Firefox と Zen の拡張機能、pref、同期の分担は [ブラウザ](./browsers.md) にまとめています。
 
-## GNOME 拡張の切り替えと設定
+## デスクトップの設定
 
-GNOME のアプリ一覧で「拡張機能」を開くか、端末から `gnome-extensions-app` を実行します。GNOME 同梱の管理画面で、導入済みの拡張のオン・オフと設定を変更できます。
+Niri のキー操作、Waybar、通知、ランチャーの変更と反映方法は [Niri](niri.md) を参照してください。ウィンドウの配置ルールは [niri_background_apps.star](../../config/elements/niri_background_apps.star) で管理します。
 
-拡張の追加・削除は [gnome.star](../../config/elements/gnome.star) の `home.packages` と `enabled-extensions` を変更し、設定を反映します。管理画面で切り替えた有効状態や、PaperWM の `winprops`（`org/gnome/shell/extensions/paperwm`）へ手動で追加したルールは、設定を再び反映すると [gnome.star](../../config/elements/gnome.star) の指定に戻る場合があります。
-
-`autostart = True` のアプリは `~/.config/autostart/` に配置され、ログイン時に 1 回だけ起動します（`nixos-rebuild switch` 時の再起動対象にはなりません）。変更した自動起動の動作は再ログインで確認します。
+`autostart = True` のアプリは `~/.config/autostart/` に配置され、Niri が起動する `xdg-desktop-autostart.target` でセッション開始時に 1 回だけ起動します（`nixos-rebuild switch` 時の再起動対象にはなりません）。変更した自動起動の動作は再ログインで確認します。

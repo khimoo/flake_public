@@ -9,10 +9,11 @@ VM 名は [nixos-desktop.toml](../../config/hosts/nixos-desktop.toml) の `windo
 
 ## 使い方
 
-GNOME のアプリケーション一覧から「Windows」を起動します。
+Vicinae のアプリ検索から「Windows」を起動します。
 VM が停止している場合は自動で起動し、RDP の応答を待ってから接続します。待機中は「Windows を起動しています」と通知が表示されます。
 1 分ほど経過しても接続できない場合は、「Windows の起動に時間がかかっています」と一度だけ通知されます。なお、Windows Update を適用する起動には数分かかることがあります。
 キーリングにユーザー名とパスワードを登録していれば、自動でサインインします（詳細は次の節を参照）。
+Niri の GDM ログインでのキーリング解錠と、headless セッションでの利用可否は実機で確認してください。
 未登録の場合は、Windows のサインイン画面でパスワードを入力してください。アカウント選択画面では「他のユーザー」を選び、メールアドレス形式のユーザー名（UPN）を入力します。
 
 ウィンドウサイズを変更すると、Windows 側の解像度もそれに合わせて自動的に調整されます。
@@ -22,8 +23,8 @@ VM が停止している場合は自動で起動し、RDP の応答を待って�
 
 ## パスワードを入力せずにサインインする
 
-RDP サインインでは PIN を利用できません（[設計判断](../architecture/windows-vm.md#パスワードを-gnome-キーリングから渡してサインインする)）。
-代わりに、Windows のユーザー名とパスワードを GNOME キーリングに保存しておくことで、ランチャー経由で FreeRDP に渡され自動サインインが可能になります。
+RDP サインインでは PIN を利用できません（[設計判断](../architecture/windows-vm.md#パスワードを-secret-service-から渡してサインインする)）。
+代わりに、Windows のユーザー名とパスワードを Secret Service（GNOME Keyring）に保存しておくことで、ランチャー経由で FreeRDP に渡され自動サインインが可能になります。
 `vm` の値には `windows_vm_domain`（このデスクトップ環境では `win11`）を指定します。
 
 ```sh
@@ -37,21 +38,21 @@ nix shell nixpkgs#libsecret -c secret-tool store --label='Windows VM のパス�
 Windows のパスワードを変更した場合は、パスワード保存コマンドを再実行して上書きしてください。
 自動サインインを解除したい場合は、`nix shell nixpkgs#libsecret -c secret-tool clear service windows-vm vm win11` を実行して両方を削除します。どちらか一方でも未登録の場合、ランチャーは資格情報を渡さず、通常のサインイン画面が表示されます。
 
-ユーザー名は先頭の `.\` まで含めて登録する必要があります。`AzureAD\<UPN>` や `<UPN>` 単体では、パスワードが合っていても Windows 側に拒否されます（[設計判断](../architecture/windows-vm.md#パスワードを-gnome-キーリングから渡してサインインする)）。
+ユーザー名は先頭の `.\` まで含めて登録する必要があります。`AzureAD\<UPN>` や `<UPN>` 単体では、パスワードが合っていても Windows 側に拒否されます（[設計判断](../architecture/windows-vm.md#パスワードを-secret-service-から渡してサインインする)）。
 
 ## Super キーや Alt+Tab を Windows に送る
 
 FreeRDP のウィンドウにフォーカスがある間は、文字入力やマウス操作は Windows 側に送信されます。
-ただし、GNOME に割り当てられているキー操作（Super キーを含むショートカット、Alt+Tab、Alt+F4、Alt+F2 など）は、通常は GNOME 側で処理されます（例えば Alt+F4 を押すと FreeRDP 自体が終了します）。
+通常は Niri に設定されたショートカットをホスト側で処理します。アプリによるショートカットの抑止は `Mod+Escape` で切り替えられます。右 Alt の操作も含め、Niri 上の動作は実機未確認です。
 これらのキーを Windows 側へ送りたい場合は、あらかじめ「右 Alt」を単独で押してから、目的のキーを押します。右 Alt を押した後に押したキーをすべて離すまでの間、キーボード入力が Windows 側へ渡されます。
 Windows の Alt+Tab を実行したい場合は、右 Alt を押して離したあと、左 Alt を押したまま Tab を押してください。左 Alt を離すまでは、Tab を複数回押しても Windows 内でウィンドウが切り替わります。
 右 Alt を押したあと、他のキーを押さずにもう一度右 Alt を押せば、キー入力の転送状態を取り消せます。
 
 なお、右 Alt 自体は Windows 側に送信されません。Windows 内で Alt を使いたい場合は左 Alt を使用してください。また、Windows 内では AltGr による文字入力は行えません。
-右 Alt によるこの操作は、ホスト側のキー配列で右 Alt が AltGr として機能していることを前提としています（既定の配列は「English (intl., with AltGr dead keys)」）。GNOME の設定で右 Alt が AltGr にならない配列に変更すると、右 Alt を押しても何も機能しなくなります。
+右 Alt によるこの操作は、ホスト側のキー配列で右 Alt が AltGr として機能していることを前提としています（既定の配列は「English (intl., with AltGr dead keys)」）。ホストの `xkb_layout` や Niri の個人設定で右 Alt が AltGr にならない配列に変更すると、右 Alt を押しても何も機能しなくなります。
 FreeRDP のその他のホットキーも右 Alt との組み合わせになります（例: 全画面表示は 右 Alt + Enter）。これを押すと、次に押したキーを離すまでキーボード入力が Windows 側へ渡されます。
 ゲーム用の連打機能（◇ + 右 Alt でオン/オフを切り替える、右 Alt による右クリック連打）を有効にしている間は、右 Alt が連打処理に使われるため、キーを Windows に渡すことができません。◇ + 右 Alt で連打機能をオフにしてから操作してください。
-この動作は、ランチャーが起動する FreeRDP にパッチを適用して実装しています（[設計判断](../architecture/windows-vm.md#キーボードを掴むのは右-alt-の直後だけにする)）。設定ファイル `~/.config/freerdp/sdl-freerdp.json` はそのユーザーが実行するすべての `sdl-freerdp` に適用されますが、パッチが適用されていない通常の `sdl-freerdp` では、右 Alt はキーボード入力を Windows と GNOME のどちらで捕捉するかの切り替えスイッチとして機能します。
+この動作は、ランチャーが起動する FreeRDP にパッチを適用して実装しています（[設計判断](../architecture/windows-vm.md#キーボードを掴むのは右-alt-の直後だけにする)）。設定ファイル `~/.config/freerdp/sdl-freerdp.json` はそのユーザーが実行するすべての `sdl-freerdp` に適用されますが、パッチが適用されていない通常の `sdl-freerdp` では、右 Alt はキーボード入力を Windows とホスト のどちらで捕捉するかの切り替えスイッチとして機能します。
 
 ## 終了する
 

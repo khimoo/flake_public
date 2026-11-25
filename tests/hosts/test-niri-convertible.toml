@@ -1,0 +1,10 @@
+# センサーを持つ 2-in-1。内蔵の画面の接続名は internal_output から読む。
+system = "x86_64-linux"
+state_version = "25.11"
+timezone = "Asia/Tokyo"
+hostname = "test-niri-convertible"
+internal_output = "eDP-1"
+
+[[users]]
+name = "alice"
+purposes = ["nixos_system", "linux", "machine_base", "has_orientation_sensor", "iio_niri"]

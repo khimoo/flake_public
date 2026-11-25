@@ -5,7 +5,7 @@
 
 nixos-desktop の libvirt VM（`win11`）は、VM の中の MotionPro（Array Networks の SSL VPN クライアント）と mstsc で会社 PC に接続するときと、たまに Windows を使うときに起動する。
 画面は SPICE ではなくホストの FreeRDP から RDP で表示し、VM は使うときだけランチャー（`windows-vm`）で起動する。
-以下の観察はいずれも 2026-10-14 のもので、FreeRDP 3.31.1（nixpkgs の `freerdp`。`sdl-freerdp` は SDL3 のクライアント）、QEMU のマシン型 `pc-q35-9.2`、Windows 11 Education（ビルド 26200）で確かめた。
+既存の VM と FreeRDP の観察は 2026-10-14 のもので、FreeRDP 3.31.1（nixpkgs の `freerdp`。`sdl-freerdp` は SDL3 のクライアント）、QEMU のマシン型 `pc-q35-9.2`、Windows 11 Education（ビルド 26200）で確かめた。
 
 ## SPICE ではなく RDP で表示する
 
@@ -39,12 +39,12 @@ NLA を切り、`/sec:tls` で接続して Windows のサインイン画面か�
 ただし接続先をホスト名で指定する必要があり、テナントの条件付きアクセスにも左右されるので、試していない。
 FreeRDP の `/sec:aad` で接続できると確かめられたら、NLA を戻す。
 
-## パスワードを GNOME キーリングから渡してサインインする
+## パスワードを Secret Service から渡してサインインする
 
 RDP のサインインでは PIN（Windows Hello）を使えない。
 上の Microsoft の資料では、Entra ID の認証を使わない RDP で Entra ID に参加した PC に使える資格情報は、パスワード、スマートカード、Windows Hello for Business の証明書信頼の三つである。最後のものは接続元も Entra ID に参加した Windows の場合に限られる。
 
-そこで、Windows のパスワードを打つ手間をなくすため、ユーザー名とパスワードを GNOME のログインキーリングに置き、ランチャーが FreeRDP に渡す。
+そこで、Windows のパスワードを打つ手間をなくすため、ユーザー名とパスワードを GNOME Keyring のログインキーリングに置き、ランチャーが FreeRDP に渡す。
 TLS で接続しているときに FreeRDP にユーザー名とパスワードの両方を渡すと、FreeRDP はクライアント情報の PDU に `INFO_AUTOLOGON` を立てて資格情報を送る（FreeRDP 3.31.1 の `libfreerdp/core/connection.c` と `info.c`）。
 Windows はこれを受け取ると、サインイン画面を出さずにサインインする。
 
@@ -54,6 +54,8 @@ FreeRDP は `/u:` の値を最初の `\` で区切り、前をドメイン、後
 `.\AzureAD\<UPN>`（ドメインは `.`、ユーザー名は `AzureAD\<UPN>`）ではサインインできた。
 この形は、FreeRDP の作者が NLA を切って Entra ID に参加した PC に入るときの形として勧めている（[Devolutions のフォーラム](https://forum.devolutions.net/topics/32024/how-do-you-rdplogon-to-a-azure-active-directory-aad-joined-system)）。
 Windows がこの形だけを受け付ける理由は確かめていない。
+
+Niri でも GNOME Keyring を Secret Service として残す。GDM ログインでの解錠と、SSH から起動した headless での利用可否は実機未確認。
 
 キーリングには項目を二つ置き、属性 `service=windows-vm`、`vm=<windows_vm_domain>`、`field=user` または `field=password` で引く。
 ユーザー名もキーリングに置くのは、UPN を公開している repo に書かないためである。
@@ -98,7 +100,7 @@ libvirt の NSS モジュールで VM の名前を引けるようにする案は
 
 FreeRDP のウィンドウだけを閉じると VM は動いたまま残るので、ランチャーは通知で知らせ、ボタンから止められるようにする。
 スタートメニューからシャットダウンしたときも FreeRDP が先に終わり、VM が止まるのはその数十秒後になる。そのまま状態を調べると止め忘れと区別できないので、ランチャーは FreeRDP が終わってから VM が止まるのを最大 60 秒（2 秒おきに 30 回）待ち、それでも動いているときだけ通知する。
-GNOME の通知は一覧に残るので、古い通知のボタンを後から押すと、そのとき使っている別のセッションの Windows まで止めてしまう。
+通知を後から操作できる場合、古い通知のボタンを後から押すと、そのとき使っている別のセッションの Windows まで止めてしまう。
 これを防ぐため、ランチャーは起動を待つ間から FreeRDP が終わるまで `$XDG_RUNTIME_DIR/windows-vm.lock` を `flock` で握り、ボタンの処理はロックを握れたときだけ VM を止める。
 同じロックで二重起動も止める。同じ VM に二つ目の RDP 接続を張ると、一つ目が切れるからである。
 
@@ -110,10 +112,7 @@ GNOME の通知は一覧に残るので、古い通知のボタンを後から�
 
 ## キーボードを掴むのは右 Alt の直後だけにする
 
-FreeRDP がキーボードを掴んでいる間は、GNOME に割り当てたキー（Super を含むもの、Alt+Tab、Alt+F4 など）も Windows に渡り、GNOME の操作に使えない。
-掴んでいなければ、それらのキーは GNOME が先に取る。どちらの状態でも、ほかのキーとマウスはフォーカスのある FreeRDP のウィンドウから Windows に届く。
-同じキーを両方に割り当てることはできないので、普段は掴まずに GNOME のショートカットをホストで使い、右 Alt を押した直後のショートカット一回だけを Windows に渡す。
-Windows で Super や Alt+Tab を使うのはたまにで、ホストのショートカットのほうをよく使うので、この向きにする（2026-10-16 のユーザーの希望）。
+FreeRDP がキーボードを掴んでいる間は、Wayland の keyboard-shortcuts-inhibit でホストのショートカットを Windows に渡すよう求める。普段はホストで Niri の操作を使い、右 Alt を押した直後のショートカット一回だけを Windows に渡す方針にする。キー入力を渡すパッチと AltGr の配列は維持するが、Niri 上での抑止と解除は実機未確認。
 
 FreeRDP 3.31.1 の SDL のクライアントは、マウスがウィンドウに入るとキーボードを掴み、出ると放す（`client/SDL/SDL3/sdl_disp.cpp`。2026-10-16 の master でも同じ）。ホットキーは、その状態を反転させるだけである。
 普段を掴まない状態にする設定はない。`-grab-keyboard` にすると、ホットキーでも掴めなくなる（`sdl_input.cpp` の `keyboard_grab` が、ホットキーの指示と `FreeRDP_GrabKeyboard` の論理積をとる）。
@@ -124,22 +123,18 @@ FreeRDP 3.31.1 の SDL のクライアントは、マウスがウィンドウに
 - ほかのキーを押す前にもう一度ホットキーを押すと、掴むのをやめる。マウスがウィンドウから出たときも放す。
 - ホットキーを押し続けたときのキーリピートでは切り替えない。
 
-パッチはランチャーが使う FreeRDP にだけ当て、nixpkgs の `freerdp` は差し替えない。差し替えると、gnome-remote-desktop など FreeRDP に依存するパッケージまで作り直しになる。
+パッチはランチャーが使う FreeRDP にだけ当て、nixpkgs の `freerdp` は差し替えない。差し替えると、ほかの FreeRDP 利用パッケージまで作り直しになる。
 代償として、FreeRDP を手元でビルドする。nixpkgs の FreeRDP が更新されてパッチが当たらなくなると、ビルドが失敗するので、差分を当て直す。
 FreeRDP に、マウスが入っても掴まない設定か、一回だけ掴むホットキーが入ったら、パッチを外して設定に移す。
 
-キーボードを掴むと、SDL は Wayland の keyboard-shortcuts-inhibit でショートカットの抑止を GNOME に求める。この求めは非同期に処理されるので、右 Alt の直後に間を置かずに次のキーを押すと、そのキーが GNOME に届くおそれがある。
-2026-10-16 に実機で試すと、右 Alt のあとの Super と Alt+Tab は Windows に届き、Super を離して放したときに GNOME のアクティビティ画面は開かなかった。普段の速さで押す範囲では、キーが GNOME に届く取りこぼしは見られなかった。
-
-GNOME には、アプリが奪ったショートカットを取り戻すキー（mutter の `restore-shortcuts`、既定は `Super+Escape`）がある。
-ただし取り戻す方向だけで切り替えにはならず、このデスクトップでは dconf で空に上書きされている。PaperWM が `Super+Escape` を `toggle-scratch-window` に使っている。
+キーボードを掴む要求は非同期なので、右 Alt の直後のキーがホストへ届く可能性がある。適用後に Super と Alt+Tab、全画面からの復帰を確かめる。Niri の `Mod+Escape` は `allow-inhibiting=false` で `toggle-keyboard-shortcuts-inhibit` に割り当て、アプリに抑止されていてもホスト側で解除できるようにする（[Niri](../howtouse/niri.md)）。
 
 FreeRDP 3.31.1 の SDL のクライアント（`client/SDL/SDL3/sdl_input.cpp`）では、キーが押されたときに、その時点の修飾キーの状態が `SDL_KeyModMask` を含み、押されたキーが `SDL_Grab` と一致すると、掴みを切り替える。一致したキーは Windows に送らない。
 修飾キー自身を `SDL_Grab` に指定してもこの条件は満たせるので、`SDL_Grab` を `SDL_SCANCODE_RALT` にして、右 Alt の単独押しで掴む。
 設定は `~/.config/freerdp/sdl-freerdp.json` から読まれる。FreeRDP はこのファイルに書き込まないので、Home Manager から置く。
 
 `SDL_KeyModMask` は `KMOD_MODE` にする。
-GNOME のキー配列は `us+altgr-intl`（[nixos-desktop.toml](../../config/hosts/nixos-desktop.toml)）で、右 Alt は AltGr（`ISO_Level3_Shift`）になる。
+Niri に生成するキー配列は `us+altgr-intl`（[nixos-desktop.toml](../../config/hosts/nixos-desktop.toml)）で、右 Alt は AltGr（`ISO_Level3_Shift`）になる。
 SDL 3.4.10 は `ISO_Level3_Shift` をキーコード `SDLK_MODE` に変換し（`src/events/SDL_keysym_to_keycode.c`）、`SDLK_MODE` が押されている間は `KMOD_RALT` ではなく `KMOD_MODE` を立てる（`src/events/SDL_keyboard.c`）。
 `KMOD_RALT` では、右 Alt が AltGr の配列（`us` に `lv3:ralt_switch` を足したもの）で押しても切り替わらなかった（2026-10-15）。
 右 Alt を AltGr のままにするのは、アクセント付きの文字とデッドキーを AltGr で打つためである。`lv3:ralt_switch` を外して `KMOD_RALT` に合わせる案は、AltGr がなくなるので退けた。
@@ -158,11 +153,11 @@ keyd に右 ◇ の「叩いたら右 Ctrl」（`overload`）を作らせる案�
 - 右 Alt が Windows に届かなくなるので、Windows では AltGr の文字を打てない。左 Alt は使える。
 - FreeRDP のほかのホットキーも右 Alt との組み合わせになり（全画面は右 Alt + Enter）、押すと掴みも一緒に始まる。次に押したキーを離すまで掴んだままになる。
 - ターボのモードの間は、右 Alt が連打に使われるので切り替えられない。ホストでも AltGr の文字を打てない。
-- ◇ + 右 Alt は keyd が消費するので、◇ + Alt + キーのショートカットは左 Alt で押す。GNOME（◇ + Alt + S のスクリーンリーダー、◇ + Alt + 8 の拡大鏡など）、PaperWM（◇ + Alt + R、◇ + Alt + 矢印キー）、Windows（◇ + Alt + K のマイクのミュート、Xbox Game Bar の ◇ + Alt + R など）にある。◇ + Alt だけで動くものはない。
+- ◇ + 右 Alt は keyd が消費するので、◇ + Alt + キーのショートカットは左 Alt で押す。Niri の個人設定や Windows（◇ + Alt + K のマイクのミュート、Xbox Game Bar の ◇ + Alt + R など）で使う場合も同じ。◇ + Alt だけで動くものはない。
 - `sdl-freerdp.json` は、このユーザーが起動するすべての `sdl-freerdp` に適用される。パッチのない `sdl-freerdp` を直接起動すると、右 Alt は掴むか放すかの切り替えになる。virt-manager など、ほかのツールでは別のキーを使う。
 
 修飾キーの状態は、イベントを処理する時点で `SDL_GetModState()` から読まれる。そのため、ごく短く叩くと、処理の前に離したとみなされて取りこぼす可能性がある。
-右 Alt で掴むことは、パッチの前と後の両方で確かめた（2026-10-16）。取りこぼしが目立つなら、修飾キーと別のキーの組み合わせ（右 Alt + G など）に戻す。
+右 Alt で掴むことは別のコンポジタではパッチの前後に確認したが、Niri では未確認。取りこぼしが目立つなら、修飾キーと別のキーの組み合わせ（右 Alt + G など）に戻す。
 
 ## 会社 PC との接続で分かったこと
 

@@ -129,7 +129,7 @@ rsync、ssh、`nix copy` を組み合わせた自前のスクリプトで、ビ�
 退けた案と理由:
 
 - Nix パッケージにして `nix run`（crane、`buildRustPackage`）: derivation の中では incremental compilation が使えず、編集のたびに自分のクレートを最初からコンパイルする
-- デスクトップに SSH で入って開発する: GUI の画面がデスクトップに出て、RDP 越しに見ることになる
+- デスクトップに SSH で入って開発する: GUI はデスクトップの Niri セッションに表示し、[Sunshine と Moonlight](../howtouse/tailscale.md) で確認する。配信経路の実機確認は別途必要
 - sccache-dist: 分散されるのは主に依存クレートで、編集中のクレートとリンクは手元に残る。スケジューラとビルドサーバーの設置も要る
 - [cargo-remote](https://github.com/sgeisler/cargo-remote): 同じ方式の既製品だが、既定ブランチの最終コミットが 2021-04-24 で（2026-09-26 に確認）、devShell を手元と揃える仕組みもない
 

@@ -1,0 +1,16 @@
+# Niri のデスクトップ一式。Home Manager を使うユーザーと、使わないユーザーの両方で生成できることを確かめる。
+system = "x86_64-linux"
+state_version = "25.11"
+timezone = "Asia/Tokyo"
+hostname = "test-niri"
+xkb_layout = "us+altgr-intl"
+text_scaling_factor = 1.25
+
+[[users]]
+name = "alice"
+purposes = ["nixos_system", "linux", "machine_base", "desktop", "stay_awake"]
+
+[[users]]
+name = "bob"
+purposes = []
+home_manager = false

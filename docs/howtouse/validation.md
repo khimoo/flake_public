@@ -17,7 +17,7 @@
 
 リグレッションへの対策としては、既存の check を拡張して壊れた契約を検出できるようにするか、対象を絞った確認項目を追加します。単に実装コードの文面をなぞるだけのテストや、新しいテスト基盤の安易な追加は避けてください。
 
-負荷の高い評価やビルドはデスクトップ環境で実施し、`nixos-spin713` での全体検証は行いません。ユーザーから検証を省略するよう指示された場合はそれに従い、未検証であることを明記して報告します。ドキュメント整備の進め方については [文書整備](documentation.md) を参照してください。
+Nix の評価・ビルドと `scripts/check.sh` は `gce-ts` または `nixos-desktop` に作業ツリーをコピーして実行します。自分用サーバでは `/tmp` のコピーを使います。`nixos-spin713` では実行しません。評価中にも依存の取得・ビルドが起き、`--no-build` でも評価時依存のビルドは防げません。ユーザーから検証を省略するよう指示された場合はそれに従い、未検証であることを明記して報告します。ドキュメント整備の進め方については [文書整備](documentation.md) を参照してください。
 
 ## GitHub Actions で依存を更新する
 
@@ -57,7 +57,9 @@ bash scripts/check.sh --full   # toplevel の評価、nix flake check、全シ�
 
 ### 評価の範囲
 
-軽量評価では、選択した NixOS ホストの assertions と `system.path` の drvPath、および選択した `homeConfigurations` の activation の drvPath を評価します。`--all` と `--full` は全ホストを選びます。このとき `system.build.toplevel` は評価されません。desktop や spin713 で全画面透過を行う mutter のパッチには `system.replaceDependencies` が使われており、toplevel の評価中にシステムクロージャの参照を生成する IFD（Import-From-Derivation）が発生してパッチ適用済み mutter のビルド待ちが生じるためです。`--full` を指定した場合は、先に全ホストの toplevel を評価してから `nix flake check --no-build --no-update-lock-file` を実行します（未生成の `references.nix.drv` に対して `nix flake check` を実行すると失敗するため）。なお、`--no-build` を指定してもこの評価依存は解消されません。全画面透過の見た目については、switch 後に実機上で目視確認してください。
+軽量評価では、選択した NixOS ホストの assertions と `system.path` の drvPath、および選択した `homeConfigurations` の activation の drvPath を評価します。`--all` と `--full` は全ホストを選びます。`--full` は各ホストの `system.build.toplevel` も評価し、`nix flake check --no-build --no-update-lock-file` と全システムの check の評価を行います。軽量評価の成功は、toplevel のビルドや実機の動作確認を意味しません。
+
+Niri の [check](../../tests/elements/niri.nix) は、寄与なし・UI 一式・センサー付きの KDL を固定パッケージで読み、headless 操作がローカルセッションを止めないことを調べます。固定 fork のハッシュ確定前はビルドを完了できません。既存 Niri 26.04 で構文を確認した結果とは分けて報告してください。
 
 Git flake は未追跡（untracked）ファイルを認識しません。新規ファイルは必ず `git add <path>`（差分をステージングしたくない場合は `git add -N <path>`）を実行してから検証してください。また、lock ファイルの更新作業は検証作業と切り離して扱います。
 
@@ -100,7 +102,7 @@ nvim --headless -n -u NONE -i NONE -l scripts/check-neovim-parser-merge.lua
 
 ## 原因切り分け時の評価手順
 
-`system.replaceDependencies` を使用している desktop や spin713 の `system.build.toplevel` は、評価を行うだけでもシステム全体の取得とビルド待ちが発生します。設定エラーや警告の有無を確認するだけであれば、依存置換を通らない属性値を優先して評価します。
+以下はリモートの検証用コピーで実行します。設定エラーや警告の切り分けでは、全体の toplevel より対象を絞った属性値を先に確認します。
 
 ```sh
 h=nixos-desktop
@@ -113,4 +115,4 @@ nix eval --raw .#nixosConfigurations.$h.config.system.build.etc.drvPath
 
 ただし、この切り分け用の評価では home-manager-files のようにビルド時に初めて発生するエラーは検出できず、devShells も対象外となります。最終的には冒頭の選択基準に従い、対象のビルドや check、または必要に応じて一括検証を行ってください。
 
-リファクタリング時に挙動の変化がないことを確認する場合は、`config.system.path` のストアパスと、変更対象の値の評価結果を適用前後で比較します。前述のとおり `system.build.toplevel` は評価負荷が非常に重いため注意してください。なお、`nix-diff` は入力が変化した derivation の環境比較を省略する場合があるため、「差分が出なかったこと」だけをもって変更なしの根拠としないよう留意してください。
+リファクタリング時に挙動の変化がないことを確認する場合は、`config.system.path` のストアパスと、変更対象の値の評価結果を適用前後で比較します。`system.build.toplevel` を含む評価はリモートで行います。なお、`nix-diff` は入力が変化した derivation の環境比較を省略する場合があるため、「差分が出なかったこと」だけをもって変更なしの根拠としないよう留意してください。

@@ -46,6 +46,8 @@ Google Cloud のウェルカムクレジット（無料トライアル）期間�
    "remote_build",
    "cargo_remote_run",
    ```
+   `serve_remote_desktop` は Niri + Sunshine の配信役です。配信の準備と実機確認は [Tailscale](tailscale.md) を参照してください。
+
    ※ `serve_workspace` を GCE に移した場合、`program_on_home_server` を選ぶホスト（`nixos-spin713`）の `agent_offload_notes` の接続先も `gce-ts` に変わります。
 2. [config/hosts/nixos-gce.toml](../../config/hosts/nixos-gce.toml) の `pomu` の `purposes` に `"serve_builds"` と `"serve_workspace"` を追加します（Nested Virtualization を有効にした N2D 等の場合は `"serve_kvm_builds"` と、ハードウェアプロファイルへの `"local_kvm"` も追加できます）。
    ```toml

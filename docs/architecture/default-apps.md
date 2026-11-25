@@ -16,13 +16,13 @@ Zen の flake は、ホストと同じ `nixpkgs` 入力を参照します。別�
 
 [gui_apps.star](../../config/elements/gui_apps.star) は、アプリの `mime` から `xdg.mimeApps.defaultApplications` を作ります。アプリの追加と関連付けの追加を同じエントリで行えるためです。同じ MIME を複数のエントリに書くと、後のエントリが優先されます。
 
-Slack・Discord・Spotify・Zoom の URL スキームも、各エントリの `mime` に書きます。GNOME でスキームを解決するために必要な指定です（[理由](./xdg-scheme-workaround.md)）。Obsidian のスキームは [obsidian.star](../../config/elements/obsidian.star) が担当し、利用目的 `grow_notes` か `write_documents` の `requires` から `obsidian` が入った場合だけ登録します。
+Slack・Discord・Spotify・Zoom の URL スキームも、各エントリの `mime` に書きます。portal 経由のスキーム解決を確実にするための指定です（[理由](./xdg-scheme-workaround.md)）。Obsidian のスキームは [obsidian.star](../../config/elements/obsidian.star) が担当し、利用目的 `grow_notes` か `write_documents` の `requires` から `obsidian` が入った場合だけ登録します。
 
 ## 自動起動と常駐の扱い
 
 通知を見落とさないための常駐 GUI アプリは、[gui_apps.star](../../config/elements/gui_apps.star) の `autostart = True` から `xdg.configFile` で `~/.config/autostart/<name>.desktop` を生成し、XDG Autostart でログイン時に 1 回だけ起動します。
 
 - **却下した案（`systemd.user.services`）**: `WantedBy = ["graphical-session.target"]` のユーザーサービスにすると、Home Manager（`release-26.05` / `sd-switch` 0.6.3）の activation が `nixos-rebuild switch` のたびに介入し、手動で閉じていたアプリの再起動やパッケージ更新時の再起動で作業画面にウィンドウが割り込みます。
-- **トレイ常駐と専用ワークスペースの併用（ユーザーの選択）**: [gnome.star](../../config/elements/gnome.star) で `gnomeExtensions.appindicator` を有効にし、トレイへ隠せる Slack（`--silent`）・Discord（`--start-minimized`）・TwinDesk（[twindesk.star](../../config/elements/twindesk.star)、`--hidden`）はトップバーのトレイで常駐させます。Linux/Wayland 版の Thunderbird（160.0）はウィンドウを閉じるとプロセスが終了してメール通知が止まるため、トレイに隠れない Thunderbird と Sticky Notes は PaperWM の `winprops` で作業用ではないワークスペースへ `focus = false` のまま自動配置します。
-- **`spaceIndex = 1` を選ぶ理由**: PaperWM 50.0.1（`tiling.js`）は `spaceIndex` に指定したワークスペースが存在しない場合、警告通知を出して現在のワークスペースにウィンドウを開きます。GNOME 既定の動的ワークスペースではログイン直後に 0 番目と末尾の空ワークスペース（1 番目）の 2 つが存在するため、動的ワークスペースを維持したまま `spaceIndex = 1` を使います。
-- **境界**: `gui_apps` は WSLg など `gnome` を持たない環境でも使うため（[構成の境界](./configuration.md)）、PaperWM の `winprops` は [gnome.star](../../config/elements/gnome.star) に置きます。
+- **トレイと専用ワークスペースの併用**: Slack（`--silent`）・Discord（`--start-minimized`）・TwinDesk（`--hidden`）は Waybar のトレイへ隠します。ウィンドウを閉じるとメール通知も止まる Thunderbird と、付箋は [Niri のウィンドウルール](../../config/elements/niri_background_apps.star) で名前付きワークスペースへ置き、起動時のフォーカス移動を抑えます。対象 app-id と実際の配置は実機確認が必要です。
+- **起動の持ち主**: Niri の `niri.service` と `niri-headless.service` が要求する `xdg-desktop-autostart.target` で起動します。dex を併用すると同じ desktop entry が二重に実行されるため追加しません。
+- **境界**: `gui_apps` は WSLg でも使うため、配置ルールは `niri_background_apps` に置きます。バーやセッションの設定方法は [Niri の使い方](../howtouse/niri.md) を参照してください。

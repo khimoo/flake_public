@@ -21,25 +21,36 @@ LAN 内であれば `ssh desktop`（mDNS）も使用可能です。tailnet に�
 
 ラップトップでのビルドは、外出先からでも tailnet 経由で自動的にデスクトップへ分散されます（[remote-build.md](./remote-build.md)）。`--build-host` で個別に指定する場合は、[remote-build.md の「LAN の外からビルドする」](./remote-build.md#lan-の外からビルドする) を参照してください。
 
-## 外出先からデスクトップの画面を使う（RDP）
+## 外出先からデスクトップの画面を使う（Sunshine + Moonlight）
 
-ゲームの動作確認など、ウィンドウ描画を伴う作業は SSH では表示できません。RDP を使用してデスクトップの画面をそのまま手元に転送します。
-描画処理自体はデスクトップの GPU で行われ、手元には映像のみが送信されます。
+配信先では `serve_remote_desktop`、クライアントでは `use_remote_desktop` をユーザーの利用目的で選びます。接続先は `find_home_server` が解決します。固定 Niri fork のハッシュ確定・ビルドと、配信の実機確認はまだ必要です。[Niri の確認](niri.md) も行ってください。
 
-あらかじめ LAN 内でデスクトップ側の GNOME 設定から有効化しておきます（一度だけ設定すれば完了です）：
+### 初回の設定とペアリング
 
-1. 「設定」→「システム」→「リモートデスクトップ」を開く
-2. 利用する方式を有効にする：
-   - デスクトップ共有: ログイン中のセッションをそのまま共有。リモート操作（クリックやキー入力）も行う場合はそちらも有効化する
-   - リモートログイン: ログイン画面から新しいセッションを開始。誰もログインしていない場合に使用する
-3. RDP 用のユーザー名とパスワードを設定する（Linux のログインパスワードとは別のものを設定。リポジトリには保存しない）
+1. 配信アカウントで Niri を開始します。デスクトップでログイン済みならそのセッションを使います。誰もそのユーザーで GUI にログインしていなければ、クライアントから `ssh desktop-ts remote-niri start` で headless を起動します。
+2. クライアントで `remote-desktop pair` を実行します。これは Sunshine Web UI への SSH トンネルを開くだけで、自動ペアリングは行いません。コマンドを動かしたままブラウザで `https://localhost:47990` を開き、初回の管理アカウントを設定します。
+3. Moonlight を起動し、MagicDNS の配信ホスト名（現在は `nixos-desktop`）を手動追加します。Moonlight に表示された PIN を Sunshine Web UI へ入力します。認証情報をリポジトリへ保存しません。
+4. `Extend (Virtual Display)` を選び、映像と入力を確認します。終わったらトンネルを `Ctrl+C` で閉じます。
 
-ラップトップ側では「接続」（`gnome-connections`）を開き、接続先に `nixos-desktop` を指定して RDP 接続します。
-設定画面で標準と異なるポートが表示されている場合は、`nixos-desktop:3390` のように指定してください。
+### 日常の開始と終了
 
-※ ポートは tailnet 側（`tailscale0`）に対してのみ開放されています。LAN 内から `nixos-desktop.local` 指定で RDP 接続することはできません。
+ローカルセッションがない状態では、次で headless を起動して Moonlight へ接続します。
 
-※ 画面ロック時や、再起動後に誰もログインしていない状態での RDP 接続の挙動は未検証です。外出前に、後述の「出かける前の確認事項」の手順 4 でテストしておいてください。
+```sh
+remote-desktop start
+```
+
+ローカル Niri が動いているとヘルパーは開始を断ります。そのセッションを使う場合は Moonlight の GUI から直接接続してください。同じユーザーで headless とローカルを同時に起動しません。
+
+配信アプリの準備処理がクライアントの解像度で仮想出力を作り、終了処理が削除します。Moonlight 側で配信アプリを終了してから、headless セッションを止めます。
+
+```sh
+remote-desktop stop
+```
+
+headless 内のアプリも終了するので、先に作業を保存してください。ローカル Niri が動いている場合、stop も拒否してそのセッションの Sunshine を保護します。単なる切断・異常切断後の出力削除と再接続、ロック中の動作は実機未確認です。
+
+配信ポートは tailnet のインターフェースに限って開けます。Web UI のポートは直接開けず、上の SSH トンネルを使います。Windows VM の FreeRDP/RDP は、この画面配信とは別です。
 
 ## 出かける前の確認事項
 
@@ -55,7 +66,7 @@ LAN 内であれば `ssh desktop`（mDNS）も使用可能です。tailnet に�
    tailscale ping nixos-desktop
    ```
    `tailscale ping` の応答に `via DERP` と表示される場合は中継サーバー経由です。接続は可能ですが低速になります。
-4. RDP を利用する場合は、デスクトップの画面をロックした状態で、外部回線につないだラップトップから「接続」アプリで `nixos-desktop` へ RDP 接続できるか試す。
+4. 画面配信を使う場合は、外部回線から Moonlight の接続・入力・配信アプリの終了を試す。画面ロック中と、再起動後の SSH による headless 起動も別々に試す。
 
 外出中にデスクトップの NixOS 世代（generation）を切り替えると、ネットワークや sshd、tailscaled を破損する変更が含まれていた場合、帰宅するまで復旧できなくなります。
 **外出中はデスクトップ上で `switch` を実行しないでください。**
@@ -108,27 +119,18 @@ cat /etc/resolv.conf         # nameserver 100.100.100.100 および search <tail
 同じホスト名の古い端末が tailnet 上に残っており、新規端末に連番が付与されています。
 Admin Console の Machines ページから古い端末を削除し、新しい端末のホスト名を `nixos-desktop` に修正してください。接続用ホスト名 `desktop-ts` は `nixos-desktop` を名前解決するため、不一致があると接続できません。
 
-### 「設定」→「システム」に「リモートデスクトップ」が表示されない
+### Moonlight に接続できない、または画面が違う
 
-システム側の `gnome-remote-desktop.service` が `enabled` になっていません。GNOME の設定画面は、同サービスが `enabled` 以外の状態では項目を非表示にします。
-
-```sh
-systemctl show gnome-remote-desktop.service -p UnitFileState   # enabled かどうか確認
-```
-
-`linked` と表示される場合は、デスクトップが `config/elements/machine_nixos_desktop.star` の `wantedBy` を含む世代に `switch` されていません。`switch` を実行してから再度 GNOME 設定を開き直してください（詳細は [../architecture/tailscale.md](../architecture/tailscale.md#gui-の確認は-rdp-でデスクトップの画面ごと使う) を参照）。
-
-### RDP で接続できない
-
-まず `ssh desktop-ts` で SSH 接続が通るか確認してください。通らない場合は後述の項目を確認します。
-SSH が通る場合は、デスクトップ側で RDP サーバーが待機しているポートを確認します：
+まず `ssh desktop-ts` が通るかを確認します。SSH が通る場合は配信アカウントで次を実行します。
 
 ```sh
-ssh desktop-ts 'ss -ltn | grep -E ":33(89|9[0-9])"'
+ssh desktop-ts 'remote-niri status'
+ssh desktop-ts 'journalctl --user -b -u sunshine.service -u niri-headless.service -u niri.service --no-pager -n 100'
 ```
 
-何も表示されない場合は、GNOME の設定でリモートデスクトップが無効化されています。
-3389〜3399 以外のポートで待機している場合は、ファイアウォールの許可範囲外になっています。`gsettings get org.gnome.desktop.remote-desktop.rdp port` で設定値を確認し、許可範囲内に変更するか、`config/elements/machine_nixos_desktop.star` で設定範囲を広げてくだい。
+Sunshine のログでキャプチャ方式、選択された出力、エンコーダーのエラーを調べます。`output_name` で指定した仮想出力を実際にキャプチャしているかは、配信開始後のログと画面の両方で確認します。Niri の端末では `niri msg outputs` で出力を確認できます。ペアリングのやり直しには `remote-desktop pair` で Web UI を開いてください。
+
+`remote-niri` がローカルセッションを検出した場合は、ログアウトして headless を使うか、既存の Niri に Moonlight から接続します。別のユーザーに切り替えて回避せず、配信を選んだアカウントで操作してください。
 
 ### `ssh desktop-ts` がタイムアウトする
 

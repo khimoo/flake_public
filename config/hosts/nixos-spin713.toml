@@ -5,7 +5,8 @@ state_version = "25.05"
 timezone = "Asia/Tokyo"
 machine = "machine_nixos_spin713"
 xkb_layout = "us+altgr-intl"
-text_scaling_factor = 1.25
+# 内蔵の画面の接続名。タッチとペンの座標をこの出力に合わせる。
+internal_output = "eDP-1"
 # ビルドはデスクトップに回す。このマシンは 4 スレッドで、/nix も SD カード上にある。
 # デスクトップに繋がらないときに黙って手元でビルドさせず、失敗させて人が判断する。
 local_builds = false
@@ -32,6 +33,8 @@ purposes = [
   "communicate",
   # 生活管理
   "web_procedures",
+  # 自分用サーバの画面を受け取る
+  "use_remote_desktop",
   # このマシンが引き受けること
   "etc_nixos_link",
   "deploy_from_cache",

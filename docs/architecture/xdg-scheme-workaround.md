@@ -1,17 +1,17 @@
 # XDG スキームハンドラ ワークアラウンド
 
-実装: [gui/apps.nix](../../config/elements/gui_apps.star) の `mimeTypes`、[obsidian.star](../../config/elements/obsidian.star) の Obsidian 登録
+実装: [gui_apps.star](../../config/elements/gui_apps.star) の `mime`、[obsidian.star](../../config/elements/obsidian.star) の Obsidian 登録
 使い方: [GUI アプリの管理](../howtouse/gui-apps.md)
 
-アプリの導入条件と同じ条件で、URL スキームの既定を明示登録する。Slack・Discord・Spotify・Zoom は `guiApps` の項目を外せば登録も外れる。Obsidian は `obsidianOn` のときだけ登録する。Zoom の desktop ファイル名は `Zoom.desktop`。
+アプリの導入条件と同じ条件で、URL スキームの既定を明示登録する。Slack・Discord・Spotify・Zoom は 各アプリのコンポーネントから `gui_apps` への寄与を外せば登録も外れる。Obsidian は `obsidian` が利用目的から入った場合だけ登録する。Zoom の desktop ファイル名は `Zoom.desktop`。
 
 ## 問題
 
-NixOS では、アプリの `.desktop` ファイルが `x-scheme-handler/slack` 等のカスタムプロトコルを `MimeType=` で宣言していても、GNOME の XDG portal は `mimeapps.list` に明示的なデフォルトエントリがないとスキームハンドラを解決できない。
+NixOS では、アプリの `.desktop` ファイルが `x-scheme-handler/slack` 等のカスタムプロトコルを `MimeType=` で宣言していても、既存環境では GNOME の XDG portal が `mimeapps.list` に明示的なデフォルトエントリがないとスキームハンドラを解決できない。
 
 これにより、ブラウザでの OAuth 認証後にアプリへリダイレクトされない（例: Slack ログイン後「Slack を開く」が機能しない）。
 
-`xdg-mime query default x-scheme-handler/slack` が正しく `slack.desktop` を返していても、GNOME portal の解決パスが異なるため実際には動作しない。
+`xdg-mime query default x-scheme-handler/slack` が正しく `slack.desktop` を返していても、portal 経由の起動が失敗することがある。Niri でも GNOME と GTK の portal を残すため、明示登録を維持し、Slack 等のブラウザ認証のリダイレクトを実機で確かめる（[Niri の設計](niri.md)）。
 
 ## 影響を受けるアプリ
 
@@ -26,13 +26,13 @@ NixOS では、アプリの `.desktop` ファイルが `x-scheme-handler/slack` 
 ## upstream の状況
 
 - Issue: [NixOS/nixpkgs#301893](https://github.com/NixOS/nixpkgs/issues/301893)
-- Fix: [NixOS/nixpkgs#494847](https://github.com/NixOS/nixpkgs/pull/494847) — スキームハンドラが1つしかない場合に自動でデフォルト登録する修正。`staging-nixos` ブランチ向けで、まだマージされていない。
+- Fix: [NixOS/nixpkgs#494847](https://github.com/NixOS/nixpkgs/pull/494847) — スキームハンドラが1つしかない場合に自動でデフォルト登録する修正。取り込み状況は、利用中の nixpkgs revision のソースで確認する。
 
 ## 見直す条件
 
 PR #494847 がマージされ、使用中の nixpkgs に含まれたら:
 
-Slack 等のブラウザ認証リダイレクトを確かめ、明示登録が不要なら各アプリのスキーム用 `mimeTypes` と Obsidian の登録を外す。ファイル用 MIME の既定は維持する。
+Slack 等のブラウザ認証リダイレクトを確かめ、明示登録が不要なら各アプリのスキーム用 `mime` と Obsidian の登録を外す。ファイル用 MIME の既定は維持する。
 
 ## 関連
 

@@ -1,0 +1,32 @@
+// 個人の設定を後に置き、generated.kdl の割り当てより優先する。
+include "generated.kdl"
+
+prefer-no-csd
+
+layout {
+    gaps 8
+    focus-ring {
+        width 2
+    }
+}
+
+input {
+    touchpad {
+        tap
+        natural-scroll
+        dwt
+    }
+}
+
+binds {
+    Mod+B { spawn "pkill" "-SIGUSR1" "waybar"; }
+}
+
+window-rule {
+    match app-id=r#"^(org[.]fcitx[.]|fcitx5)"#
+    open-floating true
+}
+
+output "eDP-1" {
+        scale 1.2
+}

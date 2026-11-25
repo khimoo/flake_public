@@ -1,9 +1,16 @@
-# 目的: 自分用サーバとして、GNOME の画面を RDP で公開する。tailnet の側の 3389〜3399 番だけを開ける（docs/howtouse/tailscale.md）。
+# 目的: 自分用サーバとして、Niri の画面を Sunshine で配信する。tailnet の側の Sunshine のポートだけを開ける（docs/howtouse/tailscale.md）。
+requires = ["expose_services", "sunshine_virtual_output", "niri_remote_session"]
 role = True
 
-def config(tailscale):
+def config(tailscale, sunshine):
+    interface = ("networking", "firewall", "interfaces", tailscale.interface)
     return {"nixos": {
-        ("networking", "firewall", "interfaces", tailscale.interface, "allowedTCPPortRanges"): [{"from": 3389, "to": 3399}],
-        # linked 状態では GNOME 設定が RDP の項目を隠すため、ユニットを enabled にする。
-        "systemd.services.gnome-remote-desktop.wantedBy": ["graphical.target"],
+        interface + ("allowedTCPPorts",): sunshine.tcp_ports,
+        interface + ("allowedUDPPorts",): sunshine.udp_ports,
+    }}
+
+def user_config():
+    # sunshine.service は NixOS のユーザーユニットで、全ユーザーに見える。このアカウントのセッションだけで起動するよう、wants を個別に張る。
+    return {"home": {
+        ("xdg", "configFile", "systemd/user/graphical-session.target.wants/sunshine.service", "source"): outOfStoreLink("/etc/systemd/user/sunshine.service"),
     }}

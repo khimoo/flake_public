@@ -1,7 +1,7 @@
 # Tailscale の設計
 
 使い方: [Tailscale](../howtouse/tailscale.md)
-実装: [tailscale.star](../../config/elements/tailscale.star)、[connect_ssh.star](../../config/elements/connect_ssh.star)（`-ts` の接続名）、自分用サーバの [expose_services.star](../../config/elements/expose_services.star)（linger）、[stay_awake.star](../../config/elements/stay_awake.star)（サスペンド）、[serve_remote_desktop.star](../../config/elements/serve_remote_desktop.star)（RDP のポート）
+実装: [tailscale.star](../../config/elements/tailscale.star)、[connect_ssh.star](../../config/elements/connect_ssh.star)（`-ts` の接続名）、自分用サーバの [expose_services.star](../../config/elements/expose_services.star)（linger）、[stay_awake.star](../../config/elements/stay_awake.star)（サスペンド）、[serve_remote_desktop.star](../../config/elements/serve_remote_desktop.star)（画面配信のポート）
 
 自宅 LAN の外にいるラップトップから、デスクトップへの SSH とリモートビルドを通すための構成。
 
@@ -83,14 +83,14 @@ exit node を使うことにしたら、`useRoutingFeatures = "client"` を足�
 外出中にデスクトップがサスペンドすると、tailnet からは起こせない。Wake-on-LAN は同じ LAN 内から送る必要があり、自宅に常時稼働の別機がないからだ。
 
 - `services.displayManager.gdm.autoSuspend = false`: GDM のログイン画面は既定で無操作時にサスペンドする。nixpkgs の `gdm.nix` によると、この設定が適用されるのはログイン画面だけだ。再起動後にログイン画面のまま放置された場合に備える
-- `extraGSettingsOverrides` で `sleep-inactive-ac-type='nothing'`: ログイン中のセッションの既定値を変える。ユーザーが GNOME の設定で選んだ値はこちらより優先されるので、手動でサスペンドを有効にすればそれに従う
+- `stay_awake` は swayidle へ自動 suspend の無効化を寄与する。画面ロックと消灯、スリープ直前のロックは残す。手動でのサスペンドは妨げない
 
 停電後に電源を自動で入れるかどうかは BIOS の設定（AC 復電時の動作）で決まり、この repo の管理外だ。
 
 ## ログインしていなくてもユーザーの timer を動かす
 
 `users.users.pomu.linger = true` で、OS の起動時から pomu のユーザーのサービスマネージャーを動かす。
-linger がないと、ユーザーの timer はログインするまで始まらない。再起動後にログイン画面のまま放置されると、`xsaved-sync` などの定期実行は RDP でログインするまで止まり、`Persistent=true` の timer が逃した分もログインまで実行されない。
+linger がないと、ユーザーの timer はログインするまで始まらない。再起動後にログイン画面のまま放置されると、`xsaved-sync` などの定期実行はユーザーがログインするまで止まり、`Persistent=true` の timer が逃した分もログインまで実行されない。
 
 linger にすると、pomu のユーザー timer はすべてログイン前から動く。xsaved の二つ、memex 系の rclone の同期、Quaderno の二つ（`quaderno-archive`、`quaderno-send`）、`mc-sync` は、どれもログイン時に解錠されるキーリングを使わないので、ログイン前でも同じように動く。
 GPU のデバイス（`/dev/kfd`、`/dev/dri/renderD128`）は誰でも読み書きできる権限なので、`xsaved-process` もログインなしで GPU を使える。
@@ -102,27 +102,17 @@ nixos-rebuild-ng（nixpkgs `b6018f8`）は、`--use-substitutes` を `nix-copy-c
 ビルド結果をデスクトップから取り込む `nix-copy-closure --from` で `-s` を付けると、binary cache にあるパスは手元のラップトップが cache.nixos.org から直接取る。tailnet を通るのは、デスクトップでしか作れなかったパスだけになる。
 自宅回線の上りや DERP 経由の経路は、cache.nixos.org への経路より遅いことが多い。
 
-## GUI の確認は RDP でデスクトップの画面ごと使う
+## GUI の確認は Sunshine と Moonlight で行う
 
-Bevy のゲーム（例: `~/sagyo/aquaponics-sim` の `just run`）はウィンドウを開くので、SSH のセッションだけでは表示先がなく起動に失敗する。
-GNOME のリモートデスクトップ（RDP）を使うと、シミュレーションも描画もデスクトップの GPU で動き、tailnet には画面の映像と入力だけが流れる。
+GUI アプリはデスクトップの Niri セッションで動かし、Sunshine から Moonlight へ画面を配信する。仮想出力を使うため、モニターを接続しない headless セッションも SSH から起動できる構造にする。GPU のキャプチャ・エンコード・入力が実際に動くかは未検証。fork とセッションの判断は [Niri](niri.md) にまとめる。
 
-退けた案と理由:
+[固定 nixpkgs の Sunshine モジュール](https://github.com/NixOS/nixpkgs/blob/e21fec321d73511849707a7585e4ea155ee4bf40/nixos/modules/services/networking/sunshine.nix) は全ユーザーにユーザーユニットを提供する。このため `autoStart = false` とし、`serve_remote_desktop` を選んだユーザーの Home Manager にだけ `graphical-session.target.wants/sunshine.service` を置く。Home Manager を使わない `mase` のセッションでは自動起動しない。
 
-- **waypipe**（Wayland のウィンドウを SSH で転送する）: aquaponics-sim の Bevy 0.14.2 は既定 features のままで、`x11` は含むが `wayland` は含まない。ウィンドウは XWayland 経由で開くので、Wayland のプロトコルを中継する waypipe では転送できない
-- **X11 転送（`ssh -X`）**: GPU の描画結果をネットワーク越しの X サーバへ送ることになり、実用的な速度は出ないと見ている（未計測）
+`openFirewall = false` として、配信のポートだけを `tailscale.interface` に開ける。Web UI は SSH のポート転送で使い、認証情報とペアリング状態はユーザーの mutable な状態として保持する。アプリ定義と設定は Nix が生成するため、Web UI からの設定変更を正本にしない。接続手順は [使い方](../howtouse/tailscale.md) を参照。
 
-RDP のサーバ（`gnome-remote-desktop`）は GNOME を有効にした時点で入っている。repo で足したのは、サービスを有効にする設定とファイアウォールの設定だ。
+headless は `niri --session` を `Type=notify` で起動し、セッション環境の import 後に Sunshine を開始する。XDG Autostart も同じセッションに含め、Niri の終了後は graphical-session を止めて環境を片付ける。同じユーザーの systemd マネージャーをローカルセッションと共有するため、`remote-niri start` と `stop` はローカル Niri が稼働中または起動・停止中なら断る。headless を止めてから GDM にログインする。
 
-- `systemd.services.gnome-remote-desktop.wantedBy = [ "graphical.target" ]`: gnome-control-center 49.5 は、システム側の `gnome-remote-desktop.service` の UnitFileState が `enabled` か `disabled` のときだけ、設定 → システムに「リモートデスクトップ」を出す（`panels/system/cc-system-panel.c` と `cc-systemd-service.c`）。nixpkgs のモジュールはユニットを `systemd.packages` で置くだけなので、状態が `linked` になって項目が隠れる。実際に nixos-desktop で項目が出なかった（2026-09-23）。ユニットの `[Install]` にある `WantedBy=graphical.target` と同じ先に繋ぐと `enabled` になる。nixpkgs の unstable（`ef34387`）と master のモジュールにも同じ設定は無い（2026-09-23 時点）。モジュールが有効にするようになったら、この設定は消す
-
-- `networking.firewall.interfaces.<tailscale0>.allowedTCPPortRanges` に 3389〜3399 を入れる。インタフェースを限定しているので、LAN 側とインターネット側には開かない。RDP の認証はパスワードだけなので、tailnet の外からは届かないようにしておく
-- 範囲にしたのは、gnome-remote-desktop 49.2 の gsettings スキーマで `negotiate-port` が既定で真だからだ。設定したポート（既定 3389）が使用中なら、後続の 10 ポートから空きを探す。Remote Login（ログイン画面から新しいセッションを始める）と Desktop Sharing（ログイン中のセッションを共有する）を両方有効にすると、後から起動した側が 3390 以降にずれる
-
-RDP の有効化とパスワードは GNOME の設定で行い、repo には置かない（手順は [../howtouse/tailscale.md](../howtouse/tailscale.md)）。
-
-画面をロックした状態や、再起動後に誰もログインしていない状態で繋がるかは、実機では未確認。
-ログイン中のセッションを共有する Desktop Sharing は、誰もログインしていなければ使えない。Remote Login はログイン画面から入れるが、同じユーザーのセッションが手元に残っているときの挙動は確かめていない。
+仮想出力の `prep-cmd` と出力選択、再接続時の回復、画面ロック中、再起動後の初回接続は実機で確かめる。Windows VM の FreeRDP は別の経路であり、その RDP 設定は維持する。
 
 ## ノード鍵の期限はデスクトップで切っておく
 
@@ -141,4 +131,4 @@ tailnet に参加したホストの sshd は、tailnet 内の全ノードから�
 
 - resolv.conf の書き換えが問題になったら、前述の `--accept-dns=false` と FQDN の組み合わせに移る
 - DNS を systemd-resolved に移したら、tailscaled は resolved 方式を選ぶ。`getent hosts nixos-desktop` で短縮名が引けるかを確かめ直す
-- tailnet に自分以外の端末を入れるなら、ACL を先に設計する。RDP はパスワード認証なので、tailnet 内の端末すべてから届く状態のままにしない
+- tailnet に自分以外の端末を入れるなら、ACL を先に設計する。Sunshine の配信先も、tailnet 内の端末すべてから届く状態のままにしない

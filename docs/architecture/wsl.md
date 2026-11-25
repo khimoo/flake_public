@@ -56,7 +56,7 @@ NixOS-WSL は既定で `wheel` のユーザーにパスワードなしの `sudo`
 ## Home Manager の個人設定を読まない
 
 `nixos` ユーザーは、持ち主の値（`config/owner.toml`）を使うコンポーネント（`git_identity`、`personal_files`、`agent_config` など）を選ばないので、持ち主の値を受け取らない。`khimoo` の Git の identity、Gemini の秘密、`antigravity-cli`、agents-private の設定は入らない。
-ユーザーの利用目的も [ホストの TOML](../../config/hosts/nixos-work-wsl.toml) で選ぶ。ハードウェアプロファイルの `requires` には GUI として `gui` だけを挙げ、GNOME や fcitx5 は入れない。ユーザーの `purposes` は、AI を使わずにプログラムを書く `programming_without_ai` と、このホストの設定を管理する `etc_nixos_link` だけにする。会社の方針で AI を使わないので、AI エージェントのコンポーネント（`use_ai_agents`）を入れる `programming` は選ばない。`programming_without_ai` は `requires` の `use_uv` から、uv と nix-ld と uv の設定をまとめて入れる。自宅への接続経路を持たせない決まりは、ハードウェアプロファイルと `purposes` に `ssh_server`、`connect_ssh`、`tailscale`、`remote_build`、自分用サーバのクライアントを書かないことで守っている。confgen の検査はまだない（[confgen.md](./confgen.md) の「今後の課題」）。
+ユーザーの利用目的も [ホストの TOML](../../config/hosts/nixos-work-wsl.toml) で選ぶ。ハードウェアプロファイルの `requires` には GUI として `gui` だけを挙げ、Niri・GDM や fcitx5 は入れない。ユーザーの `purposes` は、AI を使わずにプログラムを書く `programming_without_ai` と、このホストの設定を管理する `etc_nixos_link` だけにする。会社の方針で AI を使わないので、AI エージェントのコンポーネント（`use_ai_agents`）を入れる `programming` は選ばない。`programming_without_ai` は `requires` の `use_uv` から、uv と nix-ld と uv の設定をまとめて入れる。自宅への接続経路を持たせない決まりは、ハードウェアプロファイルと `purposes` に `ssh_server`、`connect_ssh`、`tailscale`、`remote_build`、自分用サーバのクライアントを書かないことで守っている。confgen の検査はまだない（[confgen.md](./confgen.md) の「今後の課題」）。
 `flake_root` は既定の `~/sagyo/flake_public` のまま。Neovim の設定がこのパスへの symlink なので、WSL でも同じ場所に clone する。
 
 ## GUI アプリを WSLg で表示する

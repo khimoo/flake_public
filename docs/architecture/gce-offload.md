@@ -7,7 +7,7 @@ Google Cloud のウェルカムクレジット（$300 / 90日間、[Free Trial �
 
 ## サービス単位で接続先を解決する（`find_home_server` と `expose_services`）
 
-Quaderno の取り込みやリモートデスクトップ（GNOME RDP）は手元の `nixos-desktop` に残しつつ、ビルドや `xsaved` だけをクラウド VM（`nixos-gce`）へ移せるよう、サービスごとに担当ホストを解決する。
+Quaderno の取り込みやリモートデスクトップ（Niri + Sunshine）は手元の `nixos-desktop` に残しつつ、ビルドや `xsaved` だけをクラウド VM（`nixos-gce`）へ移せるよう、サービスごとに担当ホストを解決する。
 
 - `expose_services`: そのアカウントが持つ `serve_*` を他のホストへ SSH / Tailscale 越しに公開する役目（`role = True`）とし、`linger = True`、`ssh_server`、`authorize_lan_key`、`tailscale` を要求する。
 - `find_home_server`: `expose_services` が有効なすべてのホスト・アカウントを走査し、`serve_*` ごとに「それを提供している唯一のホストとアカウント」を `services[<serve_*>]` に記録する。同じ `serve_*` を複数のサーバが同時に持った場合はエラーで止める。

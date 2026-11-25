@@ -2,20 +2,20 @@
 
 修飾キーを押した際に各キーがどのように動作するかを確認する手順です。
 
-「GNOME の設定画面に出てこないキー変換が実際には機能している」という状況が発生するのは、キー変換が複数のレイヤーに分かれて処理されており、GNOME が表示しているのはそのうちの 1 つの層に過ぎないためです。
+keyd のキーコード変換、Niri の XKB とショートカット、アプリの割り当てを順に確認します。XKB の配列だけを調べても keyd の変換は分かりません。
 
 ## 3 つの変換レイヤー
 
 | 層 | 担当役割 | 設定場所 | 調査用ツール |
 |----|------|------|-----------|
 | keyd | evdev レベルのキーコード変換 | `/etc/keyd/*.conf` | `keyd monitor`, `keyd listen` |
-| xkb | レイアウトとシフトレベル（Shift / AltGr） | GNOME の `org.gnome.desktop.input-sources`（ログイン画面は `services.xserver.xkb`） | `xkbcli compile-keymap`, GNOME のレイアウト表示 |
+| xkb | レイアウトとシフトレベル（Shift / AltGr） | Niri の `input.keyboard.xkb`（ログイン画面は `services.xserver.xkb`） | `xkbcli compile-keymap`, `xkbcli interactive-wayland` |
 | アプリ | ショートカットの解釈 | 各アプリケーション | 各アプリケーションの設定画面 |
 
 keyd は物理キーボードの入力を直接キャッチし、変換後のキーコードを `keyd virtual keyboard` という仮想デバイスとしてシステムへ流し直します。
-xkb に届くのは変換済みの結果のみであるため、GNOME の「キーボードレイアウトを表示」には keyd による変換内容は反映されません。
+xkb に届くのは変換済みの結果のみであるため、XKB の配列図には keyd による変換内容は反映されません。
 
-GNOME のキー配列には English (intl., with AltGr dead keys)（`us+altgr-intl`）が使用されており、Home Manager 経由で dconf に設定されています（[nixos-desktop.toml](../../config/hosts/nixos-desktop.toml)）。ベースは通常の US 配列と同じですが、右 Alt が AltGr として機能します。GNOME の設定画面から変更しても、次回の switch 実行時に元の設定へ上書きされます。
+ホストの `xkb_layout` にある `us+altgr-intl` は、[niri_config.star](../../config/elements/niri_config.star) が XKB の layout `us` と variant `altgr-intl` に分け、`generated.kdl` に出力します。右 Alt が AltGr になる配列です。変更元は [ホストの TOML](../../config/hosts/) で、生成ファイルを直接変更しません。コンポジタの割り当てと反映方法は [Niri](niri.md) を参照してください。
 
 例として、spin713 では Alt+Backspace で Delete が入力されますが、xkb 側にはその定義は存在しません。`/etc/keyd/internal.conf` の `[alt]` セクションに記述された `backspace=delete` が実際の挙動を定義しています。
 

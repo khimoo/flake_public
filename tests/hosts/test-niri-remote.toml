@@ -1,0 +1,10 @@
+# 配信側の部品（Extend の仮想出力と ssh から起動する画面のないセッション）。
+# serve_remote_desktop は選ばない。選ぶとこのホストが 2 台目の配信元になり、find_home_server が止まる。
+system = "x86_64-linux"
+state_version = "25.11"
+timezone = "Asia/Tokyo"
+hostname = "test-niri-remote"
+
+[[users]]
+name = "alice"
+purposes = ["nixos_system", "linux", "machine_base", "sunshine_virtual_output", "niri_remote_session"]

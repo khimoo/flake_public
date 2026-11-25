@@ -59,7 +59,7 @@ flake_root = "sagyo/flake_public"
 ※ 共有鍵を持つユーザーは他のマシンへもログイン可能になるため、割り当てる `purposes` には注意してください。なお、`remote_build` はハードウェアプロファイル単位で適用されるため、該当ホストの全ユーザーに鍵が配置されます。
 
 ### 機能と利用目的（purposes）の指定
-- **GUI関連**: `gui`、`gnome`、`japanese_input` はハードウェアプロファイルの `requires` で指定します（`gnome` と `japanese_input` は自動的に `gui` を含みます）。詳細は [confgen](confgen.md) および [GUI アプリ](gui-apps.md) を参照してください。
+- **GUI関連**: `gui`、`desktop`、`japanese_input` はハードウェアプロファイルの `requires` で指定します。Home Manager を使わないユーザーも、Niri・ランチャー・通知・ロックはシステム既定を使います。個人の checkout は不要です（[Niri](niri.md)）。詳細は [confgen](confgen.md) および [GUI アプリ](gui-apps.md) を参照してください。
 - **音楽制作**: `purposes` に `make_music` を指定すると、該当ユーザーが `audio` グループに追加されます。
 - **Windows VM**: VM を使うユーザーは、`requires` に `windows_vm` を挙げる利用目的（`write_doc_with_windows`、`work_ss`）を自身の `purposes` に指定します（詳細は [Windows VM](windows-vm.md) を参照）。
 

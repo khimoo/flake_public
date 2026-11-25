@@ -1,0 +1,53 @@
+* {
+  font-family: "PlemolJP Console NF", "Noto Sans CJK JP", sans-serif;
+  font-size: 13px;
+}
+
+window#waybar {
+  background: rgba(30, 30, 46, 0.85);
+  color: #cdd6f4;
+}
+
+#workspaces button {
+  padding: 0 8px;
+  color: #6c7086;
+  background: transparent;
+  border: none;
+}
+
+#workspaces button.active {
+  color: #89b4fa;
+}
+
+#clock,
+#tray,
+#wireplumber,
+#battery,
+#custom-notification,
+#window {
+  padding: 0 8px;
+}
+
+#custom-notification.notification,
+#custom-notification.inhibited-notification {
+  color: #89b4fa;
+}
+
+#custom-notification.dnd-none,
+#custom-notification.dnd-notification,
+#custom-notification.dnd-inhibited-none,
+#custom-notification.dnd-inhibited-notification {
+  color: #6c7086;
+}
+
+#battery.warning {
+  color: #f9e2af;
+}
+
+#battery.critical {
+  color: #f38ba8;
+}
+
+#wireplumber.muted {
+  color: #6c7086;
+}

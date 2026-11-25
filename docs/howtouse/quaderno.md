@@ -83,8 +83,8 @@ PC から Quaderno の Bluetooth ネットワーク（PAN）へ接続し、Wi-Fi
 ### 事前準備（マシンごとに初回のみ実施）
 
 1. **Quaderno の設定**: 本体で Bluetooth を有効にします。※「Bluetooth Low Energy (BLE)」の設定は**必ず「無効にする」**のままにしてください（有効にすると PC から接続できなくなります）。
-2. **ペアリング**: PC と Quaderno を Bluetooth でペアリングします（GNOME の設定画面、または `bluetoothctl` の `pair` / `trust` コマンドを使用）。
-3. **登録（未実施の場合）**: [初回ペアリング手順](#初回ペアリング手順)を完了していないマシンでは、GNOME の設定から Quaderno のネットワークへ接続した状態で以下のコマンドを実行します。
+2. **ペアリング**: PC と Quaderno を Bluetooth でペアリングします（`blueman-manager`、または `bluetoothctl` の `pair` / `trust` コマンドを使用）。
+3. **登録（未実施の場合）**: [初回ペアリング手順](#初回ペアリング手順)を完了していないマシンでは、`nm-connection-editor` または `nmcli` で Quaderno の Bluetooth PAN へ接続した状態で以下のコマンドを実行します。
    ```sh
    dptrp1 --addr 172.25.48.1 register
    ```
@@ -95,7 +95,7 @@ PC から Quaderno の Bluetooth ネットワーク（PAN）へ接続し、Wi-Fi
 
 * 準備完了後の操作方法は Wi-Fi 接続時と同様です。
 * **同一 LAN 内に Quaderno が検出された場合は、Bluetooth ではなく Wi-Fi 接続が優先されます。**
-* 接続できない場合は、GNOME の設定画面から手動で Quaderno のネットワークへ接続し、以下のコマンドで応答を確認してください。
+* 接続できない場合は、`nm-connection-editor` または `nmcli` から手動で Quaderno の Bluetooth PAN へ接続し、以下のコマンドで応答を確認してください。
   ```sh
   curl -s http://172.25.48.1:8080/register/information
   ```

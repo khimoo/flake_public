@@ -41,7 +41,8 @@ let
     assert !(lib.hasInfix "age_key=" wslUser.home.activation.secrets.data);
     assert !(hasLauncher wslUser "clone-repos");
     # 会社 PC でも kitty を使うため、GUI アプリは WSLg で表示する（docs/architecture/wsl.md）。
-    assert !(wslUser.dconf.settings ? "org/gnome/shell");
+    assert !(wslUser.xdg.configFile ? "niri/config.kdl");
+    assert !wsl.programs.niri.enable;
     assert !wslUser.i18n.inputMethod.enable;
     assert builtins.any (p: (p.pname or "") == "kitty") wslUser.home.packages;
     assert wsl.wsl.startMenuLaunchers;
@@ -70,8 +71,9 @@ let
     assert hasLauncher desktopUser "flake-deploy";
     assert !(desktopUser.systemd.user.services ? xsaved-sync);
     # GCE オフロード中は nixos-desktop からも gce-ts へリモートビルドを送る。
-    assert builtins.any (m: m.hostName == "gce-ts")
-      inputs.self.nixosConfigurations.nixos-desktop.config.nix.buildMachines;
+    assert builtins.any (
+      m: m.hostName == "gce-ts"
+    ) inputs.self.nixosConfigurations.nixos-desktop.config.nix.buildMachines;
     # 個人フォルダの bind mount の元は、ユーザーごとのサービスがマウントの前に作る。元がないと起動が緊急モードで止まる。
     assert builtins.all
       (
@@ -102,9 +104,8 @@ let
         SDL_KeyModMask = [ "KMOD_MODE" ];
         SDL_Grab = "SDL_SCANCODE_RALT";
       };
-    assert lib.hasInfix "('xkb','us+altgr-intl')" (
-      toString desktopUser.dconf.settings."org/gnome/desktop/input-sources".sources
-    );
+    assert lib.hasInfix "layout \"us\"; variant \"altgr-intl\""
+      desktopUser.xdg.configFile."niri/generated.kdl".text;
     assert !(desktopKeyd.main or { } ? rightalt);
     "nixos-desktop contracts passed";
   gceContracts =
@@ -170,51 +171,6 @@ in
         pkgs.runCommand "vault-seed-isolation" { } ''
           echo "Cloned vaults have no seed activation on either host" > "$out"
         ''
-      );
-    })
-    // {
-      hosts = [
-        "nixos-desktop"
-        "nixos-spin713"
-      ];
-    };
-  # GNOME は metadata.json の shell-version に自分のメジャー版がない拡張を読み込まない（OUT OF DATE）。
-  # nixpkgs を上げて GNOME と拡張の版がずれても評価とビルドは通るので、ここで止める。
-  # 対応版は拡張のパッケージの中にしかないので、評価ではなくビルドの段階で読む。
-  gnome-extensions =
-    (lib.lazyDerivation {
-      derivation = (
-        if system != "x86_64-linux" then
-          pkgs.runCommand "gnome-extensions-skipped" { } "touch $out"
-        else
-          let
-            checkHost =
-              hostname:
-              let
-                host = inputs.self.nixosConfigurations.${hostname};
-                shellMajor = lib.versions.major host.pkgs.gnome-shell.version;
-                extensions = builtins.filter (
-                  p: p ? extensionUuid
-                ) host.config.home-manager.users.pomu.home.packages;
-              in
-              lib.concatMapStrings (p: ''
-                check ${hostname} ${shellMajor} ${lib.escapeShellArg p.extensionUuid} ${p}
-              '') extensions;
-          in
-          pkgs.runCommand "gnome-extensions" { nativeBuildInputs = [ pkgs.jq ]; } ''
-            fail=0
-            check() {
-              metadata="$4/share/gnome-shell/extensions/$3/metadata.json"
-              if ! jq -e --arg v "$2" '.["shell-version"] | index($v) != null' "$metadata" > /dev/null; then
-                echo "$1: $3 does not support GNOME $2 (shell-version: $(jq -c '.["shell-version"]' "$metadata"))" >&2
-                fail=1
-              fi
-            }
-            ${checkHost "nixos-desktop"}
-            ${checkHost "nixos-spin713"}
-            [ "$fail" = 0 ]
-            touch "$out"
-          ''
       );
     })
     // {

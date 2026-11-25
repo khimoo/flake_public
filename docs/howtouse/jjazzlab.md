@@ -6,7 +6,7 @@ JJazzLab は、コード進行とリズムのスタイルから伴奏を生成�
 
 ## 起動する
 
-GNOME のアプリ一覧から JJazzLab を選ぶか、端末で `jjazzlab` を実行する。
+Vicinae のアプリ検索から JJazzLab を選ぶか、端末で `jjazzlab` を実行する。
 
 JJazzLab が使うディレクトリは二つある。
 `~/JJazzLab` にはリズムのスタイルとサンプル曲が、初回の起動時にコピーされる。
@@ -68,6 +68,6 @@ nixpkgs の FluidSynth の soname が変わると、installCheck でビルドが
 ### ウィンドウとランチャーを WM_CLASS で結び付ける
 
 JJazzLab のウィンドウは XWayland で開き、`WM_CLASS` は `java-lang-Thread` になる（5.2.1 で `xprop` を使って確かめた）。
-GNOME は `.desktop` の `StartupWMClass` とこの値を照合して、ウィンドウをランチャーのアイコンと名前で表示する。
+ランチャーとウィンドウの対応付けのため、`.desktop` の `StartupWMClass` にこの値を残している。Niri / Waybar での名前・アイコンの対応付けは未確認。
 nixpkgs の Java アプリのパッケージと同じく、確かめた値を `StartupWMClass` に書いている。
 同じ `WM_CLASS` を名乗る別の Java アプリがあると、そのウィンドウも JJazzLab としてまとめて表示される。

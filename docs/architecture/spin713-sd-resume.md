@@ -10,7 +10,7 @@ spin713 は `/nix` を内蔵 SD カードリーダー（USB 接続）に入れ�
 s2idle から復帰すると、リーダーが UNIT ATTENTION（ASC 0x28、「Not ready to ready change, medium may have changed」）を返す。
 2026-10-19 から 2026-10-24 までの起動では、7 回の復帰のうち 6 回でこの応答が出て、6 回とも復帰後 0.2〜2.3 秒の間 `/nix` の読み出しが I/O エラーになった。
 この間に `/nix/store` のプログラムを起動したプロセスは、失敗したまま戻らない。
-観測した例は、ロック画面の解除の認証、`sleep-actions.service` の ExecStop、GNOME Shell からの `systemctl`、fcitx5 である。
+観測した例は、ロック画面の解除の認証、`sleep-actions.service` の ExecStop、デスクトップセッションからの `systemctl`、fcitx5 である。
 ext4 にも EIO が記録されるが、次の起動時の fsck で消える（2026-10-19 のエラーで確認）。
 
 ## カーネルの挙動（Linux v6.18）

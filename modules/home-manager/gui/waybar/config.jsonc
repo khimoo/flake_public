@@ -1,0 +1,56 @@
+// Waybar の設定。~/.config/waybar/config.jsonc がこのファイルを直接指す symlink なので、編集は rebuild なしで反映される。
+// Home Manager を使わないユーザーは、同じ内容の /etc/xdg/waybar/config.jsonc を読む。
+{
+  "layer": "top",
+  "position": "top",
+  "height": 30,
+  "spacing": 8,
+  "modules-left": ["niri/workspaces", "niri/window"],
+  "modules-center": ["clock"],
+  "modules-right": ["tray", "wireplumber", "battery", "custom/notification"],
+  "niri/workspaces": {
+    "format": "{icon}",
+    "format-icons": { "active": "●", "default": "○" }
+  },
+  "niri/window": {
+    "max-length": 60
+  },
+  "clock": {
+    "format": "{:%m/%d (%a) %H:%M}"
+  },
+  "tray": {
+    "spacing": 10
+  },
+  "wireplumber": {
+    "format": "{icon} {volume}%",
+    "format-muted": "󰝟 muted",
+    "format-icons": ["󰕿", "󰖀", "󰕾"],
+    "on-click": "pwvucontrol"
+  },
+  "battery": {
+    "format": "{icon} {capacity}%",
+    "format-charging": "󰂄 {capacity}%",
+    "format-icons": ["󰁺", "󰁼", "󰁿", "󰂁", "󰁹"],
+    "states": { "warning": 25, "critical": 10 }
+  },
+  "custom/notification": {
+    "tooltip": false,
+    "format": "{icon} {0}",
+    "format-icons": {
+      "notification": "󰂚",
+      "none": "󰂜",
+      "dnd-notification": "󰂛",
+      "dnd-none": "󰂛",
+      "inhibited-notification": "󰂚",
+      "inhibited-none": "󰂜",
+      "dnd-inhibited-notification": "󰂛",
+      "dnd-inhibited-none": "󰂛"
+    },
+    "return-type": "json",
+    "exec-if": "command -v swaync-client",
+    "exec": "swaync-client -swb",
+    "on-click": "swaync-client -t -sw",
+    "on-click-right": "swaync-client -d -sw",
+    "escape": true
+  }
+}

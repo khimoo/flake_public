@@ -102,7 +102,6 @@ python3 scripts/check-docs.py .
 (cd tools/confgen && "$go_package/bin/go" test ./...)
 
 if [ "$selected_hosts" != '[]' ]; then
-  # system.path avoids the mutter replacement's import-from-derivation build.
   nix_eval .#nixosConfigurations --apply "hosts: builtins.mapAttrs (name: h:
     let
       failed = map (a: a.message) (builtins.filter (a: !a.assertion) h.config.assertions);
@@ -116,7 +115,6 @@ if [ "$selected_hosts" != '[]' ]; then
 fi
 
 if [ "$mode" = --full ]; then
-  # flake check needs the reference derivations created by replaceDependencies first.
   nix eval --option eval-cache false --json --no-update-lock-file .#nixosConfigurations \
     --apply 'hosts: builtins.mapAttrs (_: h: h.config.system.build.toplevel.drvPath) hosts'
   printf '\n'

@@ -78,10 +78,7 @@ kitty では「pane」という用語を使用しません。このリポジト�
 | `Ctrl+=` / `Ctrl+-` | 不透明度を 5% 上げる / 下げる |
 | `Ctrl+0` | デフォルトの 0.75 に戻す |
 
-全画面表示（`Ctrl+Shift+F11`）の際にも背面が透けるよう、desktop および spin713 の `gnome` コンポーネントで mutter の置換を設定しています。
-通常、GNOME の mutter は全画面化した半透明ウィンドウの下を黒く塗ります。
-設定変更後は、再ログインするまで反映されません（稼働中の gnome-shell が古い mutter のままであるため）。
-設定に伴うトレードオフや設定解除の条件については [gnome-transparent-fullscreen.md](../../architecture/gnome-transparent-fullscreen.md) を参照してください。
+全画面表示は `Ctrl+Shift+F11` です。Niri での全画面透過の見た目は未確認です。固定版には `fullscreen-backdrop-color` がないため、その設定を追加すると読み込みエラーになります。確認手順は [Niri](../niri.md) を参照してください。
 
 ## スクロールバック
 

@@ -18,9 +18,3 @@ def config(host):
         repoModule("hosts/nixos-desktop/hardware.nix"),
         repoModule("hosts/nixos-desktop/win11.nix"),
     ], "nixos": nixos}
-
-def user_config():
-    return {"home": {
-        "home.packages": [pkg("gnomeExtensions.display-configuration-switcher")],
-        ("dconf", "settings", "org/gnome/shell", "enabled-extensions"): mkAfter(["display-configuration-switcher@knokelmaat.gitlab.com"]),
-    }}
