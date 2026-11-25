@@ -1,0 +1,22 @@
+# 未使用として config/elements/ に残している単機能 UI 部品が単独生成できることを確かめる。
+system = "x86_64-linux"
+state_version = "25.11"
+timezone = "Asia/Tokyo"
+hostname = "test-niri-modular"
+machine = "machine_nixos_gce"
+xkb_layout = "us+altgr-intl"
+
+[[users]]
+name = "alice"
+purposes = [
+  "niri_config",
+  "waybar",
+  "swaync",
+  "vicinae",
+  "swaylock",
+  "swayidle",
+  "nm_applet",
+  "blueman_applet",
+  "audio_controls",
+  "swaybg",
+]

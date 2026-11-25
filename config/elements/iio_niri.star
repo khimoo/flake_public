@@ -28,7 +28,7 @@ def user_config():
         },
     }}
 
-def writes(niri_config, swaylock, host):
+def writes(niri_config, host):
     return [write(niri_config,
         input = [
             'tablet {\n        map-to-output ' + '"' + host.internal_output + '"\n    }',
@@ -37,7 +37,7 @@ def writes(niri_config, swaylock, host):
         binds = [
             # keyd がキーボードの scale と sleep を、この 2 つのキーに変換している。
             'XF86LaunchA { toggle-overview; }',
-            'XF86ScreenSaver allow-inhibiting=false { spawn-sh "' + swaylock.lock_command + '"; }',
+            'XF86ScreenSaver allow-inhibiting=false { spawn "loginctl" "lock-session"; }',
             'XF86KbdBrightnessUp allow-when-locked=true { spawn "brightnessctl" "--device=*::kbd_backlight" "set" "+1"; }',
             'XF86KbdBrightnessDown allow-when-locked=true { spawn "brightnessctl" "--device=*::kbd_backlight" "set" "1-"; }',
             # Alt + 更新キーで自動回転をオフにしつつ、画面を時計回りに 90° 回転する。

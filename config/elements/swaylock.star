@@ -14,5 +14,8 @@ def config():
         ("environment", "etc", "swaylock/config", "text"): "color=1e1e2e\nshow-failed-attempts\nignore-empty-password\n",
     }}
 
-def writes(niri_config):
-    return [write(niri_config, binds = ['Mod+Alt+L allow-inhibiting=false { spawn ' + " ".join(['"' + arg + '"' for arg in _lock]) + '; }'])]
+def writes(niri_config, swayidle):
+    return [
+        write(niri_config, binds = ['Mod+Alt+L allow-inhibiting=false { spawn ' + " ".join(['"' + arg + '"' for arg in _lock]) + '; }']),
+        write(swayidle, lock_command = " ".join(_lock), lock_packages = [pkg("swaylock")]),
+    ]

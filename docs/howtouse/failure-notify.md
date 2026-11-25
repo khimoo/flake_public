@@ -2,14 +2,14 @@
 
 実装: [failure_notify.star](../../config/elements/failure_notify.star)
 
-Home Manager で定義したユーザーの定期実行が失敗すると、Niri の通知デーモン swaync に通知を送る。
+Home Manager で定義したユーザーの定期実行が失敗すると、Niri の通知デーモン（DankMaterialShell）に通知を送る。
 通知のタイトルは「`<ユニット名>` が失敗しました」で、本文に原因を確かめるコマンドが出る。
 
 ```bash
 journalctl --user -u xsaved-process.service
 ```
 
-通知は緊急度 critical で送り、swaync では閉じるまで画面に残す設定にしている。履歴の表示や復元は実機で確認する。
+通知は緊急度 critical で送り、DMS の既定（`notificationTimeoutCritical = 0`）で閉じるまで画面に残る。履歴の表示や復元は実機で確認する。
 同じユニットが失敗を繰り返したときは、通知を増やさず、前の通知を置き換える。
 
 ## 対象
@@ -52,7 +52,7 @@ systemd だけで完結し、各ユニットに足すのは `OnFailure` の 1 �
 同じユニットの通知を置き換えるため、`notify-send --print-id` が返す通知の ID を `$XDG_RUNTIME_DIR/notify-failure/<ユニット名>` に保存し、次の通知で `--replace-id` に渡す。
 置き換えないと、memex の同期のように 15 分ごとに動くユニットは、原因が残っている間、15 分ごとに critical の通知を積み重ねる。
 
-代償として、GUI セッションがない間（linger のみで動いている間）の失敗は、通知を受け取る swaync がいないため画面に表示されない。headless セッション内の表示も実機未確認なので、ログを正本として確認する。
+代償として、GUI セッションがない間（linger のみで動いている間）の失敗は、通知を受け取る通知デーモンがいないため画面に表示されない。headless セッション内の表示も実機未確認なので、ログを正本として確認する。
 失敗したユニットは次に成功するまで `systemctl --user --failed` に残るので、ログイン後にそこで確かめられる。
 
 退けた案:

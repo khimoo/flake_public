@@ -1,5 +1,6 @@
-# 目的: 自分で操作する PC のデスクトップ（ログイン画面、Niri、バー、通知、ランチャー、ロック、トレイ、音、背景、ディスプレイの配置、見た目）。
-requires = ["gdm", "niri_config", "waybar", "swaync", "vicinae", "swaylock", "swayidle", "nm_applet", "blueman_applet", "audio_controls", "swaybg", "display_layout", "desktop_appearance", "niri_background_apps", "niri_floating_toggle"]
+# 目的: 自分で操作する PC のデスクトップ（ログイン画面、Niri、統合シェル DMS、アイドル制御、ディスプレイ配置、見た目）。
+# 単機能ツールの定義（waybar / swaync / vicinae / swaylock 等）は比較・ロールバック用に config/elements/ へ残している。
+requires = ["gdm", "niri_config", "dms_shell", "swayidle", "display_layout", "desktop_appearance", "niri_background_apps", "niri_floating_toggle"]
 needs = ["nixos_system"]
 
 def config(gui):

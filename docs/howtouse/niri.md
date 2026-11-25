@@ -12,26 +12,27 @@ GDM で Niri を選んでログインします。`Mod` は Super キーです。
 | キー | 操作 |
 |---|---|
 | `Mod+Return` | kitty を開く |
-| `Mod+D` / `Mod+Shift+V` | Vicinae / クリップボード履歴を開く |
+| `Mod+D` / `Mod+Shift+V` | DMS ランチャー（Spotlight）/ クリップボード履歴を開く |
+| `Mod+B` | DMS バーの表示・非表示を切り替える（個人設定） |
 | `Mod+矢印` | 列・ウィンドウ・ワークスペースのフォーカスを動かす |
 | `Mod+O` | Overview を切り替える |
 | `Mod+F` / `Mod+Shift+F` | 列の最大化 / 全画面を切り替える |
 | `Mod+V` | フローティングを切り替える |
 | `Mod+Alt+V` | フローティングとタイルのフォーカスを行き来する |
 | `Mod+Ctrl+V` | フローティングウィンドウを一括で隠す / 呼び戻す（一番下の動的ワークスペースへ退避） |
-| `Mod+Alt+L` | 画面をロックする |
+| `Mod+Alt+L` | 画面をロックする（DMS ロック画面） |
 | `Mod+Escape` | アプリによるショートカットの抑止を切り替える |
 | `Mod+Shift+Slash` | キー操作の一覧を開く |
 
-通知は swaync（Waybar 右端のベルアイコン左クリックで通知履歴パネルを開閉、右クリックでおやすみモード切替）、音声は Waybar の音量表示から `pwvucontrol`、ネットワークは nm-applet、Bluetooth は Blueman で操作します。アプリの名前とアイコン、通知クリック、トレイ、IME は実機で確認してください。
+バー、通知、ランチャー、クリップボード履歴、ロック画面、壁紙、音声・明るさ OSD、ネットワーク・Bluetooth・トレイは DankMaterialShell（`programs.dms-shell`）でまとめて扱います。Bitwarden 連携（DankVault）は `rbw` の初期設定（`rbw config set email <mail>`、`rbw config set pinentry pinentry-qt`、`rbw login`）を行った後、DMS ランチャーで `@` を入力して検索します（初回は DMS の設定 → Plugins で DankVault が有効になっていることを確認してください）。
 
 ## 設定を変更する
 
-[個人の config.kdl](../../modules/home-manager/gui/niri/config.kdl) と [Waybar の設定](../../modules/home-manager/gui/waybar/) は、Home Manager がそのユーザーの checkout へ直接リンクします。編集は rebuild 前から作用します。まず `niri validate` でエラーを調べ、自動の再読み込みを確認します。必要なら `niri msg action load-config-file` で現在の設定を再読み込みします。Waybar の変更は `pkill -SIGUSR2 waybar` で再読み込みします。
+[個人の config.kdl](../../modules/home-manager/gui/niri/config.kdl) は、Home Manager がそのユーザーの checkout へ直接リンクします。編集は rebuild 前から作用します。まず `niri validate` でエラーを調べ、自動の再読み込みを確認します。必要なら `niri msg action load-config-file` で現在の設定を再読み込みします。
 
 生成設定を変更する場合は [niri_config.star](../../config/elements/niri_config.star) と、変更したい機能の寄与元を編集し、リモートで検証してから構成を適用します。`~/.config/niri/generated.kdl` 自体は編集しません。キーを個人設定で上書きする場合は、include の後の `binds` に記述します。
 
-Home Manager を使わない `mase` は `/etc/niri/config.kdl` とシステムの UI 設定を使います。`~/.config/niri/config.kdl` がすでにある場合はそちらが優先されるので、システム既定へ戻す前にバックアップして移動します。checkout は不要です。バーを隠す `Mod+B` は個人設定だけにあります。
+Home Manager を使わない `mase` は `/etc/niri/config.kdl` とシステムの DMS 設定を使います。`~/.config/niri/config.kdl` がすでにある場合はそちらが優先されるので、システム既定へ戻す前にバックアップして移動します。checkout は不要です。バーを隠す `Mod+B` は個人設定だけにあります。
 
 live symlink の誤編集は Git で該当ファイルを復元します。Nix 世代のロールバックでは復元されません。KDL が壊れて画面から直せない場合は、別の TTY または SSH で編集して `niri validate` を実行してください。
 
@@ -41,12 +42,13 @@ live symlink の誤編集は Git で該当ファイルを復元します。Nix �
 niri validate
 niri msg outputs
 niri msg windows
-systemctl --user status niri.service vicinae.service swayidle.service
-journalctl --user -b -u niri.service -u vicinae.service -u swayidle.service
+dms doctor -v
+systemctl --user status niri.service dms.service swayidle.service
+journalctl --user -b -u niri.service -u dms.service -u swayidle.service
 ```
 
-`pomu` と `mase` の両方でログイン・ログアウトし、端末、ランチャー、通知、トレイ、画面ロックと解錠、polkit 認証、Xwayland アプリを確認します。Home Manager の設定だけで確認を済ませず、`mase` が個人の checkout なしで使えることも確かめます。
+`pomu` と `mase` の両方でログイン・ログアウトし、端末、ランチャー、通知、トレイ、画面ロックと解錠、polkit 認証、Xwayland アプリ、Bitwarden（`@`）検索を確認します。Home Manager の設定だけで確認を済ませず、`mase` が個人の checkout なしで使えることも確かめます。
 
-spin713 ではタッチとペンの座標、回転、タブレットモード、ふた、明るさ・音量キー、サスペンドと復帰を確認します。`internal_output` の接続名は `niri msg outputs` と照合してください。自動回転のオン・オフは Vicinae の「自動回転の切替」、自動回転をオフにしつつ時計回りに 90° 回転する操作は `Alt+更新キー`（`niri-rotate cw`）を使います。kitty の全画面透過、ブラウザの認証リダイレクト、画面共有、Windows VM の資格情報と右 Alt の操作も実機未確認です。
+spin713 ではタッチとペンの座標、回転、タブレットモード、ふた、明るさ・音量キー、サスペンドと復帰を確認します。`internal_output` の接続名は `niri msg outputs` と照合してください。自動回転のオン・オフは DMS ランチャーの「自動回転の切替」、自動回転をオフにしつつ時計回りに 90° 回転する操作は `Alt+更新キー`（`niri-rotate cw`）を使います。kitty の全画面透過、ブラウザの認証リダイレクト、画面共有、Windows VM の資格情報と右 Alt の操作も実機未確認です。
 
 遠隔セッションの起動・停止とペアリングは [Tailscale](tailscale.md#外出先からデスクトップの画面を使うsunshine--moonlight) を参照してください。ローカルと headless を同じユーザーで同時に使わず、headless を止めてから GDM にログインします。

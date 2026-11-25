@@ -19,7 +19,7 @@ input {
 }
 
 binds {
-    Mod+B { spawn "pkill" "-SIGUSR1" "waybar"; }
+    Mod+B { spawn "dms" "ipc" "call" "bar" "toggle" "index" "0"; }
 }
 
 window-rule {

@@ -11,9 +11,9 @@ GDM をログイン画面に使い、ユーザーのセッションを Niri に�
 
 ## Home Manager の有無でセッションを分けない
 
-Home Manager を使わない `mase` にも端末、ランチャー、通知、バー、ロックが必要なため、共通設定と常駐サービスは NixOS に置く。Vicinae と swayidle はシステムが提供するユーザーユニットで起動し、Home Manager に同名のデーモンを作らない。swaync と swaylock には設定ファイルを明示して、パッケージの既定の探索先に依存させない。
+Home Manager を使わない `mase` にも端末、ランチャー、通知、バー、ロック、トレイが必要なため、共通設定と常駐サービスは NixOS に置く。統合デスクトップシェル（DankMaterialShell、`programs.dms-shell`）と `swayidle` はシステムが提供するユーザーユニットで起動し、Home Manager に同名のデーモンを作らない。DMS 自身が polkit 認証エージェントを持つため、`niri.star` 側の `polkit-gnome` は無効化する。単機能ツールのコンポーネント定義（`waybar` / `swaync` / `vicinae` / `swaylock` 等）は比較・ロールバック用に `config/elements/` へ残している。
 
-個人の Niri と Waybar の設定だけを各ユーザーの checkout に live symlink で結ぶ。既存のユーザー設定はシステム既定より優先される。システム側にはユーザー名や checkout のパスを含めない。live symlink の変更は Nix 世代のロールバックでは戻らない（[構成の境界](configuration.md)）。
+個人の Niri 設定だけを各ユーザーの checkout に live symlink で結ぶ。既存のユーザー設定はシステム既定より優先される。システム側にはユーザー名や checkout のパスを含めない。live symlink の変更は Nix 世代のロールバックでは戻らない（[構成の境界](configuration.md)）。
 
 ## KDL の寄与と手編集を分ける
 
