@@ -11,7 +11,7 @@ sudo nixos-rebuild switch --flake .#nixos-desktop
 spin713 では構成名を `nixos-spin713` にする。ビルドは既存の設定でデスクトップへ回る。
 初回は再起動して仮想カメラ用のカーネルモジュールを読み込む。
 
-1. PC のアプリ一覧から TwinDesk を開く。
+1. ログイン時に `twindesk --hidden` でトップバーのトレイへ自動起動する（[twindesk.star](../../config/elements/twindesk.star)）。トレイアイコンまたはアプリ一覧から TwinDesk を開く（アプリ内の「Open at login」は二重登録になるためオフのままにする）。
 2. Android に [v3.0.0 の Full APK](https://github.com/InukaAsith/TwinDesk/releases/download/v3.0.0/TwinDesk-3.0.0-full.apk) をインストールして開く。
 3. 最初は同じ家庭内 Wi-Fi に接続する。Android の `Connect` → `Nearby` から PC を選ぶか、PC に表示した QR コードを読み取り、ペアリングする。
 4. 通知、SMS、画面操作など、使う機能の権限を Android 側で許可する。

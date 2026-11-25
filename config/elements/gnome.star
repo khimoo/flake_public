@@ -11,6 +11,7 @@ def config():
 def user_config(host):
     result = {"home": {
         "home.packages": [
+            pkg("gnomeExtensions.appindicator"),
             pkg("gnomeExtensions.clipboard-history"),
             pkg("gnomeExtensions.kimpanel"),
             pkg("gnomeExtensions.gsconnect"),
@@ -22,11 +23,28 @@ def user_config(host):
             "org/gnome/shell": {
                 "disable-user-extensions": False,
                 "enabled-extensions": [
+                    "appindicatorsupport@rgcjonas.gmail.com",
                     "clipboard-history@alexsaveau.dev",
                     "kimpanel@kde.org",
                     "gsconnect@andyholmes.github.io",
                     "paperwm@paperwm.github.com",
                     "mic-indicator-visibility-manager@alhaddar.dev",
+                ],
+            },
+            "org/gnome/shell/extensions/paperwm": {
+                # トレイに隠れない常駐アプリを、動的ワークスペースでもログイン直後から存在する
+                # 2 番目のワークスペース（index 1）へ静かに配置する（docs/architecture/default-apps.md）。
+                "winprops": [
+                    toJSON({
+                        "wm_class": "/^(thunderbird|org\\.mozilla\\.Thunderbird)$/i",
+                        "spaceIndex": 1,
+                        "focus": False,
+                    }),
+                    toJSON({
+                        "wm_class": "com.vixalien.sticky",
+                        "spaceIndex": 1,
+                        "focus": False,
+                    }),
                 ],
             },
             "org/gnome/shell/extensions/mic-indicator-visibility": {

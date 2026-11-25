@@ -30,4 +30,6 @@ Firefox と Zen の拡張機能、pref、同期の分担は [ブラウザ](./bro
 
 GNOME のアプリ一覧で「拡張機能」を開くか、端末から `gnome-extensions-app` を実行します。GNOME 同梱の管理画面で、導入済みの拡張のオン・オフと設定を変更できます。
 
-拡張の追加・削除は [gnome.star](../../config/elements/gnome.star) の `home.packages` と `enabled-extensions` を変更し、設定を反映します。管理画面で切り替えた有効状態は、設定を再び反映すると `enabled-extensions` の指定に戻る場合があります。
+拡張の追加・削除は [gnome.star](../../config/elements/gnome.star) の `home.packages` と `enabled-extensions` を変更し、設定を反映します。管理画面で切り替えた有効状態や、PaperWM の `winprops`（`org/gnome/shell/extensions/paperwm`）へ手動で追加したルールは、設定を再び反映すると [gnome.star](../../config/elements/gnome.star) の指定に戻る場合があります。
+
+`autostart = True` のアプリは `~/.config/autostart/` に配置され、ログイン時に 1 回だけ起動します（`nixos-rebuild switch` 時の再起動対象にはなりません）。変更した自動起動の動作は再ログインで確認します。

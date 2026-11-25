@@ -29,6 +29,16 @@ def _wayland_desktop(app):
         "fi\n",
     ))
 
+def _autostart_desktop(app):
+    flags = " ".join(([_wayland_flags] if app.wayland else []) + ([app.flags] if app.flags != None else []))
+    return concat(
+        "[Desktop Entry]\n",
+        "Type=Application\n",
+        "Name=" + app.name + "\n",
+        "Exec=", app.pkg, "/bin/" + app.bin + (" " + flags if flags else "") + "\n",
+        "X-GNOME-Autostart-enabled=true\n",
+    )
+
 def user_config(incoming):
     apps = [w.value for w in incoming]
     settings = {
@@ -41,18 +51,7 @@ def user_config(incoming):
         if app.wayland:
             settings[("home", "file", ".local/share/applications/" + app.desktop, "source")] = _wayland_desktop(app)
         if app.autostart:
-            flags = " ".join(([_wayland_flags] if app.wayland else []) + ([app.flags] if app.flags != None else []))
-            settings[("systemd", "user", "services", app.name)] = {
-                "Unit": {
-                    "Description": app.name + " (autostart)",
-                    "After": ["graphical-session.target"],
-                    "PartOf": ["graphical-session.target"],
-                },
-                "Service": {
-                    "ExecStart": concat(app.pkg, "/bin/" + app.bin + (" " + flags if flags else "")),
-                    "Restart": "on-failure",
-                    "RestartSec": 5,
-                },
-                "Install": {"WantedBy": ["graphical-session.target"]},
-            }
+            # systemd.user.services にすると nixos-rebuild switch のたびに sd-switch が介入するため、
+            # XDG Autostart でログイン時に 1 回だけ起動する（docs/architecture/default-apps.md）。
+            settings[("xdg", "configFile", "autostart/" + app.name + ".desktop", "text")] = _autostart_desktop(app)
     return {"home": settings}
