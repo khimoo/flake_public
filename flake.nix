@@ -13,6 +13,12 @@
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.home-manager.follows = "home-manager";
     };
+    # Zen の Sine mod「Pane」。Sine のストアに無く、zen-browser-flake の sine.mods では入らないので、
+    # ここで revision を固定して zen_browser.star がプロファイルに置く（docs/howtouse/browsers.md）。
+    zen-pane-manager = {
+      url = "github:001vamp/zen-pane-manager";
+      flake = false;
+    };
     # RustOwl公式のインストール案内で紹介されているNix community flake。
     # 上流のnixpkgs/toolchain固定をそのまま使い、専用sysrootをstoreに閉じる。
     rustowl.url = "github:nix-community/rustowl-flake";

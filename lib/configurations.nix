@@ -9,6 +9,7 @@ let
     import ../overlays
     ++ [ (import ../overlays/unstable-packages.nix inputs) ]
     ++ [ (import ../overlays/neovim-tools.nix inputs) ]
+    ++ [ (import ../overlays/zen-browser-mods.nix inputs) ]
     ++ [ (import ../overlays/llm-agents.nix inputs) ]
     ++ [ (import ../overlays/claude-code-node.nix) ];
   hosts =

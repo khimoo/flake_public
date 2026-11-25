@@ -15,6 +15,20 @@ switch してからブラウザを再起動すると、足した拡張機能が�
 
 両方に適用する pref は `browser_common.star` の `settings` に、片方だけのものは各ブラウザのコンポーネントで共通の pref に足す辞書に書きます。宣言した pref はプロファイルの `user.js` に書き出され、ブラウザは起動のたびにその値を読み直します。`about:config` や設定画面で変えても、再起動すると宣言した値に戻ります。試すときは `about:config` で変え、残すと決めたら宣言に移します。
 
+## Zen の Sine mod を足す・外す
+
+Sine のストア（[sineorg/store](https://github.com/sineorg/store/tree/main/mods)）にある mod は、[zen_browser.star](../../config/elements/zen_browser.star) の `sine.mods` に mod の ID を書きます。zen-browser-flake のモジュールが switch のたびにストアから取得します。
+
+ストアに無い mod（例: Pane、`001vamp/zen-pane-manager`）は `sine.mods` では入りません。次の 3 か所に書きます。
+
+1. [flake.nix](../../flake.nix) の `inputs` に、mod のリポジトリを `flake = false` で足します。
+2. [overlays/zen-browser-mods.nix](../../overlays/zen-browser-mods.nix) で、その入力をパッケージの名前にします。
+3. zen_browser.star の `_store_less_mods` に渡す辞書に、`"mod の ID": pkg("パッケージの名前")` を足します。mod の ID は、リポジトリの `theme.json` の `id` です。
+
+switch すると、mod のファイルが `~/.config/zen/default/chrome/sine-mods/<ID>/` に置かれ、Sine が読む `mods.json` にその項目が書かれます。Zen を再起動すると読み込まれます。項目には `origin: "store"` を付けるので、Sine の「Install JavaScript from unofficial sources」（`sine.allow-unsafe-js`）を有効にしなくても、ここで宣言した mod の JS だけは読み込まれます。`no-updates` も付けるので、Sine の「Check for Updates」では更新されません。更新するときは `nix flake update <入力の名前>` を実行して switch します（週次の flake.lock 自動更新 PR でも更新されます）。
+
+宣言から外しても、`mods.json` の項目は残ります。Sine の設定画面で mod を削除します。
+
 ## 新しいマシンやプロファイルで元に戻す
 
 switch したあと、Firefox と Zen のそれぞれで次を行います。

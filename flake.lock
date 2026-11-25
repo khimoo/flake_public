@@ -450,7 +450,8 @@
         "rustowl": "rustowl",
         "skk-jisyo": "skk-jisyo",
         "twindesk": "twindesk",
-        "zen-browser": "zen-browser"
+        "zen-browser": "zen-browser",
+        "zen-pane-manager": "zen-pane-manager"
       }
     },
     "rust-overlay": {
@@ -599,6 +600,22 @@
         "owner": "0xc000022070",
         "ref": "beta",
         "repo": "zen-browser-flake",
+        "type": "github"
+      }
+    },
+    "zen-pane-manager": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1791582529,
+        "narHash": "sha256-GMD64R5cH7tu3nxHe7O/wT+zE19bW/K0BRRASg8KzZU=",
+        "owner": "001vamp",
+        "repo": "zen-pane-manager",
+        "rev": "d5c664744a30d55212ae777cc7c850545de93fe7",
+        "type": "github"
+      },
+      "original": {
+        "owner": "001vamp",
+        "repo": "zen-pane-manager",
         "type": "github"
       }
     }
