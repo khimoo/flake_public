@@ -1,0 +1,28 @@
+--- a/meltype.cpp
++++ b/meltype.cpp
+@@ -682,17 +682,23 @@
+         const bool converting = view.flag("converting");
+         const int selectedClause = view.integer("selectedClause", -1);
+         fcitx::Text preedit;
++        int cursor = -1;
+         if (converting && !clauses.empty()) {
+             // 変換中: 文節ごとに下線。選んでいる文節は強調する。
+             for (size_t i = 0; i < clauses.size(); i++) {
+                 fcitx::TextFormatFlags format = fcitx::TextFormatFlag::Underline;
+-                if (static_cast<int>(i) == selectedClause) format |= fcitx::TextFormatFlag::HighLight;
++                if (static_cast<int>(i) == selectedClause) {
++                    format |= fcitx::TextFormatFlag::HighLight;
++                    cursor = static_cast<int>(preedit.toString().size());
++                }
+                 preedit.append(clauses[i], format);
+             }
+         } else {
+             preedit.append(text, fcitx::TextFormatFlag::Underline);
+         }
+-        preedit.setCursor(static_cast<int>(preedit.toString().size()));
++        // Wayland (text-input-v3) は書式を送れない。fcitx5 は、キャレットが強調の先頭にあるときだけ
++        // 強調した文節をキャレットの範囲 (cursor_begin..cursor_end) にして送るので、変換中は選んでいる文節の先頭に置く。
++        preedit.setCursor(cursor >= 0 ? cursor : static_cast<int>(preedit.toString().size()));
+         if (ic->capabilityFlags().test(fcitx::CapabilityFlag::Preedit)) panel.setClientPreedit(preedit);
+         else panel.setPreedit(preedit);
+         ic->propertyFor(&factory_)->preeditVisible = !text.empty();

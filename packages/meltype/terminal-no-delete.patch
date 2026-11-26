@@ -1,0 +1,19 @@
+--- a/meltype.cpp
++++ b/meltype.cpp
+@@ -609,6 +609,7 @@
+             after = quote(text.substr(until, to - until));
+             if (until > at) selection = quote(text.substr(at, until - at));
+         }
++        // 端末 (kitty など) は周りの文字を渡しても、消す要求 (delete_surrounding_text) には応えない。確定し直すと二重になるので、端末では消せないと伝える
+         std::string traits;
+         for (const auto &[flag, name] : {std::pair{fcitx::CapabilityFlag::Terminal, "Terminal"}, std::pair{fcitx::CapabilityFlag::Password, "Password"},
+                                           std::pair{fcitx::CapabilityFlag::Sensitive, "Private"}}) {
+@@ -621,7 +622,7 @@
+             traits += ",\"Password\"";
+         return "{\"before\":" + before + ",\"after\":" + after + ",\"selection\":" + selection +
+             ",\"composing\":" + boolean(ic->propertyFor(&factory_)->preeditVisible) + ",\"traits\":[" + traits + "]" +
+-            (ic->program().empty() ? "" : ",\"app\":" + quote(ic->program())) + ",\"canRemove\":" + boolean(surrounding) + "}";
++            (ic->program().empty() ? "" : ",\"app\":" + quote(ic->program())) + ",\"canRemove\":" + boolean(surrounding && !flags.test(fcitx::CapabilityFlag::Terminal)) + "}";
+     }
+ 
+     // 入力モード (A / あ) をカーソル位置に、本体が決めた時間だけ出す (Mozc と同じ入力パネルの枠)
