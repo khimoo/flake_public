@@ -1,0 +1,117 @@
+--- a/glfw/wl_text_input.c
++++ b/glfw/wl_text_input.c
+@@ -19,6 +19,8 @@
+ static char *pending_commit = NULL;
+ static bool ime_focused = false;
+ static int last_cursor_left = 0, last_cursor_top = 0, last_cursor_width = 0, last_cursor_height = 0;
++static char *last_surrounding = NULL;
++static uint32_t last_surrounding_cursor = 0;
+ uint32_t commit_serial = 0;
+ 
+ static void
+@@ -29,6 +31,49 @@
+     }
+ }
+ 
++// Send the text of the logical line around the cursor as surrounding text, so
++// that input methods can see what precedes the insertion point (for example
++// the prompt of a TUI program). Returns true if new state was set and needs a commit.
++static bool
++update_surrounding_text(bool force) {
++    _GLFWwindow *w = _glfwFocusedWindow();
++    if (!text_input || !ime_focused || !w || !_glfw.callbacks.get_ime_text_around_cursor) return false;
++    GLFWIMETextAroundCursor t = {0};
++    if (!_glfw.callbacks.get_ime_text_around_cursor((GLFWwindow *)w, &t)) return false;
++    const char *before = t.before ? t.before : "", *after = t.after ? t.after : "";
++    // The protocol limits surrounding text to 4000 bytes. Keep the end of
++    // before and the start of after, cut at UTF-8 character boundaries.
++    size_t blen = strlen(before), alen = strlen(after);
++    if (blen > 2000) {
++        before += blen - 2000;
++        while ((*before & 0xC0) == 0x80) before++;
++        blen = strlen(before);
++    }
++    if (alen > 1000) {
++        alen = 1000;
++        while (alen > 0 && (after[alen] & 0xC0) == 0x80) alen--;
++    }
++    char *text = malloc(blen + alen + 1);
++    bool changed = false;
++    if (text) {
++        memcpy(text, before, blen);
++        memcpy(text + blen, after, alen);
++        text[blen + alen] = 0;
++        if (force || !last_surrounding || last_surrounding_cursor != blen || strcmp(last_surrounding, text) != 0) {
++            debug("text-input: updating surrounding text, cursor: %zu\n", blen);
++            zwp_text_input_v3_set_surrounding_text(text_input, text, (int32_t)blen, (int32_t)blen);
++            zwp_text_input_v3_set_text_change_cause(text_input, ZWP_TEXT_INPUT_V3_CHANGE_CAUSE_OTHER);
++            free(last_surrounding);
++            last_surrounding = text;
++            last_surrounding_cursor = blen;
++            changed = true;
++        } else free(text);
++    }
++    free(t.before);
++    free(t.after);
++    return changed;
++}
++
+ static void
+ text_input_enter(void *data UNUSED, struct zwp_text_input_v3 *txt_input, struct wl_surface *surface UNUSED) {
+     debug("text-input: enter event\n");
+@@ -39,6 +84,7 @@
+         if (last_cursor_width > 0) {
+             zwp_text_input_v3_set_cursor_rectangle(txt_input, last_cursor_left, last_cursor_top, last_cursor_width, last_cursor_height);
+         }
++        update_surrounding_text(true);
+         commit();
+     }
+ }
+@@ -143,6 +189,8 @@
+     pending_pre_edit = NULL;
+     free(current_pre_edit);
+     current_pre_edit = NULL;
++    free(last_surrounding);
++    last_surrounding = NULL;
+     free(pending_commit);
+     pending_commit = NULL;
+ }
+@@ -156,6 +204,7 @@
+             if (ime_focused) {
+                 zwp_text_input_v3_enable(text_input);
+                 zwp_text_input_v3_set_content_type(text_input, ZWP_TEXT_INPUT_V3_CONTENT_HINT_NONE, ZWP_TEXT_INPUT_V3_CONTENT_PURPOSE_TERMINAL);
++                update_surrounding_text(true);
+             } else {
+                 free(pending_pre_edit);
+                 pending_pre_edit = NULL;
+@@ -178,6 +227,7 @@
+ #define s(x) (int)round((x) / scale)
+             const int left = s(ev->cursor.left), top = s(ev->cursor.top), width = s(ev->cursor.width), height = s(ev->cursor.height);
+ #undef s
++            bool needs_commit = update_surrounding_text(false);
+             if (left != last_cursor_left || top != last_cursor_top || width != last_cursor_width || height != last_cursor_height) {
+                 last_cursor_left = left;
+                 last_cursor_top = top;
+@@ -185,8 +235,9 @@
+                 last_cursor_height = height;
+                 debug("\ntext-input: updating cursor position: left=%d top=%d width=%d height=%d\n", left, top, width, height);
+                 zwp_text_input_v3_set_cursor_rectangle(text_input, left, top, width, height);
+-                commit();
++                needs_commit = true;
+             }
++            if (needs_commit) commit();
+         } break;
+     }
+ }
+--- a/kitty/child-monitor.c
++++ b/kitty/child-monitor.c
+@@ -1129,6 +1129,9 @@
+     if (w->last_active_window_id != active_window_id || w->last_active_tab != w->active_tab || w->focused_at_last_render != w->is_focused) needs_render = true;
+     if (w->render_calls < 3 && background_image_for_os_window(w) != NULL) needs_render = true;
+     if (needs_render) render_prepared_os_window(w, active_window_id, active_window_bg, num_visible_windows, all_windows_have_same_bg, now);
++    // Keep the surrounding text sent to the input method in sync with what the
++    // program in the terminal draws around the cursor (Wayland text-input-v3).
++    if (needs_render && global_state.is_wayland && w->is_focused && active_window_id) update_ime_position_for_window(active_window_id, false, 0);
+     if (w->is_focused) change_menubar_title(w->window_title);
+     return needs_render;
+ }

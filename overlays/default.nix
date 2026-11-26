@@ -26,4 +26,16 @@
       };
     });
   })
+
+  # TODO: kitty が Wayland で surrounding text（カーソルの前後の文字）を IME に送るようになったら削除する。
+  # 背景: kitty は macOS だけでカーソルの行を IME に渡し（screen_ime_text_around_cursor）、Wayland の
+  #       text-input-v3 では set_surrounding_text を送らない。Meltype は「キャレットの前」を読めないと
+  #       端末を英数のコードの行として扱い、Claude Code の「> 」などの入力行を見分けられない。
+  #       パッチは同じ関数で取ったカーソルの行を、入ったとき・キーと IME の更新・描き直しのたびに送る（変わったときだけ）。
+  # 参照: https://github.com/kovidgoyal/kitty/issues/10492（macOS 版）
+  (final: prev: {
+    kitty = prev.kitty.overrideAttrs (old: {
+      patches = (old.patches or [ ]) ++ [ ./kitty-ime-surrounding-text.patch ];
+    });
+  })
 ]

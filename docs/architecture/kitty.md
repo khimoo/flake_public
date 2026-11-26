@@ -21,6 +21,15 @@ kitty 0.44.0 で以下を remote control 越しに確認した。
 
 「kitty は Wayland で IME が動かない」という記述が検索の上位に出るが、2021 年の Debian bug #990316 によるもので、今は当たらない。
 
+### IME にカーソルの行を渡すパッチ
+
+kitty 0.49.1 は Wayland の text-input-v3 で「端末です」（`CONTENT_PURPOSE_TERMINAL`）しか伝えず、カーソルの前後の文字（surrounding text）を送らない。
+Meltype（[japanese_input.star](../../config/elements/japanese_input.star)）は、キャレットの前が読めない端末を英数のコードの行として扱うので、Claude Code・Codex の「> 」の入力行も日本語にならない。
+そこで [overlays/default.nix](../../overlays/default.nix) で kitty にパッチを当て、macOS 版が使っている `screen_ime_text_around_cursor` の結果を `set_surrounding_text` で送る。
+送るのは、ウィンドウに入ったとき・キーや IME の更新のとき・描き直したとき（TUI が「> 」を描いた後にも届くように）で、前回と同じなら送らない。
+kitty は `delete_surrounding_text` を処理しないので、Meltype のアドオン側で端末では確定し直さない（`packages/meltype/terminal-no-delete.patch`）。
+上流の kitty が Wayland でも送るようになったら、overlay を外す。
+
 なお、タブ内ウィンドウが 1 つだけのタブを detach すると元の OS ウィンドウが空になって閉じるので、
 OS ウィンドウの総数が変わらない。動いていないように見えるが正常。
 
