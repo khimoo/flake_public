@@ -1,0 +1,18 @@
+# ディスプレイ配置の kanshi プロファイル（wdisplays の "Save to kanshi Config" で更新される）。
+# Home Manager ユーザーは ~/.config/kanshi がこのディレクトリへの live symlink になっており、
+# GUI で保存した変更は即座にここへ反映され、Git で管理する（Nix 世代のロールバックでは戻らない）。
+# 1 画面構成を保存したときに wildcard が上書きされないよう、`output *` の汎用プロファイルは置かない。
+
+profile main {
+	output "Eizo Nanao Corporation EV2736W 0x04D035AE" enable mode 2560x1440@59.951Hz position 2463,1681 scale 1 transform normal
+	output "Sony VPL-HW20 0x01010101" disable
+	output "Iiyama North America PL2083H 1127640202473" enable mode 1600x900@60.000Hz position 863,2757 scale 1 transform normal
+	output "PNP(ROW) AAA Unknown" enable mode 1920x1080@60.000Hz position 2463,3121 scale 1 transform normal
+}
+
+profile projector {
+	output "PNP(ROW) AAA Unknown" enable mode 1920x1080@60.000Hz position 2463,3121 scale 1 transform normal
+	output "Iiyama North America PL2083H 1127640202473" enable mode 1600x900@60.000Hz position 863,2761 scale 1 transform normal
+	output "Eizo Nanao Corporation EV2736W 0x04D035AE" enable mode 2560x1440@59.951Hz position 2463,1681 scale 1 transform normal
+	output "Sony VPL-HW20 0x01010101" enable mode 1920x1080@60.000Hz position 543,1681 scale 1 transform normal
+}

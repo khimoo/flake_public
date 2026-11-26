@@ -1,11 +1,11 @@
 # 道具: Quickshell 製の統合スタートメニュー兼通知ハブ（常駐バー無し）。
 # 普段は作業ウィンドウのみを表示し、Super 単押し（F24）または Mod+D で
 # 左: 6 タブ検索（All / Windows / Files / Clipboard / Vault / Notify + 電卓・Web 検索）
-# 右: 時計・電池・ワークスペース・音量・明るさ・システムトレイ・電源ボタン
+# 右: 時計・電池・ワークスペース・ディスプレイ配置・音量・明るさ・システムトレイ・電源ボタン
 # を 1 枚のフローティング画面にまとめて開く。通知ポップアップも同じ Quickshell が右上に控えめに出す。
 # Home Manager を使わないユーザー（mase）は /etc/xdg/quickshell/hub/ を読み、
 # Home Manager を使うユーザーは checkout の live symlink（~/.config/quickshell/hub）を読む。
-requires = ["niri_config", "pipewire"]
+requires = ["niri_config", "pipewire", "display_layout"]
 needs = ["nixos_system"]
 
 _HUB_FILES = [

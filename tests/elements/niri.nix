@@ -65,6 +65,17 @@ in
         assert !host.systemd.user.services.quickshell-hub.enableDefaultPath;
         assert host.systemd.user.services.cliphist-watch.wantedBy == [ "graphical-session.target" ];
         assert !host.systemd.user.services.cliphist-watch.enableDefaultPath;
+        assert host.systemd.user.services.kanshi.wantedBy == [ "graphical-session.target" ];
+        assert !host.systemd.user.services.kanshi.enableDefaultPath;
+        assert lib.hasInfix "kanshictl" host.systemd.user.services.kanshi.serviceConfig.ExecReload;
+        assert !(lib.hasInfix "kanshi" generated);
+        assert
+          etc host "kanshi/config" == builtins.readFile ../../modules/home-manager/gui/kanshi/config;
+        assert !(lib.hasInfix "/home/" (etc host "kanshi/config"));
+        assert builtins.any (p: (p.pname or "") == "kanshi") host.environment.systemPackages;
+        assert builtins.any (p: (p.pname or "") == "wdisplays") host.environment.systemPackages;
+        assert builtins.any (p: (p.name or "") == "kanshi-switch") host.environment.systemPackages;
+        assert builtins.any (p: (p.name or "") == "kanshi-switch-desktop") host.environment.systemPackages;
         assert builtins.any (p: (p.pname or "") == "quickshell") host.environment.systemPackages;
         assert builtins.any (p: (p.pname or "") == "cliphist") host.environment.systemPackages;
         assert builtins.any (p: (p.pname or "") == "rbw") host.environment.systemPackages;
@@ -84,6 +95,8 @@ in
         assert alice.xdg.configFile ? "niri/config.kdl";
         assert alice.xdg.configFile."niri/generated.kdl".text == generated;
         assert alice.xdg.configFile ? "quickshell/hub";
+        assert alice.xdg.configFile ? "kanshi";
+        assert alice.dconf.settings."network/cycles/wdisplays".save-kanshi-config;
         assert alice.gtk.enable && alice.gtk.colorScheme == "dark";
         assert alice.home.pointerCursor.name == "Adwaita";
         assert host.fonts.fontconfig.defaultFonts.sansSerif == [
@@ -167,6 +180,9 @@ in
         # mase は Home Manager を使わないので、システムの設定だけで足りる。
         assert !(desktop.home-manager.users ? mase);
         assert desktop.environment.etc ? "xdg/quickshell/hub/shell.qml";
+        assert desktop.environment.etc ? "kanshi/config";
+        assert desktopUser.xdg.configFile ? "kanshi";
+        assert spin713User.xdg.configFile ? "kanshi";
         assert lib.hasInfix ''F24 { spawn "qs" "ipc" "-c" "hub" "call" "hub" "toggle"; }''
           (etc desktop "niri/generated.kdl");
         assert !(lib.hasInfix "/home/" (etc desktop "niri/generated.kdl"));
@@ -375,5 +391,21 @@ in
     })
     // {
       elements = [ "quickshell_hub" ];
+    };
+
+  kanshi-switch =
+    (lib.lazyDerivation {
+      derivation =
+        pkgs.runCommand "kanshi-switch"
+          {
+            nativeBuildInputs = [ pkgs.python3 ];
+          }
+          ''
+            KANSHI_SWITCH_SCRIPT=${../../modules/home-manager/gui/kanshi-switch.py} python ${../kanshi-switch.py}
+            touch "$out"
+          '';
+    })
+    // {
+      elements = [ "display_layout" ];
     };
 }

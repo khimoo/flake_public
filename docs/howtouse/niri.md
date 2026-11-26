@@ -23,7 +23,7 @@ GDM で Niri を選んでログインします。`Mod` は Super キーです。
 | `Mod+Escape` | アプリによるショートカットの抑止を切り替える |
 | `Mod+Shift+Slash` | キー操作の一覧を開く |
 
-常駐バーは置かず、普段は作業ウィンドウだけを表示します。`Super` 単押し（`keyd` が `F24` へ変換）または `Mod+D` で 2 カラムのスタートメニューが開き、`Tab` / `Shift+Tab` で画面上の全ボタン・スライダーへフォーカス移動できます（タブバーにフォーカスがある状態で `←` / `→` により `All` / `Windows` / `Files` / `Clipboard` / `Vault` / `Notify` を切替）。左カラムではプレフィックス（`@` Vault / `/` Files / `:` Clipboard / `?` Zen Browser Web 検索 / `=` 電卓）、右カラムでは時計・電池・ワークスペース・音量・明るさ・システムトレイ（`nm-applet` / `blueman-applet` / TwinDesk 等）・電源ボタン（ロック以外は 2 回クリック確認）を操作します。Bitwarden（`Vault`）の `~/.config/rbw/config.json` は `secrets/secrets.yaml` の `rbw_config` から `switch` 時に復号配置されるため、新しいマシンでは初回のみ `rbw register`（Bitwarden Web Vault の API キー登録）と `rbw sync` を実行してください。
+常駐バーは置かず、普段は作業ウィンドウだけを表示します。`Super` 単押し（`keyd` が `F24` へ変換）または `Mod+D` で 2 カラムのスタートメニューが開き、`Tab` / `Shift+Tab` で画面上の全ボタン・スライダーへフォーカス移動できます（タブバーにフォーカスがある状態で `←` / `→` により `All` / `Windows` / `Files` / `Clipboard` / `Vault` / `Notify` を切替）。左カラムではプレフィックス（`@` Vault / `/` Files / `:` Clipboard / `?` Zen Browser Web 検索 / `=` 電卓）、右カラムでは時計・電池・ワークスペース・ディスプレイ配置・音量・明るさ・システムトレイ（`nm-applet` / `blueman-applet` / TwinDesk 等）・電源ボタン（ロック以外は 2 回クリック確認）を操作します。Bitwarden（`Vault`）の `~/.config/rbw/config.json` は `secrets/secrets.yaml` の `rbw_config` から `switch` 時に復号配置されるため、新しいマシンでは初回のみ `rbw register`（Bitwarden Web Vault の API キー登録）と `rbw sync` を実行してください。
 
 ## 設定を変更する
 
@@ -35,14 +35,33 @@ Home Manager を使わない `mase` は `/etc/niri/config.kdl` と `/etc/xdg/qui
 
 live symlink の誤編集は Git で該当ファイルを復元します。Nix 世代のロールバックでは復元されません。KDL が壊れて画面から直せない場合は、別の TTY または SSH で編集して `niri validate` を実行してください。
 
+## ディスプレイ配置を GUI で管理する
+
+普段の切替は、スタートメニュー（`Super` 単押し / `Mod+D`）右カラムの **「ディスプレイ」** 欄にあるプロファイルボタンをクリック（または `Tab` → `Enter`）するだけで `kanshictl switch` が実行されます。
+
+プロファイルの追加・個別編集・削除は、右カラムの **「管理」** ボタン（またはスタートメニューの「ディスプレイ配置の切替 (kanshi)」／端末の `kanshi-switch`）から `fuzzel` ランチャーを開いて行います：
+
+- **新規プロファイルを作成（`kanshi-switch --create`）**: プロファイル名を入力すると `wdisplays` が開きます。画面の ON/OFF・配置・倍率を調整して **Apply** し、`wdisplays` を閉じると [modules/home-manager/gui/kanshi/config](../../modules/home-manager/gui/kanshi/config) に名前付き `profile` として追記され、自動で再読み込み・切替されます。
+- **起動時の既定を変更（`kanshi-switch --set-default`）**: 選んだプロファイルを `kanshi/config` の先頭へ移動し、ログイン・再起動時の既定にします（複数プロファイルがあるとき、既定のボタンには `★` が付きます）。
+- **既存プロファイルを編集（`kanshi-switch --edit`）**: 対象プロファイルを選んで `wdisplays` で調整し、**Apply** → ウィンドウを閉じると、そのプロファイルのブロックだけを差し替えます（同じモニター構成で複数パターンがある場合でも他のプロファイルを壊しません）。
+- **プロファイルを削除（`kanshi-switch --delete`）**: 選択したプロファイルを `kanshi/config` から削除し、再読み込みします。
+- **一時調整・保存なし（`wdisplays --no-kanshi`）**: 設定ファイルを変更せずにその場だけ試します。
+
+運用上の注意点：
+
+- GUI で作成・編集・削除した差分は `git diff modules/home-manager/gui/kanshi/config` で確認し、確定したらコミットします。コミット後に他ホストで `pull` / `switch` すると、同じ設定が共有されます（`mase` 向けの `/etc/kanshi/config` にも次の `switch` で反映されます）。
+- 同じモニター構成のプロファイルが複数ある場合、ファイル内で**一番上にあるもの**が起動時・再接続時の既定になります。
+- GUI で誤った変更を保存した場合は `git checkout -- modules/home-manager/gui/kanshi/config` で戻し、`kanshictl reload`（またはランチャーの「再読み込み」）を実行します。
+- [個人の config.kdl](../../modules/home-manager/gui/niri/config.kdl) に同じ出力の `output` ブロック（例: `output "eDP-1"`）があると起動時・リロード時に `kanshi` と競合する可能性があるため、該当出力を `kanshi` 側へ移したら `config.kdl` 側の重複記述は整理してください。
+
 ## 適用後に確認する
 
 ```sh
 niri validate
 niri msg outputs
 niri msg windows
-systemctl --user status niri.service quickshell-hub.service cliphist-watch.service swayidle.service
-journalctl --user -b -u niri.service -u quickshell-hub.service -u cliphist-watch.service -u swayidle.service
+systemctl --user status niri.service quickshell-hub.service cliphist-watch.service swayidle.service kanshi.service
+journalctl --user -b -u niri.service -u quickshell-hub.service -u cliphist-watch.service -u swayidle.service -u kanshi.service
 ```
 
 `pomu` と `mase` の両方でログイン・ログアウトし、端末、スタートメニュー（`Super` 単押し・`Mod+D`・各タブ・`@` Bitwarden・`=` 電卓・`?` Web 検索）、通知ポップアップとクリック移動、トレイ、画面ロックと解錠、polkit 認証、Xwayland アプリを確認します。Home Manager の設定だけで確認を済ませず、`mase` が個人の checkout なしで使えることも確かめます。

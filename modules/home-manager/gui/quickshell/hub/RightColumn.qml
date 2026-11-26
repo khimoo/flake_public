@@ -24,6 +24,9 @@ Rectangle {
     property string dateText: ""
     property bool hasBacklight: false
     property int brightnessPct: 0
+    property var displayProfiles: []
+    property string currentDisplayProfile: ""
+    property string defaultDisplayProfile: ""
     property string pendingPowerId: ""
     property string pendingPowerLabel: ""
 
@@ -74,6 +77,12 @@ Rectangle {
         }
     }
 
+    function refreshDisplayProfiles() {
+        if (!displayReadProc.running) {
+            displayReadProc.running = true;
+        }
+    }
+
     function setBrightness(pct) {
         var clamped = Math.max(1, Math.min(100, Math.round(pct)));
         brightnessPct = clamped;
@@ -108,6 +117,7 @@ Rectangle {
         if (hubOpen) {
             updateClock();
             refreshBrightness();
+            refreshDisplayProfiles();
             clearPendingPower();
         } else {
             clearPendingPower();
@@ -117,6 +127,7 @@ Rectangle {
     Component.onCompleted: {
         updateClock();
         refreshBrightness();
+        refreshDisplayProfiles();
     }
 
     Timer {
@@ -139,6 +150,32 @@ Rectangle {
         interval: 4000
         repeat: false
         onTriggered: rightCol.clearPendingPower()
+    }
+
+    Process {
+        id: displayReadProc
+        command: ["kanshi-switch", "--status-json"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    var parsed = JSON.parse(this.text || "{}");
+                    rightCol.displayProfiles = Array.isArray(parsed.profiles) ? parsed.profiles : [];
+                    rightCol.currentDisplayProfile = parsed.current || "";
+                    rightCol.defaultDisplayProfile = parsed.default || "";
+                } catch (e) {
+                    rightCol.displayProfiles = [];
+                    rightCol.currentDisplayProfile = "";
+                    rightCol.defaultDisplayProfile = "";
+                }
+            }
+        }
+        onExited: function(code) {
+            if (code !== 0) {
+                rightCol.displayProfiles = [];
+                rightCol.currentDisplayProfile = "";
+                rightCol.defaultDisplayProfile = "";
+            }
+        }
     }
 
     Process {
@@ -283,6 +320,151 @@ Rectangle {
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
                         }
+                    }
+                }
+            }
+        }
+
+        // ディスプレイ配置（kanshi の名前付きプロファイル切替＋管理ランチャー起動）
+        ColumnLayout {
+            Layout.fillWidth: true
+            spacing: 6
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 6
+
+                Text {
+                    text: "ディスプレイ"
+                    color: Theme.muted
+                    font.family: Theme.fontFamily
+                    font.pixelSize: 11
+                    font.bold: true
+                    Layout.fillWidth: true
+                }
+
+                QQC.Button {
+                    id: displayManageBtn
+                    activeFocusOnTab: true
+                    padding: 4
+
+                    onClicked: {
+                        rightCol.requestClose();
+                        Quickshell.execDetached(["kanshi-switch"]);
+                    }
+
+                    Keys.onPressed: function(event) {
+                        if (rightCol.handleEscape(event)) return;
+                        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                            displayManageBtn.clicked();
+                            event.accepted = true;
+                        }
+                    }
+
+                    background: Rectangle {
+                        radius: Theme.radiusSmall
+                        color: displayManageBtn.hovered ? Theme.surface0 : "transparent"
+                        border.width: displayManageBtn.activeFocus ? 1 : 0
+                        border.color: Theme.accent
+                    }
+
+                    contentItem: Text {
+                        text: "管理"
+                        color: displayManageBtn.hovered || displayManageBtn.activeFocus ? Theme.accent : Theme.muted
+                        font.family: Theme.fontFamily
+                        font.pixelSize: 10
+                        verticalAlignment: Text.AlignVCenter
+                    }
+                }
+            }
+
+            Flow {
+                Layout.fillWidth: true
+                spacing: 6
+
+                Repeater {
+                    model: rightCol.displayProfiles
+
+                    QQC.Button {
+                        id: dispBtn
+                        required property string modelData
+                        readonly property bool isActiveDisp: modelData === rightCol.currentDisplayProfile
+                        readonly property bool isDefaultDisp: rightCol.displayProfiles.length > 1 && modelData === rightCol.defaultDisplayProfile
+
+                        activeFocusOnTab: true
+                        implicitWidth: Math.max(44, dispText.implicitWidth + 16)
+                        implicitHeight: 26
+                        padding: 0
+
+                        onClicked: {
+                            Quickshell.execDetached(["kanshi-switch", dispBtn.modelData]);
+                            rightCol.requestClose();
+                        }
+
+                        Keys.onPressed: function(event) {
+                            if (rightCol.handleEscape(event)) return;
+                            if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                                dispBtn.clicked();
+                                event.accepted = true;
+                            }
+                        }
+
+                        background: Rectangle {
+                            radius: Theme.radiusSmall
+                            color: dispBtn.isActiveDisp ? Theme.accent : (dispBtn.hovered ? Theme.surface1 : Theme.surface0)
+                            border.width: dispBtn.activeFocus ? 2 : 0
+                            border.color: dispBtn.isActiveDisp ? Theme.text : Theme.accent
+                        }
+
+                        contentItem: Text {
+                            id: dispText
+                            text: (dispBtn.isDefaultDisp ? "★ " : "") + dispBtn.modelData
+                            color: dispBtn.isActiveDisp ? "#11111b" : Theme.text
+                            font.family: Theme.fontFamily
+                            font.pixelSize: 11
+                            font.bold: dispBtn.isActiveDisp
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                    }
+                }
+
+                QQC.Button {
+                    id: dispCreateBtn
+                    visible: rightCol.displayProfiles.length === 0
+                    activeFocusOnTab: rightCol.displayProfiles.length === 0
+                    implicitWidth: dispCreateText.implicitWidth + 16
+                    implicitHeight: 26
+                    padding: 0
+
+                    onClicked: {
+                        rightCol.requestClose();
+                        Quickshell.execDetached(["kanshi-switch", "--create"]);
+                    }
+
+                    Keys.onPressed: function(event) {
+                        if (rightCol.handleEscape(event)) return;
+                        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                            dispCreateBtn.clicked();
+                            event.accepted = true;
+                        }
+                    }
+
+                    background: Rectangle {
+                        radius: Theme.radiusSmall
+                        color: dispCreateBtn.hovered ? Theme.surface1 : Theme.surface0
+                        border.width: dispCreateBtn.activeFocus ? 2 : 0
+                        border.color: Theme.accent
+                    }
+
+                    contentItem: Text {
+                        id: dispCreateText
+                        text: "+ プロファイルを作成"
+                        color: Theme.subtext
+                        font.family: Theme.fontFamily
+                        font.pixelSize: 11
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
                     }
                 }
             }
