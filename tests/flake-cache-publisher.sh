@@ -148,10 +148,11 @@ bash "$repo/scripts/ci/publish-cache.sh" "${args[@]}"
 [[ $(find "$runtime" -maxdepth 1 -type f -printf '%f\n') == age.key ]]
 [[ ! -e $TEST_CLOUD/cache-bucket/channels/stable.json ]]
 
-# Publishing a new commit where only one host changed uploads only the new store path.
+# Publishing a new commit where one host references an already-published store path
+# must succeed without re-uploading the referenced path or leaking placeholder metadata.
 src2="$work/nixos-system-nixos-spin713-demo2"
 mkdir -p "$src2/bin"
-printf '#!/usr/bin/env bash\n# v2\nexit 0\n' > "$src2/bin/switch-to-configuration"
+printf '#!/usr/bin/env bash\n# ref %s\nexit 0\n' "$desktop" > "$src2/bin/switch-to-configuration"
 chmod +x "$src2/bin/switch-to-configuration"
 spin2=$(nix-store --add "$src2")
 sha2=0202020202020202020202020202020202020202
@@ -161,9 +162,11 @@ desktop_name=${desktop##*/}
 spin2_name=${spin2##*/}
 ! grep -Fq "${desktop_name%%-*}.narinfo" "$TEST_CLOUD_LOG"
 grep -Fq "${spin2_name%%-*}.narinfo" "$TEST_CLOUD_LOG"
+! grep -Fq 'placeholder.nar' "$cache/${desktop_name%%-*}.narinfo"
+! grep -Fq 'placeholder.nar' "$cache/${spin2_name%%-*}.narinfo"
 jq -e --arg sha "$sha2" '.phase == "publish-pack" and .commit == $sha and .total == 2 and .new == 1 and .already_published == 1' \
   "$TEST_CLOUD/cache-bucket/releases/progress/$sha2/05-publish-pack.json" >/dev/null
-nix store verify --store "file://$cache" --sigs-needed 1 --option trusted-public-keys "$public" "$desktop" "$spin2"
+nix store verify --recursive --store "file://$cache" --sigs-needed 1 --option trusted-public-keys "$public" "$desktop" "$spin2"
 
 # Do not replace a conflicting manifest even on retry.
 jq '.hosts["nixos-spin713"] = "conflict"' "$manifest" > "$work/conflict.json"

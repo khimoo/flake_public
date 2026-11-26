@@ -99,6 +99,7 @@ nix path-info --recursive "$desktop" "$spin" > "$closure_list"
 
 declare -A seen=()
 missing_paths=()
+placeholder_narinfos=()
 while IFS= read -r store_path; do
   [[ -n $store_path ]] || continue
   [[ -z ${seen[$store_path]:-} ]] || continue
@@ -107,6 +108,13 @@ while IFS= read -r store_path; do
   hash=${base%%-*}
   if [[ -z ${published[$hash]:-} ]]; then
     missing_paths+=("$store_path")
+  else
+    # Seed already-published paths as local placeholders so nix copy skips
+    # re-compressing them while still validating references of new store paths.
+    narinfo_file="$cache_tmp/$hash.narinfo"
+    printf 'StorePath: %s\nURL: nar/placeholder.nar\nCompression: none\nFileHash: sha256:0000000000000000000000000000000000000000000000000000\nFileSize: 1\nNarHash: sha256:0000000000000000000000000000000000000000000000000000\nNarSize: 1\n' \
+      "$store_path" > "$narinfo_file"
+    placeholder_narinfos+=("$narinfo_file")
   fi
 done < "$closure_list"
 
@@ -136,16 +144,18 @@ upload_chunks() {
 # Credentials stay outside the cache tree. The Nix cache store signs the NAR metadata
 # during copy; the source /nix/store does not need global signing configuration.
 if (( new_paths > 0 )); then
+  nix copy --to "file://$cache_tmp?compression=zstd&secret-key=$runtime/signing.key" "$desktop" "$spin"
+fi
+rm -f -- "$runtime/signing.key" "$runtime/cache-signing.sops.json"
+if (( ${#placeholder_narinfos[@]} > 0 )); then
+  total_placeholders=${#placeholder_narinfos[@]}
   i=0
   chunk=500
-  while (( i < new_paths )); do
-    nix copy --no-recursive \
-      --to "file://$cache_tmp?compression=zstd&secret-key=$runtime/signing.key" \
-      "${missing_paths[@]:i:chunk}"
+  while (( i < total_placeholders )); do
+    rm -f -- "${placeholder_narinfos[@]:i:chunk}"
     i=$((i + chunk))
   done
 fi
-rm -f -- "$runtime/signing.key" "$runtime/cache-signing.sops.json"
 
 # Publish NAR payloads before any .narinfo can reference them, and before any
 # release manifest can point to this cache. No overwrite or delete.

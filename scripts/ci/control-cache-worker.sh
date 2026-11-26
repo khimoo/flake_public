@@ -32,6 +32,10 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 
 run_worker() {
+  local stop_deadline=$((SECONDS + 120))
+  while [[ $(state) == STOPPING ]] && (( SECONDS < stop_deadline )); do
+    sleep 5
+  done
   [[ $(state) == TERMINATED ]] || { echo 'Cache worker is not stopped; refusing to replace its request.' >&2; exit 1; }
   jq -n --arg commit "$commit" --arg run "$run" --arg mode "$mode" \
     '{commit:$commit,run:$run,mode:$mode}' > "$stage/request.json"
