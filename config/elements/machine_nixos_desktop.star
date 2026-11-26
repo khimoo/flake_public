@@ -12,7 +12,10 @@ def config(host):
         "services.keyd": {"enable": True, "keyboards": {"default": {
             "ids": ["*"],
             "settings": {
-                "main": {"leftmeta": "overload(meta, f24)"},
+                "main": {
+                    "leftmeta": "overload(meta, f24)",
+                    "rightmeta": "overload(meta, f24)",
+                },
                 "meta": {"rightalt": "toggle(turbo)"},
                 "turbo": {"rightalt": "macro2(%s, %s, macro(rightmouse))" % (host.turbo_interval_ms, host.turbo_interval_ms)},
             },
