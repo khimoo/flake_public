@@ -89,6 +89,6 @@ flake-deploy test --commit <40桁SHA>
 flake-deploy switch --commit <40桁SHA>
 ```
 
-`test` / `switch` で `--commit` を省略すると、`git ls-remote origin refs/heads/main` でリモートの最新 SHA を確認し、稼働中 revision と一致していればそのまま終了、異なっていれば `channels/stable.json` に公開されるまでポーリング待機してから検証・取得・適用します（`--wait-interval` / `--wait-timeout` / `--no-wait` で待機挙動を調整可能）。`--commit` を明示した場合は稼働中 revision と同じでも指定コミットをそのまま適用します。
+`test` / `switch` で `--commit` を省略すると、`git ls-remote origin refs/heads/main` でリモートの最新 SHA を確認し、稼働中 revision と一致していればそのまま終了、異なっていれば `channels/stable.json` に公開されるまでポーリング待機してから検証・取得・適用します（`--wait-interval` / `--wait-timeout` / `--no-wait` で待機挙動を調整可能）。待機中や `status` では、GitHub Actions の実行状態とワーカーが `releases/progress/<SHA>/` へ書き出す工程（ビルド中ホスト・新規キャッシュ件数・アップロード件数など）および `nix copy` の転送量を表示し、CI 失敗時は即座にエラー終了します。`--commit` を明示した場合は稼働中 revision と同じでも指定コミットをそのまま適用します。
 
 稼働中の revision より古い版への切り替えはローカルの Git 履歴（既定 `/etc/nixos`）で拒否します。意図的に過去の公開版へ戻す場合は `--commit <過去の40桁SHA> --allow-rollback` を明示します。未コミットの変更を手元で試す場合は、従来どおり `nixos-rebuild test --flake .#<ホスト名>` を使います。

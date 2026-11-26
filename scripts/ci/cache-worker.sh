@@ -24,9 +24,23 @@ run=$(jq -er '.run | select(type == "string" and test("^[0-9]+-[0-9]+$"))' "$req
 mode=$(jq -er '(.mode // "build") | select(. == "build" or . == "update-worker")' "$request")
 [[ $sha =~ ^[0-9a-f]{40}$ && $run =~ ^[0-9]+-[0-9]+$ ]]
 status="$cache/status/$run.json"
+progress_prefix="$cache/releases/progress/$sha"
+write_progress() {
+  local name=$1
+  local body=$2
+  local tmp="$RUNTIME_DIRECTORY/progress-$name.json"
+  printf '%s\n' "$body" > "$tmp"
+  gcloud storage cp "$tmp" "$progress_prefix/$name.json" \
+    --content-type=application/json --if-generation-match=0 --quiet >/dev/null 2>&1 || true
+}
 finish() {
   local rc=$?
   trap - EXIT
+  if (( rc != 0 )) && [[ $mode == build ]]; then
+    write_progress 99-failed "$(jq -cn --arg commit "$sha" --arg run "$run" --argjson exit_code "$rc" \
+      --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+      '{phase:"failed",commit:$commit,run:$run,exit_code:$exit_code,at:$at}')"
+  fi
   jq -n --arg commit "$sha" --arg mode "$mode" --argjson exit_code "$rc" \
     '{commit:$commit,mode:$mode,exit_code:$exit_code}' \
     > "$RUNTIME_DIRECTORY/status.json"
@@ -48,6 +62,9 @@ if [[ $mode == build ]]; then
     exit 127
   fi
   printf 'FLAKE_CACHE_PREFLIGHT_OK run=%s\n' "$run"
+  write_progress 01-checkout "$(jq -cn --arg commit "$sha" --arg run "$run" \
+    --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    '{phase:"checkout",commit:$commit,run:$run,at:$at}')"
 fi
 build_home=/var/lib/flake-build
 as_builder() { runuser -u flake-build -- env HOME="$build_home" "$@"; }
@@ -115,8 +132,14 @@ printf 'FLAKE_CACHE_BUILD run=%s commit=%s\n' "$run" "$sha"
 root_dir=$build_home/releases/$sha
 as_builder mkdir -p "$root_dir"
 cd "$checkout"
+write_progress 02-build-desktop "$(jq -cn --arg commit "$sha" --arg run "$run" \
+  --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+  '{phase:"build-desktop",commit:$commit,run:$run,at:$at}')"
 desktop=$(as_builder nix build --no-update-lock-file --out-link "$root_dir/desktop" \
   --print-out-paths .#nixosConfigurations.nixos-desktop.config.system.build.toplevel)
+write_progress 03-build-spin713 "$(jq -cn --arg commit "$sha" --arg run "$run" \
+  --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+  '{phase:"build-spin713",commit:$commit,run:$run,at:$at}')"
 spin=$(as_builder nix build --no-update-lock-file --out-link "$root_dir/spin713" \
   --print-out-paths .#nixosConfigurations.nixos-spin713.config.system.build.toplevel)
 cd "$STATE_DIRECTORY"

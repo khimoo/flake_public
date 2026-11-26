@@ -130,7 +130,9 @@ class Release(unittest.TestCase):
         now = [0.0]
         sleeps = []
 
-        def fake_read(_uri):
+        def fake_read(uri):
+            if '/releases/progress/' in uri:
+                raise HTTPError('https://storage.googleapis.com/', 404, 'Not Found', {}, None)
             item = responses.pop(0)
             if isinstance(item, Exception):
                 raise item
@@ -157,9 +159,12 @@ class Release(unittest.TestCase):
         def fake_sleep(seconds):
             now[0] += seconds
 
-        self.read_object.side_effect = lambda _uri: json.dumps(
-            {'version': 1, 'commit': old_sha, 'release': f'releases/{old_sha}.json'}
-        ).encode()
+        def read_old(uri):
+            if '/releases/progress/' in uri:
+                raise HTTPError('https://storage.googleapis.com/', 404, 'Not Found', {}, None)
+            return json.dumps({'version': 1, 'commit': old_sha, 'release': f'releases/{old_sha}.json'}).encode()
+
+        self.read_object.side_effect = read_old
         with patch('sys.stdout', new_callable=io.StringIO), self.assertRaises(TimeoutError):
             deploy.wait_for_published_commit(
                 BUCKET, new_sha, interval=10.0, timeout=25.0,
@@ -177,6 +182,7 @@ class Release(unittest.TestCase):
         with patch.object(deploy.socket, 'gethostname', return_value='nixos-spin713'), \
                 patch.object(deploy, 'current_revision', return_value=SHA), \
                 patch.object(deploy, 'remote_branch_commit', return_value=SHA), \
+                patch.object(deploy, 'github_repo_from_remote', return_value='khimoo/flake_public'), \
                 patch.object(deploy.subprocess, 'run') as mock_run, \
                 patch('sys.stdout', new_callable=io.StringIO) as out:
             rc = deploy.main(['switch', '--bucket', BUCKET, '--public-key', KEY])
@@ -189,7 +195,7 @@ class Release(unittest.TestCase):
         old_sha = '1' * 40
 
         @contextmanager
-        def fake_proxy(_remote):
+        def fake_proxy(_remote, **_kwargs):
             yield 'http://127.0.0.1:9999/tok'
 
         calls = []
@@ -201,6 +207,7 @@ class Release(unittest.TestCase):
         with patch.object(deploy.socket, 'gethostname', return_value='nixos-spin713'), \
                 patch.object(deploy, 'current_revision', return_value=old_sha), \
                 patch.object(deploy, 'remote_branch_commit', return_value=SHA), \
+                patch.object(deploy, 'github_repo_from_remote', return_value='khimoo/flake_public'), \
                 patch.object(deploy, 'wait_for_published_commit', return_value=SHA) as mock_wait, \
                 patch.object(deploy, 'check_not_rollback', return_value='descendant'), \
                 patch.object(deploy, 'cache_proxy', side_effect=fake_proxy), \
@@ -209,7 +216,10 @@ class Release(unittest.TestCase):
                 patch('sys.stdout', new_callable=io.StringIO):
             rc = deploy.main(['switch', '--bucket', BUCKET, '--public-key', KEY])
         self.assertEqual(rc, 0)
-        mock_wait.assert_called_once_with(BUCKET, SHA, interval=20.0, timeout=3600.0)
+        mock_wait.assert_called_once()
+        self.assertEqual(mock_wait.call_args.args, (BUCKET, SHA))
+        self.assertEqual(mock_wait.call_args.kwargs['interval'], 20.0)
+        self.assertEqual(mock_wait.call_args.kwargs['timeout'], 3600.0)
         mock_verify.assert_called_once_with('http://127.0.0.1:9999/tok', KEY, TOP)
         self.assertEqual(calls[0], ['sudo', '-v'])
         self.assertEqual(calls[1][:4], ['sudo', 'nix', 'copy', '--from'])
@@ -217,7 +227,7 @@ class Release(unittest.TestCase):
 
     def test_switch_with_explicit_commit_still_runs_when_current_matches(self):
         @contextmanager
-        def fake_proxy(_remote):
+        def fake_proxy(_remote, **_kwargs):
             yield 'http://127.0.0.1:9999/tok'
 
         calls = []
@@ -228,6 +238,7 @@ class Release(unittest.TestCase):
 
         with patch.object(deploy.socket, 'gethostname', return_value='nixos-spin713'), \
                 patch.object(deploy, 'current_revision', return_value=SHA), \
+                patch.object(deploy, 'github_repo_from_remote', return_value=None), \
                 patch.object(deploy, 'check_not_rollback', return_value='same'), \
                 patch.object(deploy, 'cache_proxy', side_effect=fake_proxy), \
                 patch.object(deploy, 'verify'), \
@@ -244,10 +255,107 @@ class Release(unittest.TestCase):
         with patch.object(deploy.socket, 'gethostname', return_value='nixos-spin713'), \
                 patch.object(deploy, 'current_revision', return_value=old_sha), \
                 patch.object(deploy, 'remote_branch_commit', return_value=new_sha), \
+                patch.object(deploy, 'github_repo_from_remote', return_value=None), \
                 patch('sys.stderr', new_callable=io.StringIO) as err:
             rc = deploy.main(['switch', '--no-wait', '--bucket', BUCKET, '--public-key', KEY])
         self.assertEqual(rc, 1)
         self.assertIn('not yet on stable', err.getvalue())
+
+    def test_progress_tracker_advances_monotonically_and_formats_counts(self):
+        store = {}
+        queries = []
+
+        def fake_read(uri):
+            queries.append(uri)
+            if uri not in store:
+                raise HTTPError('https://storage.googleapis.com/', 404, 'Not Found', {}, None)
+            return json.dumps(store[uri]).encode()
+
+        prefix = f'{BUCKET}/releases/progress/{SHA}'
+        tracker = deploy.ProgressTracker(BUCKET, SHA, read_object_fn=fake_read)
+        tracker.poll()
+        self.assertEqual(tracker.format_progress(), 'starting')
+
+        store[f'{prefix}/01-checkout.json'] = {'phase': 'checkout'}
+        store[f'{prefix}/02-build-desktop.json'] = {'phase': 'build-desktop'}
+        tracker.poll()
+        self.assertEqual(tracker.format_progress(), 'building nixos-desktop (2/7)')
+
+        queries.clear()
+        store[f'{prefix}/03-build-spin713.json'] = {'phase': 'build-spin713'}
+        store[f'{prefix}/04-publish-scan.json'] = {'phase': 'publish-scan'}
+        store[f'{prefix}/05-publish-pack.json'] = {'phase': 'publish-pack', 'total': 3420, 'new': 12}
+        tracker.poll()
+        self.assertEqual(tracker.format_progress(), 'packing cache: 12 new / 3420 total (5/7)')
+        self.assertFalse(any('01-checkout.json' in q or '02-build-desktop.json' in q for q in queries))
+
+    def test_wait_stops_on_ci_failure_and_continues_on_retry(self):
+        old_sha = '1' * 40
+        new_sha = '2' * 40
+        prefix = f'{BUCKET}/releases/progress/{new_sha}'
+        objects = {
+            f'{BUCKET}/channels/stable.json': {'version': 1, 'commit': old_sha, 'release': f'releases/{old_sha}.json'},
+            f'{prefix}/01-checkout.json': {'phase': 'checkout'},
+            f'{prefix}/99-failed.json': {'phase': 'failed', 'exit_code': 1},
+        }
+
+        def fake_read(uri):
+            if uri not in objects:
+                raise HTTPError('https://storage.googleapis.com/', 404, 'Not Found', {}, None)
+            return json.dumps(objects[uri]).encode()
+
+        failed_ci = deploy.CIStatusTracker(
+            'khimoo/flake_public', new_sha,
+            fetch_fn=lambda _r, _c: {
+                'status': 'completed',
+                'conclusion': 'failure',
+                'html_url': 'https://github.com/khimoo/flake_public/actions/runs/99',
+            },
+        )
+        with patch('sys.stdout', new_callable=io.StringIO), self.assertRaises(ValueError) as ctx:
+            deploy.wait_for_published_commit(
+                BUCKET, new_sha, interval=5.0, timeout=30.0,
+                sleep_fn=lambda _s: None, read_object_fn=fake_read, ci_tracker=failed_ci,
+            )
+        self.assertIn('failure', str(ctx.exception))
+        self.assertIn('actions/runs/99', str(ctx.exception))
+
+        # When CI is actively retrying, a stale 99-failed.json must not abort waiting.
+        retrying_ci = deploy.CIStatusTracker(
+            'khimoo/flake_public', new_sha,
+            fetch_fn=lambda _r, _c: {'status': 'in_progress', 'conclusion': None, 'html_url': 'https://example/run'},
+        )
+
+        def publish_on_sleep(_s):
+            objects[f'{BUCKET}/channels/stable.json'] = {
+                'version': 1, 'commit': new_sha, 'release': f'releases/{new_sha}.json',
+            }
+
+        with patch('sys.stdout', new_callable=io.StringIO) as out:
+            got = deploy.wait_for_published_commit(
+                BUCKET, new_sha, interval=5.0, timeout=30.0,
+                sleep_fn=publish_on_sleep, read_object_fn=fake_read, ci_tracker=retrying_ci,
+            )
+        self.assertEqual(got, new_sha)
+        self.assertIn('retrying', out.getvalue())
+
+    def test_github_repo_from_url_and_download_progress(self):
+        self.assertEqual(deploy.github_repo_from_url('git@github.com:khimoo/flake_public.git'), 'khimoo/flake_public')
+        self.assertEqual(deploy.github_repo_from_url('https://github.com/khimoo/flake_public'), 'khimoo/flake_public')
+        self.assertIsNone(deploy.github_repo_from_url('/tmp/local/repo'))
+
+        buf = io.StringIO()
+        now = [10.0]
+        prog = deploy.DownloadProgress(report_interval=2.0, clock_fn=lambda: now[0], stream=buf)
+        prog.start_item('a' * 32 + '.narinfo')
+        prog.start_item('nar/' + 'b' * 52 + '.nar.zst')
+        prog.add_bytes('nar/' + 'b' * 52 + '.nar.zst', 2 * 1024 * 1024)
+        now[0] = 13.0
+        prog.add_bytes('nar/' + 'b' * 52 + '.nar.zst', 3 * 1024 * 1024)
+        prog.finish()
+        text = buf.getvalue()
+        self.assertIn('Fetching: 1 narinfo, 1 nar', text)
+        self.assertIn('Fetched:  1 narinfo, 1 nar (5.0 MiB total)', text)
 
 
 if __name__ == '__main__':

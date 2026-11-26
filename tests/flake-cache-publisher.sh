@@ -55,6 +55,10 @@ elif op == 'cp':
     sources, dest_arg = pos[:-1], pos[-1]
     no_clobber = '--no-clobber' in args
     immutable = '--if-generation-match=0' in args
+    # Mirror real gcloud storage cp validation (cp_command_util.py).
+    if no_clobber and immutable:
+        print('ERROR: Cannot specify both generation precondition and no-clobber.', file=sys.stderr)
+        sys.exit(1)
     if dest_arg.startswith('gs://') and (root / 'fail-upload').exists():
         sys.exit(1)
     if dest_arg.endswith('/'):
@@ -64,14 +68,14 @@ elif op == 'cp':
             target = dest_dir / src_path.name
             if no_clobber and target.exists():
                 continue
-            write(src_path, target, immutable=immutable)
+            write(src_path, target, immutable=immutable or no_clobber)
             if dest_arg.startswith('gs://'):
                 log_upload(target)
     else:
         assert len(sources) == 1, args
         target = path(dest_arg)
         if not (no_clobber and target.exists()):
-            write(path(sources[0]), target, immutable=immutable)
+            write(path(sources[0]), target, immutable=immutable or no_clobber)
             if dest_arg.startswith('gs://'):
                 log_upload(target)
 else:
@@ -115,6 +119,10 @@ bash "$repo/scripts/ci/publish-cache.sh" "${args[@]}"
 cache="$TEST_CLOUD/cache-bucket/cache/flake-public-cache-7"
 jq -e --arg sha "$sha" --arg key "$public" --arg desktop "$desktop" --arg spin "$spin" \
   '.commit == $sha and .signing_public_key == $key and .hosts == {"nixos-desktop":$desktop,"nixos-spin713":$spin}' "$manifest" >/dev/null
+jq -e --arg sha "$sha" '.phase == "publish-pack" and .commit == $sha and .total == 2 and .new == 2 and .already_published == 0' \
+  "$TEST_CLOUD/cache-bucket/releases/progress/$sha/05-publish-pack.json" >/dev/null
+jq -e --arg sha "$sha" '.phase == "published" and .commit == $sha' \
+  "$TEST_CLOUD/cache-bucket/releases/progress/$sha/07-published.json" >/dev/null
 # NAR payloads must be uploaded before any .narinfo that references them.
 python3 - "$TEST_CLOUD_LOG" <<'PY'
 from pathlib import Path
@@ -153,6 +161,8 @@ desktop_name=${desktop##*/}
 spin2_name=${spin2##*/}
 ! grep -Fq "${desktop_name%%-*}.narinfo" "$TEST_CLOUD_LOG"
 grep -Fq "${spin2_name%%-*}.narinfo" "$TEST_CLOUD_LOG"
+jq -e --arg sha "$sha2" '.phase == "publish-pack" and .commit == $sha and .total == 2 and .new == 1 and .already_published == 1' \
+  "$TEST_CLOUD/cache-bucket/releases/progress/$sha2/05-publish-pack.json" >/dev/null
 nix store verify --store "file://$cache" --sigs-needed 1 --option trusted-public-keys "$public" "$desktop" "$spin2"
 
 # Do not replace a conflicting manifest even on retry.

@@ -4,7 +4,7 @@ set -euo pipefail
 umask 077
 
 if [[ ${1:-} == --self-check && $# == 1 ]]; then
-  for dep in cmp gcloud jq mkdir mktemp nix rm sops stat; do
+  for dep in cmp date gcloud jq mkdir mktemp nix rm sops stat; do
     if ! command -v "$dep" >/dev/null; then
       printf 'Missing publisher dependency: %s\n' "$dep" >&2
       exit 127
@@ -53,6 +53,17 @@ key_name=${public_key%%:*}
 [[ $public_key =~ ^[^:]+:[A-Za-z0-9+/]{43}=$ ]]
 
 cache_prefix="$cache_bucket/cache/$key_name"
+progress_prefix="$cache_bucket/releases/progress/$revision"
+write_progress() {
+  local name=$1
+  local body=$2
+  local tmp="$runtime/progress-$name.json"
+  printf '%s\n' "$body" > "$tmp"
+  gcloud storage cp "$tmp" "$progress_prefix/$name.json" \
+    --content-type=application/json --if-generation-match=0 --quiet >/dev/null 2>&1 || true
+}
+write_progress 04-publish-scan "$(jq -cn --arg commit "$revision" --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+  '{phase:"publish-scan",commit:$commit,at:$at}')"
 
 # List already-published .narinfo objects (non-recursive) so unchanged store paths
 # are not re-compressed, re-signed, or re-scanned on every release.
@@ -99,8 +110,14 @@ while IFS= read -r store_path; do
   fi
 done < "$closure_list"
 
+total_paths=${#seen[@]}
+new_paths=${#missing_paths[@]}
+already_published=$((total_paths - new_paths))
 printf 'Cache closure: %d total, %d new (already published: %d)\n' \
-  "${#seen[@]}" "${#missing_paths[@]}" "$((${#seen[@]} - ${#missing_paths[@]}))"
+  "$total_paths" "$new_paths" "$already_published"
+write_progress 05-publish-pack "$(jq -cn --arg commit "$revision" --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+  --argjson total "$total_paths" --argjson new "$new_paths" --argjson already "$already_published" \
+  '{phase:"publish-pack",commit:$commit,total:$total,new:$new,already_published:$already,at:$at}')"
 
 upload_chunks() {
   local dest=$1
@@ -109,18 +126,19 @@ upload_chunks() {
   local i=0
   local chunk=500
   while (( i < total )); do
-    gcloud storage cp --no-clobber --if-generation-match=0 --quiet "${@:i+1:chunk}" "$dest"
+    # gcloud storage cp rejects combining --no-clobber with --if-generation-match;
+    # --no-clobber itself sends ifGenerationMatch=0 and skips already-existing objects.
+    gcloud storage cp --no-clobber --quiet "${@:i+1:chunk}" "$dest"
     i=$((i + chunk))
   done
 }
 
 # Credentials stay outside the cache tree. The Nix cache store signs the NAR metadata
 # during copy; the source /nix/store does not need global signing configuration.
-if (( ${#missing_paths[@]} > 0 )); then
-  total=${#missing_paths[@]}
+if (( new_paths > 0 )); then
   i=0
   chunk=500
-  while (( i < total )); do
+  while (( i < new_paths )); do
     nix copy --no-recursive \
       --to "file://$cache_tmp?compression=zstd&secret-key=$runtime/signing.key" \
       "${missing_paths[@]:i:chunk}"
@@ -133,12 +151,16 @@ rm -f -- "$runtime/signing.key" "$runtime/cache-signing.sops.json"
 # release manifest can point to this cache. No overwrite or delete.
 shopt -s nullglob
 nar_files=("$cache_tmp"/nar/*)
-if (( ${#nar_files[@]} > 0 )); then
-  upload_chunks "$cache_prefix/nar/" "${nar_files[@]}"
-fi
 meta_files=("$cache_tmp"/*.narinfo)
 if (( has_cache_info == 0 )) && [[ -f $cache_tmp/nix-cache-info ]]; then
   meta_files=("$cache_tmp/nix-cache-info" "${meta_files[@]}")
+fi
+write_progress 06-publish-upload "$(jq -cn --arg commit "$revision" --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+  --argjson total "$total_paths" --argjson new "$new_paths" \
+  --argjson nar "${#nar_files[@]}" --argjson meta "${#meta_files[@]}" \
+  '{phase:"publish-upload",commit:$commit,total:$total,new:$new,nar_files:$nar,meta_files:$meta,at:$at}')"
+if (( ${#nar_files[@]} > 0 )); then
+  upload_chunks "$cache_prefix/nar/" "${nar_files[@]}"
 fi
 if (( ${#meta_files[@]} > 0 )); then
   upload_chunks "$cache_prefix/" "${meta_files[@]}"
@@ -173,4 +195,6 @@ if ! gcloud storage cp "$runtime/manifest.json" "$manifest" --content-type=appli
 fi
 gcloud storage cat "$manifest" > "$runtime/published.json"
 cmp -- "$runtime/manifest.json" "$runtime/published.json"
+write_progress 07-published "$(jq -cn --arg commit "$revision" --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+  '{phase:"published",commit:$commit,at:$at}')"
 printf 'Published and verified %s\n' "$manifest"
