@@ -6,4 +6,4 @@ def config():
     return {"nixos": {"environment.systemPackages": [pkg("swaybg")]}}
 
 def writes(niri_config):
-    return [write(niri_config, startup = [["swaybg", "-c", "#1e1e2e"]])]
+    return [write(niri_config, startup = [["swaybg", "-c", "#141414"]])]
