@@ -21,31 +21,34 @@ if ! gcloud storage cat "$cache/requests/pending.json" > "$request"; then
 fi
 sha=$(jq -er '.commit | select(type == "string" and test("^[0-9a-f]{40}$"))' "$request")
 run=$(jq -er '.run | select(type == "string" and test("^[0-9]+-[0-9]+$"))' "$request")
+mode=$(jq -er '(.mode // "build") | select(. == "build" or . == "update-worker")' "$request")
 [[ $sha =~ ^[0-9a-f]{40}$ && $run =~ ^[0-9]+-[0-9]+$ ]]
 status="$cache/status/$run.json"
 finish() {
   local rc=$?
   trap - EXIT
-  jq -n --arg commit "$sha" --argjson exit_code "$rc" '{commit:$commit,exit_code:$exit_code}' \
+  jq -n --arg commit "$sha" --arg mode "$mode" --argjson exit_code "$rc" \
+    '{commit:$commit,mode:$mode,exit_code:$exit_code}' \
     > "$RUNTIME_DIRECTORY/status.json"
   if ! gcloud storage cp "$RUNTIME_DIRECTORY/status.json" "$status" --quiet --if-generation-match=0; then
     printf 'FLAKE_CACHE_STATUS_UPLOAD_FAILED %s\n' "$run" >&2
   fi
-  printf 'FLAKE_CACHE_END run=%s rc=%s\n' "$run" "$rc"
+  printf 'FLAKE_CACHE_END run=%s mode=%s rc=%s\n' "$run" "$mode" "$rc"
   systemctl --no-block poweroff || true
   exit "$rc"
 }
 trap finish EXIT
-if [[ ! ${PUBLISH_CACHE:-} =~ ^/nix/store/[^/]+/bin/flake-publish-cache$ || ! -x $PUBLISH_CACHE ]]; then
-  printf 'FLAKE_CACHE_PREFLIGHT_FAILED: publisher must be an executable Nix store path\n' >&2
-  exit 127
+if [[ $mode == build ]]; then
+  if [[ ! ${PUBLISH_CACHE:-} =~ ^/nix/store/[^/]+/bin/flake-publish-cache$ || ! -x $PUBLISH_CACHE ]]; then
+    printf 'FLAKE_CACHE_PREFLIGHT_FAILED: publisher must be an executable Nix store path\n' >&2
+    exit 127
+  fi
+  if ! "$PUBLISH_CACHE" --self-check; then
+    printf 'FLAKE_CACHE_PREFLIGHT_FAILED: publisher dependency check failed\n' >&2
+    exit 127
+  fi
+  printf 'FLAKE_CACHE_PREFLIGHT_OK run=%s\n' "$run"
 fi
-if ! "$PUBLISH_CACHE" --self-check; then
-  printf 'FLAKE_CACHE_PREFLIGHT_FAILED: publisher dependency check failed\n' >&2
-  exit 127
-fi
-printf 'FLAKE_CACHE_PREFLIGHT_OK run=%s\n' "$run"
-printf 'FLAKE_CACHE_BUILD run=%s commit=%s\n' "$run" "$sha"
 build_home=/var/lib/flake-build
 as_builder() { runuser -u flake-build -- env HOME="$build_home" "$@"; }
 checkout=$build_home/flake_public
@@ -56,6 +59,59 @@ as_builder git -C "$checkout" fetch --no-tags https://github.com/khimoo/flake_pu
 # Only build a revision of main, not a branch or arbitrary externally supplied code.
 as_builder git -C "$checkout" merge-base --is-ancestor "$sha" FETCH_HEAD
 as_builder git -C "$checkout" checkout --detach --force "$sha"
+
+if [[ $mode == update-worker ]]; then
+  printf 'FLAKE_CACHE_WORKER_UPDATE run=%s commit=%s\n' "$run" "$sha"
+  root_dir=$build_home/worker-updates/$sha
+  as_builder mkdir -p "$root_dir"
+  cd "$checkout"
+  worker_top=$(as_builder nix build --impure --out-link "$root_dir/toplevel" --print-out-paths --expr '
+    let f = builtins.getFlake ("path:" + toString ./.); in
+    (f.inputs.nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      modules = [ ./hosts/flake-cache-worker/image.nix ];
+    }).config.system.build.toplevel')
+  [[ $worker_top =~ ^/nix/store/[0-9a-z]{32}-nixos-system-flake-cache-worker-[a-zA-Z0-9.\+-]+$ ]]
+  [[ -x $worker_top/bin/switch-to-configuration ]]
+
+  unit="$worker_top/etc/systemd/system/flake-cache-worker.service"
+  [[ -r $unit ]]
+  new_publisher=''
+  pub_re='^Environment="PUBLISH_CACHE=([^"[:space:]]+)"$'
+  while IFS= read -r line; do
+    if [[ $line =~ $pub_re ]]; then
+      new_publisher=${BASH_REMATCH[1]}
+      break
+    fi
+  done < "$unit"
+  if [[ ! $new_publisher =~ ^/nix/store/[^/]+/bin/flake-publish-cache$ || ! -x $new_publisher ]]; then
+    printf 'FLAKE_CACHE_WORKER_UPDATE_FAILED: invalid PUBLISH_CACHE in new unit\n' >&2
+    exit 1
+  fi
+  publisher_store=${new_publisher%/bin/*}
+  closure_file="$RUNTIME_DIRECTORY/worker-closure.paths"
+  as_builder nix path-info --recursive "$worker_top" > "$closure_file"
+  found_publisher=0
+  while IFS= read -r store_path; do
+    if [[ $store_path == "$publisher_store" ]]; then
+      found_publisher=1
+      break
+    fi
+  done < "$closure_file"
+  if (( ! found_publisher )); then
+    printf 'FLAKE_CACHE_WORKER_UPDATE_FAILED: publisher missing from worker closure\n' >&2
+    exit 1
+  fi
+  as_builder env -i "$new_publisher" --self-check
+
+  cd "$STATE_DIRECTORY"
+  nix-env -p /nix/var/nix/profiles/system --set "$worker_top"
+  "$worker_top/bin/switch-to-configuration" boot
+  printf 'FLAKE_CACHE_WORKER_UPDATED run=%s commit=%s toplevel=%s\n' "$run" "$sha" "$worker_top"
+  exit 0
+fi
+
+printf 'FLAKE_CACHE_BUILD run=%s commit=%s\n' "$run" "$sha"
 root_dir=$build_home/releases/$sha
 as_builder mkdir -p "$root_dir"
 cd "$checkout"

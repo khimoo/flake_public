@@ -4,7 +4,7 @@ set -euo pipefail
 umask 077
 
 if [[ ${1:-} == --self-check && $# == 1 ]]; then
-  for dep in cmp gcloud jq mktemp nix rm sops stat; do
+  for dep in cmp gcloud jq mkdir mktemp nix rm sops stat; do
     if ! command -v "$dep" >/dev/null; then
       printf 'Missing publisher dependency: %s\n' "$dep" >&2
       exit 127
@@ -52,18 +52,113 @@ key_name=${public_key%%:*}
 [[ $key_name =~ ^flake-public-cache-[1-9][0-9]*$ ]]
 [[ $public_key =~ ^[^:]+:[A-Za-z0-9+/]{43}=$ ]]
 
+cache_prefix="$cache_bucket/cache/$key_name"
+
+# List already-published .narinfo objects (non-recursive) so unchanged store paths
+# are not re-compressed, re-signed, or re-scanned on every release.
+ls_out="$runtime/existing.list"
+ls_err="$runtime/existing.err"
+if gcloud storage ls "$cache_prefix/" > "$ls_out" 2> "$ls_err"; then
+  :
+else
+  ls_rc=$?
+  ls_err_text=$(<"$ls_err")
+  if [[ $ls_err_text == *"matched no objects"* ]]; then
+    : > "$ls_out"
+  else
+    printf '%s\n' "$ls_err_text" >&2
+    exit "$ls_rc"
+  fi
+fi
+
+declare -A published=()
+has_cache_info=0
+while IFS= read -r uri; do
+  uri=${uri%$'\r'}
+  name=${uri##*/}
+  if [[ $name == nix-cache-info ]]; then
+    has_cache_info=1
+  elif [[ $name =~ ^([0-9a-z]{32})\.narinfo$ ]]; then
+    published[${BASH_REMATCH[1]}]=1
+  fi
+done < "$ls_out"
+
+closure_list="$runtime/closure.paths"
+nix path-info --recursive "$desktop" "$spin" > "$closure_list"
+
+declare -A seen=()
+missing_paths=()
+while IFS= read -r store_path; do
+  [[ -n $store_path ]] || continue
+  [[ -z ${seen[$store_path]:-} ]] || continue
+  seen[$store_path]=1
+  base=${store_path##*/}
+  hash=${base%%-*}
+  if [[ -z ${published[$hash]:-} ]]; then
+    missing_paths+=("$store_path")
+  fi
+done < "$closure_list"
+
+printf 'Cache closure: %d total, %d new (already published: %d)\n' \
+  "${#seen[@]}" "${#missing_paths[@]}" "$((${#seen[@]} - ${#missing_paths[@]}))"
+
+upload_chunks() {
+  local dest=$1
+  shift
+  local total=$#
+  local i=0
+  local chunk=500
+  while (( i < total )); do
+    gcloud storage cp --no-clobber --if-generation-match=0 --quiet "${@:i+1:chunk}" "$dest"
+    i=$((i + chunk))
+  done
+}
+
 # Credentials stay outside the cache tree. The Nix cache store signs the NAR metadata
 # during copy; the source /nix/store does not need global signing configuration.
-nix copy --to "file://$cache_tmp?compression=zstd&secret-key=$runtime/signing.key" "$desktop" "$spin"
+if (( ${#missing_paths[@]} > 0 )); then
+  total=${#missing_paths[@]}
+  i=0
+  chunk=500
+  while (( i < total )); do
+    nix copy --no-recursive \
+      --to "file://$cache_tmp?compression=zstd&secret-key=$runtime/signing.key" \
+      "${missing_paths[@]:i:chunk}"
+    i=$((i + chunk))
+  done
+fi
 rm -f -- "$runtime/signing.key" "$runtime/cache-signing.sops.json"
-cache_prefix="$cache_bucket/cache/$key_name"
-# Publish archive data before any pointer can name this release. No overwrite or delete.
-gcloud storage rsync "$cache_tmp" "$cache_prefix" --recursive --no-clobber --if-generation-match=0 --quiet
+
+# Publish NAR payloads before any .narinfo can reference them, and before any
+# release manifest can point to this cache. No overwrite or delete.
+shopt -s nullglob
+nar_files=("$cache_tmp"/nar/*)
+if (( ${#nar_files[@]} > 0 )); then
+  upload_chunks "$cache_prefix/nar/" "${nar_files[@]}"
+fi
+meta_files=("$cache_tmp"/*.narinfo)
+if (( has_cache_info == 0 )) && [[ -f $cache_tmp/nix-cache-info ]]; then
+  meta_files=("$cache_tmp/nix-cache-info" "${meta_files[@]}")
+fi
+if (( ${#meta_files[@]} > 0 )); then
+  upload_chunks "$cache_prefix/" "${meta_files[@]}"
+fi
+shopt -u nullglob
+
+verify_dir="$runtime/verify"
+mkdir -p "$verify_dir"
+gcloud storage cat "$cache_prefix/nix-cache-info" > "$verify_dir/nix-cache-info"
 for top in "$desktop" "$spin"; do
   basename=${top##*/}
   narinfo=${basename%%-*}.narinfo
-  gcloud storage cat "$cache_prefix/$narinfo" > "$runtime/$narinfo"
-  cmp -- "$cache_tmp/$narinfo" "$runtime/$narinfo"
+  gcloud storage cat "$cache_prefix/$narinfo" > "$verify_dir/$narinfo"
+  if [[ -f $cache_tmp/$narinfo ]]; then
+    cmp -- "$cache_tmp/$narinfo" "$verify_dir/$narinfo"
+  else
+    nix store verify --no-contents --sigs-needed 1 \
+      --option trusted-public-keys "$public_key" \
+      --store "file://$verify_dir" "$top"
+  fi
 done
 
 jq -n --arg commit "$revision" --arg key "$public_key" --arg cache "$cache_prefix" \

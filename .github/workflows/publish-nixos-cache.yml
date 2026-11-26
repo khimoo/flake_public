@@ -12,6 +12,10 @@ name: Build and publish NixOS cache
         description: Test publishing in the separate smoke bucket with an ephemeral key
         type: boolean
         default: false
+      update_worker:
+        description: Rebuild and stage the flake-cache-worker NixOS generation for next boot
+        type: boolean
+        default: false
 permissions:
   contents: read
   id-token: write
@@ -20,10 +24,15 @@ concurrency:
   cancel-in-progress: false
 jobs:
   publish:
-    if: github.ref == 'refs/heads/main' && (vars.FLAKE_CACHE_PUBLISH_ENABLED == 'true' || (github.event_name == 'workflow_dispatch' && (inputs.verify || inputs.smoke)))
+    if: github.ref == 'refs/heads/main' && (vars.FLAKE_CACHE_PUBLISH_ENABLED == 'true' || (github.event_name == 'workflow_dispatch' && (inputs.verify || inputs.smoke || inputs.update_worker)))
     runs-on: ubuntu-24.04
     timeout-minutes: 310
     steps:
+      - name: Reject conflicting manual dispatch options
+        if: github.event_name == 'workflow_dispatch' && inputs.update_worker && (inputs.verify || inputs.smoke)
+        run: |
+          echo 'update_worker cannot be combined with verify or smoke.' >&2
+          exit 2
       - uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
         with:
           fetch-depth: 0
@@ -47,9 +56,17 @@ jobs:
         env:
           CACHE_SMOKE_BUCKET: ${{ vars.FLAKE_CACHE_SMOKE_BUCKET }}
         run: bash scripts/ci/smoke-cache-release.sh
-      - name: Build the exact commit and promote the successful release
-        if: github.event_name != 'workflow_dispatch' || (!inputs.verify && !inputs.smoke)
+      - name: Update the dedicated worker NixOS generation for next boot
+        if: github.event_name == 'workflow_dispatch' && inputs.update_worker && !inputs.verify && !inputs.smoke
         env:
           CACHE_BUCKET: ${{ vars.FLAKE_CACHE_BUCKET }}
           CACHE_VM_ZONE: ${{ vars.FLAKE_CACHE_ZONE }}
+          WORKER_MODE: update-worker
+        run: bash scripts/ci/control-cache-worker.sh
+      - name: Build the exact commit and promote the successful release
+        if: github.event_name != 'workflow_dispatch' || (!inputs.verify && !inputs.smoke && !inputs.update_worker)
+        env:
+          CACHE_BUCKET: ${{ vars.FLAKE_CACHE_BUCKET }}
+          CACHE_VM_ZONE: ${{ vars.FLAKE_CACHE_ZONE }}
+          WORKER_MODE: build
         run: bash scripts/ci/control-cache-worker.sh

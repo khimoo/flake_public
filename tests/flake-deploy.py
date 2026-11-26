@@ -1,11 +1,14 @@
 """Validate release metadata and rollback guards before giving any system path to Nix."""
+from contextlib import contextmanager
 import importlib.util
+import io
 import json
 from pathlib import Path
 import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
+from urllib.error import HTTPError
 
 spec = importlib.util.spec_from_file_location('flake_deploy', Path(__file__).resolve().parents[1] / 'scripts/ci/flake-deploy.py')
 deploy = importlib.util.module_from_spec(spec)
@@ -86,6 +89,165 @@ class Release(unittest.TestCase):
         with patch.object(deploy.socket, 'gethostname', return_value='nixos-desktop'):
             with self.assertRaises(SystemExit):
                 deploy.main(['test', '--bucket', BUCKET, '--public-key', KEY, '--commit', SHA, '--host', 'nixos-spin713'])
+
+    def test_remote_branch_commit_reads_origin_main_without_pull(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            origin = Path(tmp) / 'origin.git'
+            work = Path(tmp) / 'work'
+            stale = Path(tmp) / 'stale'
+
+            def git(repo, *args):
+                return subprocess.check_output(['git', '-C', str(repo), *args], text=True).strip()
+
+            subprocess.check_call(['git', 'init', '--bare', str(origin)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.check_call(['git', 'clone', str(origin), str(work)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            git(work, 'checkout', '-b', 'main')
+            git(work, 'config', 'user.email', 'test@example.invalid')
+            git(work, 'config', 'user.name', 'Test')
+            (work / 'f').write_text('1\n', encoding='utf-8')
+            git(work, 'add', 'f')
+            git(work, 'commit', '-m', 'c1')
+            git(work, 'push', '-u', 'origin', 'main')
+            subprocess.check_call(['git', 'clone', str(origin), str(stale)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+            (work / 'f').write_text('2\n', encoding='utf-8')
+            git(work, 'add', 'f')
+            git(work, 'commit', '-m', 'c2')
+            c2 = git(work, 'rev-parse', 'HEAD')
+            git(work, 'push', 'origin', 'main')
+
+            self.assertNotEqual(git(stale, 'rev-parse', 'HEAD'), c2)
+            self.assertEqual(deploy.remote_branch_commit(stale), c2)
+
+    def test_wait_for_published_commit_polls_until_target_appears(self):
+        old_sha = '1' * 40
+        new_sha = '2' * 40
+        responses = [
+            HTTPError('https://storage.googleapis.com/', 404, 'Not Found', {}, None),
+            json.dumps({'version': 1, 'commit': old_sha, 'release': f'releases/{old_sha}.json'}).encode(),
+            json.dumps({'version': 1, 'commit': new_sha, 'release': f'releases/{new_sha}.json'}).encode(),
+        ]
+        now = [0.0]
+        sleeps = []
+
+        def fake_read(_uri):
+            item = responses.pop(0)
+            if isinstance(item, Exception):
+                raise item
+            return item
+
+        def fake_sleep(seconds):
+            sleeps.append(seconds)
+            now[0] += seconds
+
+        self.read_object.side_effect = fake_read
+        with patch('sys.stdout', new_callable=io.StringIO):
+            got = deploy.wait_for_published_commit(
+                BUCKET, new_sha, interval=15.0, timeout=120.0,
+                sleep_fn=fake_sleep, clock_fn=lambda: now[0],
+            )
+        self.assertEqual(got, new_sha)
+        self.assertEqual(sleeps, [15.0, 15.0])
+
+    def test_wait_for_published_commit_times_out_and_does_not_swallow_403(self):
+        old_sha = '1' * 40
+        new_sha = '2' * 40
+        now = [0.0]
+
+        def fake_sleep(seconds):
+            now[0] += seconds
+
+        self.read_object.side_effect = lambda _uri: json.dumps(
+            {'version': 1, 'commit': old_sha, 'release': f'releases/{old_sha}.json'}
+        ).encode()
+        with patch('sys.stdout', new_callable=io.StringIO), self.assertRaises(TimeoutError):
+            deploy.wait_for_published_commit(
+                BUCKET, new_sha, interval=10.0, timeout=25.0,
+                sleep_fn=fake_sleep, clock_fn=lambda: now[0],
+            )
+
+        self.read_object.side_effect = HTTPError('https://storage.googleapis.com/', 403, 'Forbidden', {}, None)
+        with self.assertRaises(HTTPError):
+            deploy.wait_for_published_commit(
+                BUCKET, new_sha, interval=10.0, timeout=25.0,
+                sleep_fn=fake_sleep, clock_fn=lambda: now[0],
+            )
+
+    def test_switch_without_commit_exits_early_when_already_at_origin_main(self):
+        with patch.object(deploy.socket, 'gethostname', return_value='nixos-spin713'), \
+                patch.object(deploy, 'current_revision', return_value=SHA), \
+                patch.object(deploy, 'remote_branch_commit', return_value=SHA), \
+                patch.object(deploy.subprocess, 'run') as mock_run, \
+                patch('sys.stdout', new_callable=io.StringIO) as out:
+            rc = deploy.main(['switch', '--bucket', BUCKET, '--public-key', KEY])
+        self.assertEqual(rc, 0)
+        self.assertIn('already up to date', out.getvalue())
+        self.read_object.assert_not_called()
+        mock_run.assert_not_called()
+
+    def test_switch_without_commit_waits_for_origin_main_then_switches(self):
+        old_sha = '1' * 40
+
+        @contextmanager
+        def fake_proxy(_remote):
+            yield 'http://127.0.0.1:9999/tok'
+
+        calls = []
+
+        def fake_run(cmd, **_kwargs):
+            calls.append(cmd)
+            return subprocess.CompletedProcess(cmd, 0)
+
+        with patch.object(deploy.socket, 'gethostname', return_value='nixos-spin713'), \
+                patch.object(deploy, 'current_revision', return_value=old_sha), \
+                patch.object(deploy, 'remote_branch_commit', return_value=SHA), \
+                patch.object(deploy, 'wait_for_published_commit', return_value=SHA) as mock_wait, \
+                patch.object(deploy, 'check_not_rollback', return_value='descendant'), \
+                patch.object(deploy, 'cache_proxy', side_effect=fake_proxy), \
+                patch.object(deploy, 'verify') as mock_verify, \
+                patch.object(deploy.subprocess, 'run', side_effect=fake_run), \
+                patch('sys.stdout', new_callable=io.StringIO):
+            rc = deploy.main(['switch', '--bucket', BUCKET, '--public-key', KEY])
+        self.assertEqual(rc, 0)
+        mock_wait.assert_called_once_with(BUCKET, SHA, interval=20.0, timeout=3600.0)
+        mock_verify.assert_called_once_with('http://127.0.0.1:9999/tok', KEY, TOP)
+        self.assertEqual(calls[0], ['sudo', '-v'])
+        self.assertEqual(calls[1][:4], ['sudo', 'nix', 'copy', '--from'])
+        self.assertEqual(calls[2], ['sudo', 'nixos-rebuild', 'switch', '--no-reexec', '--store-path', TOP])
+
+    def test_switch_with_explicit_commit_still_runs_when_current_matches(self):
+        @contextmanager
+        def fake_proxy(_remote):
+            yield 'http://127.0.0.1:9999/tok'
+
+        calls = []
+
+        def fake_run(cmd, **_kwargs):
+            calls.append(cmd)
+            return subprocess.CompletedProcess(cmd, 0)
+
+        with patch.object(deploy.socket, 'gethostname', return_value='nixos-spin713'), \
+                patch.object(deploy, 'current_revision', return_value=SHA), \
+                patch.object(deploy, 'check_not_rollback', return_value='same'), \
+                patch.object(deploy, 'cache_proxy', side_effect=fake_proxy), \
+                patch.object(deploy, 'verify'), \
+                patch.object(deploy.subprocess, 'run', side_effect=fake_run), \
+                patch('sys.stdout', new_callable=io.StringIO):
+            rc = deploy.main(['switch', '--bucket', BUCKET, '--public-key', KEY, '--commit', SHA])
+        self.assertEqual(rc, 0)
+        self.assertEqual(calls[-1], ['sudo', 'nixos-rebuild', 'switch', '--no-reexec', '--store-path', TOP])
+
+    def test_switch_no_wait_fails_when_latest_not_yet_published(self):
+        old_sha = '1' * 40
+        new_sha = '2' * 40
+        self.channel = {'version': 1, 'commit': old_sha, 'release': f'releases/{old_sha}.json'}
+        with patch.object(deploy.socket, 'gethostname', return_value='nixos-spin713'), \
+                patch.object(deploy, 'current_revision', return_value=old_sha), \
+                patch.object(deploy, 'remote_branch_commit', return_value=new_sha), \
+                patch('sys.stderr', new_callable=io.StringIO) as err:
+            rc = deploy.main(['switch', '--no-wait', '--bucket', BUCKET, '--public-key', KEY])
+        self.assertEqual(rc, 1)
+        self.assertIn('not yet on stable', err.getvalue())
 
 
 if __name__ == '__main__':

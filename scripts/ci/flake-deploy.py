@@ -27,7 +27,7 @@ KEY_RE = r'(flake-public-cache-[1-9][0-9]*):[A-Za-z0-9+/]{43}='
 NIX32 = '[0-9abcdfghijklmnpqrsvwxyz]'
 
 
-def resolve(bucket, host, key, commit=None):
+def validate_target(bucket, host, key):
     if not re.fullmatch(r'gs://flake-public-cache-[0-9]+', bucket):
         raise ValueError('Expected the production cache bucket URI')
     if not re.fullmatch(r'[a-z0-9][a-z0-9-]+', host):
@@ -35,15 +35,26 @@ def resolve(bucket, host, key, commit=None):
     key_match = re.fullmatch(KEY_RE, key)
     if not key_match:
         raise ValueError('Expected the independently pinned cache public key')
+    return key_match[1]
+
+
+def read_stable_commit(bucket):
+    channel = json.loads(GCS.read_object(bucket + '/channels/stable.json'))
+    commit = channel['commit']
+    if channel['version'] != 1 or not isinstance(commit, str) or not re.fullmatch(SHA_RE, commit) \
+            or channel['release'] != f'releases/{commit}.json':
+        raise ValueError('Invalid stable pointer')
+    return commit
+
+
+def resolve(bucket, host, key, commit=None):
+    key_name = validate_target(bucket, host, key)
     if commit is None:
-        channel = json.loads(GCS.read_object(bucket + '/channels/stable.json'))
-        commit = channel['commit']
-        if channel['version'] != 1 or channel['release'] != f'releases/{commit}.json':
-            raise ValueError('Invalid stable pointer')
+        commit = read_stable_commit(bucket)
     if not re.fullmatch(SHA_RE, commit):
         raise ValueError('Expected a full Git commit SHA')
     manifest = json.loads(GCS.read_object(f'{bucket}/releases/{commit}.json'))
-    cache = f'{bucket}/cache/{key_match[1]}'
+    cache = f'{bucket}/cache/{key_name}'
     if (manifest['version'] != 1 or manifest['commit'] != commit or manifest['cache'] != cache
             or not secrets.compare_digest(manifest['signing_public_key'], key)):
         raise ValueError('Release manifest has an unexpected commit, cache URI or signing key')
@@ -51,6 +62,68 @@ def resolve(bucket, host, key, commit=None):
     if not re.fullmatch(fr'/nix/store/{NIX32}{{32}}-nixos-system-{re.escape(host)}-[A-Za-z0-9.+-]+', path):
         raise ValueError('Release does not name a NixOS system for this host')
     return commit, cache, path
+
+
+def remote_branch_commit(repo_dir, remote='origin', branch='main'):
+    if not remote or remote.startswith('-'):
+        raise ValueError('Invalid git remote name')
+    if not branch or branch.startswith('-') or any(c.isspace() for c in branch):
+        raise ValueError('Invalid git branch name')
+    if not repo_dir or not Path(repo_dir).exists():
+        raise ValueError(f'Local git checkout not found at {repo_dir}; pass --repo or --commit')
+    ref = f'refs/heads/{branch}'
+    result = subprocess.run(
+        ['git', '-C', str(repo_dir), 'ls-remote', '--', remote, ref],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=45,
+    )
+    if result.returncode != 0:
+        detail = result.stderr.strip() or f'git ls-remote exited with {result.returncode}'
+        raise ValueError(f'Failed to query {remote}/{branch}: {detail}')
+    matches = []
+    for line in result.stdout.splitlines():
+        parts = line.split()
+        if len(parts) == 2 and parts[1] == ref:
+            matches.append(parts[0])
+    if len(matches) != 1 or not re.fullmatch(SHA_RE, matches[0]):
+        raise ValueError(f'Could not resolve a single commit SHA for {remote}/{branch}')
+    return matches[0]
+
+
+def wait_for_published_commit(bucket, desired_commit, *, interval=20.0, timeout=3600.0,
+                              sleep_fn=time.sleep, clock_fn=time.monotonic):
+    if not re.fullmatch(SHA_RE, desired_commit):
+        raise ValueError('Expected a full Git commit SHA')
+    deadline = clock_fn() + timeout
+    last_seen = object()
+    waited = False
+    while True:
+        try:
+            published = read_stable_commit(bucket)
+        except HTTPError as exc:
+            if exc.code != 404:
+                raise
+            exc.close()
+            published = None
+        if published == desired_commit:
+            if waited:
+                print(f'Published: {desired_commit[:12]} is now on stable.', flush=True)
+            return desired_commit
+        remaining = deadline - clock_fn()
+        if remaining <= 0:
+            seen_str = published[:12] if published else 'none'
+            raise TimeoutError(
+                f'Timed out waiting for {desired_commit[:12]} on stable (last seen: {seen_str})'
+            )
+        if published != last_seen:
+            seen_str = published[:12] if published else 'none'
+            print(
+                f'Waiting: {desired_commit[:12]} is not yet on stable '
+                f'(current stable: {seen_str}; polling every {interval:g}s)...',
+                flush=True,
+            )
+            last_seen = published
+        waited = True
+        sleep_fn(min(interval, remaining))
 
 
 def current_revision():
@@ -205,17 +278,34 @@ def main(argv=None):
     parser.add_argument('--reader-sa', default=os.environ.get('FLAKE_DEPLOY_READER_SA'),
                         help='read-only service account to impersonate via gcloud')
     parser.add_argument('--host', help='target hostname (defaults to this host; test/switch require local host)')
-    parser.add_argument('--commit', help='exact release SHA; required for test and switch')
+    parser.add_argument('--commit',
+                        help='exact release SHA; if omitted for test/switch, wait for remote main on stable')
     parser.add_argument('--repo', type=Path, default=Path('/etc/nixos'),
-                        help='local git checkout used for client-side rollback detection')
+                        help='local git checkout used for remote lookup and client-side rollback detection')
+    parser.add_argument('--remote', default='origin',
+                        help='git remote used to resolve the latest branch commit (default: origin)')
+    parser.add_argument('--branch', default='main',
+                        help='git branch used to resolve the latest commit (default: main)')
+    parser.add_argument('--wait', action='store_true',
+                        help='wait until the target commit is published on stable')
+    parser.add_argument('--no-wait', action='store_true',
+                        help='fail immediately if the latest remote commit is not yet on stable')
+    parser.add_argument('--wait-interval', type=float, default=20.0,
+                        help='seconds between stable channel polls while waiting (default: 20)')
+    parser.add_argument('--wait-timeout', type=float, default=3600.0,
+                        help='maximum seconds to wait for publication on stable (default: 3600)')
     parser.add_argument('--allow-rollback', action='store_true',
                         help='allow switching to a commit that is not a descendant of the running revision')
     args = parser.parse_args(argv)
 
     if not args.bucket:
         parser.error('specify --bucket or set FLAKE_DEPLOY_BUCKET')
-    if args.action in ('test', 'switch') and args.commit is None:
-        parser.error('pin the commit from verify or fetch before activation')
+    if args.wait and args.no_wait:
+        parser.error('--wait and --no-wait cannot be used together')
+    if args.wait_interval <= 0:
+        parser.error('--wait-interval must be positive')
+    if args.wait_timeout < 0:
+        parser.error('--wait-timeout must be non-negative')
     if args.allow_rollback and args.commit is None:
         parser.error('--allow-rollback requires an explicit --commit')
 
@@ -230,7 +320,46 @@ def main(argv=None):
     try:
         key = load_public_key(args)
         cur_rev = current_revision()
-        commit, cache, top = resolve(args.bucket, target_host, key, args.commit)
+        target_commit = args.commit
+        if args.action in ('test', 'switch') and target_commit is None:
+            validate_target(args.bucket, target_host, key)
+            desired = remote_branch_commit(args.repo, args.remote, args.branch)
+            if cur_rev == desired:
+                print(f'Host:    {target_host}')
+                print(f'Current: {cur_rev}')
+                print(f'Target:  {desired}')
+                print(f'Status:  already up to date with {args.remote}/{args.branch}')
+                return 0
+            if args.no_wait:
+                try:
+                    published = read_stable_commit(args.bucket)
+                except HTTPError as exc:
+                    if exc.code != 404:
+                        raise
+                    exc.close()
+                    published = None
+                if published != desired:
+                    seen_str = published[:12] if published else 'none'
+                    raise ValueError(
+                        f'Latest {args.remote}/{args.branch} commit {desired[:12]} '
+                        f'is not yet on stable (current stable: {seen_str})'
+                    )
+            else:
+                wait_for_published_commit(
+                    args.bucket, desired,
+                    interval=args.wait_interval, timeout=args.wait_timeout,
+                )
+            target_commit = desired
+        elif args.wait:
+            validate_target(args.bucket, target_host, key)
+            desired = target_commit or remote_branch_commit(args.repo, args.remote, args.branch)
+            wait_for_published_commit(
+                args.bucket, desired,
+                interval=args.wait_interval, timeout=args.wait_timeout,
+            )
+            target_commit = desired
+
+        commit, cache, top = resolve(args.bucket, target_host, key, target_commit)
         print(f'Host:    {target_host}')
         print(f'Current: {cur_rev or "unknown"}')
         print(f'Target:  {commit}')
@@ -266,6 +395,9 @@ def main(argv=None):
             # applies --store-path. That re-exec evaluates <nixpkgs/nixos>, which fails when
             # NIX_PATH has no nixos-config, and it would build and run unverified code.
             subprocess.run(['sudo', 'nixos-rebuild', args.action, '--no-reexec', '--store-path', top], check=True)
+    except KeyboardInterrupt:
+        print('flake-deploy: interrupted', file=sys.stderr)
+        return 130
     except (KeyError, TypeError, ValueError, OSError, URLError, subprocess.SubprocessError) as exc:
         print(f'flake-deploy: {exc}', file=sys.stderr)
         return 1
