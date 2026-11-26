@@ -210,7 +210,7 @@ in
     // {
       hosts = [ "nixos-spin713" ];
     };
-  # デスクトップの keyd の設定を keyd 自身で検証する。存在しないレイヤーへの toggle などは評価では
+  # keyd の設定を keyd 自身で検証する。存在しないレイヤーへの toggle などは評価では
   # 見つからず、switch したあとで keyd が設定を読めずにキーボードの変換が止まる。
   keyd-config =
     (lib.lazyDerivation {
@@ -223,12 +223,23 @@ in
               pkgs.writeText "default.conf"
                 inputs.self.nixosConfigurations.nixos-desktop.config.environment.etc."keyd/default.conf".text
             }
+            keyd check ${
+              pkgs.writeText "internal.conf"
+                inputs.self.nixosConfigurations.nixos-spin713.config.environment.etc."keyd/internal.conf".text
+            }
+            keyd check ${
+              pkgs.writeText "external.conf"
+                inputs.self.nixosConfigurations.nixos-spin713.config.environment.etc."keyd/external.conf".text
+            }
             touch "$out"
           ''
       );
     })
     // {
-      hosts = [ "nixos-desktop" ];
+      hosts = [
+        "nixos-desktop"
+        "nixos-spin713"
+      ];
     };
 
   wsl-contracts =

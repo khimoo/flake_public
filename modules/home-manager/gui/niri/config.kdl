@@ -18,10 +18,6 @@ input {
     }
 }
 
-binds {
-    Mod+B { spawn "pkill" "-SIGUSR1" "waybar"; }
-}
-
 window-rule {
     match app-id=r#"^(org[.]fcitx[.]|fcitx5)"#
     open-floating true

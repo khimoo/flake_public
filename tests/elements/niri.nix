@@ -46,20 +46,30 @@ in
         assert lib.hasInfix ''NIXOS_OZONE_WL "1"'' generated;
         assert lib.hasInfix "Mod+Escape allow-inhibiting=false { toggle-keyboard-shortcuts-inhibit; }"
           generated;
-        assert lib.hasInfix ''spawn-at-startup "waybar"'' generated;
-        assert lib.hasInfix ''spawn-at-startup "swaync" "--config" "/etc/xdg/swaync/config.json"'' generated;
-        assert lib.hasInfix ''match namespace="^swaync-notification-window$"'' generated;
-        assert lib.hasInfix ''match namespace="^swaync-control-center$"'' generated;
+        assert lib.hasInfix ''F24 { spawn "qs" "ipc" "-c" "hub" "call" "hub" "toggle"; }'' generated;
+        assert lib.hasInfix ''Mod+D { spawn "qs" "ipc" "-c" "hub" "call" "hub" "toggle"; }'' generated;
+        assert lib.hasInfix ''match namespace="^quickshell-hub$"'' generated;
+        assert lib.hasInfix ''match namespace="^quickshell-hub-notifications$"'' generated;
+        assert lib.hasInfix ''block-out-from "screencast"'' generated;
         assert lib.hasInfix ''workspace "background"'' generated;
         assert lib.hasInfix "open-focused false" generated;
         # システムの設定は、どのユーザーの checkout や home も指さない。
         assert !(lib.hasInfix "/home/" (etc host "niri/config.kdl"));
         assert !(lib.hasInfix "/home/" generated);
-        assert host.environment.etc ? "xdg/waybar/config.jsonc";
-        assert lib.hasInfix "swaync-client -t -sw" (etc host "xdg/waybar/config.jsonc");
-        assert host.environment.etc ? "xdg/swaync/config.json";
-        assert lib.hasInfix ''"timeout-critical": 0'' (etc host "xdg/swaync/config.json");
-        assert lib.hasInfix ''"hide-on-action": true'' (etc host "xdg/swaync/config.json");
+        assert host.environment.etc ? "xdg/quickshell/hub/shell.qml";
+        assert host.environment.etc ? "xdg/quickshell/hub/HubWindow.qml";
+        assert host.environment.etc ? "xdg/quickshell/hub/RightColumn.qml";
+        assert host.environment.etc ? "xdg/quickshell/hub/NotificationStore.qml";
+        assert host.services.upower.enable;
+        assert host.systemd.user.services.quickshell-hub.wantedBy == [ "graphical-session.target" ];
+        assert !host.systemd.user.services.quickshell-hub.enableDefaultPath;
+        assert host.systemd.user.services.cliphist-watch.wantedBy == [ "graphical-session.target" ];
+        assert !host.systemd.user.services.cliphist-watch.enableDefaultPath;
+        assert builtins.any (p: (p.pname or "") == "quickshell") host.environment.systemPackages;
+        assert builtins.any (p: (p.pname or "") == "cliphist") host.environment.systemPackages;
+        assert builtins.any (p: (p.pname or "") == "rbw") host.environment.systemPackages;
+        assert builtins.any (p: (p.pname or "") == "pinentry-qt") host.environment.systemPackages;
+        assert builtins.any (p: (p.pname or "") == "fd") host.environment.systemPackages;
         assert host.systemd.user.services ? polkit-gnome-authentication-agent-1;
         assert host.services.gnome.gnome-keyring.enable;
         # stay_awake があるので、swayidle は自動 suspend を持たず、ロックと消灯だけを行う。
@@ -68,23 +78,12 @@ in
         assert lib.hasInfix "before-sleep" host.systemd.user.services.swayidle.serviceConfig.ExecStart;
         assert lib.hasInfix " lock '" host.systemd.user.services.swayidle.serviceConfig.ExecStart;
         assert !host.services.displayManager.gdm.autoSuspend;
-        assert lib.hasInfix ''match namespace="^vicinae$"'' generated;
-        assert lib.hasInfix ''block-out-from "screencast"'' generated;
+        assert !(host.systemd.user.services ? vicinae);
         assert lib.hasInfix ''Mod+Ctrl+V { spawn "niri-toggle-floating"; }'' generated;
         assert builtins.any (p: (p.name or "") == "niri-toggle-floating") host.environment.systemPackages;
         assert alice.xdg.configFile ? "niri/config.kdl";
         assert alice.xdg.configFile."niri/generated.kdl".text == generated;
-        assert alice.xdg.configFile ? "vicinae/nix.json";
-        assert lib.hasInfix ''"close_on_focus_loss": true'' alice.xdg.configFile."vicinae/nix.json".text;
-        assert lib.hasInfix ''"enabled": false'' alice.xdg.configFile."vicinae/nix.json".text;
-        assert lib.hasInfix "niri msg action quit --skip-confirmation"
-          alice.xdg.configFile."vicinae/nix.json".text;
-        assert host.systemd.user.services.vicinae.wantedBy == [ "graphical-session.target" ];
-        assert host.systemd.user.services.vicinae.partOf == [ "graphical-session.target" ];
-        assert !host.systemd.user.services.vicinae.enableDefaultPath;
-        assert lib.hasSuffix " server" host.systemd.user.services.vicinae.serviceConfig.ExecStart;
-        assert !alice.programs.vicinae.systemd.enable;
-        assert !(alice.systemd.user.services ? vicinae);
+        assert alice.xdg.configFile ? "quickshell/hub";
         assert alice.gtk.enable && alice.gtk.colorScheme == "dark";
         assert alice.home.pointerCursor.name == "Adwaita";
         assert host.fonts.fontconfig.defaultFonts.sansSerif == [
@@ -116,13 +115,11 @@ in
         "niri_config"
         "niri_floating_toggle"
         "nm_applet"
+        "quickshell_hub"
         "stay_awake"
         "swaybg"
         "swayidle"
         "swaylock"
-        "swaync"
-        "vicinae"
-        "waybar"
       ];
     };
 
@@ -169,7 +166,9 @@ in
         assert !(hasLauncher desktopUser "remote-desktop");
         # mase は Home Manager を使わないので、システムの設定だけで足りる。
         assert !(desktop.home-manager.users ? mase);
-        assert lib.hasInfix ''spawn-at-startup "waybar"'' (etc desktop "niri/generated.kdl");
+        assert desktop.environment.etc ? "xdg/quickshell/hub/shell.qml";
+        assert lib.hasInfix ''F24 { spawn "qs" "ipc" "-c" "hub" "call" "hub" "toggle"; }''
+          (etc desktop "niri/generated.kdl");
         assert !(lib.hasInfix "/home/" (etc desktop "niri/generated.kdl"));
         # desktop は眠らない。spin713 は放置すると suspend する。
         assert
@@ -360,5 +359,21 @@ in
     })
     // {
       elements = [ "iio_niri" ];
+    };
+
+  quickshell-hub =
+    (lib.lazyDerivation {
+      derivation =
+        pkgs.runCommand "quickshell-hub"
+          {
+            nativeBuildInputs = [ pkgs.python3 ];
+          }
+          ''
+            HUB_VAULT_SCRIPT=${../../modules/home-manager/gui/quickshell/hub-vault.py} python ${../quickshell-hub.py}
+            touch "$out"
+          '';
+    })
+    // {
+      elements = [ "quickshell_hub" ];
     };
 }

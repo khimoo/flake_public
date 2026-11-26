@@ -11,7 +11,11 @@ def config(host):
         "environment.systemPackages": [pkg("btrfs-progs")],
         "services.keyd": {"enable": True, "keyboards": {"default": {
             "ids": ["*"],
-            "settings": {"meta": {"rightalt": "toggle(turbo)"}, "turbo": {"rightalt": "macro2(%s, %s, macro(rightmouse))" % (host.turbo_interval_ms, host.turbo_interval_ms)}},
+            "settings": {
+                "main": {"leftmeta": "overload(meta, f24)"},
+                "meta": {"rightalt": "toggle(turbo)"},
+                "turbo": {"rightalt": "macro2(%s, %s, macro(rightmouse))" % (host.turbo_interval_ms, host.turbo_interval_ms)},
+            },
         }}},
     }
     return {"nixos_imports": [

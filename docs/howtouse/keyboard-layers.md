@@ -38,8 +38,8 @@ backspace=delete     Alt+Backspace で Delete
 
 | ホスト | 設定ファイル | 対象 |
 |--------|---------|------|
-| nixos-spin713 | [machine_nixos_spin713.star](../../config/elements/machine_nixos_spin713.star) | 内蔵キーボード（ChromeOS 配列の再現） |
-| nixos-desktop | [machine_nixos_desktop.star](../../config/elements/machine_nixos_desktop.star) | 全キーボード（右 Alt による右クリック連打機能。◇ + 右 Alt でオン/オフを切り替え可能。起動時はオフ） |
+| nixos-spin713 | [machine_nixos_spin713.star](../../config/elements/machine_nixos_spin713.star) | 内蔵キーボード（ChromeOS 配列の再現＋Super 単押し→F24）および外付けキーボード（配列は素のまま Super 単押し→F24 のみ） |
+| nixos-desktop | [machine_nixos_desktop.star](../../config/elements/machine_nixos_desktop.star) | 全キーボード（Super 単押し→F24、および右 Alt による右クリック連打機能。◇ + 右 Alt でオン/オフを切り替え可能。起動時はオフ） |
 
 ## 設定に書かれていないキーの挙動
 
@@ -58,7 +58,7 @@ keyd は `main` レイヤーで各キーを自分自身にバインドしてい�
 `[main]` に書かれた `f1=back` は、Meta キーの押下中には参照されず、`[meta]` の `f1=f1` が優先されます。ここで `[meta]` の `f1` が指しているのは物理的な F1 キーであり、`main` で変換された後の `back` ではありません。
 
 **`[ids]` に記載のないデバイスは keyd を通過しない**
-spin713 の設定ではワイルドカード（`*`）を使わずデバイス ID を明示的に列挙しているため、外付けキーボードを接続してもリマップは適用されず、素の配列のまま動作します。
+spin713 では内蔵キーボードの ChromeOS リマップ（`internal.conf`）と、それ以外の外付けキーボード向けの Super 単押し設定（`external.conf`、`*` から内蔵 ID を除外）を分けているため、外付けキーボードでは配列を崩さず Super 単押しだけが効きます。
 
 ## 実際のイベントを確認する
 

@@ -1,0 +1,5 @@
+singleton Theme 1.0 Theme.qml
+NotificationStore 1.0 NotificationStore.qml
+NotificationPopups 1.0 NotificationPopups.qml
+RightColumn 1.0 RightColumn.qml
+HubWindow 1.0 HubWindow.qml

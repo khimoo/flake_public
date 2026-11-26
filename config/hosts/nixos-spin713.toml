@@ -44,8 +44,8 @@ purposes = [
 admin = true
 
 [keyd_settings.main]
-leftcontrol = "leftmeta"
-leftmeta = "leftcontrol"
+leftcontrol = "overload(meta, f24)"
+leftmeta = "layer(control)"
 f1 = "back"
 f2 = "forward"
 f3 = "refresh"
