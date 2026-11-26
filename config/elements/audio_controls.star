@@ -3,7 +3,10 @@ requires = ["pipewire", "niri_config"]
 needs = ["nixos_system"]
 
 def config():
-    return {"nixos": {"environment.systemPackages": [pkg("pwvucontrol"), pkg("wireplumber"), pkg("brightnessctl")]}}
+    return {"nixos": {
+        "environment.systemPackages": [pkg("pwvucontrol"), pkg("wireplumber"), pkg("brightnessctl")],
+        "services.udev.packages": [repoPkg("packages/hhkb-bt-audio")],
+    }}
 
 def writes(niri_config):
     return [write(niri_config,

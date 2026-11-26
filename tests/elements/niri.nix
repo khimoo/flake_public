@@ -89,6 +89,7 @@ in
         assert builtins.any (p: (p.name or "") == "kanshi-switch") host.environment.systemPackages;
         assert builtins.any (p: (p.name or "") == "kanshi-switch-desktop") host.environment.systemPackages;
         assert builtins.any (p: (p.pname or "") == "quickshell") host.environment.systemPackages;
+        assert builtins.any (p: (p.pname or "") == "hhkb-bt-audio") host.services.udev.packages;
         assert builtins.any (p: (p.pname or "") == "cliphist") host.environment.systemPackages;
         assert builtins.any (p: (p.pname or "") == "rbw") host.environment.systemPackages;
         assert builtins.any (p: (p.pname or "") == "pinentry-qt") host.environment.systemPackages;
@@ -424,5 +425,17 @@ in
     })
     // {
       elements = [ "display_layout" ];
+    };
+
+  hhkb-bt-audio =
+    (lib.lazyDerivation {
+      derivation =
+        if pkgs.stdenv.hostPlatform.isLinux then
+          pkgs.callPackage ../../packages/hhkb-bt-audio { }
+        else
+          pkgs.runCommand "hhkb-bt-audio-skipped" { } "touch $out";
+    })
+    // {
+      elements = [ "audio_controls" ];
     };
 }

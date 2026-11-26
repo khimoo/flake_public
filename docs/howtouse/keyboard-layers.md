@@ -2,12 +2,13 @@
 
 修飾キーを押した際に各キーがどのように動作するかを確認する手順です。
 
-keyd のキーコード変換、Niri の XKB とショートカット、アプリの割り当てを順に確認します。XKB の配列だけを調べても keyd の変換は分かりません。
+HID の入力形式、keyd のキーコード変換、Niri の XKB とショートカット、アプリの割り当てを順に確認します。XKB の配列だけを調べても keyd の変換は分かりません。
 
 ## 入力が届く順序
 
 | 層 | 担当役割 | 設定場所 | 調査用ツール |
 |----|------|------|-----------|
+| HID | 機器の申告を Linux のキー入力に変換。HHKB-BT の音量キーは HID-BPF で申告を補正 | [HHKB-BT 補正](../../packages/hhkb-bt-audio/) | HID の生レポートと evdev の比較 |
 | keyd | evdev レベルのキーコード変換 | `/etc/keyd/*.conf`（[keyd.star](../../config/elements/keyd.star) が集約） | `keyd monitor`, `keyd listen` |
 | xkb | レイアウトとシフトレベル（Shift / AltGr） | [xkb.star](../../config/elements/xkb.star) を正本とし、Niri（`generated.kdl`）と GDM（`services.xserver.xkb`）の両方が参照 | `xkbcli compile-keymap`, `xkbcli interactive-wayland` |
 | コンポジタ / アプリ | Niri のショートカット、IME（fcitx5）、各アプリケーション | [config.kdl](../../modules/home-manager/gui/niri/config.kdl)、各アプリケーションの設定 | Niri の `Mod+?`、各アプリケーションの設定画面 |
@@ -18,6 +19,22 @@ xkb に届くのは変換済みの結果のみであるため、XKB の配列図
 XKB の既定配列 `us+altgr-intl` は [xkb.star](../../config/elements/xkb.star) が `layout = "us"` と `variant = "altgr-intl"` に分け、[niri_config.star](../../config/elements/niri_config.star)（`generated.kdl`）と [gdm.star](../../config/elements/gdm.star)（ログイン画面）へ供給します。右 Alt が AltGr になる配列です。例外ホストで配列を変える場合のみ [ホストの TOML](../../config/hosts/) に `xkb_layout` を指定します。コンポジタの割り当てと反映方法は [Niri](niri.md) を参照してください。
 
 例として、spin713 では Alt+Backspace で Delete が入力されますが、xkb 側にはその定義は存在しません。`/etc/keyd/internal.conf` の `[alt]` セクションに記述された `backspace=delete` が実際の挙動を定義しています。
+
+## HHKB Professional BT の音量キー
+
+Mac モードで使用します。本体の電源を切り、SW1 を OFF、SW2 を ON にしてから電源を入れ直します。
+
+| キー | 操作 |
+|---|---|
+| `Fn+A` | 音量を 5% 下げる |
+| `Fn+S` | 音量を 5% 上げる（上限 100%） |
+| `Fn+D` | ミュートを切り替える |
+
+`audio_controls` は接続時に `udev-hid-bpf` を呼び、Bluetooth の HHKB-BT（`04fe:0202`）に補正を付けます。再接続・再起動後も適用されます。操作後の値は `wpctl get-volume @DEFAULT_AUDIO_SINK@` で確認できます。接続時の補正エラーは `journalctl -b -u systemd-udevd --grep 'hid-bpf|HHKB'` で調べます。
+
+本体が公開する 315 バイトの HID 記述子は、音量キーを含む Report ID 2 を Constant と宣言しています。[Linux 6.18.63 の HID 入力処理](https://github.com/gregkh/linux/blob/v6.18.63/drivers/hid/hid-input.c) は Constant のフィールドを入力として扱わないため、Niri のキー割当まで届きません。補正は音量とミュートの 3 ビットだけを Data にし、本体が送るビット位置と他のレポートを保持します。入力形式が一致しない機器には補正しません。
+
+本体または上流の Linux が音量キーを正しく扱うようになったら、`audio_controls` の `services.udev.packages` からこの補正を外せます。
 
 ## keyd の設定ファイルの読み方
 
