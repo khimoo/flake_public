@@ -4,18 +4,18 @@
 
 keyd のキーコード変換、Niri の XKB とショートカット、アプリの割り当てを順に確認します。XKB の配列だけを調べても keyd の変換は分かりません。
 
-## 3 つの変換レイヤー
+## 入力が届く順序
 
 | 層 | 担当役割 | 設定場所 | 調査用ツール |
 |----|------|------|-----------|
-| keyd | evdev レベルのキーコード変換 | `/etc/keyd/*.conf` | `keyd monitor`, `keyd listen` |
-| xkb | レイアウトとシフトレベル（Shift / AltGr） | Niri の `input.keyboard.xkb`（ログイン画面は `services.xserver.xkb`） | `xkbcli compile-keymap`, `xkbcli interactive-wayland` |
-| アプリ | ショートカットの解釈 | 各アプリケーション | 各アプリケーションの設定画面 |
+| keyd | evdev レベルのキーコード変換 | `/etc/keyd/*.conf`（[keyd.star](../../config/elements/keyd.star) が集約） | `keyd monitor`, `keyd listen` |
+| xkb | レイアウトとシフトレベル（Shift / AltGr） | [xkb.star](../../config/elements/xkb.star) を正本とし、Niri（`generated.kdl`）と GDM（`services.xserver.xkb`）の両方が参照 | `xkbcli compile-keymap`, `xkbcli interactive-wayland` |
+| コンポジタ / アプリ | Niri のショートカット、IME（fcitx5）、各アプリケーション | [config.kdl](../../modules/home-manager/gui/niri/config.kdl)、各アプリケーションの設定 | Niri の `Mod+?`、各アプリケーションの設定画面 |
 
 keyd は物理キーボードの入力を直接キャッチし、変換後のキーコードを `keyd virtual keyboard` という仮想デバイスとしてシステムへ流し直します。
 xkb に届くのは変換済みの結果のみであるため、XKB の配列図には keyd による変換内容は反映されません。
 
-ホストの `xkb_layout` にある `us+altgr-intl` は、[niri_config.star](../../config/elements/niri_config.star) が XKB の layout `us` と variant `altgr-intl` に分け、`generated.kdl` に出力します。右 Alt が AltGr になる配列です。変更元は [ホストの TOML](../../config/hosts/) で、生成ファイルを直接変更しません。コンポジタの割り当てと反映方法は [Niri](niri.md) を参照してください。
+XKB の既定配列 `us+altgr-intl` は [xkb.star](../../config/elements/xkb.star) が `layout = "us"` と `variant = "altgr-intl"` に分け、[niri_config.star](../../config/elements/niri_config.star)（`generated.kdl`）と [gdm.star](../../config/elements/gdm.star)（ログイン画面）へ供給します。右 Alt が AltGr になる配列です。例外ホストで配列を変える場合のみ [ホストの TOML](../../config/hosts/) に `xkb_layout` を指定します。コンポジタの割り当てと反映方法は [Niri](niri.md) を参照してください。
 
 例として、spin713 では Alt+Backspace で Delete が入力されますが、xkb 側にはその定義は存在しません。`/etc/keyd/internal.conf` の `[alt]` セクションに記述された `backspace=delete` が実際の挙動を定義しています。
 
@@ -34,12 +34,13 @@ f1=f1                検索キー + F1 で本来のファンクションキー�
 backspace=delete     Alt+Backspace で Delete
 ```
 
-設定の生成元は以下のとおりです。
+設定の生成元は以下のとおりです。共通の既定キーボード（`default.conf`、左右 Super 単押し→`F24`）は [keyd.star](../../config/elements/keyd.star) が持ち、ホスト固有の差分だけを各マシン定義から寄与します。
 
-| ホスト | 設定ファイル | 対象 |
+| 対象 | 設定ファイル | 内容 |
 |--------|---------|------|
-| nixos-spin713 | [machine_nixos_spin713.star](../../config/elements/machine_nixos_spin713.star) | 内蔵キーボード（ChromeOS 配列の再現＋Super 単押し→F24）および外付けキーボード（配列は素のまま Super 単押し→F24 のみ） |
-| nixos-desktop | [machine_nixos_desktop.star](../../config/elements/machine_nixos_desktop.star) | 全キーボード（Super 単押し→F24、および右 Alt による右クリック連打機能。◇ + 右 Alt でオン/オフを切り替え可能。起動時はオフ） |
+| 全ホスト共通（既定） | [keyd.star](../../config/elements/keyd.star) | `default.conf`（`leftmeta` / `rightmeta` 単押し→`F24`、`quickshell_hub` が `super_tap_key` を参照） |
+| nixos-spin713 | [machine_nixos_spin713.star](../../config/elements/machine_nixos_spin713.star) / [nixos-spin713.toml](../../config/hosts/nixos-spin713.toml) | 内蔵キーボード（`internal.conf`：ChromeOS 配列の再現＋Super 単押し→`F24`）を寄与し、`default.conf` から内蔵 ID を除外 |
+| nixos-desktop | [machine_nixos_desktop.star](../../config/elements/machine_nixos_desktop.star) | `default.conf` へ右 Alt による右クリック連打レイヤー（`◇ + 右 Alt` でオン/オフ切替、起動時はオフ）を寄与 |
 
 ## 設定に書かれていないキーの挙動
 
@@ -58,7 +59,7 @@ keyd は `main` レイヤーで各キーを自分自身にバインドしてい�
 `[main]` に書かれた `f1=back` は、Meta キーの押下中には参照されず、`[meta]` の `f1=f1` が優先されます。ここで `[meta]` の `f1` が指しているのは物理的な F1 キーであり、`main` で変換された後の `back` ではありません。
 
 **`[ids]` に記載のないデバイスは keyd を通過しない**
-spin713 では内蔵キーボードの ChromeOS リマップ（`internal.conf`）と、それ以外の外付けキーボード向けの Super 単押し設定（`external.conf`、`*` から内蔵 ID を除外）を分けているため、外付けキーボードでは配列を崩さず Super 単押しだけが効きます。
+spin713 では内蔵キーボードの ChromeOS リマップ（`internal.conf`）と、それ以外の外付けキーボード向けの既定設定（`default.conf`、`*` から内蔵 ID を除外）を分けているため、外付けキーボードでは配列を崩さず Super 単押しだけが効きます。
 
 ## 実際のイベントを確認する
 

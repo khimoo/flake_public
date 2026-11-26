@@ -4,7 +4,6 @@ kind = "nixos"
 state_version = "25.05"
 timezone = "Asia/Tokyo"
 machine = "machine_nixos_desktop"
-xkb_layout = "us+altgr-intl"
 backup_dir = "/mnt/backup"
 data_device = "/dev/disk/by-uuid/57ba3e14-4099-4708-a643-edfc45d3eb18"
 turbo_interval_ms = 40

@@ -1,4 +1,4 @@
-// 個人の設定を後に置き、generated.kdl の割り当てより優先する。
+// generated.kdl（XKB・環境変数・各機能の寄与）を先に読み込み、基本設定と個人のキー割り当てをここにまとめる。
 include "generated.kdl"
 
 prefer-no-csd
@@ -29,12 +29,66 @@ window-rule {
 }
 
 output "eDP-1" {
-        scale 1.2
+    scale 1.2
 }
 
 binds {
-    Mod+Ctrl+Left  { move-window-to-monitor-left; }
-    Mod+Ctrl+Right { move-window-to-monitor-right; }
-    Mod+Ctrl+Up    { move-window-to-monitor-up; }
-    Mod+Ctrl+Down  { move-window-to-monitor-down; }
+    // 端末・基本操作
+    Mod+Return { spawn "xdg-terminal-exec"; }
+    Mod+Shift+Slash { show-hotkey-overlay; }
+    Mod+Q repeat=false { close-window; }
+    Mod+O repeat=false { toggle-overview; }
+
+    // フォーカス移動（モニター内: 列・ウィンドウ/ワークスペース）
+    Mod+H { focus-column-left; }
+    Mod+J { focus-window-or-workspace-down; }
+    Mod+K { focus-window-or-workspace-up; }
+    Mod+L { focus-column-right; }
+
+    // ウィンドウ・列を運ぶ（モニター内: 列並び替え・上下ワークスペース移動）
+    Mod+Shift+H { move-column-left; }
+    Mod+Shift+J { move-column-to-workspace-down; }
+    Mod+Shift+K { move-column-to-workspace-up; }
+    Mod+Shift+L { move-column-right; }
+
+    // フォーカス移動（モニター間）
+    Mod+Ctrl+H { focus-monitor-left; }
+    Mod+Ctrl+J { focus-monitor-down; }
+    Mod+Ctrl+K { focus-monitor-up; }
+    Mod+Ctrl+L { focus-monitor-right; }
+
+    // ウィンドウを運ぶ（モニター間）
+    Mod+Ctrl+Shift+H { move-window-to-monitor-left; }
+    Mod+Ctrl+Shift+J { move-window-to-monitor-down; }
+    Mod+Ctrl+Shift+K { move-window-to-monitor-up; }
+    Mod+Ctrl+Shift+L { move-window-to-monitor-right; }
+
+    // レイアウト・サイズ・縦積み
+    Mod+R { switch-preset-column-width; }
+    Mod+C { center-column; }
+    Mod+F { maximize-column; }
+    Mod+Shift+F { fullscreen-window; }
+    Mod+Minus { set-column-width "-10%"; }
+    Mod+Equal { set-column-width "+10%"; }
+    Mod+BracketLeft { consume-or-expel-window-left; }
+    Mod+BracketRight { consume-or-expel-window-right; }
+    Mod+W { toggle-column-tabbed-display; }
+
+    // フローティング
+    Mod+V { toggle-window-floating; }
+    Mod+Alt+V { switch-focus-between-floating-and-tiling; }
+
+    // スクリーンショット（Print 系は spin713 等の物理キー互換として残す）
+    Mod+Shift+S { screenshot; }
+    Mod+Ctrl+S { screenshot-screen; }
+    Mod+Alt+S { screenshot-window; }
+    Print { screenshot; }
+    Ctrl+Print { screenshot-screen; }
+    Alt+Print { screenshot-window; }
+
+    // システム・ショートカット抑止
+    // Windows VM の FreeRDP がキーボードを掴んでいても、この組み合わせだけは Niri が受ける。
+    Mod+Escape allow-inhibiting=false { toggle-keyboard-shortcuts-inhibit; }
+    Mod+Shift+E { quit; }
+    Mod+Shift+P { power-off-monitors; }
 }

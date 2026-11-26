@@ -228,8 +228,8 @@ in
                 inputs.self.nixosConfigurations.nixos-spin713.config.environment.etc."keyd/internal.conf".text
             }
             keyd check ${
-              pkgs.writeText "external.conf"
-                inputs.self.nixosConfigurations.nixos-spin713.config.environment.etc."keyd/external.conf".text
+              pkgs.writeText "default-spin713.conf"
+                inputs.self.nixosConfigurations.nixos-spin713.config.environment.etc."keyd/default.conf".text
             }
             touch "$out"
           ''

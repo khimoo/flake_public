@@ -174,16 +174,48 @@ PanelWindow {
         if (!clipListProc.running) clipListProc.running = true;
     }
 
+    // ファイル検索の対象は user-dirs.dirs に登録されたホーム配下のフォルダ（デスクトップ・ダウンロード・画像など）に限る。
+    // ホームそのもの（無効化された項目）やホーム外は対象にせず、ファイルが無ければ何も検索しない。
+    function fileSearchRoots() {
+        var home = Quickshell.env("HOME") || "";
+        if (!home) return [];
+        var roots = [];
+        var lines = userDirsFile.text().split("\n");
+        for (var i = 0; i < lines.length; i++) {
+            var m = lines[i].match(/^XDG_[A-Z]+_DIR="(.*)"\s*$/);
+            if (!m) continue;
+            var dir = m[1].replace(/^\$HOME(?=\/|$)/, home).replace(/\/+$/, "");
+            if (!dir.startsWith(home + "/") || dir.split("/").indexOf("..") >= 0) continue;
+            if (roots.indexOf(dir) < 0) roots.push(dir);
+        }
+        return roots;
+    }
+
     function refreshFiles() {
         if (fileProc.running) fileProc.running = false;
-        var term = searchTerm;
-        var home = Quickshell.env("HOME") || "/";
-        if (term.length === 0) {
-            fileProc.command = ["fd", "--max-depth", "2", "--max-results", "40", "--exclude", ".git", ".", home];
-        } else {
-            fileProc.command = ["fd", "--max-results", "40", "--hidden", "--exclude", ".git", "--ignore-case", "--fixed-strings", "--", term, home];
+        var roots = fileSearchRoots();
+        if (roots.length === 0) {
+            fileResults = [];
+            return;
         }
+        var term = searchTerm;
+        var args = ["fd", "--max-results", "40", "--exclude", ".git"];
+        if (term.length === 0) {
+            args = args.concat(["--max-depth", "2", "--", "."]);
+        } else {
+            args = args.concat(["--hidden", "--ignore-case", "--fixed-strings", "--", term]);
+        }
+        fileProc.command = args.concat(roots);
         fileProc.running = true;
+    }
+
+    FileView {
+        id: userDirsFile
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/user-dirs.dirs"
+        blockLoading: true
+        printErrors: false
+        watchChanges: true
+        onFileChanged: reload()
     }
 
     function refreshVault() {
@@ -470,7 +502,15 @@ PanelWindow {
     function activateItem(item) {
         if (!item) return;
         if (item.kind === "app") {
-            try { item.payload.execute(); } catch (e) {}
+            var entry = item.payload;
+            // DesktopEntry.execute() は Terminal=true を無視するので、端末アプリ（yazi など）は
+            // tty の無いまま起動して即終了する。xdg-terminal-exec（terminal_exec.star）で端末に包んで開く。
+            try {
+                if (entry.runInTerminal)
+                    Quickshell.execDetached({ command: ["xdg-terminal-exec", ...entry.command], workingDirectory: entry.workingDirectory });
+                else
+                    entry.execute();
+            } catch (e) {}
             closeHub();
         } else if (item.kind === "window") {
             Quickshell.execDetached(["niri", "msg", "action", "focus-window", "--id", String(item.payload)]);

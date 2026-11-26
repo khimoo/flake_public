@@ -4,7 +4,6 @@ kind = "nixos"
 state_version = "25.05"
 timezone = "Asia/Tokyo"
 machine = "machine_nixos_spin713"
-xkb_layout = "us+altgr-intl"
 # 内蔵の画面の接続名。タッチとペンの座標をこの出力に合わせる。
 internal_output = "eDP-1"
 # ビルドはデスクトップに回す。このマシンは 4 スレッドで、/nix も SD カード上にある。

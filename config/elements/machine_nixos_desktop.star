@@ -9,19 +9,17 @@ def config(host):
         "fileSystems": {path: {"device": host.data_device, "fsType": "btrfs", "options": ["subvol=" + subvol] + opts} for subvol, path, opts in mounts},
         "boot.supportedFilesystems": ["btrfs"],
         "environment.systemPackages": [pkg("btrfs-progs")],
-        "services.keyd": {"enable": True, "keyboards": {"default": {
-            "ids": ["*"],
-            "settings": {
-                "main": {
-                    "leftmeta": "overload(meta, f24)",
-                    "rightmeta": "overload(meta, f24)",
-                },
-                "meta": {"rightalt": "toggle(turbo)"},
-                "turbo": {"rightalt": "macro2(%s, %s, macro(rightmouse))" % (host.turbo_interval_ms, host.turbo_interval_ms)},
-            },
-        }}},
     }
     return {"nixos_imports": [
         repoModule("hosts/nixos-desktop/hardware.nix"),
         repoModule("hosts/nixos-desktop/win11.nix"),
     ], "nixos": nixos}
+
+def writes(keyd, host):
+    return [write(
+        keyd,
+        default_layers = {
+            "meta": {"rightalt": "toggle(turbo)"},
+            "turbo": {"rightalt": "macro2(%s, %s, macro(rightmouse))" % (host.turbo_interval_ms, host.turbo_interval_ms)},
+        },
+    )]

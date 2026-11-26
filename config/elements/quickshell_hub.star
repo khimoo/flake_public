@@ -5,7 +5,8 @@
 # を 1 枚のフローティング画面にまとめて開く。通知ポップアップも同じ Quickshell が右上に控えめに出す。
 # Home Manager を使わないユーザー（mase）は /etc/xdg/quickshell/hub/ を読み、
 # Home Manager を使うユーザーは checkout の live symlink（~/.config/quickshell/hub）を読む。
-requires = ["niri_config", "pipewire", "display_layout"]
+# terminal_exec は、Terminal=true のアプリを端末の中で開くために HubWindow.qml が呼ぶ xdg-terminal-exec を用意する。
+requires = ["niri_config", "pipewire", "display_layout", "terminal_exec"]
 needs = ["nixos_system"]
 
 _HUB_FILES = [
@@ -139,12 +140,12 @@ def user_config(checkout):
         ),
     }}
 
-def writes(niri_config):
+def writes(niri_config, keyd):
     return [write(
         niri_config,
         binds = [
-            # keyd が Super 単押しを F24 に変換する。安全策として Mod+D も残す。
-            'F24 { spawn "qs" "ipc" "-c" "hub" "call" "hub" "toggle"; }',
+            # keyd が Super 単押しを keyd.super_tap_key（F24）に変換する。安全策として Mod+D も残す。
+            keyd.super_tap_key + ' { spawn "qs" "ipc" "-c" "hub" "call" "hub" "toggle"; }',
             'Mod+D { spawn "qs" "ipc" "-c" "hub" "call" "hub" "toggle"; }',
         ],
         # 画面共有（Zoom / Discord / OBS）中にスタートメニュー（Vault・クリップボード履歴含む）と通知ポップアップが映り込むのを防ぐ。

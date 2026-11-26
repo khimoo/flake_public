@@ -3,7 +3,6 @@ system = "x86_64-linux"
 state_version = "25.11"
 timezone = "Asia/Tokyo"
 hostname = "test-niri"
-xkb_layout = "us+altgr-intl"
 text_scaling_factor = 1.25
 
 [[users]]

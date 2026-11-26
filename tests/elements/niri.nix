@@ -20,22 +20,30 @@ let
   spin713User = spin713.home-manager.users.pomu;
 in
 {
-  # Home Manager を使わないユーザー（bob）にも、システムの設定だけで Niri のセッションが動くことを確かめる。
+  # Niri のデスクトップ一式。Niri の設定は Home Manager 側へ集約し、XKB と keyd の正本を揃えることを確かめる。
   niri-contracts =
     (lib.lazyDerivation {
       derivation = (
         let
           host = nixosHost "test-niri";
-          generated = etc host "niri/generated.kdl";
           alice = host.home-manager.users.alice;
+          generated = alice.xdg.configFile."niri/generated.kdl".text;
+          personal = builtins.readFile ../../modules/home-manager/gui/niri/config.kdl;
         in
         assert systemAssertionsHold host;
         assert host.programs.niri.enable;
         assert host.services.displayManager.gdm.enable;
         assert host.services.displayManager.defaultSession == "niri";
+        assert host.services.xserver.xkb.layout == "us";
+        assert host.services.xserver.xkb.variant == "altgr-intl";
+        assert host.services.keyd.enable;
+        assert host.services.keyd.keyboards.default.settings.main.leftmeta == "overload(meta, f24)";
+        assert host.services.keyd.keyboards.default.settings.main.rightmeta == "overload(meta, f24)";
         assert !host.services.desktopManager.gnome.enable;
         assert !(host.home-manager.users ? bob);
-        assert lib.hasInfix ''include "/etc/niri/generated.kdl"'' (etc host "niri/config.kdl");
+        assert !(host.environment.etc ? "niri/config.kdl");
+        assert !(host.environment.etc ? "niri/generated.kdl");
+        assert lib.hasInfix ''include "generated.kdl"'' personal;
         # 節は1つずつ。同じ節が2つあると Niri は設定を読まない。
         assert count "input {\n" generated == 1;
         assert count "binds {\n" generated == 1;
@@ -45,16 +53,20 @@ in
         assert lib.hasInfix "honor-xdg-activation-with-invalid-serial" generated;
         assert lib.hasInfix ''NIXOS_OZONE_WL "1"'' generated;
         assert lib.hasInfix "Mod+Escape allow-inhibiting=false { toggle-keyboard-shortcuts-inhibit; }"
-          generated;
+          personal;
         assert lib.hasInfix ''F24 { spawn "qs" "ipc" "-c" "hub" "call" "hub" "toggle"; }'' generated;
         assert lib.hasInfix ''Mod+D { spawn "qs" "ipc" "-c" "hub" "call" "hub" "toggle"; }'' generated;
+        # 端末は terminal_exec が決め、Mod+Return とハブは xdg-terminal-exec を通して開く。
+        assert lib.hasInfix ''Mod+Return { spawn "xdg-terminal-exec"; }'' personal;
+        assert host.environment.etc."xdg/xdg-terminals.list".text == "kitty.desktop\n";
+        assert builtins.any (p: (p.pname or "") == "xdg-terminal-exec") host.environment.systemPackages;
+        assert builtins.any (p: (p.pname or "") == "kitty") host.environment.systemPackages;
         assert lib.hasInfix ''match namespace="^quickshell-hub$"'' generated;
         assert lib.hasInfix ''match namespace="^quickshell-hub-notifications$"'' generated;
         assert lib.hasInfix ''block-out-from "screencast"'' generated;
         assert lib.hasInfix ''workspace "background"'' generated;
         assert lib.hasInfix "open-focused false" generated;
-        # システムの設定は、どのユーザーの checkout や home も指さない。
-        assert !(lib.hasInfix "/home/" (etc host "niri/config.kdl"));
+        # 生成設定に個人のホームパスを埋め込まない。
         assert !(lib.hasInfix "/home/" generated);
         assert host.environment.etc ? "xdg/quickshell/hub/shell.qml";
         assert host.environment.etc ? "xdg/quickshell/hub/HubWindow.qml";
@@ -122,6 +134,7 @@ in
         "display_layout"
         "gdm"
         "gui"
+        "keyd"
         "kitty"
         "niri"
         "niri_background_apps"
@@ -133,6 +146,8 @@ in
         "swaybg"
         "swayidle"
         "swaylock"
+        "terminal_exec"
+        "xkb"
       ];
     };
 
@@ -177,21 +192,26 @@ in
           !(spin713User.xdg.configFile ? "systemd/user/graphical-session.target.wants/sunshine.service");
         assert hasLauncher spin713User "remote-desktop";
         assert !(hasLauncher desktopUser "remote-desktop");
-        # mase は Home Manager を使わないので、システムの設定だけで足りる。
         assert !(desktop.home-manager.users ? mase);
+        assert !(desktop.environment.etc ? "niri/config.kdl");
+        assert !(desktop.environment.etc ? "niri/generated.kdl");
         assert desktop.environment.etc ? "xdg/quickshell/hub/shell.qml";
         assert desktop.environment.etc ? "kanshi/config";
         assert desktopUser.xdg.configFile ? "kanshi";
         assert spin713User.xdg.configFile ? "kanshi";
         assert lib.hasInfix ''F24 { spawn "qs" "ipc" "-c" "hub" "call" "hub" "toggle"; }''
-          (etc desktop "niri/generated.kdl");
-        assert !(lib.hasInfix "/home/" (etc desktop "niri/generated.kdl"));
+          desktopUser.xdg.configFile."niri/generated.kdl".text;
+        assert lib.hasInfix ''F24 { spawn "qs" "ipc" "-c" "hub" "call" "hub" "toggle"; }''
+          spin713User.xdg.configFile."niri/generated.kdl".text;
+        assert !(lib.hasInfix "/home/" desktopUser.xdg.configFile."niri/generated.kdl".text);
+        assert desktop.services.xserver.xkb.layout == "us" && desktop.services.xserver.xkb.variant == "altgr-intl";
+        assert spin713.services.xserver.xkb.layout == "us" && spin713.services.xserver.xkb.variant == "altgr-intl";
+        assert spin713.services.keyd.keyboards.default.settings.main.rightmeta == "overload(meta, f24)";
         # desktop は眠らない。spin713 は放置すると suspend する。
         assert
           !(lib.hasInfix "systemctl suspend" desktop.systemd.user.services.swayidle.serviceConfig.ExecStart);
         assert lib.hasInfix "systemctl suspend"
           spin713.systemd.user.services.swayidle.serviceConfig.ExecStart;
-        assert desktopUser.xdg.configFile."niri/generated.kdl".text == etc desktop "niri/generated.kdl";
         pkgs.runCommand "niri-hosts" { } ''
           echo "niri hosts passed" > "$out"
         ''
@@ -209,7 +229,7 @@ in
       derivation = (
         let
           host = nixosHost "test-niri-convertible";
-          generated = etc host "niri/generated.kdl";
+          generated = host.home-manager.users.alice.xdg.configFile."niri/generated.kdl".text;
         in
         assert systemAssertionsHold host;
         assert host.services.iio-niri.enable;
@@ -285,12 +305,8 @@ in
             validate =
               host:
               let
-                generated = pkgs.writeText "generated.kdl" (etc host "niri/generated.kdl");
-                systemConfig = pkgs.writeText "system.kdl" (
-                  builtins.replaceStrings [ "/etc/niri/generated.kdl" ] [ (toString generated) ] (
-                    etc host "niri/config.kdl"
-                  )
-                );
+                generated = pkgs.writeText "generated.kdl"
+                  host.home-manager.users.alice.xdg.configFile."niri/generated.kdl".text;
                 personalConfig = pkgs.writeText "personal.kdl" (
                   builtins.replaceStrings [ ''include "generated.kdl"'' ] [ ''include "${generated}"'' ] (
                     builtins.readFile ../../modules/home-manager/gui/niri/config.kdl
@@ -298,7 +314,6 @@ in
                 );
               in
               ''
-                ${lib.getExe host.programs.niri.package} validate -c ${systemConfig}
                 ${lib.getExe host.programs.niri.package} validate -c ${personalConfig}
               '';
           in
@@ -313,6 +328,8 @@ in
         "niri_config"
         "desktop"
         "iio_niri"
+        "keyd"
+        "xkb"
       ];
     };
 

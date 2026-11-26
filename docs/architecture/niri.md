@@ -9,11 +9,11 @@ GDM をログイン画面に使い、ユーザーのセッションを Niri に�
 
 画面共有には `xdg-desktop-portal-gnome` と GTK portal、認証情報には GNOME Keyring を残す。固定した [nixpkgs の Niri モジュール](https://github.com/NixOS/nixpkgs/blob/e21fec321d73511849707a7585e4ea155ee4bf40/nixos/modules/programs/wayland/niri.nix) がこの組を選ぶ。Secret Service を使う [Windows VM](windows-vm.md) の資格情報も同じ保管先を使うが、Niri での解錠とブラウザ認証・画面共有は実機確認が要る。
 
-## Home Manager の有無でセッションを分けない
+## 常駐サービスとホーム設定の境界
 
-Home Manager を使わない `mase` にも端末、スタートメニュー（ランチャー・通知・トレイ・電源）、ロック、ディスプレイ配置が必要なため、共通設定と常駐サービスは NixOS に置く。Quickshell ハブ（`quickshell-hub`）、`cliphist-watch`、`swayidle`、`kanshi` はシステムが提供するユーザーユニットで起動し、Home Manager に同名のデーモンを作らない。`swaylock` には設定ファイルを明示して、パッケージの既定の探索先に依存させない。単機能 UI のコンポーネント定義（`waybar` / `swaync` / `vicinae`）は比較・ロールバック用に `config/elements/` へ残している。
+Quickshell ハブ（`quickshell-hub`）、`cliphist-watch`、`swayidle`、`kanshi` などの常駐サービスはシステムが提供するユーザーユニットで起動し、Home Manager に同名のデーモンを作らない。`swaylock` には設定ファイルを明示して、パッケージの既定の探索先に依存させない。単機能 UI のコンポーネント定義（`waybar` / `swaync` / `vicinae`）は比較・ロールバック用に `config/elements/` へ残している。
 
-個人の Niri、Quickshell ハブ、kanshi の設定だけを各ユーザーの checkout に live symlink で結ぶ。既存のユーザー設定はシステム既定より優先される。システム側にはユーザー名や checkout のパスを含めない。live symlink の変更は Nix 世代のロールバックでは戻らない（[構成の境界](configuration.md)）。
+一方、Niri の設定ファイルは Home Manager 側（`~/.config/niri/config.kdl` と `~/.config/niri/generated.kdl`）へ一本化し、`/etc/niri/` のシステム既定は置かない。Niri を使う別ユーザー（`mase` 等）も各ユーザーの Home Manager で環境を管理する方針とし、基本操作のキー割り当てや見た目までシステムとホームで二重管理しない。個人の Niri、Quickshell ハブ、kanshi の設定は各ユーザーの checkout に live symlink で結ぶ。live symlink の変更は Nix 世代のロールバックでは戻らない（[構成の境界](configuration.md)）。
 
 ## ディスプレイ配置を GUI 編集と宣言的管理で両立する
 
@@ -27,7 +27,7 @@ Home Manager を使わない `mase` にも端末、スタートメニュー（�
 
 ## KDL の寄与と手編集を分ける
 
-生成するキー、XKB、環境変数などは `generated.kdl` にまとめ、設定の入口から include する。同じファイル内で `input` や `binds` を重複させるとエラーになるが、別ファイルの節は合成される。include の後のキー割り当ては、同じキーの生成設定より優先される。[Niri 26.04 の ConfigPart](https://github.com/niri-wm/niri/blob/8ed0da44d974c32c6877d2f4630c314da0717ecb/niri-config/src/lib.rs) がこの区別を実装する。
+ホストや有効コンポーネントと連動する設定（XKB、環境変数、Quickshell ハブ・ロック・音量・画面回転などの寄与）だけを [niri_config.star](../../config/elements/niri_config.star) が `~/.config/niri/generated.kdl` に生成し、基本の操作キー・見た目・個人設定をまとめたホームの [config.kdl](../../modules/home-manager/gui/niri/config.kdl) から `include "generated.kdl"` で読み込む。同じファイル内で `input` や `binds` を重複させるとエラーになるが、別ファイルの節は合成される。include の後のキー割り当ては、同じキーの生成設定より優先される。[Niri 26.04 の ConfigPart](https://github.com/niri-wm/niri/blob/8ed0da44d974c32c6877d2f4630c314da0717ecb/niri-config/src/lib.rs) がこの区別を実装する。
 
 寄与同士の同一キーや、値が異なる環境変数は confgen で拒否する。生成成功だけでは KDL の正しさを保証できないため、[構文の check](../../tests/elements/niri.nix) は、寄与なし・デスクトップ一式・センサー付きの設定を Niri 自身で読む。
 

@@ -14,11 +14,16 @@ def config(host):
         "swapDevices": [{"device": host.swap_device}],
         "boot.resumeDevice": host.swap_device,
         "boot.extraModprobeConfig": "options snd-intel-dspcfg dsp_driver=4\n",
-        "services.keyd": {"enable": True, "keyboards": {
-            "internal": {"ids": host.keyd_ids, "settings": host.keyd_settings},
-            # 内蔵以外の外付けキーボードでは配列を変えず、Super 単押し→F24 だけを効かせる。
-            "external": {"ids": ["*"] + ["-" + id for id in host.keyd_ids], "settings": {"main": {"leftmeta": "overload(meta, f24)"}}},
-        }},
         ("environment", "etc", "libinput/local-overrides.quirks", "text"): "[Serial Keyboards]\nMatchUdevType=keyboard\nMatchName=keyd virtual keyboard\nAttrKeyboardIntegration=internal\n",
         "environment.systemPackages": [pkg("sof-firmware"), pkg("alsa-utils")],
     }}
+
+def writes(keyd, host):
+    # 内蔵キーボードに ChromeOS 配列再現と Super 単押しを適用し、既定キーボード（外付け向け）から内蔵 ID を除外する。
+    return [write(
+        keyd,
+        extra_keyboards = {
+            "internal": {"ids": host.keyd_ids, "settings": host.keyd_settings},
+        },
+        exclude_default_ids = host.keyd_ids,
+    )]
