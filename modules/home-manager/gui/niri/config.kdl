@@ -16,6 +16,11 @@ input {
         natural-scroll
         dwt
     }
+
+    mouse {
+        accel-speed -0.8
+        // accel-profile "flat"
+    }
 }
 
 window-rule {
@@ -25,4 +30,11 @@ window-rule {
 
 output "eDP-1" {
         scale 1.2
+}
+
+binds {
+    Mod+Ctrl+Left  { move-window-to-monitor-left; }
+    Mod+Ctrl+Right { move-window-to-monitor-right; }
+    Mod+Ctrl+Up    { move-window-to-monitor-up; }
+    Mod+Ctrl+Down  { move-window-to-monitor-down; }
 }
