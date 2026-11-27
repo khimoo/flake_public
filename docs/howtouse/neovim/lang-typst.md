@@ -4,6 +4,8 @@ tinymist（LSP）による補完・診断・PDF 出力と、tinymist 組み込�
 
 設定: `lua/plugins/lang/typst/`、`lua/config/preview_browser.lua`
 
+Neovim では、長い行をインデントを保ったまま折り返して表示する。ファイルには改行を追加しない。
+
 ## プレビューする
 
 | 用途 | 手段 | 反映 | カーソルの同期 |
