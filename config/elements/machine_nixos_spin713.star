@@ -18,12 +18,14 @@ def config(host):
         "environment.systemPackages": [pkg("sof-firmware"), pkg("alsa-utils")],
     }}
 
-def writes(keyd, host):
+def writes(keyd, host, ime_toggle_key):
     # 内蔵キーボードに ChromeOS 配列再現と Super 単押しを適用し、既定キーボード（外付け向け）から内蔵 ID を除外する。
+    # IME の切り替えキーは内蔵でも外付けと揃える。
+    alt = dict(host.keyd_settings["alt"], **ime_toggle_key.alt_bindings)
     return [write(
         keyd,
         extra_keyboards = {
-            "internal": {"ids": host.keyd_ids, "settings": host.keyd_settings},
+            "internal": {"ids": host.keyd_ids, "settings": dict(host.keyd_settings, alt = alt)},
         },
         exclude_default_ids = host.keyd_ids,
     )]

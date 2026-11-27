@@ -14,6 +14,8 @@ kitty で対象プロジェクトに移動して `ng .` を実行する。GUI �
 
 ng では fcitx5 の IME（Meltype、[japanese_input.star](../../../config/elements/japanese_input.star)）を使い、skkeleton のキーマップは読み込まない。kitty 上の Neovim は従来どおり Ctrl+J で skkeleton を使う。
 
-Meltype はローマ字を打つだけで英語と日本語を見分け、Mozc と Zenzai でかな漢字に変換する。既定の切り替えキーは 半角/全角 と Alt+` だが、US 配列には 半角/全角 が無く、Alt+` はウィンドウの選択に使われている。右 Alt は altgr-intl 配列の AltGr なので、設定「左 Alt で英数 / 右 Alt で日本語」も右側が効かない。設定と学習データは `~/.local/share/Meltype` にある。fcitx5 の入力メソッドの一覧（`~/.config/fcitx5/profile`）は [japanese_input.star](../../../config/elements/japanese_input.star) で宣言している。Home Manager が `~/.config/fcitx5` を丸ごと読み取り専用のリンクにするので、`fcitx5-configtool` で変えた設定は保存されない。変えるときは japanese_input.star を直して switch する。
+Meltype はローマ字を打つだけで英語と日本語を見分け、Mozc と Zenzai でかな漢字に変換する。日本語と英数を手動で切り替えるときは **左 Alt+Space** を押す（[キーボード設定](../keyboard-layers.md)）。左 Alt+バッククォートはウィンドウ選択、右 Alt はアクセント入力に使う。
+
+設定と学習データは `~/.local/share/Meltype` にある。fcitx5 の入力メソッドの一覧（`~/.config/fcitx5/profile`）は [japanese_input.star](../../../config/elements/japanese_input.star) で宣言している。Home Manager が `~/.config/fcitx5` を丸ごと読み取り専用のリンクにするので、`fcitx5-configtool` で変えた設定は保存されない。変えるときは japanese_input.star を直して switch する。
 
 ng の `y` / `p` は OS クリップボード（Wayland は wl-clipboard、X11 は xclip）につながる。外部から貼り付けるときは Ctrl+Shift+V も使える。

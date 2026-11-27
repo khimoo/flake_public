@@ -5,7 +5,7 @@
      case FcitxKey_Zenkaku_Hankaku: case FcitxKey_Hankaku: case FcitxKey_Zenkaku: return 0x19;
      case FcitxKey_Eisu_toggle: return 0xF0;
 -    case FcitxKey_Hiragana_Katakana: return 0x15;
-+    // US 配列の XKB には 半角/全角 の keysym が無いので、keyd で CapsLock をこのキーにして 半角/全角 として扱う
++    // US 配列の XKB には 半角/全角 の keysym が無いので、keyd が出す「かな」を 半角/全角 として扱う
 +    // (1.7.1 の本体は、修飾キーなしの切り替えキーに 半角/全角 しか登録できない)
 +    case FcitxKey_Hiragana_Katakana: return 0x19;
      case FcitxKey_Henkan: return 0x1C;

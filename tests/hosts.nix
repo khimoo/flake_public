@@ -22,6 +22,9 @@ let
   desktopUser = inputs.self.nixosConfigurations.nixos-desktop.config.home-manager.users.pomu;
   desktopKeyd =
     inputs.self.nixosConfigurations.nixos-desktop.config.services.keyd.keyboards.default.settings;
+  spin713Keyd = inputs.self.nixosConfigurations.nixos-spin713.config.services.keyd.keyboards;
+  imeToggleOnAltSpace =
+    settings: (settings.alt.space or null) == "katakanahiragana" && !(settings.main ? capslock);
   desktopPkgs = inputs.self.nixosConfigurations.nixos-desktop.pkgs;
   desktopWindowsVm = lib.findFirst (
     p: (p.name or "") == "windows-vm"
@@ -229,6 +232,13 @@ in
         if system != "x86_64-linux" then
           pkgs.runCommand "keyd-config-skipped" { } "touch $out"
         else
+          assert lib.assertMsg
+            (lib.all imeToggleOnAltSpace [
+              desktopKeyd
+              spin713Keyd.default.settings
+              spin713Keyd.internal.settings
+            ])
+            "左 Alt+Space で IME を切り替え、Caps Lock は書き換えない";
           pkgs.runCommand "keyd-config" { nativeBuildInputs = [ pkgs.keyd ]; } ''
             keyd check ${
               pkgs.writeText "default.conf"

@@ -20,6 +20,8 @@ XKB の既定配列 `us+altgr-intl` は [xkb.star](../../config/elements/xkb.sta
 
 例として、spin713 では Alt+Backspace で Delete が入力されますが、xkb 側にはその定義は存在しません。`/etc/keyd/internal.conf` の `[alt]` セクションに記述された `backspace=delete` が実際の挙動を定義しています。
 
+Meltype の日本語と英数は、spin713 の内蔵キーボードでも HHKB などの外付けでも **左 Alt+Space** で切り替えます（[ime_toggle_key.star](../../config/elements/ime_toggle_key.star)）。Caps Lock は大文字固定のまま、右 Alt（AltGr）はアクセント入力のままです。
+
 ## HHKB Professional BT の音量キー
 
 Mac モードで使用します。本体の電源を切り、SW1 を OFF、SW2 を ON にしてから電源を入れ直します。
