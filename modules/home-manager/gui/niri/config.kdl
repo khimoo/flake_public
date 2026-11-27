@@ -45,10 +45,10 @@ binds {
     Mod+K { focus-window-or-workspace-up; }
     Mod+L { focus-column-right; }
 
-    // ウィンドウ・列を運ぶ（モニター内: 列並び替え・上下ワークスペース移動）
+    // ウィンドウ・列を運ぶ（モニター内: 列並び替え・列内移動/上下ワークスペース移動）
     Mod+Shift+H { move-column-left; }
-    Mod+Shift+J { move-column-to-workspace-down; }
-    Mod+Shift+K { move-column-to-workspace-up; }
+    Mod+Shift+J { move-window-down-or-to-workspace-down; }
+    Mod+Shift+K { move-window-up-or-to-workspace-up; }
     Mod+Shift+L { move-column-right; }
 
     // フォーカス移動（モニター間）
@@ -65,11 +65,14 @@ binds {
 
     // レイアウト・サイズ・縦積み
     Mod+R { switch-preset-column-width; }
+    Mod+Shift+R { switch-preset-window-height; }
     Mod+C { center-column; }
     Mod+F { maximize-column; }
     Mod+Shift+F { fullscreen-window; }
     Mod+Minus { set-column-width "-10%"; }
     Mod+Equal { set-column-width "+10%"; }
+    Mod+Shift+Minus { set-window-height "-10%"; }
+    Mod+Shift+Equal { set-window-height "+10%"; }
     Mod+BracketLeft { consume-or-expel-window-left; }
     Mod+BracketRight { consume-or-expel-window-right; }
     Mod+W { toggle-column-tabbed-display; }

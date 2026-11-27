@@ -3,7 +3,6 @@ requires = [
     "neovim",
     "nvim_direnv",
     "nvim_dap",
-    "nvim_diagram",
     "nvim_lsp",
     "nvim_render_markdown",
     "nvim_rust",
@@ -11,6 +10,5 @@ requires = [
     "nvim_smart_splits",
     "nvim_telescope",
     "nvim_treesitter",
-    "nvim_typst_preview",
     "nvim_rustowl",
 ]

@@ -14,12 +14,13 @@ GDM で Niri を選んでログインします。`Mod` は Super キーです。
 | `Mod+Return` | 端末（kitty）を開く。開く端末は [terminal_exec.star](../../config/elements/terminal_exec.star) が `xdg-terminal-exec` の設定として決める |
 | `Super` 単押し / `Mod+D` | Quickshell スタートメニュー兼通知ハブを開く（安全策として `Mod+D` も併設） |
 | `Mod+H/J/K/L` | モニター内のフォーカスを動かす（左右＝列、上下＝列内ウィンドウ / ワークスペース） |
-| `Mod+Shift+H/J/K/L` | モニター内で列を動かす（左右＝列の並び替え、上下＝ワークスペース移動） |
+| `Mod+Shift+H/J/K/L` | モニター内でウィンドウ・列を動かす（左右＝列の並び替え、上下＝列内移動 / ワークスペース移動） |
 | `Mod+Ctrl+H/J/K/L` | モニター間でフォーカスを動かす |
 | `Mod+Ctrl+Shift+H/J/K/L` | モニター間でウィンドウを運ぶ |
 | `Mod+O` | Overview を切り替える |
-| `Mod+R` / `Mod+C` | 列幅のプリセット切替 / 列を中央寄せ |
+| `Mod+R` / `Mod+Shift+R` / `Mod+C` | 列幅のプリセット切替 / ウィンドウ高さのプリセット切替 / 列を中央寄せ |
 | `Mod+Minus` / `Mod+Equal` | 列幅を -10% / +10% 調整する |
+| `Mod+Shift+Minus` / `Mod+Shift+Equal` | ウィンドウ高さを -10% / +10% 調整する |
 | `Mod+F` / `Mod+Shift+F` | 列の最大化 / 全画面を切り替える |
 | `Mod+[` / `Mod+]` / `Mod+W` | 左/右の列へ縦積み・追い出し / 列のタブ表示切替 |
 | `Mod+V` / `Mod+Alt+V` | フローティング切替 / タイルとフローティング間のフォーカス移動 |
@@ -33,19 +34,19 @@ GDM で Niri を選んでログインします。`Mod` は Super キーです。
 
 ## 設定を変更する
 
-[ホームの config.kdl](../../modules/home-manager/gui/niri/config.kdl) と [Quickshell ハブの QML](../../modules/home-manager/gui/quickshell/hub/) は、Home Manager がそのユーザーの checkout へ直接リンクします。Niri の基本キー割り当て・見た目・マウス/タッチパッド設定はすべて `config.kdl` に集約されており、編集は rebuild 前から作用します（QML は保存すると Quickshell が自動で再読み込みします）。まず `niri validate` でエラーを調べ、自動の再読み込みを確認します。必要なら `niri msg action load-config-file` で現在の設定を再読み込みします。
+[ホームの config.kdl](../../modules/home-manager/gui/niri/config.kdl) と [Quickshell ハブの QML](../../modules/home-manager/gui/quickshell/hub/) は、既定で Nix store を参照します。rebuild なしで編集・反映したいときは、スタートメニュー右カラムの [Dev モード](dotfiles-mode.md)（または `dotfiles-mode toggle niri` / `dotfiles-mode toggle quickshell`）を ON にしてローカル checkout へ切り替えます。まず `niri validate` でエラーを調べ、必要なら `niri msg action load-config-file` で現在の設定を再読み込みします。`switch` や `flake-deploy` を実行すると自動的に Nix store へ戻ります。
 
 XKB・環境変数・各機能コンポーネントの寄与（Quickshell ハブ、画面ロック、音量・明るさ、フローティング一括退避、2-in-1 画面回転など）は [niri_config.star](../../config/elements/niri_config.star) が `~/.config/niri/generated.kdl` に生成します。これらを変更する場合は対応するコンポーネントを編集し、リモートで検証してから構成を適用します。`~/.config/niri/generated.kdl` 自体は編集しません。
 
 Niri の設定ファイルは Home Manager 側で管理します（`/etc/niri/` のシステム既定は置きません）。別ユーザーで Niri を使う場合は、そのユーザーの Home Manager 構成を有効にします。
 
-live symlink の誤編集は Git で該当ファイルを復元します。Nix 世代のロールバックでは復元されません。KDL が壊れて画面から直せない場合は、別の TTY または SSH で編集して `niri validate` を実行してください。
+Dev モード ON 中の誤編集は Git で該当ファイルを復元するか、`dotfiles-mode off niri` で Nix store へ戻します。KDL が壊れて画面から直せない場合は、別の TTY または SSH で `dotfiles-mode off niri` または `niri validate` を実行してください。
 
 ## ディスプレイ配置を GUI で管理する
 
 普段の切替は、スタートメニュー（`Super` 単押し / `Mod+D`）右カラムの **「ディスプレイ」** 欄にあるプロファイルボタンをクリック（または `Tab` → `Enter`）するだけで `kanshictl switch` が実行されます。
 
-プロファイルの追加・個別編集・削除は、右カラムの **「管理」** ボタン（またはスタートメニューの「ディスプレイ配置の切替 (kanshi)」／端末の `kanshi-switch`）から `fuzzel` ランチャーを開いて行います：
+プロファイルの追加・個別編集・削除は、まずスタートメニュー右カラムの [Dev モード](dotfiles-mode.md) で **`kanshi` を ON** にしてから、右カラムの **「管理」** ボタン（またはスタートメニューの「ディスプレイ配置の切替 (kanshi)」／端末の `kanshi-switch`）で `fuzzel` ランチャーを開いて行います（OFF のままでも既存プロファイルの切替は可能です）：
 
 - **新規プロファイルを作成（`kanshi-switch --create`）**: プロファイル名を入力すると `wdisplays` が開きます。画面の ON/OFF・配置・倍率を調整して **Apply** し、`wdisplays` を閉じると [modules/home-manager/gui/kanshi/config](../../modules/home-manager/gui/kanshi/config) に名前付き `profile` として追記され、自動で再読み込み・切替されます。
 - **起動時の既定を変更（`kanshi-switch --set-default`）**: 選んだプロファイルを `kanshi/config` の先頭へ移動し、ログイン・再起動時の既定にします（複数プロファイルがあるとき、既定のボタンには `★` が付きます）。

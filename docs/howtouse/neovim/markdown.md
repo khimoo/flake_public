@@ -1,8 +1,8 @@
 # Markdown
 
-装飾、数式の近似表示、箇条書きの入力補助、画像の貼り付け、Mermaid 図のプレビュー機能を備えた環境で Markdown を編集する。
+装飾、数式の近似表示、箇条書きの入力補助、ブラウザの枠なしウィンドウによるライブプレビュー（画像・Mermaid・KaTeX 数式）を備えた環境で Markdown を編集する。
 
-設定: `lua/plugins/lang/markdown/`、`lua/features/` 配下の `render_markdown.lua`、`diagram.lua`
+設定: `lua/plugins/lang/markdown/`、`lua/features/render_markdown.lua`、`lua/config/preview_browser.lua`
 
 Markdown ファイルを開くと、長い行は自動で折り返して表示され、スペルチェックが有効になる（日本語は誤りとして扱われない）。
 
@@ -34,21 +34,19 @@ Markdown バッファでは、スニペットの展開中であっても `<Tab>`
 
 SKK が有効なときも、改行すると次の項目が作成される。変換を確定する `<CR>` では改行されないため、項目は作成されない（詳細は [skkeleton.md](./skkeleton.md) を参照）。
 
-## 図を表示する（diagram.nvim、image.nvim）
+## プレビューする（mdkite.nvim）
 
-` ```mermaid ` のコードブロックにカーソルを合わせると、数秒後に図がバッファ内に表示される。kitty の Graphics Protocol を使用するため、kitty 内でのみ表示される。
+画像・Mermaid 図・数式を含めて確認したいときは、`:MarkdownPreview` を実行する。固定ポート `127.0.0.1:8421` の `takeover` モードでローカルサーバを起動し、拡張機能の無い Google Chrome（無ければ Brave）の `--app` モードで枠なしウィンドウを 1 枚開く。
 
-- 表示されるのはカーソルがある図のみで、カーソルを外すと非表示になる。
-- 入力中は再描画せず、インサートモードを抜けたとき、ファイルを保存したとき、またはバッファを開いたときに再描画する。
-- 初回の描画は図ごとに Chromium を起動するため数秒かかるが、2 回目以降はキャッシュを使用する。
-- 図が多いファイルを初めて開く際は、2 つずつ順番に描画するため全体が表示されるまでに時間がかかる（その間も編集作業は可能）。
-- ウィンドウ分割の直後に画像が消えた場合は、`:redraw!` を実行する（`<C-l>` はペイン移動に割り当てられているため）。
+- 別の Markdown ファイルへ切り替えたときは、`:MdKite start` で既存の 1 窓の中身をそのまま切り替えられる。
+- ブラウザ側には Neovim のカーソル・スクロールが追従し、Mermaid 図のズームやパン、KaTeX 数式、ローカル画像が表示される。
 
 | コマンド | 動作 |
 |---------|------|
-| `:lua require("diagram").render()` | 現在のバッファの図を再描画する |
-| `:lua require("diagram").clear()` | 図を消去（非表示に）する |
-| `:checkhealth image` | image.nvim が使用するツールが揃っているか確認する |
+| `:MarkdownPreview` | サーバを起動し、枠なしブラウザ窓（`http://127.0.0.1:8421`）を開く |
+| `:MdKite start` | サーバを起動（既存窓がある場合はそのまま対象ファイルを切り替え） |
+| `:MdKite stop` | サーバを停止する |
+| `:MdKite refresh` | プレビューを手動で再描画する |
 
 ## 見出しとリンク（marksman）
 
@@ -56,10 +54,8 @@ marksman（LSP）が見出しを Document Symbol として抽出し（`<leader>f
 
 ## 設計
 
-数式は画像化せず、`latex2text` で Unicode 文字に近似表示している。これにより端末の画像表示機能に依存せず、軽量に動作する。その代わり、複雑な数式の表示は粗くなる。
-render-markdown.nvim は LaTeX パーサーを使って数式を検出するため、LaTeX パーサーが必須となる。このパーサーは文法定義（grammar）から生成・コンパイルされるため、`tree-sitter` の CLI と Node.js も必要になる。
+編集中の軽い装飾は `render-markdown.nvim`（数式は `latex2text` による Unicode 近似表示）で済ませ、画像・Mermaid・複雑な数式の確認は端末プロトコル依存のインライン描画ではなく、Niri の隣の列に並べる枠なしブラウザ窓（`mdkite.nvim` + `preview_browser.lua`）へ分離した。これにより、`ng`・kitty・WSL のどれから編集しても同じ見た目で確認でき、`mmdc`（Chromium）や ImageMagick といった重い外部依存も不要になる。
 
-図の生成では、`mmdc` が 1 枚ごとに Chromium を起動して PNG に変換する。diagram.nvim のデフォルト設定ではテキスト変更のたびに再描画され、キャッシュにない図をすべて同時に描画するため、図の多いファイルで Chromium プロセスが大量に起動してシステムがフリーズした（図 8 枚で 466 プロセス、RSS の合計は数十 GB）。
-そのため、再描画のトリガーから `TextChanged` を外し、同時に動作する `mmdc` を 2 つまでに制限している。実装上の制約は `lua/features/diagram.lua` のコメントに記載している。
+`render-markdown.nvim` は LaTeX パーサーを使って数式を検出するため、LaTeX パーサーが必須となる。このパーサーは文法定義（grammar）から生成・コンパイルされるため、`tree-sitter` の CLI と Node.js も必要になる。
 
-カーソルのある図だけを表示する設定は、WezTerm がウィンドウリサイズのたびにすべての画像を再転送してフリーズする不具合（[wezterm#7400](https://github.com/wezterm/wezterm/issues/7400)）を回避するために導入した。端末を kitty に変更したことで設定の本来の理由は解消されたが、kitty で全図を表示してもフリーズしないかまだ確認できていないため、設定はそのままにしている。また、image.nvim は Typst でも画像を表示するため、Typst にも同様の設定を適用している。
+`--app` 窓のブラウザは、拡張機能を入れていない素の Google Chrome を優先し、無ければ Brave、どちらも無い環境（WSL 等）では Neovim 標準の `vim.ui.open` にフォールバックする（[preview_browser.lua](../../../modules/home-manager/dev/neovim/config/lua/config/preview_browser.lua)）。

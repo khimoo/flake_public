@@ -7,5 +7,6 @@ require("plugins.lang.markdown.filetype")
 
 return {
   require("plugins.lang.markdown.autolist"),
+  require("plugins.lang.markdown.preview"),
   require("plugins.lang.markdown.treesitter"),
 }
