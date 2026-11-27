@@ -139,6 +139,11 @@ let
     assert lib.hasInfix "allow=nixos-desktop,nixos-spin713\n"
       gce.services.caddy.virtualHosts."http://xsaved.home.arpa:8780".extraConfig;
     assert builtins.elem "pomu" gce.nix.settings.trusted-users;
+    # リモート flake の main から毎日自動更新し、バッチやリモートビルドを止めないよう自動再起動はしない。
+    assert gce.system.autoUpgrade.enable;
+    assert gce.system.autoUpgrade.flake == "github:khimoo/flake_public#nixos-gce";
+    assert gce.system.autoUpgrade.dates == "03:00";
+    assert !gce.system.autoUpgrade.allowReboot;
     "nixos-gce contracts passed";
 in
 {

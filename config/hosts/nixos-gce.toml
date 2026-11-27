@@ -14,6 +14,7 @@ purposes = [
   "serve_xsaved",
   "xsaved_web_resident",
   "etc_nixos_link",
+  "auto_upgrade",
 ]
 admin = true
 

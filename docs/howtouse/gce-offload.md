@@ -116,3 +116,22 @@ Google Cloud のウェルカムクレジット（無料トライアル）期間�
    `xsaved search` および <http://xsaved.home.arpa/> で最後のブックマーク・いいねが検索できることを確認し、`nixos-spin713` でも switch を実行します（手元の Caddy の転送先が nixos-desktop に変わります）。
 4. **GCE リソースの削除**:
    Google Cloud コンソールで VM インスタンスと永続ディスクを削除します。
+
+## 4. NixOS 構成の自動更新（`auto_upgrade`）
+
+[config/hosts/nixos-gce.toml](../../config/hosts/nixos-gce.toml) で `auto_upgrade`（[auto_upgrade.star](../../config/elements/auto_upgrade.star)）を有効にすると、NixOS の `system.autoUpgrade` により毎日 03:00（JST、最大 15 分のランダム遅延あり）に `github:khimoo/flake_public#nixos-gce` から自動で `nixos-rebuild switch` を実行します。カーネル更新があっても自動再起動はしません（`allowReboot = false`）。
+
+- **初回反映**: `auto_upgrade` を有効にする最初の 1 回は手元から適用します。
+  ```sh
+  nixos-rebuild switch --flake .#nixos-gce --target-host gce-ts --sudo
+  ```
+- **稼働・ログ確認**: ヘッドレスのため失敗通知は画面に出ません。必要に応じて `gce-ts` 上で確認します。
+  ```sh
+  ssh gce-ts 'systemctl list-timers nixos-upgrade.timer'
+  ssh gce-ts 'journalctl -u nixos-upgrade -n 50 --no-pager'
+  ```
+- **即時実行テスト**: 次回のタイマーを待たずに 1 回実行したい場合は以下を実行します。
+  ```sh
+  ssh gce-ts 'sudo systemctl start nixos-upgrade.service'
+  ```
+- **対象外のもの**: `xsaved` アプリ本体（`~/.local/share/xsaved-app`）は `xsaved-update` で別途更新します。また、GCE 上のローカル checkout（`~/sagyo/flake_public`）は自動では `git pull` されないため、手元で使う際は必要に応じて `git pull` または `pull-repos` を実行してください。

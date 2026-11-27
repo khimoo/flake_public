@@ -1,7 +1,7 @@
 # Google Cloud（GCE）オフロードの設計
 
 使い方: [GCE へのオフロードとローカル復帰](../howtouse/gce-offload.md)
-実装: [find_home_server.star](../../config/elements/find_home_server.star)、[expose_services.star](../../config/elements/expose_services.star)、[machine_nixos_gce.star](../../config/elements/machine_nixos_gce.star)、[xsaved_web_socket.star](../../config/elements/xsaved_web_socket.star)、[xsaved_web_resident.star](../../config/elements/xsaved_web_resident.star)、[hosts/nixos-gce/hardware.nix](../../hosts/nixos-gce/hardware.nix)
+実装: [find_home_server.star](../../config/elements/find_home_server.star)、[expose_services.star](../../config/elements/expose_services.star)、[machine_nixos_gce.star](../../config/elements/machine_nixos_gce.star)、[auto_upgrade.star](../../config/elements/auto_upgrade.star)、[xsaved_web_socket.star](../../config/elements/xsaved_web_socket.star)、[xsaved_web_resident.star](../../config/elements/xsaved_web_resident.star)、[hosts/nixos-gce/hardware.nix](../../hosts/nixos-gce/hardware.nix)
 
 Google Cloud のウェルカムクレジット（$300 / 90日間、[Free Trial 仕様](https://cloud.google.com/free/docs/free-cloud-features)）を活用して、Nix リモートビルド、Rust の `cargo remote-run`、および `xsaved` を GCE 上の NixOS VM で動かし、期間終了後に `purposes` の変更だけで `nixos-desktop` へ戻せるようにするための判断。
 
@@ -46,6 +46,14 @@ GCE の E2 シリーズは Nested Virtualization（`/dev/kvm`）に非対応で�
 - `security.googleOsLogin.enable = lib.mkForce false`: `google-compute-config.nix` が有効にする OS Login を止め、`machine_base` と `authorize_lan_key` による宣言的なアカウント・公開鍵管理に揃える。
 - `security.sudo.wheelNeedsPassword = false` と `nix.settings.trusted-users = [ "@wheel" ]`: パスワードを持たない `pomu` が `id_lan` でログインして `sudo tailscale up` や初回の `--target-host` switch を行えるようにする。
 - `system.build.diskoScript`: 外部の `disko` flake input を増やさずに `nixos-anywhere --flake .#nixos-gce` を実行できるよう、GCE のブート用永続ディスク（`/dev/disk/by-id/google-persistent-disk-0`）を優先して GPT（`ESP` と `nixos` ラベル）で初期化する。
+
+## 自動更新は `flake-deploy` ではなく `system.autoUpgrade` で行う
+
+`nixos-gce` の定期更新は [auto_upgrade.star](../../config/elements/auto_upgrade.star) で NixOS 標準の `system.autoUpgrade` を使い、持ち主のリポジトリ（[owner.toml](../../config/owner.toml) の `flake_repo`）の `main` を毎日 03:00（最大 15 分遅延）に自前ビルドして `switch` する。
+
+- **既存の GCS キャッシュ配布（`flake-deploy`）に乗せない理由**: [publish-cache.sh](../../scripts/ci/publish-cache.sh) と `flake-cache-worker` は `nixos-desktop` / `nixos-spin713` 向けの恒久基盤であり、90 日間限定のオフロード VM のためにワーカー・テスト・VM サービスアカウント権限を広げると、追加と撤去の双方で保守負担が増える。`nixos-gce` 自身は `serve_builds` を引き受ける VM であり、ヘッドレス構成の自前ビルドに余裕がある。
+- **時刻と再起動方針**: `xsaved-process` が毎日 04:00 に始まるため、それより前の 03:00 台に実行して CPU・メモリの競合を避ける。`xsaved` のバッチ系ユニットには `X-SwitchMethod = "keep-old"` が付いているため、再起動を伴わない `switch` なら処理中のバッチを止めない。一方、自動再起動（`allowReboot = true`）はバッチやリモートビルドを中断させるため無効にしている。
+- **却下した案**: GitHub Actions から Tailscale / SSH で push する方式は、外部 TCP 22 を閉じて Tailscale に絞る方針に対して CI へ接続鍵を渡す必要があり、攻撃面を広げるため採用しない。
 
 ## 見直す条件
 
