@@ -26,3 +26,8 @@ def config(incoming):
         "services.sunshine.settings": {"capture": "wlr"},
         "services.sunshine.applications": {"apps": [w.value for w in incoming]},
     }}
+
+def writes(keyd):
+    # Sunshine の仮想キーボード（libvirtualhid Keyboard）を keyd が掴むと、
+    # クライアント側（spin713 等）で既に keyd 変換された入力が二重に処理されるため除外する。
+    return [write(keyd, exclude_default_ids = ["1209:0002"])]

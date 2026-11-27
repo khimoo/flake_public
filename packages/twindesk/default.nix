@@ -1,7 +1,6 @@
 { twindesk, nodejs }:
 twindesk.overrideAttrs (old: {
   postInstall = (old.postInstall or "") + ''
-    cp -r shared/web shared/airplay "$out/share/twindesk/shared/"
     cp -r web "$out/share/twindesk/web"
     cp -r android/app/src/main/assets/web "$out/share/twindesk/android-web"
   '';

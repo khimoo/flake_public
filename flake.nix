@@ -58,7 +58,7 @@
     };
     rnote.url = "github:khimoo/rnote";
     twindesk = {
-      url = "github:InukaAsith/TwinDesk/v3.0.0";
+      url = "github:InukaAsith/TwinDesk/v3.2.1";
       inputs.nixpkgs.follows = "nixpkgs-unstable";
     };
   };

@@ -565,16 +565,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1794246359,
-        "narHash": "sha256-YNrN3De+LtmYFMitmCKwpxRZXVRT+81PU9FLYh7ktRE=",
+        "lastModified": 1794715831,
+        "narHash": "sha256-W+lceSzCMiukzA5ZKmiErhCRpMmnlTdE6sXu4vCBZUo=",
         "owner": "InukaAsith",
         "repo": "TwinDesk",
-        "rev": "2c2344fdb4bebb9003a4cd7bfc9d6801dcdd3a6b",
+        "rev": "5d32d9f5625c02ead10ccea3b82326ec971fac29",
         "type": "github"
       },
       "original": {
         "owner": "InukaAsith",
-        "ref": "v3.0.0",
+        "ref": "v3.2.1",
         "repo": "TwinDesk",
         "type": "github"
       }
