@@ -36,6 +36,7 @@ purposes = [
   "game",
   "game_development",
   "communicate",
+  "restore_desktop_session",
   "use_aiboard",
   "use_xsaved",
   # 生活管理
