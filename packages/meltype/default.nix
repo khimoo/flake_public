@@ -72,6 +72,8 @@ stdenv.mkDerivation {
     patch -d addon -p1 < ${./selected-clause-cursor.patch}
     # 端末では確定し直さない (パッチの中のコメント)
     patch -d addon -p1 < ${./terminal-no-delete.patch}
+    # 「かな」キーを 半角/全角 として扱う (ime_toggle_key.star の CapsLock 用。パッチの中のコメント)
+    patch -d addon -p1 < ${./kana-as-hankaku.patch}
     cmake -S addon -B addon/build -DCMAKE_BUILD_TYPE=Release -DMELTYPE_DIR="$out/lib/meltype"
     cmake --build addon/build
     runHook postBuild
