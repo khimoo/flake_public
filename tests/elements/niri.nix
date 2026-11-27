@@ -430,6 +430,86 @@ in
       elements = [ "display_layout" ];
     };
 
+  niri-brightness-step =
+    (lib.lazyDerivation {
+      derivation =
+        let
+          host = nixosHost "test-niri";
+          generated = host.home-manager.users.alice.xdg.configFile."niri/generated.kdl".text;
+          helper = lib.findFirst (p: (p.name or "") == "niri-brightness-step") null host.environment.systemPackages;
+        in
+        assert lib.hasInfix ''XF86MonBrightnessUp allow-when-locked=true { spawn "niri-brightness-step" "up"; }'' generated;
+        assert lib.hasInfix ''XF86MonBrightnessDown allow-when-locked=true { spawn "niri-brightness-step" "down"; }'' generated;
+        assert helper != null;
+        pkgs.runCommand "niri-brightness-step-test" { } ''
+          export XDG_RUNTIME_DIR="$PWD/runtime"
+          mkdir "$XDG_RUNTIME_DIR"
+          brightnessctl() {
+            if [[ "$*" == "--class=backlight --machine-readable info" ]]; then
+              local value=$current
+              if [[ -n "''${test_state:-}" ]]; then
+                value=$(<"$test_state")
+                # 連打で、書き込み前にもう一方の読み取りが走る時間を作る。
+                sleep 0.5
+              fi
+              printf 'test-backlight,backlight,%s,0%%,%s\n' "$value" "$maximum"
+            elif [[ "$*" == "--class=backlight --device=test-backlight --quiet set $5" ]]; then
+              if [[ -n "''${test_state:-}" ]]; then
+                printf '%s\n' "$5" > "$test_state"
+              else
+                printf '%s\n' "$5"
+              fi
+            else
+              return 1
+            fi
+          }
+          export -f brightnessctl
+          check() {
+            local actual
+            actual=$(current="$1" maximum="$2" ${helper}/bin/niri-brightness-step "$3")
+            if [[ "$actual" != "$4" ]]; then
+              printf 'current=%s max=%s direction=%s: expected [%s], got [%s]\n' "$1" "$2" "$3" "$4" "$actual" >&2
+              return 1
+            fi
+          }
+          # spin713 と同じ最大値。境界と、スライダーで中間値にした場合を確かめる。
+          check 0 1500 up 45
+          check 45 1500 up 75
+          check 75 1500 up 150
+          check 150 1500 up 225
+          check 225 1500 down 150
+          check 150 1500 down 75
+          check 75 1500 down 45
+          check 45 1500 down 0
+          check 44 1500 up 45
+          check 46 1500 down 45
+          check 0 1500 down ""
+          check 1500 1500 up ""
+          # 複数の % が同じ実輝度に丸められても、次の実輝度へ進める。
+          check 0 10 up 1
+          check 1 10 down 0
+
+          # 上げるキーを連打しても、3% から 5% を経て 10% まで進む。
+          export test_state="$PWD/brightness" current=45 maximum=1500
+          printf '%s\n' 45 > "$test_state"
+          ${helper}/bin/niri-brightness-step up &
+          first=$!
+          ${helper}/bin/niri-brightness-step up &
+          second=$!
+          wait "$first"
+          wait "$second"
+          actual=$(<"$test_state")
+          if [[ "$actual" != 150 ]]; then
+            printf 'Two overlapping up requests: expected 150, got %s\n' "$actual" >&2
+            exit 1
+          fi
+          touch "$out"
+        '';
+    })
+    // {
+      elements = [ "audio_controls" ];
+    };
+
   hhkb-bt-audio =
     (lib.lazyDerivation {
       derivation =
