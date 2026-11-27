@@ -82,9 +82,9 @@ git clone ~/sagyo/xsaved ~/.local/share/xsaved-app
 
 ## Web UI
 
-nixos-desktop 上のブラウザで <http://pomu.xsaved.localhost/>（`<アカウント名>.xsaved.localhost`） を開くと、ポストの検索や類似ポスト検索を利用できます。
-ほかのホスト（spin713 など）では、アプリ一覧の「X の保存（xsaved）」か `xsaved-web` で開きます。`xsaved-web` は、手元の `web_port` + 10000 番（既定 18765）から自分用サーバの `web_port` へ ssh のポート転送を始めてから、<http://127.0.0.1:18765/> を開きます。
-コマンドは `xsaved-remote <引数>` で、自分用サーバの `xsaved` を ssh 越しに実行します。
+ブラウザで <http://xsaved.home.arpa/> を開くと、ポストの検索や類似ポスト検索を利用できます。どの端末でも同じ URL で、xsaved を動かすホスト（今は nixos-gce）を移しても変わりません。
+使う端末は、ホストの `purposes` に `use_xsaved` を書いて列挙します。xsaved の門番は、`use_xsaved` を選んだホストからの接続だけを通します（[../architecture/tailnet-web.md](../architecture/tailnet-web.md)）。
+`xsaved` コマンドは、xsaved を動かすホストで実行します。
 「検索対象」で「すべて」「いいね」「ブックマーク」を選択でき、この設定は「似たツイート」や「もっと表示」の検索条件にも引き継がれます。
 検索を実行すると、ruri（本文＋OCR テキスト）、Qwen（本文＋OCR テキスト）、Qwen（画像・動画）、全文検索、PixAI タグの結果が、それぞれ独立した列に並んで表示されます。全文検索では、スペース区切りで AND 検索、`OR` 区切りで OR 検索が可能です。全文検索の対象には投稿者のユーザー ID（`@` 付き）や表示名も含まれます。
 Qwen（画像・動画）の列では、動画から抽出したフレームも画像と同様に照合され、動画ポストは最も類似度の高いフレームのスコア順にランク付けされます。
@@ -102,12 +102,13 @@ Web サーバーは常駐しません。アクセス時に systemd ソケット�
 ```bash
 systemctl --user status xsaved-web.socket xsaved-web-server
 journalctl --user -u xsaved-web-server
-systemctl status caddy
-journalctl -u caddy
+systemctl status caddy tailnet-gate-auth
+journalctl -u tailnet-gate-auth
 ```
 
-アクセスはローカルマシンからのみ可能です。URL スキームには `http://` を指定してください。
-Caddy が起動していない場合は、<http://127.0.0.1:8765/> へ直接アクセスすることで問題の切り分けが可能です。
+URL スキームには `http://` を指定してください。
+門番が通さなかった端末は、xsaved を動かすホストの `journalctl -u tailnet-gate-auth` に「denied」で出ます。手元の Caddy（`systemctl status caddy`）が動いていなければ、名前は自分自身へ向いたまま応答しません。
+切り分けには、xsaved を動かすホストで <http://127.0.0.1:8765/> へ直接アクセスします。
 内部接続先ポートは `[users.xsaved]` の `web_port` で変更でき、Caddy のリバースプロキシ先も自動追従します。Web サーバー本体はその次のポート番号で待機します。
 
 ## 定期実行

@@ -14,6 +14,7 @@ Flake 設定の設計判断・実装構造のドキュメント。設定変更�
 | [remote-build.md](./remote-build.md) | リモートビルドの設計 |
 | [gce-offload.md](./gce-offload.md) | Google Cloud（GCE）へビルドや xsaved をオフロードし、ローカルへ戻す設計 |
 | [tailscale.md](./tailscale.md) | LAN の外からの SSH・リモートビルド・画面配信 の経路の設計 |
+| [tailnet-web.md](./tailnet-web.md) | 自分用サーバの Web UI（aiboard、xsaved）を、決まった名前と門番で tailnet の端末へ届ける設計 |
 | [private-repo-clone.md](./private-repo-clone.md) | SSH 鍵の配布、秘密の更新、private repo の clone の設計 |
 | [new-machine.md](./new-machine.md) | 新マシンのプロビジョニングの設計メモ（未実装） |
 | [disk-tiering.md](./disk-tiering.md) | NVMe と SATA の 2 層ディスク構成の設計 |

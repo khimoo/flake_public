@@ -36,6 +36,8 @@ purposes = [
   "game",
   "game_development",
   "communicate",
+  "use_aiboard",
+  "use_xsaved",
   # 生活管理
   "web_procedures",
   "write_documents",

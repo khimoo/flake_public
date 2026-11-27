@@ -13,12 +13,3 @@ purposes = ["serve_xsaved", "xsaved_web_resident", "etc_nixos_link"]
 database = "xsaved_alice"
 ml_extra = "ml-cpu"
 backup_repository = "rclone:test:xsaved-alice"
-
-[[users]]
-name = "bob"
-purposes = ["serve_xsaved", "xsaved_web_socket", "xsaved_backup"]
-
-[users.xsaved]
-database = "xsaved_bob"
-web_port = 8775
-backup_repository = "rclone:test:xsaved-bob"

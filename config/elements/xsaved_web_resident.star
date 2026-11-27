@@ -1,6 +1,5 @@
 # 目的: xsaved の検索の Web UI を常駐させ、初回の起動待ちをなくす（専用サーバ向け）。
 # 常駐プロセスが GPU ロックを握り続けると夜間の埋め込みとバックアップが永久に待つため、検索サーバーではロックを取らない。
-requires = ["xsaved_web_proxy"]
 
 def user_config(serve_xsaved, failure_notify):
     port = serve_xsaved.web_port

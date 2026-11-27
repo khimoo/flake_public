@@ -1,0 +1,15 @@
+system = "x86_64-linux"
+state_version = "25.11"
+timezone = "Asia/Tokyo"
+hostname = "test-xsaved-socket"
+machine = "machine_nixos_gce"
+
+# Web UI をソケットから都度起動し、バックアップも動かすサーバ。
+[[users]]
+name = "bob"
+purposes = ["serve_xsaved", "xsaved_web_socket", "xsaved_backup", "etc_nixos_link"]
+
+[users.xsaved]
+database = "xsaved_bob"
+web_port = 8775
+backup_repository = "rclone:test:xsaved-bob"

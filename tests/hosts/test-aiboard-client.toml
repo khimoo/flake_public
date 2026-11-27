@@ -1,6 +1,10 @@
 system = "x86_64-linux"
 state_version = "25.11"
+timezone = "Asia/Tokyo"
+hostname = "test-aiboard-client"
+machine = "machine_nixos_gce"
 
+# 掲示板を使う端末の側。serve_aiboard の門番は、このホストを通す端末に含める。
 [[users]]
 name = "test"
-purposes = ["use_aiboard"]
+purposes = ["use_aiboard", "etc_nixos_link"]

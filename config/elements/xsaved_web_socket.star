@@ -1,5 +1,4 @@
 # 目的: xsaved の検索の Web UI を、ブラウザで開いたときにソケットから起動し、15 分間使われなければ止める（ローカル PC 向け）。
-requires = ["xsaved_web_proxy"]
 
 def user_config(serve_xsaved):
     port = serve_xsaved.web_port

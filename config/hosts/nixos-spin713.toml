@@ -30,6 +30,8 @@ purposes = [
   "draw",
   "media",
   "communicate",
+  "use_aiboard",
+  "use_xsaved",
   # 生活管理
   "web_procedures",
   # 自分用サーバの画面を受け取る

@@ -113,6 +113,6 @@ Google Cloud のウェルカムクレジット（無料トライアル）期間�
    systemctl --user start xsaved-sync.timer xsaved-process.timer xsaved-backup.timer xsaved-web.socket
    systemctl --user start xsaved-backup.service
    ```
-   `xsaved search` および `xsaved-web` で最後のブックマーク・いいねが検索できることを確認し、`nixos-spin713` でも switch を実行します。
+   `xsaved search` および <http://xsaved.home.arpa/> で最後のブックマーク・いいねが検索できることを確認し、`nixos-spin713` でも switch を実行します（手元の Caddy の転送先が nixos-desktop に変わります）。
 4. **GCE リソースの削除**:
    Google Cloud コンソールで VM インスタンスと永続ディスクを削除します。

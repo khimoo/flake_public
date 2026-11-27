@@ -7,6 +7,7 @@ def _database(value):
         fail("xsaved: invalid database identifier")
     return value
 
+requires = ["tailnet_gate"]
 needs = ["nixos_system"]
 role = True
 
@@ -54,13 +55,11 @@ def public(user):
         "systemd": pkg("systemd"),
     }
 
-def config(host):
-    tables = [account["xsaved"] for account in host.users if "xsaved" in account]
-    # データベースとポートはホストで共有するので、ユーザーどうしで重ならないことを確かめる。
-    for key, default in [("database", "xsaved"), ("web_port", _DEFAULT_PORT)]:
-        chosen = [table.get(key, default) for table in tables]
-        if len(chosen) != len({str(value): True for value in chosen}):
-            fail("xsaved: " + key + " must be unique per user")
+def config(host, roles):
+    # Web UI の名前（xsaved.home.arpa）は tailnet に 1 つなので、1 台で xsaved を動かすのは 1 人までにする。
+    users = [name for name, chosen in roles.hosts.get(host.hostname, {}).items() if "serve_xsaved" in chosen]
+    if len(users) > 1:
+        fail("xsaved: only one user per host can select serve_xsaved (" + ", ".join(sorted(users)) + ")")
     nixos = {
         "services.postgresql.enable": True,
         "services.postgresql.package": pkg("postgresql_17"),
@@ -69,7 +68,7 @@ def config(host):
     }
     return {"nixos": nixos}
 
-def user_config(user, serve_xsaved, failure_notify):
+def user_config(user, serve_xsaved, failure_notify, tailnet_web):
     xsaved = serve_xsaved
     database = xsaved.database
     cli = xsaved.cli
@@ -106,5 +105,10 @@ def user_config(user, serve_xsaved, failure_notify):
         "systemd.services.postgresql-setup.script": mkAfter(
             "psql -tAc " + _quote('ALTER DATABASE "' + database + '" OWNER TO "' + owner + '"') + "\n" +
             "psql -d " + _quote(database) + " -tAc 'CREATE EXTENSION IF NOT EXISTS vector; CREATE EXTENSION IF NOT EXISTS pgroonga'\n"),
+    }
+    # tailnet の端末からは、門番（tailnet_gate）を通して http://xsaved.home.arpa/ で開く。門番は use_xsaved を選んだホストだけを通す。
+    name = tailnet_web.names["serve_xsaved"]
+    nixos[("services", "caddy", "virtualHosts", "http://" + name + ":" + str(tailnet_web.gate_port))] = {
+        "extraConfig": tailnet_web.gate["serve_xsaved"] + "reverse_proxy 127.0.0.1:" + str(xsaved.web_port) + "\n",
     }
     return {"home": home, "home_imports": [repoModule("modules/home-manager/xsaved/nixos-only.nix")], "nixos": nixos}

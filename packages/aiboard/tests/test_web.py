@@ -13,6 +13,8 @@ from unittest.mock import patch
 from board import Board
 from config import Settings
 
+NAME = 'board.test'
+
 
 @dataclass
 class LiveHTTP:
@@ -35,8 +37,7 @@ class LiveHTTP:
 
     @property
     def host(self):
-        name = '[::1]' if self.bind == '::1' else self.bind
-        return f'{name}:{self.server.server_port}'
+        return f'{NAME}:{self.server.server_port}'
 
     def post(self, path, payload):
         status, _, body = self.request('POST', path, payload, {'Origin': f'http://{self.host}'})
@@ -45,9 +46,10 @@ class LiveHTTP:
 
 class WebCase(unittest.TestCase):
     def start_http(self, bind='127.0.0.1'):
-        from web import make_server
+        from web import Access, make_server
 
-        server = make_server(bind, 0, self.board, self.workers)
+        access = Access([NAME])
+        server = make_server(bind, 0, self.board, self.workers, access)
         self.addCleanup(server.server_close)
         thread = threading.Thread(target=server.serve_forever, kwargs={'poll_interval': 0.01})
         thread.start()
@@ -56,40 +58,52 @@ class WebCase(unittest.TestCase):
         return LiveHTTP(server, bind)
 
 
+class ForumStore:
+    def __init__(self):
+        self.names = []
+
+    def create_forum(self, name):
+        self.names.append(name)
+        return len(self.names)
+
+
 class CSRFTests(WebCase):
-    def test_csrf_accepts_forwarded_ports_and_referer_fallback(self):
-        class ForumStore:
-            def __init__(self):
-                self.names = []
-
-            def create_forum(self, name):
-                self.names.append(name)
-                return len(self.names)
-
+    def test_csrf_accepts_board_name_with_any_port_and_referer_fallback(self):
         self.board, self.workers = ForumStore(), None
         http = self.start_http()
         for host, source in [
-            ('localhost:31337', {'Origin': 'http://localhost:31337'}),
-            ('127.0.0.1:48321', {'Referer': 'http://127.0.0.1:48321/?forum=1'}),
-            ('[::1]:48321', {'Origin': 'http://[::1]:48321'}),
+            (f'{NAME}:31337', {'Origin': f'http://{NAME}:31337'}),
+            ('BOARD.test:48321', {'Referer': 'http://BOARD.test:48321/?forum=1'}),
+            (NAME, {'Origin': f'http://{NAME}'}),
         ]:
             with self.subTest(host=host):
                 self.assertEqual(http.request('POST', '/api/forums', {'name': host},
                                               {'Host': host, **source})[0], 201)
-        self.assertEqual(self.board.names, ['localhost:31337', '127.0.0.1:48321', '[::1]:48321'])
+        self.assertEqual(self.board.names, [f'{NAME}:31337', 'BOARD.test:48321', NAME])
 
     def test_csrf_rejects_missing_or_different_source_before_mutating(self):
-        self.board, self.workers = None, None
+        self.board, self.workers = ForumStore(), None
         http = self.start_http()
         for headers in [
             {}, {'Origin': ''}, {'Origin': 'null'},
-            {'Origin': 'http://localhost:10001', 'Host': 'localhost:10002'},
-            {'Origin': 'http://localhost:10002', 'Host': '127.0.0.1:10002'},
-            {'Origin': 'http://outside.invalid', 'Host': 'outside.invalid'},
+            {'Origin': f'http://{NAME}:10001', 'Host': f'{NAME}:10002'},
             {'Origin': 'http://outside.invalid', 'Referer': f'http://{http.host}/'},
         ]:
             with self.subTest(headers=headers):
                 self.assertEqual(http.request('POST', '/api/forums', {'name': 'test'}, headers)[0], 403)
+        self.assertEqual(self.board.names, [])
+
+    def test_other_host_names_are_rejected_even_with_matching_origin(self):
+        # A rebound DNS name or a direct address must not reach the board.
+        self.board, self.workers = ForumStore(), None
+        http = self.start_http()
+        for host in ['outside.invalid:80', '127.0.0.1:15280', 'localhost:15280', '[::1]:15280',
+                     f'{NAME}.evil.invalid']:
+            with self.subTest(host=host):
+                self.assertEqual(http.request('GET', '/', headers={'Host': host})[0], 403)
+                self.assertEqual(http.request('POST', '/api/forums', {'name': host},
+                                              {'Host': host, 'Origin': f'http://{host}'})[0], 403)
+        self.assertEqual(self.board.names, [])
 
     def test_ipv6_listener(self):
         self.board, self.workers = None, None

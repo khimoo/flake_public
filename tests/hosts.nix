@@ -65,8 +65,11 @@ let
     # @mimikopi は手で作る subvol なので、作る前の switch や再起動で起動を止めないよう nofail を外さない。
     assert builtins.elem "nofail"
       inputs.self.nixosConfigurations.nixos-desktop.config.fileSystems."/home/pomu/.local/share/mimikopi".options;
-    assert hasLauncher desktopUser "xsaved-web";
-    assert hasLauncher desktopUser "xsaved-remote";
+    # 自分用サーバの Web UI は、名前（*.home.arpa）を自分へ向け、手元の Caddy から門番へ渡す。
+    assert
+      inputs.self.nixosConfigurations.nixos-desktop.config.services.caddy.virtualHosts."http://xsaved.home.arpa".extraConfig
+      == "reverse_proxy nixos-gce:8780\n";
+    assert !(hasLauncher desktopUser "xsaved-web");
     assert hasLauncher desktopUser "cargo-remote-run";
     assert hasLauncher desktopUser "flake-deploy";
     assert !(desktopUser.systemd.user.services ? xsaved-sync);
@@ -132,6 +135,9 @@ let
     ];
     assert gceUser.systemd.user.services.xsaved-web-server.Install.WantedBy == [ "default.target" ];
     assert !(gceUser.systemd.user.sockets ? xsaved-web);
+    # xsaved の門番は、use_xsaved を選んだデスクトップとノート PC だけを通す。
+    assert lib.hasInfix "allow=nixos-desktop,nixos-spin713\n"
+      gce.services.caddy.virtualHosts."http://xsaved.home.arpa:8780".extraConfig;
     assert builtins.elem "pomu" gce.nix.settings.trusted-users;
     "nixos-gce contracts passed";
 in

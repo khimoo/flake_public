@@ -1,0 +1,21 @@
+system = "x86_64-linux"
+state_version = "25.11"
+timezone = "Asia/Tokyo"
+hostname = "test-xsaved-two-users"
+machine = "machine_nixos_gce"
+
+# Web UI の名前は tailnet に 1 つなので、1 台で xsaved を動かすのは 1 人まで（confgen が止める）。
+[[users]]
+name = "alice"
+purposes = ["serve_xsaved", "xsaved_web_resident", "etc_nixos_link"]
+
+[users.xsaved]
+database = "xsaved_alice"
+
+[[users]]
+name = "bob"
+purposes = ["serve_xsaved", "xsaved_web_socket"]
+
+[users.xsaved]
+database = "xsaved_bob"
+web_port = 8775

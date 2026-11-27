@@ -67,8 +67,10 @@ def parser():
     reply.add_argument('thread_id', type=positive)
     reply.add_argument('body', nargs='?')
     server = add('serve', 'Web UI とキュー監視を起動')
-    server.add_argument('--host', default='127.0.0.1')
+    server.add_argument('--host', default='127.0.0.1', help='待ち受けるアドレス')
     server.add_argument('--port', type=positive, default=15280)
+    server.add_argument('--name', action='append', required=True,
+                        help='ブラウザが掲示板を開くときのホスト名（Host ヘッダ）。複数指定可')
     return root
 
 
@@ -89,13 +91,14 @@ def thread_line(row):
 
 
 def run_server(args, board, settings):
-    from web import make_server
+    from web import Access, make_server
     from worker import WorkerManager
 
     if args.port > 65535:
         raise ConfigError('ポートは 1～65535 の範囲で指定してください')
+    access = Access(args.name)
     workers = WorkerManager(board, settings)
-    with make_server(args.host, args.port, board, workers) as server:
+    with make_server(args.host, args.port, board, workers, access) as server:
         def stop(signum, frame):
             # The first signal jumps to cleanup. Do not interrupt process collection on a repeat.
             signal.signal(signal.SIGINT, signal.SIG_IGN)
@@ -105,7 +108,7 @@ def run_server(args, board, settings):
         previous = {s: signal.signal(s, stop) for s in (signal.SIGINT, signal.SIGTERM)}
         try:
             workers.start()
-            print(f'aiboard serve: {args.host}:{args.port}', flush=True)
+            print(f'aiboard serve: {args.host}:{args.port} names={",".join(args.name)}', flush=True)
             server.serve_forever()
         except KeyboardInterrupt:
             pass

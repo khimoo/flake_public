@@ -1,7 +1,10 @@
 system = "x86_64-linux"
 state_version = "25.11"
+timezone = "Asia/Tokyo"
+hostname = "test-xsaved-client"
+machine = "machine_nixos_gce"
 
-# クライアントの側。expose_services と serve_xsaved を選んだホストのユーザーへ ssh で接続する。
+# クライアントの側。xsaved.home.arpa を手元の Caddy で受け、xsaved を動かすホストの門番へ渡す。
 [[users]]
 name = "test"
-purposes = ["use_xsaved", "tailscale"]
+purposes = ["use_xsaved", "etc_nixos_link"]

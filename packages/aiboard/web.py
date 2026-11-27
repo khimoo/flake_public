@@ -1,4 +1,4 @@
-"""Local-only board HTTP adapter. The caller owns the serve/shutdown lifecycle."""
+"""Board HTTP adapter behind the tailnet gate. The caller owns the serve/shutdown lifecycle."""
 
 import json
 import logging
@@ -20,17 +20,31 @@ ASSETS = {
     '/static/board.js': ('board.js', 'text/javascript; charset=utf-8'),
     '/static/board.svg': ('board.svg', 'image/svg+xml'),
 }
-LOCAL_HOST = re.compile(r'(127\.0\.0\.1|localhost|\[::1\])(?::([0-9]{1,5}))?', re.ASCII | re.IGNORECASE)
+HOST = re.compile(r'([A-Za-z0-9.-]+)(?::[0-9]{1,5})?', re.ASCII)
 MAX_BODY = 1024 * 1024
 HUMAN = ('user', 'human')
 ARCHIVED = 'archived'
 LOGGER = logging.getLogger(__name__)
 
 
-def _allowed_source(headers):
+class Access:
+    """Accept only requests that address the board by one of its names.
+
+    The tailnet gate in front decides which devices may connect; this check keeps a
+    rebound DNS name (or a page on this host aiming at 127.0.0.1) from reaching it.
+    """
+
+    def __init__(self, names):
+        self.names = {name.lower() for name in names}
+
+    def allows(self, headers):
+        hosts = headers.get_all('Host', [])
+        match = HOST.fullmatch(hosts[0]) if len(hosts) == 1 else None
+        return bool(match and match.group(1).lower() in self.names)
+
+
+def _same_origin(headers):
     hosts = headers.get_all('Host', [])
-    if len(hosts) != 1 or not LOCAL_HOST.fullmatch(hosts[0]):
-        return False
     origins = headers.get_all('Origin')
     source = origins if origins is not None else headers.get_all('Referer', [])
     if len(source) != 1 or re.search(r'[\x00-\x20\x7f\\]', source[0]):
@@ -313,8 +327,13 @@ class Handler(BaseHTTPRequestHandler):
             return 200, {}
         raise BoardError('ページが見つかりません。', 404)
 
+    def _check_access(self):
+        if not self.server.access.allows(self.headers):
+            raise BoardError('このホスト名からの接続は許可されていません。', 403)
+
     def do_GET(self):
         try:
+            self._check_access()
             path, _, query = self.path.partition('?')
             if path in ASSETS:
                 file, content_type = ASSETS[path]
@@ -339,7 +358,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         try:
-            if not _allowed_source(self.headers):
+            self._check_access()
+            if not _same_origin(self.headers):
                 raise BoardError('この送信元からの操作は許可されていません。', 403)
             path, _, query = self.path.partition('?')
             status, data = self._post(path, query, self._payload())
@@ -352,7 +372,7 @@ class _IPv6Server(ThreadingHTTPServer):
     address_family = socket.AF_INET6
 
 
-def make_server(host, port, board, workers):
+def make_server(host, port, board, workers, access):
     """Bind a server without starting its HTTP loop or any board workers."""
     if host.startswith('[') and host.endswith(']'):
         host = host[1:-1]
@@ -360,4 +380,5 @@ def make_server(host, port, board, workers):
     server = cls((host, port), Handler)
     server.board = board
     server.workers = workers
+    server.access = access
     return server
