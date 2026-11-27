@@ -20,6 +20,7 @@
 | 会社PCの NixOS-WSL | 会社 PC の WSL の導入と運用 | [wsl.md](./wsl.md) |
 | ディスク階層構成 | 2 層ディスクの subvol とマウント | [disk-tiering.md](./disk-tiering.md) |
 | Niri | デスクトップの操作、設定の反映、ログの確認 | [niri.md](./niri.md) |
+| Dev モード | Neovim・Niri 等の設定を Nix store とローカル checkout で個別に切り替える手順と設計 | [dotfiles-mode.md](./dotfiles-mode.md) |
 | GUI アプリ | GUI アプリの追加・削除の変更箇所 | [gui-apps.md](./gui-apps.md) |
 | ブラウザ | Firefox、Zen、Brave、Chrome の拡張機能、pref、同期の管理 | [browsers.md](./browsers.md) |
 | 定期実行の失敗の通知 | ユーザーの定期実行が失敗したときの通知と確認 | [failure-notify.md](./failure-notify.md) |

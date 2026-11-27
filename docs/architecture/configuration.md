@@ -15,7 +15,7 @@
 
 ハードウェアプロファイルと利用目的からコンポーネントの `requires` と仮引数をたどる。GUI アプリの基本は `gui`、Niri のセッションは `desktop`、日本語入力は `japanese_input` にある。WSLg は `gui` だけを選べるため、ローカルのログイン画面やコンポジタを導入せずにアプリを使える。セッションとユーザー設定の境界は [Niri の設計](niri.md) を参照する。
 
-Neovim の道具と生成する Lua は `nvim_<名前>` のコンポーネントが機能ごとに持つ（[設計](neovim/features.md)）。Neovim の設定ディレクトリは checkout への live symlink なので、生成するファイルは XDG data 配下に置く。kitty のフォントは `gui` の公開値を読む。
+Neovim の道具と生成する Lua は `nvim_<名前>` のコンポーネントが機能ごとに持つ（[設計](neovim/features.md)）。Neovim の設定ディレクトリは `dotfiles-mode` 経由の symlink なので、生成するファイルは XDG data 配下に置く。kitty のフォントは `gui` の公開値を読む。
 
 ## ホストによる違いを受け持つ場所
 
@@ -70,7 +70,7 @@ Nix評価はcheckoutの実在やage鍵を要求しない。秘密鍵の復元は
 
 activation を変更するときは、対応 OS、dry-run、再実行、中断・失敗後の回復を扱う。途中の結果を完了済みと判定しない。
 
-live symlinkの内容はNix世代のロールバックでは戻らない。Gitで内容を復元する。
+live symlink（エージェント設定、および [Dev モード](../howtouse/dotfiles-mode.md) ON 中の各設定）の内容はNix世代のロールバックでは戻らない。Gitで内容を復元する。
 
 検証は実際のfactoryで複数ユーザーを生成し、他人の鍵・private repo・Git identityが漏れないこと、OS制約と不正設定の拒否を確認する。NixOS本体・Home Manager全構成の評価と、実機でのactivationを区別して報告する。
 

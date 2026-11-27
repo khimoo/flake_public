@@ -14,7 +14,18 @@ def _merge(data, more):
         out[feature] = merged
     return out
 
-def user_config(checkout, incoming):
+def writes(dotfiles_mode):
+    return [write(
+        dotfiles_mode,
+        name = "nvim",
+        label = "nvim",
+        store = repoPath(_CONFIG_DIR),
+        checkout_rel = _CONFIG_DIR,
+        reload = "none",
+        order = 50,
+    )]
+
+def user_config(user, dotfiles_mode, incoming):
     features = []
     packages = []
     lua_packages = []
@@ -42,13 +53,13 @@ def user_config(checkout, incoming):
         # home.stateVersion が 26.05 未満のあいだ、Home Manager は従来の既定（true）を使うので明示する。
         "programs.neovim.withRuby": False,
         "programs.neovim.withPython3": False,
-        # ~/.config/nvim は checkout への symlink なので、Home Manager の init.lua はその中に置けない。
+        # ~/.config/nvim は dotfiles-mode 経由の symlink なので、Home Manager の init.lua はその中に置けない。
         "programs.neovim.sideloadInitLua": True,
         "programs.neovim.extraPackages": packages,
         "programs.neovim.extraLuaPackages": luaPackages(lua_packages),
         "programs.neovim.plugins": [pkg("vimPlugins.lazy-nvim")],
-        # lua の編集を rebuild なしで反映し、lazy-lock.json を checkout に書き戻すため。
-        ("xdg", "configFile", "nvim", "source"): outOfStoreLink(checkout.root + "/" + _CONFIG_DIR),
+        # 既定は Nix store、Dev モード ON 時だけ checkout を指す（docs/howtouse/dotfiles-mode.md）。
+        ("xdg", "configFile", "nvim", "source"): outOfStoreLink(user.home + "/" + dotfiles_mode.links_rel + "/nvim"),
         ("xdg", "dataFile", "nvim/nix/features.lua", "text"): concat(
             "return ",
             lua({"features": sorted(features), "data": data}),

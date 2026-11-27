@@ -1,8 +1,10 @@
 # 手段: Niri の生成設定（~/.config/niri/generated.kdl）を組み立てる。
 # XKB・環境変数・各機能コンポーネントの寄与（writes）だけを generated.kdl へ集約し、
-# 基本の操作・見た目・個人のキーバインドはホーム側の config.kdl（checkout への live symlink）へ寄せる。
+# 基本の操作・見た目・個人のキーバインドはホーム側の config.kdl（dotfiles-mode 経由）へ寄せる。
 requires = ["niri", "terminal_exec"]
 needs = ["nixos_system"]
+
+_CONFIG_FILE = "modules/home-manager/gui/niri/config.kdl"
 
 def accept(input = [], binds = [], startup = [], window_rules = [], layer_rules = [], workspaces = [], outputs = [], switch_events = [], environment = {}):
     return struct(input = input, binds = binds, startup = startup, window_rules = window_rules, layer_rules = layer_rules, workspaces = workspaces, outputs = outputs, switch_events = switch_events, environment = environment)
@@ -72,9 +74,20 @@ def config():
         "environment.systemPackages": [pkg("adwaita-icon-theme")],
     }}
 
-def user_config(checkout, xkb, incoming):
+def writes(dotfiles_mode):
+    return [write(
+        dotfiles_mode,
+        name = "niri",
+        label = "Niri",
+        store = repoPath(_CONFIG_FILE),
+        checkout_rel = _CONFIG_FILE,
+        reload = "niri",
+        order = 10,
+    )]
+
+def user_config(user, dotfiles_mode, xkb, incoming):
     return {"home": {
-        # ホームの設定（modules/home-manager/gui/niri/config.kdl）は checkout を直接指す。編集は rebuild なしで反映される。
-        ("xdg", "configFile", "niri/config.kdl", "source"): outOfStoreLink(checkout.root + "/modules/home-manager/gui/niri/config.kdl"),
+        # 既定は Nix store、Dev モード ON 時だけ checkout を指す（docs/howtouse/dotfiles-mode.md）。
+        ("xdg", "configFile", "niri/config.kdl", "source"): outOfStoreLink(user.home + "/" + dotfiles_mode.links_rel + "/niri"),
         ("xdg", "configFile", "niri/generated.kdl", "text"): _generated(xkb, incoming),
     }}

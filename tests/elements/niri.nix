@@ -133,6 +133,7 @@ in
         "desktop"
         "desktop_appearance"
         "display_layout"
+        "dotfiles_mode"
         "gdm"
         "gui"
         "keyd"

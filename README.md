@@ -29,7 +29,7 @@
 
 ## セットアップ・適用
 
-checkoutの既定位置は `<ホーム>/sagyo/flake_public`。別の場所に置く場合は、ホストの TOML のユーザーの `[[users]]` に、`flake_root` をホームからの相対パスで指定します。Neovim・端末設定はこのcheckoutへのlive symlinkなので、適用後もcheckoutを残してください。
+checkoutの既定位置は `<ホーム>/sagyo/flake_public`。別の場所に置く場合は、ホストの TOML のユーザーの `[[users]]` に、`flake_root` をホームからの相対パスで指定します。Neovim・Niri・Quickshell・kanshi・kitty の設定は既定で Nix store を使い、ライブ編集したいときだけ [Dev モード](docs/howtouse/dotfiles-mode.md) で checkout へ切り替えます。
 
 初回に個人用の自動cloneを有効にする場合は、[SSH鍵とprivate repo](docs/howtouse/private-repo-clone.md) の前提を満たしてください。鍵配布を選択していないユーザーにはage鍵は不要です。
 

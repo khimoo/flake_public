@@ -109,8 +109,7 @@ kitty はスクロールバックの検索も vi 風の選択も持たない。`
 
 ## 設定の置き方
 
-`kitty.conf` は `mkOutOfStoreSymlink` でリポジトリを直接指す。キー割当ての
-調整が rebuild なしで試せる。
+`kitty.conf` は `dotfiles-mode` 経由の symlink とし、既定は Nix store、[Dev モード](../howtouse/dotfiles-mode.md) で `kitty` を ON にしたときだけリポジトリの checkout を直接指す。キー割当ての調整は Dev モード ON なら rebuild なしで試せ、通常時はリモート更新でもズレない。
 
 フォント名は Nix 側が `font.conf` を生成し、`kitty.conf` から `include font.conf` で取り込む。
 kitty の `include` は symlink の指す先ではなく、設定ファイルが置かれた場所（`~/.config/kitty/`）を

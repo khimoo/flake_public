@@ -6,12 +6,12 @@
 ## lazy.nvim がプラグインを取り、lazy-lock.json で固定する
 
 lazy.nvim の本体は nixpkgs の `vimPlugins.lazy-nvim` を `programs.neovim.plugins` で入れ、Nix のラッパーが packpath に載せる。プラグインは lazy.nvim が `~/.local/share/nvim/lazy` に clone し、`config/lazy-lock.json` で版を固定する。
-`~/.config/nvim` は checkout への symlink なので、`:Lazy update` で書き換わった lockfile はそのままリポジトリの差分になり、コミットすれば全マシンで同じ版になる。
+`~/.config/nvim` は `dotfiles-mode` 経由の symlink で、既定は Nix store、[Dev モード](../../howtouse/dotfiles-mode.md) で `nvim` を ON にしたときだけ checkout を指す。通常時（store モード）は [lazy.lua](../../../modules/home-manager/dev/neovim/config/lua/config/lazy.lua) が `lockfile` を `~/.local/state/nvim/lazy-lock.json` へ逃がし、`switch` 時に store 版の `lazy-lock.json` を同期する。`:Lazy update` の結果をリポジトリへ残すときや Lua を rebuild なしで編集したいときは `nvim` の Dev モードを ON にすれば、書き換わった lockfile がそのままリポジトリの差分になる。
 
-この形にしているのは、プラグインの更新を、switch せずに `:Lazy update` とコミットだけで済ませるため。
+この形にしているのは、通常運用でのリモート更新の再現性を保ちつつ、プラグインの更新は Dev モード ON の `:Lazy update` とコミットだけで済ませるため。
 Nix から入れるのは、lazy.nvim の本体、機能の道具（[機能の組](./features.md)）、RustOwl と smart-splits のプラグインだけ。
 
-Lua の設定を switch なしで編集できるのは、`~/.config/nvim` が checkout を指しているからで、プラグインをどこから取るかとは関係しない。
+Lua の設定を switch なしで編集できるのは、Dev モード ON 時に `~/.config/nvim` が checkout を指すからで、プラグインをどこから取るかとは関係しない。
 
 lazy.nvim の luarocks の統合は無効にし、Lua のモジュールが要るプラグインには、機能の `luaPackages` で nixpkgs から渡す。lazy.nvim が組み立てる hererocks が Nix の環境では作れないため。理由の詳細は `lazy.lua` のコメントにある。
 

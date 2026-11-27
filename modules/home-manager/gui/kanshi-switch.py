@@ -420,7 +420,10 @@ def run_wdisplays_isolated(initial_text):
 
 def create_profile_flow(config_path, explicit_name=None):
     if not is_writable_config(config_path):
-        notify("設定ファイルへ書き込めません", str(config_path))
+        notify(
+            "設定ファイルへ書き込めません",
+            f"{config_path}（編集するには Dev モードで kanshi を ON にしてください）",
+        )
         return 1
 
     name = explicit_name
@@ -461,7 +464,10 @@ def create_profile_flow(config_path, explicit_name=None):
 
 def edit_profile_flow(config_path, explicit_name=None):
     if not is_writable_config(config_path):
-        notify("設定ファイルへ書き込めません", str(config_path))
+        notify(
+            "設定ファイルへ書き込めません",
+            f"{config_path}（編集するには Dev モードで kanshi を ON にしてください）",
+        )
         return 1
 
     local_profiles = parse_local_named_profiles(config_path)
@@ -526,7 +532,10 @@ def edit_profile_flow(config_path, explicit_name=None):
 
 def delete_profile_flow(config_path, explicit_name=None):
     if not is_writable_config(config_path):
-        notify("設定ファイルへ書き込めません", str(config_path))
+        notify(
+            "設定ファイルへ書き込めません",
+            f"{config_path}（編集するには Dev モードで kanshi を ON にしてください）",
+        )
         return 1
 
     local_profiles = parse_local_named_profiles(config_path)
@@ -561,7 +570,10 @@ def delete_profile_flow(config_path, explicit_name=None):
 
 def set_default_profile_flow(config_path, explicit_name=None):
     if not is_writable_config(config_path):
-        notify("設定ファイルへ書き込めません", str(config_path))
+        notify(
+            "設定ファイルへ書き込めません",
+            f"{config_path}（編集するには Dev モードで kanshi を ON にしてください）",
+        )
         return 1
 
     local_profiles = parse_local_named_profiles(config_path)

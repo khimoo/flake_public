@@ -29,6 +29,8 @@ Rectangle {
     property string defaultDisplayProfile: ""
     property string pendingPowerId: ""
     property string pendingPowerLabel: ""
+    property var devModeItems: []
+    property bool anyDevMode: false
 
     readonly property var powerItems: [
         { id: "lock", icon: "󰌾", label: "ロック", immediate: true, cmd: ["loginctl", "lock-session"] },
@@ -83,6 +85,34 @@ Rectangle {
         }
     }
 
+    function refreshDevMode() {
+        if (!devModeReadProc.running) {
+            devModeReadProc.running = true;
+        }
+    }
+
+    function hasQuickshellDev() {
+        for (var i = 0; i < devModeItems.length; i++) {
+            if (devModeItems[i].name === "quickshell" && devModeItems[i].dev) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function runDevModeAction(args, restartsHub) {
+        if (restartsHub) {
+            requestClose();
+            Quickshell.execDetached(["dotfiles-mode"].concat(args));
+            return;
+        }
+        if (devModeActionProc.running) {
+            return;
+        }
+        devModeActionProc.command = ["dotfiles-mode"].concat(args);
+        devModeActionProc.running = true;
+    }
+
     function setBrightness(pct) {
         var clamped = Math.max(1, Math.min(100, Math.round(pct)));
         brightnessPct = clamped;
@@ -118,6 +148,7 @@ Rectangle {
             updateClock();
             refreshBrightness();
             refreshDisplayProfiles();
+            refreshDevMode();
             clearPendingPower();
         } else {
             clearPendingPower();
@@ -128,6 +159,7 @@ Rectangle {
         updateClock();
         refreshBrightness();
         refreshDisplayProfiles();
+        refreshDevMode();
     }
 
     Timer {
@@ -175,6 +207,37 @@ Rectangle {
                 rightCol.currentDisplayProfile = "";
                 rightCol.defaultDisplayProfile = "";
             }
+        }
+    }
+
+    Process {
+        id: devModeReadProc
+        command: ["dotfiles-mode", "--status-json"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    var parsed = JSON.parse(this.text || "{}");
+                    rightCol.devModeItems = Array.isArray(parsed.items) ? parsed.items : [];
+                    rightCol.anyDevMode = Boolean(parsed.any_dev);
+                } catch (e) {
+                    rightCol.devModeItems = [];
+                    rightCol.anyDevMode = false;
+                }
+            }
+        }
+        onExited: function(code) {
+            if (code !== 0) {
+                rightCol.devModeItems = [];
+                rightCol.anyDevMode = false;
+            }
+        }
+    }
+
+    Process {
+        id: devModeActionProc
+        onExited: function() {
+            rightCol.refreshDevMode();
+            rightCol.refreshDisplayProfiles();
         }
     }
 
@@ -745,6 +808,110 @@ Rectangle {
                     color: Theme.muted
                     font.family: Theme.fontFamily
                     font.pixelSize: 11
+                }
+            }
+        }
+
+        // Dev モード（Nix store とローカル checkout の個別切替。dotfiles-mode が無い環境では非表示）
+        ColumnLayout {
+            visible: rightCol.devModeItems.length > 0
+            Layout.fillWidth: true
+            spacing: 6
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 6
+
+                Text {
+                    text: "Dev モード"
+                    color: Theme.muted
+                    font.family: Theme.fontFamily
+                    font.pixelSize: 11
+                    font.bold: true
+                    Layout.fillWidth: true
+                }
+
+                QQC.Button {
+                    id: devResetBtn
+                    visible: rightCol.anyDevMode
+                    activeFocusOnTab: rightCol.anyDevMode
+                    padding: 4
+
+                    onClicked: rightCol.runDevModeAction(["reset"], rightCol.hasQuickshellDev())
+
+                    Keys.onPressed: function(event) {
+                        if (rightCol.handleEscape(event)) return;
+                        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                            devResetBtn.clicked();
+                            event.accepted = true;
+                        }
+                    }
+
+                    background: Rectangle {
+                        radius: Theme.radiusSmall
+                        color: devResetBtn.hovered ? Theme.surface0 : "transparent"
+                        border.width: devResetBtn.activeFocus ? 1 : 0
+                        border.color: Theme.accent
+                    }
+
+                    contentItem: Text {
+                        text: "全て戻す"
+                        color: devResetBtn.hovered || devResetBtn.activeFocus ? Theme.yellow : Theme.muted
+                        font.family: Theme.fontFamily
+                        font.pixelSize: 10
+                        verticalAlignment: Text.AlignVCenter
+                    }
+                }
+            }
+
+            Flow {
+                Layout.fillWidth: true
+                spacing: 6
+
+                Repeater {
+                    model: rightCol.devModeItems
+
+                    QQC.Button {
+                        id: devBtn
+                        required property var modelData
+                        readonly property bool isDev: Boolean(modelData.dev)
+
+                        activeFocusOnTab: rightCol.devModeItems.length > 0
+                        implicitWidth: Math.max(44, devText.implicitWidth + 14)
+                        implicitHeight: 26
+                        padding: 0
+
+                        onClicked: rightCol.runDevModeAction(
+                            ["toggle", String(devBtn.modelData.name)],
+                            devBtn.modelData.name === "quickshell"
+                        )
+
+                        Keys.onPressed: function(event) {
+                            if (rightCol.handleEscape(event)) return;
+                            if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                                devBtn.clicked();
+                                event.accepted = true;
+                            }
+                        }
+
+                        background: Rectangle {
+                            radius: Theme.radiusSmall
+                            color: devBtn.isDev ? Theme.yellow : (devBtn.hovered ? Theme.surface1 : Theme.surface0)
+                            border.width: devBtn.activeFocus ? 2 : 0
+                            border.color: devBtn.isDev ? Theme.text : Theme.accent
+                        }
+
+                        contentItem: Text {
+                            id: devText
+                            text: (devBtn.isDev ? "● " : "") + devBtn.modelData.label
+                            color: devBtn.isDev ? "#11111b" : Theme.text
+                            font.family: Theme.fontFamily
+                            font.pixelSize: 11
+                            font.bold: devBtn.isDev
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                    }
                 }
             }
         }

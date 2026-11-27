@@ -9,6 +9,8 @@
 requires = ["niri_config", "pipewire", "display_layout", "terminal_exec"]
 needs = ["nixos_system"]
 
+_HUB_DIR = "modules/home-manager/gui/quickshell/hub"
+
 _HUB_FILES = [
     "qmldir",
     "Theme.qml",
@@ -132,25 +134,36 @@ def config(niri):
     nixos["environment.systemPackages"].append(niri.package)
     return {"nixos": nixos}
 
-def user_config(checkout):
+def user_config(user, dotfiles_mode):
     return {"home": {
-        # 個人の QML は checkout への live symlink。保存した瞬間に Quickshell がホットリロードする。
+        # 既定は Nix store、Dev モード ON 時だけ checkout を指す（docs/howtouse/dotfiles-mode.md）。
         ("xdg", "configFile", "quickshell/hub", "source"): outOfStoreLink(
-            checkout.root + "/modules/home-manager/gui/quickshell/hub"
+            user.home + "/" + dotfiles_mode.links_rel + "/quickshell"
         ),
     }}
 
-def writes(niri_config, keyd):
-    return [write(
-        niri_config,
-        binds = [
-            # keyd が Super 単押しを keyd.super_tap_key（F24）に変換する。安全策として Mod+D も残す。
-            keyd.super_tap_key + ' { spawn "qs" "ipc" "-c" "hub" "call" "hub" "toggle"; }',
-            'Mod+D { spawn "qs" "ipc" "-c" "hub" "call" "hub" "toggle"; }',
-        ],
-        # 画面共有（Zoom / Discord / OBS）中にスタートメニュー（Vault・クリップボード履歴含む）と通知ポップアップが映り込むのを防ぐ。
-        layer_rules = [
-            'layer-rule {\n    match namespace="^quickshell-hub$"\n    block-out-from "screencast"\n}',
-            'layer-rule {\n    match namespace="^quickshell-hub-notifications$"\n    block-out-from "screencast"\n}',
-        ],
-    )]
+def writes(niri_config, keyd, dotfiles_mode):
+    return [
+        write(
+            niri_config,
+            binds = [
+                # keyd が Super 単押しを keyd.super_tap_key（F24）に変換する。安全策として Mod+D も残す。
+                keyd.super_tap_key + ' { spawn "qs" "ipc" "-c" "hub" "call" "hub" "toggle"; }',
+                'Mod+D { spawn "qs" "ipc" "-c" "hub" "call" "hub" "toggle"; }',
+            ],
+            # 画面共有（Zoom / Discord / OBS）中にスタートメニュー（Vault・クリップボード履歴含む）と通知ポップアップが映り込むのを防ぐ。
+            layer_rules = [
+                'layer-rule {\n    match namespace="^quickshell-hub$"\n    block-out-from "screencast"\n}',
+                'layer-rule {\n    match namespace="^quickshell-hub-notifications$"\n    block-out-from "screencast"\n}',
+            ],
+        ),
+        write(
+            dotfiles_mode,
+            name = "quickshell",
+            label = "Hub",
+            store = repoPath(_HUB_DIR),
+            checkout_rel = _HUB_DIR,
+            reload = "quickshell",
+            order = 20,
+        ),
+    ]

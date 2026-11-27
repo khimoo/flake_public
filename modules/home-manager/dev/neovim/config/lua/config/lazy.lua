@@ -3,9 +3,31 @@
 -- プラグイン本体は lazy.nvim が clone し、lazy-lock.json で固定する。
 -- 経緯と比較した代替案: docs/architecture/neovim/plugin-manager.md
 --
--- ~/.config/nvim は mkOutOfStoreSymlink でリポジトリ実体を指す symlink のため、
--- lockfile (lazy-lock.json) はデフォルト位置 (config dir 直下) のまま git で追跡できる。
---
+-- ~/.config/nvim は dotfiles-mode 経由の symlink。既定は Nix store（読み取り専用）、
+-- Dev モード ON 時だけ checkout（書き込み可能）を指す（docs/howtouse/dotfiles-mode.md）。
+-- store モード中は lazy-lock.json へ書き込めないため、lockfile を stdpath("state") へ逃がす。
+-- Dev モード ON にすれば checkout 側の lazy-lock.json へそのまま書き戻せる。
+local config_dir = vim.fn.stdpath("config")
+local lockfile = config_dir .. "/lazy-lock.json"
+if not vim.uv.fs_access(config_dir, "W") then
+  local state_dir = vim.fn.stdpath("state")
+  local state_lockfile = state_dir .. "/lazy-lock.json"
+  if not vim.uv.fs_stat(state_lockfile) and vim.uv.fs_stat(lockfile) then
+    vim.fn.mkdir(state_dir, "p")
+    local src = io.open(lockfile, "rb")
+    if src then
+      local data = src:read("*a")
+      src:close()
+      local dst = io.open(state_lockfile, "wb")
+      if dst then
+        dst:write(data)
+        dst:close()
+      end
+    end
+  end
+  lockfile = state_lockfile
+end
+
 -- 外部コマンドや Nix の生成物を使うプラグインは lua/features/ に置き、Home Manager が
 -- 有効にした機能だけを読み込む。lua/plugins/ の一括 import はそれらを拾わない。
 local spec = { { import = "plugins" } }
@@ -14,6 +36,7 @@ for _, name in ipairs(require("config.nix").features) do
 end
 
 require("lazy").setup({
+  lockfile = lockfile,
   performance = {
     -- Nix のラッパが packpath/rtp に載せた lazy.nvim 本体を見失わないよう、
     -- lazy.nvim 側のリセットを止める。

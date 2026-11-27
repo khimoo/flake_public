@@ -5,6 +5,8 @@
 # 設計根拠（wdisplays 1.3.0・kanshi 1.8.0 の挙動）は docs/architecture/niri.md を参照。
 needs = ["nixos_system"]
 
+_KANSHI_DIR = "modules/home-manager/gui/kanshi"
+
 _KANSHI_SESSION_SH = """set -euo pipefail
 config_home="${XDG_CONFIG_HOME:-${HOME:+$HOME/.config}}"
 if [ -n "$config_home" ] && [ -r "$config_home/kanshi/config" ]; then
@@ -63,11 +65,22 @@ def config():
         },
     }}
 
-def user_config(checkout):
+def writes(dotfiles_mode):
+    return [write(
+        dotfiles_mode,
+        name = "kanshi",
+        label = "kanshi",
+        store = repoPath(_KANSHI_DIR),
+        checkout_rel = _KANSHI_DIR,
+        reload = "kanshi",
+        order = 30,
+    )]
+
+def user_config(user, dotfiles_mode):
     return {"home": {
-        # ディレクトリ単位の live symlink。wdisplays 1.3.0 は g_file_set_contents（一時ファイル→rename）で保存する。
+        # ディレクトリ単位の symlink。既定は Nix store、Dev モード ON 時だけ checkout を指す（wdisplays は一時ファイル→rename で保存する）。
         ("xdg", "configFile", "kanshi", "source"): outOfStoreLink(
-            checkout.root + "/modules/home-manager/gui/kanshi"
+            user.home + "/" + dotfiles_mode.links_rel + "/kanshi"
         ),
         # wdisplays 1.3.0 の "Save to kanshi Config" を既定で有効にする。
         "dconf.enable": True,
