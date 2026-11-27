@@ -31,6 +31,6 @@ Firefox と Zen の拡張機能、pref、同期の分担は [ブラウザ](./bro
 
 ## デスクトップの設定
 
-Niri のキー操作、Waybar、通知、ランチャーの変更と反映方法は [Niri](niri.md) を参照してください。ウィンドウの配置ルールは [niri_background_apps.star](../../config/elements/niri_background_apps.star) で管理します。
+Niri のキー操作、バー、通知、ランチャーの変更と反映方法は [Niri](niri.md) を参照してください。付箋と Thunderbird は、専用の名前付きワークスペースではなく、ログイン直後の先頭のワークスペースに開きます。Slack はログイン時だけ `--startup` を渡し、通常のランチャーからはウィンドウを開けます。
 
 `autostart = True` のアプリは `~/.config/autostart/` に配置され、Niri が起動する `xdg-desktop-autostart.target` でセッション開始時に 1 回だけ起動します（`nixos-rebuild switch` 時の再起動対象にはなりません）。変更した自動起動の動作は再ログインで確認します。

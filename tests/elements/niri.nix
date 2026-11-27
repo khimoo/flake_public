@@ -64,8 +64,8 @@ in
         assert lib.hasInfix ''match namespace="^quickshell-hub$"'' generated;
         assert lib.hasInfix ''match namespace="^quickshell-hub-notifications$"'' generated;
         assert lib.hasInfix ''block-out-from "screencast"'' generated;
-        assert lib.hasInfix ''workspace "background"'' generated;
-        assert lib.hasInfix "open-focused false" generated;
+        assert !(lib.hasInfix ''workspace "main"'' generated);
+        assert !(lib.hasInfix ''workspace "background"'' generated);
         # 生成設定に個人のホームパスを埋め込まない。
         assert !(lib.hasInfix "/home/" generated);
         assert host.environment.etc ? "xdg/quickshell/hub/shell.qml";
@@ -139,7 +139,6 @@ in
         "keyd"
         "kitty"
         "niri"
-        "niri_background_apps"
         "niri_config"
         "niri_floating_toggle"
         "nm_applet"
@@ -206,6 +205,9 @@ in
         assert lib.hasInfix ''F24 { spawn "qs" "ipc" "-c" "hub" "call" "hub" "toggle"; }''
           spin713User.xdg.configFile."niri/generated.kdl".text;
         assert !(lib.hasInfix "/home/" desktopUser.xdg.configFile."niri/generated.kdl".text);
+        assert desktopUser.xdg.configFile ? "autostart/sticky-notes.desktop";
+        assert desktopUser.xdg.configFile ? "autostart/thunderbird.desktop";
+        assert lib.hasInfix " --startup\n" desktopUser.xdg.configFile."autostart/slack.desktop".text;
         assert desktop.services.xserver.xkb.layout == "us" && desktop.services.xserver.xkb.variant == "altgr-intl";
         assert spin713.services.xserver.xkb.layout == "us" && spin713.services.xserver.xkb.variant == "altgr-intl";
         assert spin713.services.keyd.keyboards.default.settings.main.rightmeta == "overload(meta, f24)";

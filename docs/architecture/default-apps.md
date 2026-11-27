@@ -23,6 +23,5 @@ Slack・Discord・Spotify・Zoom の URL スキームも、各エントリの `m
 通知を見落とさないための常駐 GUI アプリは、[gui_apps.star](../../config/elements/gui_apps.star) の `autostart = True` から `xdg.configFile` で `~/.config/autostart/<name>.desktop` を生成し、XDG Autostart でログイン時に 1 回だけ起動します。
 
 - **却下した案（`systemd.user.services`）**: `WantedBy = ["graphical-session.target"]` のユーザーサービスにすると、Home Manager（`release-26.05` / `sd-switch` 0.6.3）の activation が `nixos-rebuild switch` のたびに介入し、手動で閉じていたアプリの再起動やパッケージ更新時の再起動で作業画面にウィンドウが割り込みます。
-- **トレイと専用ワークスペースの併用**: Slack（`--silent`）・Discord（`--start-minimized`）・TwinDesk（`--hidden`）は Waybar のトレイへ隠します。ウィンドウを閉じるとメール通知も止まる Thunderbird と、付箋は [Niri のウィンドウルール](../../config/elements/niri_background_apps.star) で名前付きワークスペースへ置き、起動時のフォーカス移動を抑えます。対象 app-id と実際の配置は実機確認が必要です。
+- **ウィンドウを出すアプリとトレイ常駐の分離**: Slack は `--startup` で起動時非表示の設定を使い、Discord（`--start-minimized`）と TwinDesk（`--hidden`）もトレイに常駐します。Thunderbird と付箋は専用ワークスペースを設けず、ログイン直後に表示されている先頭のワークスペースにウィンドウを開きます。
 - **起動の持ち主**: Niri の `niri.service` と `niri-headless.service` が要求する `xdg-desktop-autostart.target` で起動します。dex を併用すると同じ desktop entry が二重に実行されるため追加しません。
-- **境界**: `gui_apps` は WSLg でも使うため、配置ルールは `niri_background_apps` に置きます。バーやセッションの設定方法は [Niri の使い方](../howtouse/niri.md) を参照してください。
