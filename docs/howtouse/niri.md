@@ -32,6 +32,10 @@ GDM で Niri を選んでログインします。`Mod` は Super キーです。
 
 常駐バーは置かず、普段は作業ウィンドウだけを表示します。`Super` 単押し（`keyd` が `F24` へ変換）または `Mod+D` で 2 カラムのスタートメニューが開き、`Tab` / `Shift+Tab` で画面上の全ボタン・スライダーへフォーカス移動できます（タブバーにフォーカスがある状態で `←` / `→` により `All` / `Windows` / `Files` / `Clipboard` / `Vault` / `Notify` を切替）。左カラムではプレフィックス（`@` Vault / `/` Files / `:` Clipboard / `?` Zen Browser Web 検索 / `=` 電卓）、右カラムでは時計・電池・ワークスペース・ディスプレイ配置・音量・明るさ・システムトレイ（`nm-applet` / `blueman-applet` / TwinDesk 等）・電源ボタン（ロック以外は 2 回クリック確認）を操作します。Bitwarden（`Vault`）の `~/.config/rbw/config.json` は `secrets/secrets.yaml` の `rbw_config` から `switch` 時に復号配置されるため、新しいマシンでは初回のみ `rbw register`（Bitwarden Web Vault の API キー登録）と `rbw sync` を実行してください。`Files` は `~/.config/user-dirs.dirs` に登録されたホーム配下のフォルダ（デスクトップ・ダウンロード・ドキュメント・画像など）だけを検索し、ホーム直下やその他のフォルダは対象にしません。`.desktop` に `Terminal=true` と書かれたアプリ（yazi・btop など）は、`xdg-terminal-exec` が開く端末（kitty）の中で起動します。
 
+ハブのショートカットは、`qs-hub-toggle` から常駐ハブのユーザー専用ソケットへ開閉指示を送ります。ソケットがない旧設定では従来の `qs -c hub ipc call hub toggle` を使います。検索欄へフォーカスを移すタイミングは変わりません。
+
+右カラムのワークスペース一覧はハブを開いたときに更新します。開いているウィンドウは `Windows` タブか `All` の文字検索で、クリップボード履歴は `Clipboard` タブか `:` で、必要になったときに読み込みます。
+
 ## 次のログインでウィンドウを復元する
 
 `nixos-desktop` で [restore_desktop_session](../../config/elements/restore_desktop_session.star) を選んだユーザーには、ローカルの Niri ログインで `nirinit` が動きます。ウィンドウのワークスペースとサイズを30秒おきに保存し、次のログインで開き直します。ログアウト直前に強制保存はしないので、最後の保存以降の変更は戻りません。ブラウザーのタブや端末で実行中のコマンドは `nirinit` の保存対象ではありません。復元時は設定またはインストール済みの `.desktop` から起動コマンドを探します。

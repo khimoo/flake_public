@@ -51,7 +51,18 @@ encoded=$(python3 -c 'import sys, urllib.parse; print(urllib.parse.quote_plus(sy
 exec xdg-open "https://www.google.com/search?q=${encoded}"
 """
 
+_HUB_TOGGLE_SH = """sock="${XDG_RUNTIME_DIR:?}/qs-hub/toggle.sock"
+# Dev モードで旧 QML を使う場合も、従来の IPC で開閉できるようにする。
+if [[ ! -S "$sock" ]]; then
+  exec qs -c hub ipc call hub toggle
+fi
+# 送信後に応答が途切れても再送しない。二度開閉して元に戻るのを防ぐ。
+reply=$(printf 'toggle\\n' | nc -U -w 1 "$sock")
+[[ "$reply" == ok ]]
+"""
+
 def config(niri):
+    hub_toggle = shellApp("qs-hub-toggle", [pkg("libressl.nc"), pkg("quickshell")], _HUB_TOGGLE_SH)
     vault_script = file("hub-vault.py", repoText("modules/home-manager/gui/quickshell/hub-vault.py"))
     vault_app = shellApp(
         "qs-hub-vault",
@@ -88,6 +99,7 @@ def config(niri):
             pkg("libnotify"),
             pkg("xdg-utils"),
             pkg("plemoljp-nf"),
+            hub_toggle,
             vault_app,
             clip_store,
             clip_copy,
@@ -103,6 +115,8 @@ def config(niri):
             "unitConfig": {"ConditionEnvironment": "WAYLAND_DISPLAY"},
             "serviceConfig": {
                 "ExecStart": concat(exe("quickshell", "qs"), " -c hub"),
+                "RuntimeDirectory": "qs-hub",
+                "RuntimeDirectoryMode": "0700",
                 "Restart": "on-failure",
                 "RestartSec": 2,
             },
@@ -147,9 +161,9 @@ def writes(niri_config, keyd, dotfiles_mode):
         write(
             niri_config,
             binds = [
-                # keyd が Super 単押しを keyd.super_tap_key（F24）に変換する。安全策として Mod+D も残す。
-                keyd.super_tap_key + ' { spawn "qs" "ipc" "-c" "hub" "call" "hub" "toggle"; }',
-                'Mod+D { spawn "qs" "ipc" "-c" "hub" "call" "hub" "toggle"; }',
+                # keyd が Super 単押しを keyd.super_tap_key（F24）に変換する。Mod+D も同じハブを開閉する。
+                keyd.super_tap_key + ' { spawn "qs-hub-toggle"; }',
+                'Mod+D { spawn "qs-hub-toggle"; }',
             ],
             # 画面共有（Zoom / Discord / OBS）中にスタートメニュー（Vault・クリップボード履歴含む）と通知ポップアップが映り込むのを防ぐ。
             layer_rules = [

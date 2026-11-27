@@ -18,6 +18,8 @@ PanelWindow {
 
     property var workspaces: []
     property var niriWindows: []
+    property int openGeneration: 0
+    property bool windowsLoaded: false
     property var fileResults: []
     property var clipEntries: []
     property var vaultEntries: []
@@ -54,6 +56,7 @@ PanelWindow {
 
     readonly property string effectiveMode: parsedQuery.mode
     readonly property string searchTerm: parsedQuery.term
+    readonly property bool needsWindowList: hubOpen && (effectiveMode === "windows" || (effectiveMode === "all" && searchTerm.length > 0))
 
     readonly property var itemsModel: computeItems()
 
@@ -78,9 +81,14 @@ PanelWindow {
         selectedIndex = 0;
         vaultLoaded = false;
         vaultStatus = "";
+        // 前回の候補や、閉じる前に始まった取得結果は再表示しない。
+        openGeneration++;
+        niriWindows = [];
+        clipEntries = [];
+        windowsLoaded = false;
         hubOpen = true;
-        refreshNiriState();
-        refreshClipboard();
+        // 開いた直後に使うのは右カラムのワークスペース一覧だけ。
+        if (!wsProc.running) wsProc.running = true;
         focusTimer.restart();
     }
 
@@ -151,6 +159,8 @@ PanelWindow {
         }
     }
 
+    onNeedsWindowListChanged: refreshWindows()
+
     Timer {
         id: focusTimer
         interval: 30
@@ -165,13 +175,17 @@ PanelWindow {
         onTriggered: refreshFiles()
     }
 
-    function refreshNiriState() {
-        if (!wsProc.running) wsProc.running = true;
-        if (!winProc.running) winProc.running = true;
+    function refreshWindows() {
+        // 成功した結果だけを使い回す。失敗時は次に一覧が必要になったとき再取得する。
+        if (!needsWindowList || windowsLoaded || winProc.running) return;
+        winProc.generation = openGeneration;
+        winProc.running = true;
     }
 
     function refreshClipboard() {
-        if (!clipListProc.running) clipListProc.running = true;
+        if (!hubOpen || effectiveMode !== "clipboard" || clipListProc.running) return;
+        clipListProc.generation = openGeneration;
+        clipListProc.running = true;
     }
 
     // ファイル検索の対象は user-dirs.dirs に登録されたホーム配下のフォルダ（デスクトップ・ダウンロード・画像など）に限る。
@@ -240,36 +254,49 @@ PanelWindow {
 
     Process {
         id: winProc
+        property int generation: 0
         command: ["niri", "msg", "--json", "windows"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                try {
-                    var parsed = JSON.parse(this.text);
-                    hubWin.niriWindows = parsed;
-                } catch (e) {}
+        stdout: StdioCollector { id: winOutput }
+        onExited: (code, status) => {
+            if (generation !== hubWin.openGeneration) {
+                hubWin.refreshWindows();
+                return;
             }
+            if (!hubWin.hubOpen || code !== 0 || status !== 0) return;
+            try {
+                var parsed = JSON.parse(winOutput.text);
+                if (Array.isArray(parsed)) {
+                    hubWin.niriWindows = parsed;
+                    hubWin.windowsLoaded = true;
+                }
+            } catch (e) {}
         }
     }
 
     Process {
         id: clipListProc
+        property int generation: 0
         command: ["cliphist", "list"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                var lines = this.text.split("\n");
-                var out = [];
-                for (var i = 0; i < lines.length && out.length < 100; i++) {
-                    var line = lines[i];
-                    if (!line) continue;
-                    var tabIdx = line.indexOf("\t");
-                    if (tabIdx <= 0) continue;
-                    out.push({
-                        clipId: line.slice(0, tabIdx),
-                        preview: line.slice(tabIdx + 1).trim()
-                    });
-                }
-                hubWin.clipEntries = out;
+        stdout: StdioCollector { id: clipOutput }
+        onExited: (code, status) => {
+            if (generation !== hubWin.openGeneration) {
+                hubWin.refreshClipboard();
+                return;
             }
+            if (!hubWin.hubOpen || code !== 0 || status !== 0) return;
+            var lines = clipOutput.text.split("\n");
+            var out = [];
+            for (var i = 0; i < lines.length && out.length < 100; i++) {
+                var line = lines[i];
+                if (!line) continue;
+                var tabIdx = line.indexOf("\t");
+                if (tabIdx <= 0) continue;
+                out.push({
+                    clipId: line.slice(0, tabIdx),
+                    preview: line.slice(tabIdx + 1).trim()
+                });
+            }
+            hubWin.clipEntries = out;
         }
     }
 
@@ -359,7 +386,7 @@ PanelWindow {
             return list;
         }
 
-        if (mode === "all" || mode === "windows") {
+        if (mode === "windows" || (mode === "all" && lower.length > 0)) {
             var wsMap = wsIndexMap();
             var wins = [];
             for (var wi = 0; wi < niriWindows.length; wi++) {
@@ -383,10 +410,8 @@ PanelWindow {
             if (mode === "windows") {
                 return wins;
             }
-            if (lower.length > 0) {
-                for (var k = 0; k < wins.length && k < 6; k++) {
-                    list.push(wins[k]);
-                }
+            for (var k = 0; k < wins.length && k < 6; k++) {
+                list.push(wins[k]);
             }
         }
 

@@ -54,8 +54,9 @@ in
         assert lib.hasInfix ''NIXOS_OZONE_WL "1"'' generated;
         assert lib.hasInfix "Mod+Escape allow-inhibiting=false { toggle-keyboard-shortcuts-inhibit; }"
           personal;
-        assert lib.hasInfix ''F24 { spawn "qs" "ipc" "-c" "hub" "call" "hub" "toggle"; }'' generated;
-        assert lib.hasInfix ''Mod+D { spawn "qs" "ipc" "-c" "hub" "call" "hub" "toggle"; }'' generated;
+        assert lib.hasInfix ''F24 { spawn "qs-hub-toggle"; }'' generated;
+        assert lib.hasInfix ''Mod+D { spawn "qs-hub-toggle"; }'' generated;
+        assert builtins.any (p: (p.name or "") == "qs-hub-toggle") host.environment.systemPackages;
         # 端末は terminal_exec が決め、Mod+Return とハブは xdg-terminal-exec を通して開く。
         assert lib.hasInfix ''Mod+Return { spawn "xdg-terminal-exec"; }'' personal;
         assert host.environment.etc."xdg/xdg-terminals.list".text == "kitty.desktop\n";
@@ -75,6 +76,8 @@ in
         assert host.services.upower.enable;
         assert host.systemd.user.services.quickshell-hub.wantedBy == [ "graphical-session.target" ];
         assert !host.systemd.user.services.quickshell-hub.enableDefaultPath;
+        assert host.systemd.user.services.quickshell-hub.serviceConfig.RuntimeDirectory == "qs-hub";
+        assert host.systemd.user.services.quickshell-hub.serviceConfig.RuntimeDirectoryMode == "0700";
         assert host.systemd.user.services.cliphist-watch.wantedBy == [ "graphical-session.target" ];
         assert !host.systemd.user.services.cliphist-watch.enableDefaultPath;
         assert host.systemd.user.services.kanshi.wantedBy == [ "graphical-session.target" ];
@@ -200,9 +203,9 @@ in
         assert desktop.environment.etc ? "kanshi/config";
         assert desktopUser.xdg.configFile ? "kanshi";
         assert spin713User.xdg.configFile ? "kanshi";
-        assert lib.hasInfix ''F24 { spawn "qs" "ipc" "-c" "hub" "call" "hub" "toggle"; }''
+        assert lib.hasInfix ''F24 { spawn "qs-hub-toggle"; }''
           desktopUser.xdg.configFile."niri/generated.kdl".text;
-        assert lib.hasInfix ''F24 { spawn "qs" "ipc" "-c" "hub" "call" "hub" "toggle"; }''
+        assert lib.hasInfix ''F24 { spawn "qs-hub-toggle"; }''
           spin713User.xdg.configFile."niri/generated.kdl".text;
         assert !(lib.hasInfix "/home/" desktopUser.xdg.configFile."niri/generated.kdl".text);
         assert desktopUser.xdg.configFile ? "autostart/sticky-notes.desktop";
