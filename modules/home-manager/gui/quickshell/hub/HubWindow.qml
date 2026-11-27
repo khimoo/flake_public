@@ -547,7 +547,7 @@ PanelWindow {
         id: card
         anchors.centerIn: parent
         width: Math.min(880, parent.width - 48)
-        height: Math.min(540, parent.height - 48)
+        height: Math.max(0, Math.min(Math.max(540, rightCol.preferredHeight || 0), parent.height - 48))
         radius: Theme.radiusLarge
         color: Theme.base
         border.width: 1

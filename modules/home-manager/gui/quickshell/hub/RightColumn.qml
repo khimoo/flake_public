@@ -20,6 +20,10 @@ Rectangle {
     Layout.fillHeight: true
     color: Theme.mantle
 
+    // 右カラム全要素（上段スクロール領域＋下部電源バー＋上下マージン 14*2＋間隔 12）の必要高さ。
+    // 幅 264 固定から決まるため、親カードの高さと循環参照しない。
+    readonly property real preferredHeight: Math.ceil(scrollContent.implicitHeight + footerCol.implicitHeight + 28 + 12)
+
     property string timeText: ""
     property string dateText: ""
     property bool hasBacklight: false
@@ -145,6 +149,7 @@ Rectangle {
 
     onHubOpenChanged: {
         if (hubOpen) {
+            scrollArea.contentY = 0;
             updateClock();
             refreshBrightness();
             refreshDisplayProfiles();
@@ -271,7 +276,23 @@ Rectangle {
         anchors.margins: 14
         spacing: 12
 
-        // 時計・日付・バッテリー
+        // 上段〜中段（画面高さが足りない環境ではここだけスクロールし、下部の電源バーを固定する）
+        Flickable {
+            id: scrollArea
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            clip: true
+            contentWidth: width
+            contentHeight: scrollContent.implicitHeight
+            interactive: contentHeight > height
+            boundsBehavior: Flickable.StopAtBounds
+
+            ColumnLayout {
+                id: scrollContent
+                width: scrollArea.width
+                spacing: 12
+
+                // 時計・日付・バッテリー
         ColumnLayout {
             Layout.fillWidth: true
             spacing: 4
@@ -915,8 +936,14 @@ Rectangle {
                 }
             }
         }
+            }
+        }
 
-        Item { Layout.fillHeight: true }
+        // 下部フッター（2回押し確認＋仕切り線＋電源ボタン群を底に固定）
+        ColumnLayout {
+            id: footerCol
+            Layout.fillWidth: true
+            spacing: 12
 
         // 電源ボタン確認メッセージ（2回押し確認時のみ表示）
         Rectangle {
@@ -995,6 +1022,7 @@ Rectangle {
                     }
                 }
             }
+        }
         }
     }
 }
