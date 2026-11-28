@@ -17,7 +17,7 @@ IFS=, read -r device _ current _ maximum <<< "$info"
 target=$current
 
 # 表示用に丸めた % ではなく、機器の実輝度で次の段を探す。
-for percent in 0 3 {5..100..5}; do
+for percent in 0 1 {5..100..5}; do
     level=$(( (maximum * percent + 50) / 100 ))
     if [[ $1 == up ]]; then
         if (( level > current )); then
