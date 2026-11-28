@@ -38,4 +38,13 @@
       patches = (old.patches or [ ]) ++ [ ./kitty-ime-surrounding-text.patch ];
     });
   })
+
+  # TODO: smart-splits の kitty backend が UI 経由で通知するようになったら削除する。
+  (final: prev: {
+    vimPlugins = prev.vimPlugins.extend (_: super: {
+      smart-splits-nvim = super.smart-splits-nvim.overrideAttrs (old: {
+        patches = (old.patches or [ ]) ++ [ ./smart-splits-kitty-ui.patch ];
+      });
+    });
+  })
 ]

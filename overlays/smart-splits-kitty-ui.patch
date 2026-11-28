@@ -1,0 +1,48 @@
+diff --git a/lua/smart-splits/mux/kitty.lua b/lua/smart-splits/mux/kitty.lua
+--- a/lua/smart-splits/mux/kitty.lua
++++ b/lua/smart-splits/mux/kitty.lua
+@@ -123,16 +123,37 @@ function M.resize_pane(direction, amount)
+   return code == 0
+ end
+ 
+-function M.on_init()
++local notified = false
++
++local function set_nvim_user_var(value)
++  -- The embedded Nvim server's stdout may be a log, even when its TUI owns the terminal.
++  local sequence = '\27]1337;SetUserVar=IS_NVIM' .. value .. '\007'
++  if vim.api.nvim_ui_send then
++    for _, ui in ipairs(vim.api.nvim_list_uis()) do
++      if ui.stdout_tty then
++        vim.api.nvim_ui_send(sequence)
++        notified = value ~= ''
++        return
++      end
++    end
++    -- :connect! may have detached the TUI before VimLeavePre. Only clear a flag we set.
++    if value ~= '' or not notified then
++      return
++    end
++  end
++  if (vim.uv or vim.loop).guess_handle(1) == 'tty' then
++    io.stdout:write(sequence)
++    io.stdout:flush()
++    notified = false
++  end
++end
++
++function M.on_init()
+-  -- selene: allow(incorrect_standard_library_use)
+-  -- selene: allow(bad_string_escape)
+-  io.stdout:write('\x1b]1337;SetUserVar=IS_NVIM=MQo\007')
++  set_nvim_user_var('=MQo')
+ end
+ 
+ function M.on_exit()
+-  -- selene: allow(incorrect_standard_library_use)
+-  -- selene: allow(bad_string_escape)
+-  io.stdout:write('\x1b]1337;SetUserVar=IS_NVIM\007')
++  set_nvim_user_var('')
+ end
+ 
+ function M.split_pane(direction, _)

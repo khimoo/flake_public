@@ -87,7 +87,12 @@ smart-splits.nvim の kitty backend が `kitty @` を使うので remote control
 
 Neovim の分割と kitty のタブ内ウィンドウを `Ctrl+hjkl` で区別せず跨ぐ設定は、smart-splits.nvim が
 担う。kitty 側は `--when-focus-on var:IS_NVIM` で割当てを外し、キーをそのまま Neovim へ渡す。
-`IS_NVIM` は smart-splits が起動時に OSC 1337 で立てる kitty の user var。
+`IS_NVIM` は smart-splits が OSC 1337 で設定・解除する kitty の user var。
+Antigravity CLI (`agy`) の外部エディタでは、Neovim の画面は端末にあっても、Neovim サーバーの標準出力は `agy` のログを指す。
+標準出力に通知を書くと kitty に届かず、挿入モードの `Ctrl+J` を kitty がペイン移動として処理してしまう。
+[一時パッチ](../../overlays/smart-splits-kitty-ui.patch)では Neovim 0.12 の `nvim_ui_send()` で端末 UI に直接送り、
+キー割り当てや一時停止・再開時の動作は変えない。古い Neovim や、`:connect!` で切り離された UI が残した変数を消すときは、
+標準出力が端末の場合に限ってそこへ書く。ログには通知を書かない。
 
 backend が呼ぶ kitten 3 つ（`neighboring_window.py` / `relative_resize.py` / `split_window.py`）は、
 plugin 同梱の `install-kittens.bash` が `~/.config/kitty/` へ命令的にコピーする作りになっている。

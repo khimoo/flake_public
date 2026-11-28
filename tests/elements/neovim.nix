@@ -26,4 +26,38 @@ in
     // {
       elements = [ "neovim" ];
     };
+
+  smart-splits-kitty =
+    (lib.lazyDerivation {
+      derivation =
+        let
+          configuredPkgs = import helpers.inputs.nixpkgs {
+            inherit system;
+            inherit (helpers.configurations) overlays;
+          };
+          # レイアウト問い合わせだけを代替し、PTY と Neovim は実物を使う。
+          kittyStub = pkgs.writeShellScriptBin "kitty" ''
+            test "$*" = '@ ls' || exit 1
+            printf '[]\n'
+          '';
+        in
+        pkgs.runCommand "smart-splits-kitty"
+          {
+            nativeBuildInputs = [
+              pkgs.neovim
+              pkgs.python3
+              kittyStub
+            ];
+          }
+          ''
+            python3 ${../smart-splits-kitty.py} ${configuredPkgs.vimPlugins.smart-splits-nvim}
+            touch "$out"
+          '';
+    })
+    // {
+      elements = [
+        "nvim_smart_splits"
+        "kitty"
+      ];
+    };
 }
